@@ -13,10 +13,8 @@ def fetch_conversation_messages(conversation_id: str) -> List[dict]:
         items = list(container.query_items(query=query, enable_cross_partition_query=True))
         print(f"[DEBUG] Fetched {len(items)} messages for conversation_id: {conversation_id}")
         print(f"Setting active agent")
-        #global ACTIVE_AGENT
         if len(items) > 0:
             settings.ACTIVE_AGENT = items[-1]["active_agent"]
-            #set_active_agent(ACTIVE_AGENT)
         return [item["message"] for item in items]
     except Exception as e:
         print(f"[ERROR] Error fetching messages for conversation_id {conversation_id}: {e}")
