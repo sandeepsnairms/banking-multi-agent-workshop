@@ -36,7 +36,6 @@ def supervisor(state: MessagesState) -> Command[str]:
         prompt = "Is there anything else you need help with?"
         state["messages"].append({"role": "assistant", "content": prompt})
         settings.ACTIVE_AGENT = None
-        print(f"supervisor state: {state}")
         save_message_to_cosmos(settings.CURRENT_CONVERSATION_ID, state["messages"][-1])
         return Command(goto=END, update=state)
     if settings.ACTIVE_AGENT == "loan_advisor_return":
@@ -91,17 +90,6 @@ def handoff(*, agent_name: str):
             "tool_call_id": tool_call_id,
         }
         settings.ACTIVE_AGENT = agent_name
-        print(f"handoff state: {state}")
-        # save_message_to_cosmos(settings.CURRENT_CONVERSATION_ID, state["messages"][-1])
-        # return Command(
-        #     # navigate to another agent node in the PARENT graph
-        #     goto=agent_name,
-        #     graph=Command.PARENT,
-        #     # This is the state update that the agent `agent_name` will see when it is invoked.
-        #     # We're passing agent's FULL internal message history AND adding a tool message to make sure
-        #     # the resulting chat history is valid.
-        #     update={"messages": state["messages"] + [tool_message]},
-        # )
     return handoff_to_agent
 
 
