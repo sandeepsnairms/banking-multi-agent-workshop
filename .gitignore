@@ -83,6 +83,7 @@ __pycache__/
 
 # VS Code files for those working on multiple tools
 .vscode/*
+.idea
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
