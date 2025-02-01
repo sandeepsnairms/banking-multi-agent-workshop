@@ -19,7 +19,7 @@ def supervisor(state: MessagesState) -> Command[str]:
     if settings.ACTIVE_AGENT is None:
         prompt = ("You are a supervising agent that routes the user to the right agent based on their input. "
                   "Output only the right agent from this text and nothing else. This should be one of:"
-                  " 'balance', 'transfers', 'support', 'supervisor', or 'FINISH' if the user no longer wants help.")
+                  " 'balance', 'transfers', 'support', 'loan_advisor', 'supervisor', or 'FINISH' if the user no longer wants help.")
         response = model.invoke(state["messages"] + [{"role": "system", "content": prompt}])
         next_agent = response.content.strip()
         if next_agent == "FINISH":
@@ -70,27 +70,9 @@ def calculate_monthly_payment(loan_amount: float, years: int) -> float:
 
     return round(monthly_payment, 2)  # Rounded to 2 decimal places
 
-def handoff(*, agent_name: str):
-    tool_name = f"transfer_to_{agent_name}"
-    @tool(tool_name)
-    def handoff_to_agent(
-        state: Annotated[dict, InjectedState],
-        tool_call_id: Annotated[str, InjectedToolCallId],
-    ):
-        """Ask another agent for help."""
-        tool_message = {
-            "role": "tool",
-            "content": f"Successfully transferred to {agent_name}",
-            "name": tool_name,
-            "tool_call_id": tool_call_id,
-        }
-        settings.ACTIVE_AGENT = agent_name
-    return handoff_to_agent
-
 support_agent_tools = [
     get_product_advise,
     get_branch_location,
-    handoff(agent_name="loan_advisor"),
 ]
 
 loan_agent_tools = [
@@ -99,8 +81,7 @@ loan_agent_tools = [
 
 supportAgentPrompt = SystemMessage(
     "You are a general customer support agent that can give general advise on banking products and branch locations. "
-    "If the user asks about a loan, transfer to the 'loan_advisor' agent. "
-    "If the user asks for something else, give some general advise or say you cannot help with that. You MUST include "
+    "If the user asks for something else, say you cannot help with that. You MUST include "
     "human-readable response.")
 react_support_agent = create_react_agent(
     model,
@@ -122,7 +103,7 @@ def loan_advisor(
         state: MessagesState,
 ) -> Command[Literal["support", "supervisor", "balance", "transfers"]]:
     """Support agent provides general advice on banking products and branch locations."""
-    if settings.ACTIVE_AGENT is None or settings.ACTIVE_AGENT == "support":
+    if settings.ACTIVE_AGENT is None or settings.ACTIVE_AGENT == "supervisor":
         settings.ACTIVE_AGENT = "loan_advisor"
         prompt = "Please give the loan amount and length of the loan in years?"
         state["messages"].append({"role": "assistant", "content": prompt})
@@ -152,14 +133,9 @@ def support(
         message = get_last_ai_message(response_message["messages"])
         state["messages"].append({"role": "assistant", "content": message.content})
         print(f"active agent: {settings.ACTIVE_AGENT}")
-        if settings.ACTIVE_AGENT == "loan_advisor":
-            settings.ACTIVE_AGENT = "support"
-            save_message_to_cosmos(settings.CURRENT_CONVERSATION_ID, state["messages"][-1])
-            return Command(goto="loan_advisor", update=state)
-        else:
-            settings.ACTIVE_AGENT = "supervisor"  # Reset the active agent
-            save_message_to_cosmos(settings.CURRENT_CONVERSATION_ID, state["messages"][-1])
-            return Command(goto="supervisor", update=state)
+        settings.ACTIVE_AGENT = "supervisor"  # Reset the active agent
+        save_message_to_cosmos(settings.CURRENT_CONVERSATION_ID, state["messages"][-1])
+        return Command(goto="supervisor", update=state)
 
 
 def balance(state: MessagesState) -> Command[str]:
