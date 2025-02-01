@@ -15,7 +15,6 @@ namespace SKMultiAgent.KernelPlugins
     {
 
         [KernelFunction]
-        [Description("This method adds a new transaction request to the TransactionRequest collection in Cosmos DB. The method takes several parameters: the user ID, the debit account number, the transaction amount, a debit note, and an optional recipient phone number or email ID.")]
         public static void PutTransactionRequest(
             string userId,
             string debitAccountNumber,
@@ -35,10 +34,15 @@ namespace SKMultiAgent.KernelPlugins
         }
 
         [KernelFunction]
-        [Description("This method retrieves the transaction history for a specified account within a given date range. It returns the records sorted in descending order of transaction date. Each record includes the date, credit amount, debit amount, account balance, and optional debit/credit notes.")]
-        public static List<Transaction> GetTransactionHistory(string userId, string accountNumber, DateTime startDate, DateTime endDate)
+        public static long GetAccountBalance(string userId, string accountId)
         {
-            Debug.WriteLine($"Fetching transaction history for User ID: {userId}, Account: {accountNumber}, From: {startDate} To: {endDate}");
+            return 1234;
+        }
+
+        [KernelFunction]
+        public static List<Transaction> GetTransactionHistory(string userId, string accountId, DateTime startDate, DateTime endDate)
+        {
+            Debug.WriteLine($"Fetching transaction history for User ID: {userId}, Account: {accountId}, From: {startDate} To: {endDate}");
             return new List<Transaction>
             {
                 new Transaction
