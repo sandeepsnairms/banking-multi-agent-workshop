@@ -17,7 +17,6 @@ class BankingDetails(BaseModel):
 def supervisor(state: MessagesState) -> Command[str]:
     """Supervisor dynamically determines the next agent."""
     if settings.ACTIVE_AGENT is None:
-        print("[DEBUG] Supervisor: Determining the next agent...")
         prompt = ("You are a supervising agent that routes the user to the right agent based on their input. "
                   "Output only the right agent from this text and nothing else. This should be one of:"
                   " 'balance', 'transfers', 'support', 'supervisor', or 'FINISH' if the user no longer wants help.")
@@ -38,9 +37,6 @@ def supervisor(state: MessagesState) -> Command[str]:
         settings.ACTIVE_AGENT = None
         save_message_to_cosmos(settings.CURRENT_CONVERSATION_ID, state["messages"][-1])
         return Command(goto=END, update=state)
-    if settings.ACTIVE_AGENT == "loan_advisor_return":
-        print(f"[DEBUG] Supervisor: Active agent is {settings.ACTIVE_AGENT}, routing back to {settings.ACTIVE_AGENT}")
-        return Command(goto="loan_advisor", update=state)
     else:
         print(f"[DEBUG] Supervisor: Active agent is {settings.ACTIVE_AGENT}, routing back to {settings.ACTIVE_AGENT}")
         return Command(goto=settings.ACTIVE_AGENT, update=state)
@@ -76,7 +72,6 @@ def calculate_monthly_payment(loan_amount: float, years: int) -> float:
 
 def handoff(*, agent_name: str):
     tool_name = f"transfer_to_{agent_name}"
-
     @tool(tool_name)
     def handoff_to_agent(
         state: Annotated[dict, InjectedState],
@@ -92,8 +87,6 @@ def handoff(*, agent_name: str):
         settings.ACTIVE_AGENT = agent_name
     return handoff_to_agent
 
-
-
 support_agent_tools = [
     get_product_advise,
     get_branch_location,
@@ -104,7 +97,7 @@ loan_agent_tools = [
     calculate_monthly_payment,
 ]
 
-prompt = SystemMessage(
+supportAgentPrompt = SystemMessage(
     "You are a general customer support agent that can give general advise on banking products and branch locations. "
     "If the user asks about a loan, transfer to the 'loan_advisor' agent. "
     "If the user asks for something else, give some general advise or say you cannot help with that. You MUST include "
@@ -112,37 +105,29 @@ prompt = SystemMessage(
 react_support_agent = create_react_agent(
     model,
     tools=support_agent_tools,
-    state_modifier=prompt,
+    state_modifier=supportAgentPrompt,
 )
 
-prompt2 = SystemMessage(
+loanAgentPrompt = SystemMessage(
     "You are a loan advisor that can provide advice on loans."
     "call the calculate_monthly_payment tool and provide the user with the monthly payment amount. "
     "human-readable response.")
 react_loan_advisor = create_react_agent(
     model,
     tools=loan_agent_tools,
-    state_modifier=prompt2,
+    state_modifier=loanAgentPrompt,
 )
 
 def loan_advisor(
         state: MessagesState,
 ) -> Command[Literal["support", "supervisor", "balance", "transfers"]]:
     """Support agent provides general advice on banking products and branch locations."""
-    print("in loan advisor.........................")
-    if settings.ACTIVE_AGENT is None or settings.ACTIVE_AGENT == "loan_advisor":
-        settings.ACTIVE_AGENT = "loan_advisor_return"
+    if settings.ACTIVE_AGENT is None or settings.ACTIVE_AGENT == "support":
+        settings.ACTIVE_AGENT = "loan_advisor"
         prompt = "Please give the loan amount and length of the loan in years?"
         state["messages"].append({"role": "assistant", "content": prompt})
         save_message_to_cosmos(settings.CURRENT_CONVERSATION_ID, state["messages"][-1])  # Save the message
         return Command(goto=END, update=state)
-    if settings.ACTIVE_AGENT == "loan_advisor_return":
-        response_message = react_loan_advisor.invoke(state)
-        message = get_last_ai_message(response_message["messages"])
-        state["messages"].append({"role": "assistant", "content": message.content})
-        settings.ACTIVE_AGENT = "supervisor"  # Reset the active agent
-        save_message_to_cosmos(settings.CURRENT_CONVERSATION_ID, state["messages"][-1])
-        return Command(goto="supervisor", update=state)
     else:
         response_message = react_loan_advisor.invoke(state)
         message = get_last_ai_message(response_message["messages"])
@@ -150,6 +135,7 @@ def loan_advisor(
         settings.ACTIVE_AGENT = "supervisor"  # Reset the active agent
         save_message_to_cosmos(settings.CURRENT_CONVERSATION_ID, state["messages"][-1])
         return Command(goto="supervisor", update=state)
+
 
 def support(
         state: MessagesState,
@@ -167,7 +153,7 @@ def support(
         state["messages"].append({"role": "assistant", "content": message.content})
         print(f"active agent: {settings.ACTIVE_AGENT}")
         if settings.ACTIVE_AGENT == "loan_advisor":
-            settings.ACTIVE_AGENT = "loan_advisor"
+            settings.ACTIVE_AGENT = "support"
             save_message_to_cosmos(settings.CURRENT_CONVERSATION_ID, state["messages"][-1])
             return Command(goto="loan_advisor", update=state)
         else:

@@ -10,15 +10,19 @@ This is a sample that exposes turn-by-turn conversation with a multi-agent banki
    - add the incoming message to the graph state and store it in CosmosDB
    - create a conversation id and return it to the client if this is the first message in the conversation
    - uses utility functions in `chat_history.py` to retrieve the conversation history from CosmosDB and store the incoming message.
-   - set an `active_agent` and store it in CosmosDB to be used for routing the message to the correct agent.
+   - set an `active_agent` and store it in Cosmos DB to be used for routing the message to the correct agent.
    - iterate over the graph stream defined in the `banking_agents.py` and get the response from the agent.
-2. `banking_agents.py`: This defines the agents, and routes to last active agent based on retrieved active_agent from CosmosDB and if/else conditions.
+2. `banking_agents.py`: This defines the agents and tools in the graph with routing logic. It will:
+   - Always route to supervisor agent first, which then routes to the last active agent or asks if further help is needed.
+   - Each sub-agent either routes to:
+     - The END in order to collect user information (setting active_agent so supervisor can route back to it)
+     - Supervisor agent so it can ask if user wants to continue or end the conversation.
 3. `banking_agents_test_cli.py`: This is a simple CLI tool that consumes the FastAPI server endpoint. It will:
    - send a message to the agent
    - retrieve the response from the agent and store conversation id for subsequent messages
    - print the responses to the console
-4. `azure_cosmosdb.py`: This is a utility class that defines CosmosDB credentias and initialises CosmosClient
-5. `azure_open_ai.py`: This is a utility class that defines Azure OpenAI credentials and initialises OpenAI API client
+4. `azure_cosmosdb.py`: This is a utility class that defines CosmosDB credentials and initialises CosmosClient
+5. `azure_open_ai.py`: This is a utility class that defines Azure OpenAI credentials and initialises Azure OpenAI API client
 
 
 The banking agent is a simple state machine that can handle a few banking-related tasks. The agent is implemented as a FastAPI server that exposes a REST API. The API is used by a simple CLI tool that allows the user to interact with the agent.
