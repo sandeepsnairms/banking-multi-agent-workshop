@@ -15,11 +15,11 @@ namespace SKMultiAgent.KernelPlugins
     {
 
         [KernelFunction]
-        [Description("Returns the current logged-in user ID")]
-        public static string GetUser()
+        [Description("Returns the current logged-in user")]
+        public static User GetUser()
         {
             // Dummy implementation for getting the current user ID
-            return "User123"; // Simulate returning a hardcoded user ID
+            return new User { Id = "User123", Name="John" }; // Simulate returning a hardcoded user
         }
 
         [KernelFunction]

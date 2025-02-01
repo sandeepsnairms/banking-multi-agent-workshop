@@ -15,7 +15,7 @@ namespace SKMultiAgent.KernelPlugins
 
         [KernelFunction]
         [Description("This method searches the database for similar pending requests using vector search based on the provided details. It takes three parameters: the user ID (identifying the customer), the account ID (the account in question), and the request details (a brief description of the request). It returns a list of matching request IDs.")]
-        public static List<string> GetServiceRequest(string userId, string accountId, string requestDetails)
+        public static List<string> GetPendingServiceRequest(string userId, string accountId, string requestDetails)
         {
             Debug.WriteLine($"Searching database for matching requests for User: {userId}, Account: {accountId}");
             // Simulated vector search
@@ -42,7 +42,7 @@ namespace SKMultiAgent.KernelPlugins
 
         [KernelFunction]
         [Description("This method inserts a new service request into the database. It takes four parameters: the user ID, account ID, request details (brief description), and a detailed request description. It returns a unique service request ID for future follow-up.")]
-        public static string AddServiceRequest(string userId, string accountId, string requestDetails, string requestDescription)
+        public static string NewServiceRequest(string userId, string accountId, string requestDetails, string requestDescription)
         {
             Debug.WriteLine($"Adding new service request for User: {userId}, Account: {accountId}");
             Debug.WriteLine($"Request Details: {requestDetails}");
@@ -73,7 +73,7 @@ namespace SKMultiAgent.KernelPlugins
 
         [KernelFunction]
         [Description("This method retrieves a list of details required to fulfill a specific service request based on the product type. It takes one parameter: the product type. It returns a list of required details.")]
-        public static List<string> GetServiceRequestDetails(string productType)
+        public static List<string> GetNewServiceRequestDetails(string productType)
         {
             Debug.WriteLine($"Fetching service request details for Product Type: {productType}");
             // Simulated service request details

@@ -46,11 +46,6 @@ namespace SKMultiAgent
 
             this.configRoot = configuration.Build();
 
-            //this.configRoot =
-            //    new ConfigurationBuilder()
-            //        .AddEnvironmentVariables()
-            //        .AddUserSecrets(Assembly.GetExecutingAssembly(), optional: true)
-            //        .Build();
         }
     }
 }

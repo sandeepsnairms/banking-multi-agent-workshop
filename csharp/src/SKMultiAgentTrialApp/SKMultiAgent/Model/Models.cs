@@ -6,6 +6,11 @@ using System.Threading.Tasks;
 
 namespace SKMultiAgent.Model
 {
+    public class User
+    {
+        public string Id { get; set; }
+        public string Name { get; set; }
+    }
     public class Account
     {
         public string Id { get; set; }
