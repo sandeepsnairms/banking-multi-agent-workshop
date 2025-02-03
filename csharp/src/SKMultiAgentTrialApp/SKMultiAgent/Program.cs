@@ -190,7 +190,8 @@ namespace SKMultiAgent
                        - Inform the user of the results of the eligibility check and provide guidance on the next steps.
                     {CommonAgentRules}
                     """,
-                    Kernel = newProductKernel,
+                    Kernel = newProductKernel
+                    //HistoryReducer = new ChatHistorySummarizationReducer(1000)
                 };
             KernelFunction selectionFunction =
                 AgentGroupChat.CreatePromptFunctionForStrategy(
@@ -219,10 +220,10 @@ namespace SKMultiAgent
             KernelFunction terminationFunction =
                 AgentGroupChat.CreatePromptFunctionForStrategy(
                     $$$"""
-                Examine the RESPONSE and determine whether the content has been deemed satisfactory.
-                If content is satisfactory, respond with a single word without explanation: {{{TerminationToken}}}.
-                If specific suggestions are being provided, it is not satisfactory.
-                If no correction is suggested, it is satisfactory.
+                Determine if agent has requested user input or has responded to the user's query.
+                Otherwise another agent must particpate in the conversation.
+                If no further agent participation is required, respond with a single word without explanation: {{{TerminationToken}}}.
+
 
                 RESPONSE:
                 {{$lastmessage}}
@@ -233,9 +234,9 @@ namespace SKMultiAgent
             var chatModel = kernel.GetRequiredService<IChatCompletionService>();
 
             // Set up ChatHistoryTruncationReducer to summarize older chat messages
-            var historyReducer = new ChatHistorySummarizationReducer(chatModel, 1000);
+            //var historyReducer = new ChatHistorySummarizationReducer(chatModel, 1000);
 
-            //ChatHistoryTruncationReducer historyReducer = new(1);
+            ChatHistoryTruncationReducer historyReducer = new(2);
 
             ChatResponseFormat chatResponseFormat = ChatResponseFormat.CreateJsonSchemaFormat(
              jsonSchemaFormatName: "agent_result",
@@ -243,7 +244,28 @@ namespace SKMultiAgent
                 {ChatResponseFormatBuilder.BuildFormat(ChatResponseFormatBuilder.ChatResponseFormatBuilderType.Defaut)}
                 """));
 
-   
+
+            ChatResponseFormat chatResponseFormat2 = ChatResponseFormat.CreateJsonSchemaFormat(
+             jsonSchemaFormatName: "termination_result",
+             jsonSchema: BinaryData.FromString($"""
+                {ChatResponseFormatBuilder.BuildFormat(ChatResponseFormatBuilder.ChatResponseFormatBuilderType.Termination)}
+                """));
+
+
+            // Specify response format by setting ChatResponseFormat object in prompt execution settings.
+#pragma warning disable SKEXP0010 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+            var executionSettings2 = new OpenAIPromptExecutionSettings
+            {
+                ResponseFormat = chatResponseFormat
+            };
+
+            var executionSettings3 = new OpenAIPromptExecutionSettings
+            {
+                ResponseFormat = chatResponseFormat
+            };
+#pragma warning restore SKEXP0010 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
+
 
             AgentGroupChat chat =
                 new(supportAgent, cordinatorAgent, transactionsAgent, newProductsAgent)
@@ -253,6 +275,7 @@ namespace SKMultiAgent
                         SelectionStrategy =
                             new KernelFunctionSelectionStrategy(selectionFunction, kernel)
                             {
+                                Arguments = new KernelArguments(executionSettings2),
                                 // Always start with the editor agent.
                                 InitialAgent = cordinatorAgent,
                                 // Save tokens by only including the final response
@@ -261,13 +284,15 @@ namespace SKMultiAgent
                                 HistoryVariableName = "lastmessage",
                                 // Returns the entire result value as a string.
                                 ResultParser = (result) => {
-                                    Console.WriteLine($"Selection Result:{result}"); // provides visibility (can use logger)
-                                    return result.GetValue<string>() ?? cordinatorAgent.Name; // will accept a breakpoint
+                                    var agentInfo = JsonSerializer.Deserialize<AgentInfo>(result.GetValue<string>());
+                                    Console.WriteLine($"Selection Agent Name:{agentInfo.AgentName},Selection Agent Reason:{agentInfo.Reason} "); // provides visibility (can use logger)
+                                    return agentInfo.AgentName;// .result.GetValue<string>() ?? cordinatorAgent.Name; // will accept a breakpoint
                                 }
                             },
                         TerminationStrategy =
                             new KernelFunctionTerminationStrategy(terminationFunction, kernel)
                             {
+                                Arguments = new KernelArguments(executionSettings3),
                                 // Only evaluate for editor's response
                                 Agents = [supportAgent],
                                 // Save tokens by only including the final response
@@ -275,15 +300,16 @@ namespace SKMultiAgent
                                 // The prompt variable name for the history argument.
                                 HistoryVariableName = "lastmessage",
                                 // Limit total number of turns
-                                MaximumIterations = 2,
+                                MaximumIterations = 8,
                                 // user result parser to determine if the response is "yes"
                                 //ResultParser = (result) => result.GetValue<string>()?.Contains(TerminationToken, StringComparison.OrdinalIgnoreCase) ?? false
                                 ResultParser = (result) => {
-                                    Console.WriteLine($"Termination Result:{result}"); // provides visibility (can use logger)
-                                    return result.GetValue<string>()?.Contains(TerminationToken, StringComparison.OrdinalIgnoreCase) ?? false;
+                                    var termination = JsonSerializer.Deserialize<terminationjson>(result.GetValue<string>());
+                                    Console.WriteLine($"Termination Is Complete:{termination.IsComplete},Termination Reason:{termination.Reason} ");
+                                    return termination.IsComplete;// result.GetValue<string>()?.Contains(TerminationToken, StringComparison.OrdinalIgnoreCase) ?? false;
                                 }
                             },
- 
+
                     }
                 };
 
@@ -295,8 +321,8 @@ namespace SKMultiAgent
             Console.WriteLine($"{"Welcome to ABC Bank"}");
             bool isComplete = false;
             do
-            {               
-
+            {
+                chat.IsComplete = false;
                 try
                 {
                     await foreach (ChatMessageContent response in chat.InvokeAsync())
@@ -308,7 +334,7 @@ namespace SKMultiAgent
 #pragma warning restore SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
                     }
 
-                   
+                    Debug.WriteLine("Completed: " + chat.IsComplete);
 
                 }
                 catch(Exception ex) when(ex.Message.Contains("unable to select next agent"))

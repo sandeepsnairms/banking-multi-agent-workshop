@@ -12,7 +12,8 @@ namespace SKMultiAgent.Model
         internal enum ChatResponseFormatBuilderType
         {
             Defaut,
-            Blank
+            Blank,
+            Termination
 
         }
 
@@ -23,27 +24,35 @@ namespace SKMultiAgent.Model
                 case ChatResponseFormatBuilderType.Defaut:
                     string jsonSchemaFormat = """
                     {
-                        "type": "object",
-                        "properties": {
-                            "SelectionCriteria": {
-                                "type": "object",
-                                "properties": {
-                                    "type": "object",
-                                    "properties": {
-                                       "AgentName": { "type": "string" },
-                                       "Reason": { "type": "string" },
-                                    },
-                                    "required": ["AgentName", "Reason"],
-                                    "additionalProperties": false
-                                }
-                            }
-                        },
-                        "required": ["SelectionCriteria"],
-                        "additionalProperties": true
+
+                        "type": "object", 
+                            "properties": {
+                                "AgentName": { "type": "string", "description":"name of the selected agent" },
+                                "Reason": { "type": "string","description":"reason for selecting the agent" }
+                            },
+                            "required": ["AgentName", "Reason"],
+                            "additionalProperties": false
+
                     }
                     """;
 
                     return jsonSchemaFormat;
+                case ChatResponseFormatBuilderType.Termination:
+                    string jsonSchemaFormat2 = """
+                    {
+
+                        "type": "object", 
+                            "properties": {
+                                "IsComplete": { "type": "bool", "description":"Does conversation not require further agent participation" },
+                                "Reason": { "type": "string","description":"Reason for further agent participation" }
+                            },
+                            "required": ["IsComplete", "Reason"],
+                            "additionalProperties": false
+
+                    }
+                    """;
+
+                    return jsonSchemaFormat2;
                 default:
                     return "";
             }
