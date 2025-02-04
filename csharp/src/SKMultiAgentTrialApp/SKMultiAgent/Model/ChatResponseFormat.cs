@@ -43,7 +43,7 @@ namespace SKMultiAgent.Model
 
                         "type": "object", 
                             "properties": {
-                                "IsComplete": { "type": "bool", "description":"Does conversation not require further agent participation" },
+                                "ShouldContinue": { "type": "bool", "description":"Does conversation require further agent participation" },
                                 "Reason": { "type": "string","description":"Reason for further agent participation" }
                             },
                             "required": ["IsComplete", "Reason"],
