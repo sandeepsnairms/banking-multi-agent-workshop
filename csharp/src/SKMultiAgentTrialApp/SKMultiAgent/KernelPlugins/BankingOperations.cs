@@ -7,10 +7,11 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using SKMultiAgent.Helper;
 
 namespace SKMultiAgent.KernelPlugins
 {
-    public class BankingOperations : BasicOperations
+    public class BankingOperations 
     {
 
         [KernelFunction]
@@ -22,14 +23,14 @@ namespace SKMultiAgent.KernelPlugins
             string? recipientPhoneNumber = null,
             string? recipientEmailId = null)
         {
-            LogMessage($"Adding transaction request for User ID: {userId}, Debit Account: {debitAccountNumber}");
-            LogMessage($"Amount: {amount}, Note: {debitNote}");
+            Debug.WriteLine($"Adding transaction request for User ID: {userId}, Debit Account: {debitAccountNumber}");
+            Debug.WriteLine($"Amount: {amount}, Note: {debitNote}");
             if (!string.IsNullOrEmpty(recipientPhoneNumber))
-                LogMessage($"Recipient Phone: {recipientPhoneNumber}");
+                Debug.WriteLine($"Recipient Phone: {recipientPhoneNumber}");
             if (!string.IsNullOrEmpty(recipientEmailId))
-                LogMessage($"Recipient Email: {recipientEmailId}");
+                Debug.WriteLine($"Recipient Email: {recipientEmailId}");
 
-            LogMessage("Transaction request added to the database (simulated).");
+            Debug.WriteLine("Transaction request added to the database (simulated).");
         }
 
         [KernelFunction]
@@ -41,7 +42,7 @@ namespace SKMultiAgent.KernelPlugins
         [KernelFunction]
         public static List<Transaction> GetTransactionHistory(string userId, string accountId, DateTime startDate, DateTime endDate)
         {
-            LogMessage($"Fetching transaction history for User ID: {userId}, Account: {accountId}, From: {startDate} To: {endDate}");
+            Debug.WriteLine($"Fetching transaction history for User ID: {userId}, Account: {accountId}, From: {startDate} To: {endDate}");
             return new List<Transaction>
             {
                 new Transaction

@@ -7,75 +7,69 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using SKMultiAgent.Model;
+using SKMultiAgent.Helper;
 
 namespace SKMultiAgent.KernelPlugins
 {
-    public class SupportOperations : BasicOperations
+    public class SupportOperations 
     {
-
+        /*
+                
         [KernelFunction]
-        [Description("This method searches the database for similar pending requests using vector search based on the provided details. It takes three parameters: the user ID (identifying the customer), the account ID (the account in question), and the request details (a brief description of the request). It returns a list of matching request IDs.")]
-        public static List<string> GetPendingServiceRequest(string userId, string accountId, string requestDetails)
-        {
-            LogMessage($"Searching database for matching requests for User: {userId}, Account: {accountId}");
-            // Simulated vector search
-            return new List<string> { "Request1", "Request2" }; // Dummy matching requests
-        }
-
-        [KernelFunction]
-        [Description("This method adds a telebanker callback request to the database for the specified product. It accepts two parameters: the user ID and the product name. It returns the estimated time for the telebanker to call back.")]
+        [Description("Adds a telebanker callback request to the database for the specified product.")]
         public static string AddTeleBankerRequest(string userId, string productName)
         {
-            LogMessage($"Adding Tele Banker request for User: {userId}, Product: {productName}");
+            Helper.Logger.LogMessage($"Adding Tele Banker request for User: {userId}, Product: {productName}");
             // Simulated callback time
             return "15 minutes"; // Dummy callback time
         }
 
         [KernelFunction]
-        [Description("This method checks the availability of telebankers for a specific product and provides the estimated time for contact. It takes one parameter: the product name. It returns the estimated time of contact as a string.")]
+        [Description("Checks the availability of telebankers for a specific product and provides the estimated time for contact.")]
         public static string IsTeleBankerAvailable(string productName)
         {
-            LogMessage($"Checking availability for Tele Banker for Product: {productName}");
+            Helper.Logger.LogMessage($"Checking availability for Tele Banker for Product: {productName}");
             // Simulated availability check
             return "Next available Tele Banker in 10 minutes"; // Dummy availability time
         }
+        */
 
         [KernelFunction]
-        [Description("This method inserts a new service request into the database. It takes four parameters: the user ID, account ID, request details (brief description), and a detailed request description. It returns a unique service request ID for future follow-up.")]
+        [Description("Adds a new service request into the database.")]
         public static string NewServiceRequest(string userId, string accountId, string requestDetails, string requestDescription)
         {
-            LogMessage($"Adding new service request for User: {userId}, Account: {accountId}");
-            LogMessage($"Request Details: {requestDetails}");
-            LogMessage($"Request Description: {requestDescription}");
+            Helper.Logger.LogMessage($"Adding new service request for User: {userId}, Account: {accountId}");
+            Helper.Logger.LogMessage($"Request Details: {requestDetails}");
+            Helper.Logger.LogMessage($"Request Description: {requestDescription}");
             // Simulated service request ID
             return "SR12345"; // Dummy request ID
         }
 
         [KernelFunction]
-        [Description("This method updates an existing service request in the database with additional details. It takes four parameters: the user ID, account ID, request details, and the updated request description. It does not return a value but confirms the update with a log or message.")]
+        [Description("Updates an existing service request in the database with additional details.")]
         public static void UpdateServiceRequest(string userId, string accountId, string requestDetails, string requestDescription)
         {
-            LogMessage($"Updating service request for User: {userId}, Account: {accountId}");
-            LogMessage($"Request Details: {requestDetails}");
-            LogMessage($"Request Description: {requestDescription}");
+            Helper.Logger.LogMessage($"Updating service request for User: {userId}, Account: {accountId}");
+            Helper.Logger.LogMessage($"Request Details: {requestDetails}");
+            Helper.Logger.LogMessage($"Request Description: {requestDescription}");
             // Simulated update
-            LogMessage("Service request updated successfully (simulated).");
+            Helper.Logger.LogMessage("Service request updated successfully (simulated).");
         }
 
         [KernelFunction]
-        [Description("This method converts the provided request details into a natural language description using a language model (LLM). It takes one parameter: the request details. It returns the generated description as a string.")]
-        public static string CreateRequestDescription(string requestDetails)
+        [Description("Converts the provided request details into a natural language description.")]
+        public static string CreateNaturalRequestDescription(string requestDetails)
         {
-            LogMessage($"Using LLM to convert request details to natural language: {requestDetails}");
+            Helper.Logger.LogMessage($"Using LLM to convert request details to natural language: {requestDetails}");
             // Simulated natural language generation
             return $"Please {requestDetails} for my account."; // Dummy generated description
         }
 
         [KernelFunction]
-        [Description("This method retrieves a list of details required to fulfill a specific service request based on the product type. It takes one parameter: the product type. It returns a list of required details.")]
+        [Description("List details required to fulfill a specific service request based on the product type.")]
         public static List<string> GetNewServiceRequestDetails(string productType)
         {
-            LogMessage($"Fetching service request details for Product Type: {productType}");
+            Helper.Logger.LogMessage($"Fetching service request details for Product Type: {productType}");
             // Simulated service request details
             return new List<string> { "Document Verification", "ID Proof", "Address Proof" }; // Dummy details
         }

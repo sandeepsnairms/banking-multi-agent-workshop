@@ -7,17 +7,18 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using SKMultiAgent.Helper;
 
 namespace SKMultiAgent.KernelPlugins
 {
-    public class NewProductOperations:BasicOperations
+    public class NewProductOperations
     {
 
         [KernelFunction]
         [Description("This method retrieves a list of all products available in the bank. The list can optionally be filtered by a specific type, such as \"Loans\" or \"Credit Cards.\" Each product is represented by its unique product ID, along with details such as the product's name, description, eligibility criteria, and registration requirements.")]
         public static List<Product> GetProducts(string? type = null)
         {
-            LogMessage($"Fetching products. Filter Type: {type}");
+            Debug.WriteLine($"Fetching products. Filter Type: {type}");
             return new List<Product>
             {
                 new Product
@@ -51,10 +52,10 @@ namespace SKMultiAgent.KernelPlugins
         [Description("This method allows a user to register for any of the products. It takes the user ID, product ID, and product registration details as a JSON property bag. The details contain field values specific to the product. The method stores the registration request in the database and returns a unique registration ID, which can be used for tracking the status of the request.")]
         public static string RegisterProduct(string userId, string productId, string productDetailsJson)
         {
-            LogMessage($"Registering Product. User ID: {userId}, Product ID: {productId}");
-            LogMessage($"Product Details JSON: {productDetailsJson}");
+            Debug.WriteLine($"Registering Product. User ID: {userId}, Product ID: {productId}");
+            Debug.WriteLine($"Product Details JSON: {productDetailsJson}");
             string registrationId = Guid.NewGuid().ToString();
-            LogMessage($"Generated Registration ID: {registrationId}");
+            Debug.WriteLine($"Generated Registration ID: {registrationId}");
             return registrationId;
         }
 
