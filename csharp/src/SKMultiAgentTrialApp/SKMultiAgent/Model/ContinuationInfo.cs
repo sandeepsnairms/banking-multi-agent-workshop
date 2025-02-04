@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace SKMultiAgent.Model
 {
-    public class AgentInfo
+    public class ContinuationInfo
     {
-        public string AgentName { get; set; }
-        public string Reason { get; set; }
+        public string AgentName { get; set; } = string.Empty;
+        public string Reason { get; set; } = string.Empty;
     }
 }

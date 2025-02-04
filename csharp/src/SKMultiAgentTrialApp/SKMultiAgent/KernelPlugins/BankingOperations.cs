@@ -7,11 +7,11 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using SKMultiAgent.Model;
+using SKMultiAgent.Helper;
 
 namespace SKMultiAgent.KernelPlugins
 {
-    public class BankingOperations : BasicOperations
+    public class BankingOperations 
     {
 
         [KernelFunction]
@@ -20,8 +20,8 @@ namespace SKMultiAgent.KernelPlugins
             string debitAccountNumber,
             decimal amount,
             string debitNote,
-            string recipientPhoneNumber = null,
-            string recipientEmailId = null)
+            string? recipientPhoneNumber = null,
+            string? recipientEmailId = null)
         {
             Debug.WriteLine($"Adding transaction request for User ID: {userId}, Debit Account: {debitAccountNumber}");
             Debug.WriteLine($"Amount: {amount}, Note: {debitNote}");

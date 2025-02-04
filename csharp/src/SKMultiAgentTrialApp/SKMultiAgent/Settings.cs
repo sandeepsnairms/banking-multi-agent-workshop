@@ -4,7 +4,6 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
-using System.Reflection;
 using Microsoft.Extensions.Configuration;
 
 namespace SKMultiAgent
@@ -13,11 +12,11 @@ namespace SKMultiAgent
     {
         private readonly IConfigurationRoot configRoot;
 
-        private AzureOpenAISettings azureOpenAI;
-        private OpenAISettings openAI;
+        private AzureOpenAISettings? azureOpenAI;
+        private OpenAISettings? openAI;
 
-        public AzureOpenAISettings AzureOpenAI => this.azureOpenAI ??= this.GetSettings<Settings.AzureOpenAISettings>();
-        public OpenAISettings OpenAI => this.openAI ??= this.GetSettings<Settings.OpenAISettings>();
+        public AzureOpenAISettings AzureOpenAI => this.azureOpenAI ??= this.GetSettings<AzureOpenAISettings>();
+        public OpenAISettings OpenAI => this.openAI ??= this.GetSettings<OpenAISettings>();
 
         public class OpenAISettings
         {
@@ -41,8 +40,9 @@ namespace SKMultiAgent
         {
 
             var configuration = new ConfigurationBuilder()
+                .AddUserSecrets(Assembly.GetExecutingAssembly(), optional: true)
                 .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-                .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")}.json", optional: true);
+                .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "local"}.json", optional: true);
 
             this.configRoot = configuration.Build();
 

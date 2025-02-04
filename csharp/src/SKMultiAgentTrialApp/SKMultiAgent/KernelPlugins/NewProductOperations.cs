@@ -7,7 +7,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using SKMultiAgent.Model;
+using SKMultiAgent.Helper;
 
 namespace SKMultiAgent.KernelPlugins
 {
@@ -16,7 +16,7 @@ namespace SKMultiAgent.KernelPlugins
 
         [KernelFunction]
         [Description("This method retrieves a list of all products available in the bank. The list can optionally be filtered by a specific type, such as \"Loans\" or \"Credit Cards.\" Each product is represented by its unique product ID, along with details such as the product's name, description, eligibility criteria, and registration requirements.")]
-        public static List<Product> GetProducts(string type = null)
+        public static List<Product> GetProducts(string? type = null)
         {
             Debug.WriteLine($"Fetching products. Filter Type: {type}");
             return new List<Product>

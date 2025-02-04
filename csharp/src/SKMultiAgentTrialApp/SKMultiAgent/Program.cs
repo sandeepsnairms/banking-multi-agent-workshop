@@ -1,11 +1,15 @@
 ﻿// Copyright (c) Microsoft. All rights reserved.
 
+#define TRACE_CONSOLE
+
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Reflection;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Xml;
 using Azure;
 using Azure.Identity;
 using Microsoft.SemanticKernel;
@@ -16,13 +20,13 @@ using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using OpenAI.Chat;
+using SKMultiAgent.Helper;
 using SKMultiAgent.KernelPlugins;
 using SKMultiAgent.Model;
 using ChatMessageContent = Microsoft.SemanticKernel.ChatMessageContent;
 
 namespace SKMultiAgent
 {
-
     public static class Program
     {
         public static async Task Main()
@@ -30,78 +34,92 @@ namespace SKMultiAgent
             // Load configuration from environment variables or user secrets.
             Settings settings = new();
 
-            Console.WriteLine("Creating kernel...");
+            Trace("Creating kernel...");
             IKernelBuilder builder = Kernel.CreateBuilder();
 
+            //builder.AddOpenAIChatCompletion(
+            //    settings.OpenAI.ChatModel,
+                //settings.OpenAI.ApiKey);
 
             builder.AddAzureOpenAIChatCompletion(
                 settings.AzureOpenAI.ChatModelDeployment,
-                settings.AzureOpenAI.Endpoint,new DefaultAzureCredential());
+                settings.AzureOpenAI.Endpoint,
+                new DefaultAzureCredential());
 
 
             Kernel kernel = builder.Build();
 
 
             Kernel cordinatorKernel = kernel.Clone();
-            cordinatorKernel.Plugins.AddFromType<BasicOperations>();
             cordinatorKernel.Plugins.AddFromType<CordinatorOperations>();
-
-            Kernel bankingKernel = kernel.Clone();
-            bankingKernel.Plugins.AddFromType<BankingOperations>();
+            cordinatorKernel.Plugins.AddFromType<CommonOperations>();
 
             Kernel supportKernel = kernel.Clone();
             supportKernel.Plugins.AddFromType<SupportOperations>();
+            supportKernel.Plugins.AddFromType<CommonOperations>();
+
+            Kernel bankingKernel = kernel.Clone();
+            bankingKernel.Plugins.AddFromType<BankingOperations>();
+            bankingKernel.Plugins.AddFromType<CommonOperations>();
 
             Kernel newProductKernel = kernel.Clone();
-            bankingKernel.Plugins.AddFromType<NewProductOperations>();
+            newProductKernel.Plugins.AddFromType<NewProductOperations>();
+            newProductKernel.Plugins.AddFromType<CommonOperations>();
 
 
-            Console.WriteLine("Defining agents...");
+            Trace("Defining agents...");
 
             const string CordinatorAgent = "Cordinator";
             const string CustomerSupportAgent = "CustomerSupport";
             const string TransactionsAgent = "Transactions";
             const string NewProductsAgent = "NewProducts";
 
-            const string CommonAgentRules = @"Important:
-                   - Understand the user's query and respond only if it aligns with your responsibilities.
-                   - State why you think, you have a solution to the user's query.
-                   - Provide specific information based query and data provided.
-                   - Ensure responses are grounded in the provided data.               
-                   - Ensure every response adds value to the user's request or confirms the user's request.
-                   - If unable to assist, respond with [[[I CANT HELP]]].
-                   - Do not proceed with submitting a request without the necessary information from the user.
-                   - Do not respond with a message if the previous response conveys the same information.
-                   - Maintain politeness and professionalism in all responses.  
-                    ";
+            const string CommonAgentRules =
+                """
+                Important:
+                - Understand the user's query and respond only if it aligns with your responsibilities.
+                - State why you think, you have a solution to the user's query.
+                - Ensure responses are grounded to the following data sources.
+                    - user provided data
+                    - data fetched using functions
+                - Provide specific information based query and data provided.          
+                - Ensure every response adds value to the user's request or confirms the user's request.
+                - Do not proceed with submitting a request without the necessary information from the user.
+                - Do not respond with a message if the previous response conveys the same information.
+                - Maintain politeness and professionalism in all responses.
+                - Do not respond with a welcome message if another welcome message already exists.
+                - If user's response is pending, wait for the user to provide the necessary before proceeding.
+                """;
+            //-If unable to assist, respond with: [[[I CANT HELP]]].
 
-            const string GlobalRules = @"
-                   - If user's response is pending, wait for the user to provide the necessary before proceeding.                   
-                   - Do not respond with a welcome message if another welcome message already exists.
-                    ";
-#pragma warning disable SKEXP0110 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+            //const string GlobalRules = 
+            //    """                                   
+                
+            //    """;
+            //- If user's response is pending, wait for the user to provide the necessary before proceeding.
+
             ChatCompletionAgent cordinatorAgent =
                 new()
                 {
                     Name = CordinatorAgent,
                     Instructions =
                         $"""
-                    You are a Chat Initiator and Request Router in a bank.
-                    Your primary responsibilities include welcoming users, identifying customers based on their login, routing requests to the appropriate agent.
-                    Start by greeting the user warmly and asking how you can assist them today.
+                        You are a Chat Initiator and Request Router in a bank.
+                        Your primary responsibilities include welcoming users, identifying customers based on their login, routing requests to the appropriate agent.
+                        Start with identifying the currently logged-in user's information and use it to personalize the interaction.For example, "Thank you for logging in, [user Name]. How can I help you with your banking needs today?"
 
-                    RULES:
-                    - Identify the user based on their login information and use their name to personalize the interaction. For example, "Thank you for logging in, [user Name]. How can I help you with your banking needs today?"
-                    - Determine the nature of the user's request and route it to the appropriate agent, informing the user about the transfer. For example, "I understand your request. Let me connect you with the right agent who can assist you further."
-                    - Avoid asking for unnecessary details to route the user's request. For example, "I see you have a question about your account balance. Let me connect you with the right agent who can assist you further."
-                    - Do not provide any information or assistance directly; always route the request to the appropriate agent silently.
-                    - Route requests to the appropriate agent without providing direct assistance.
-                    - If another agent has asked a question, wait for the user to respond before routing the request.
-                    - If the user has responded to another agent, let the same agent respond before routing or responding.
-                    - When the user's request is fulfilled, ask for feedback on the service provided before concluding the interaction. Gauge their overall satisfaction and sentiment as either happy or sad. For example, "Before we conclude, could you please provide your feedback on our service today? Were you satisfied with the assistance provided? Would you say your overall experience was happy or sad?"             
-                    {CommonAgentRules}
-                    {GlobalRules}
-                    """,
+                        RULES:
+                        - Determine the nature of the user's request and route it to the appropriate agent, informing the user about the transfer. For example, "I understand your request. Let me connect you with the right agent who can assist you further."
+                        - Avoid asking for unnecessary details to route the user's request. For example, "I see you have a question about your account balance. Let me connect you with the right agent who can assist you further."
+                        - Do not provide any information or assistance directly; always route the request to the appropriate agent silently.
+                        - Route requests to the appropriate agent without providing direct assistance.
+                        - If another agent has asked a question, wait for the user to respond before routing the request.
+                        - If the user has responded to another agent, let the same agent respond before routing or responding.
+                        - When the user's request is fulfilled, ask for feedback on the service provided before concluding the interaction. Gauge their overall satisfaction and sentiment as either happy or sad. For example, "Before we conclude, could you please provide your feedback on our service today? Were you satisfied with the assistance provided? Would you say your overall experience was happy or sad?"
+                        - Use the available functions when needed.
+                        {CommonAgentRules}
+        
+                        """,
                     Kernel = cordinatorKernel,
                     Arguments = new KernelArguments(new AzureOpenAIPromptExecutionSettings() { FunctionChoiceBehavior = FunctionChoiceBehavior.Auto() })
                 };
@@ -113,59 +131,63 @@ namespace SKMultiAgent
                     Name = CustomerSupportAgent,
                     Instructions =
                         $"""
-                    Your sole responsiblity is to:
-                    1. Helping customers lodge complaints.
-                    2. Providing status updates on existing complaints.
-                    3. Taking requests for account details updates, check book requests, and card replacements.
+                        Your sole responsiblity is to:
+                        1. Helping customers lodge service request.
+                        2. Lookup on existing service request.
+                        2. Providing status updates on existing service request.
+                        3. Taking requests for account details updates, check book requests, and card replacements.
 
-                    Guidelines:
-                    - Only entertain requests related user-enrolled services/accounts.
-                    - For new product enquiries respond with [[[I CANT HELP]]].
-                    - Retrieve the services the user has registered/enrolled from the database.
-                    - If no agent is able to assist the user, check if they would like to speak to a tele banker. Tele bankers are available Monday to Friday, 9 AM to 5 PM PST. Check tele banker availability and queue length before suggesting this option.
-                    - When taking a new service request or complaint, always ask the user to provide their account ID. Validate that the account ID is part of the enrolled accounts.
-                    - Check if there is already a pending service request or complaint matching the current request. If found, inform the user of the status and estimated time of resolution. Ask if the user would like to add any comments and update the existing record with new request comments.
-                    - If no match is found, create a new service request or complaint.
-                    {CommonAgentRules}.  
-                    """,
+                        Guidelines:
+                        - Let user know you can submit a service request for them to address a complain.
+                        - Execute the below steps in order to proces Support Request                           
+                            1. Ask the user to provide their account ID, if you don't have the users account ID.                        - 
+                            1. Start by verifying  the account ID against database.
+                            2. If account is verified, search the database for pending service requests matching the current request.
+                                - If pending service request is found, inform the user of the status and estimated time of resolution. Ask if the user would like to add any comments and update the existing record with new request comments.
+                                - If no matching pending service request found, create a new service request.
+                            3. If account details are not available, inform the user that you cannot proceed without the necessary information.
+                        - If no agent is able to assist the user, check if they would like to speak to a tele banker. Tele bankers are available Monday to Friday, 9 AM to 5 PM PST. Check tele banker availability and queue length before suggesting this option.
+
+                        {CommonAgentRules}.  
+                        """,
                     Kernel = supportKernel,
                 };
-
+            /*
             ChatCompletionAgent transactionsAgent =
                 new()
                 {
                     Name = TransactionsAgent,
                     Instructions =
                         $"""
-                    Your sole responsiblity is to:
+                        Your sole responsiblity is to:
 
-                    1. Handling transactions.
-                    2. Generating account statements.
-                    3. Providing balance inquiries.
+                        1. Handling transactions.
+                        2. Generating account statements.
+                        3. Providing balance inquiries.
 
-                    Guidelines:
-                    - Do not participate in new product registration discussion.
-                    - Based on the following message, determine the appropriate action and respond accordingly.
-                    - Ensure that you only provide information related to the current user's accounts.
-                    - To start the process, retrieve the current services registered to the user from the database.
-                    - Check if you have the user's account number. If any data is missing, politely inform the user and explain that you cannot proceed until the details are available in the bank’s database.
-                    Tasks:
-                    1. Process Transfers:
-                       - Use the recipient's email or phone number to process transfers.
-                       - Validate the recipient's phone number and email format before proceeding.
-                       - Ensure the account has the necessary balance before accepting a request.
-                       - Confirm all details with the user before proceeding.
-                       - Inform the user that they will be notified of transaction completions via text message and email.
-                    2. Generate Account Statements:
-                       - Respond to transaction queries for up to 6 months old.
-                       - Filter transactions based on type (credit/debit), amount, or date range according to the user query.
-                    3. Provide Balance Information:
-                       - Offer the latest balance information for the user's accounts.
-                    {CommonAgentRules}
-                    """,
+                        Guidelines:
+                        - Do not participate in new product registration discussion.
+                        - Based on the following message, determine the appropriate action and respond accordingly.
+                        - Ensure that you only provide information related to the current user's accounts.
+                        - To start the process, retrieve the current services registered to the user from the database.
+                        - Check if you have the user's account number. If any data is missing, politely inform the user and explain that you cannot proceed until the details are available in the bank’s database.
+                        Tasks:
+                        1. Process Transfers:
+                           - Use the recipient's email or phone number to process transfers.
+                           - Validate the recipient's phone number and email format before proceeding.
+                           - Ensure the account has the necessary balance before accepting a request.
+                           - Confirm all details with the user before proceeding.
+                           - Inform the user that they will be notified of transaction completions via text message and email.
+                        2. Generate Account Statements:
+                           - Respond to transaction queries for up to 6 months old.
+                           - Filter transactions based on type (credit/debit), amount, or date range according to the user query.
+                        3. Provide Balance Information:
+                           - Offer the latest balance information for the user's accounts.
+                        {CommonAgentRules}
+                        """,
                     Kernel = bankingKernel,
                 };
-
+ 
             ChatCompletionAgent newProductsAgent =
                 new()
                 {
@@ -192,42 +214,42 @@ namespace SKMultiAgent
                     """,
                     Kernel = newProductKernel
                     //HistoryReducer = new ChatHistorySummarizationReducer(1000)
-                };
+                };*/
             KernelFunction selectionFunction =
                 AgentGroupChat.CreatePromptFunctionForStrategy(
                     $$$"""
-                Examine the provided RESPONSE and choose the next participant.
-                State only the name of the chosen participant without explanation.
-                Never choose the participant named in the RESPONSE.
+                    Examine RESPONSE and choose the next participant.
 
-                Choose only from these participants:
-                - {{{CordinatorAgent}}}
-                - {{{CustomerSupportAgent}}}
-                - {{{TransactionsAgent}}}
-                - {{{NewProductsAgent}}}
+                    Choose only from these participants:
+                    - {{{CordinatorAgent}}}
+                    - {{{CustomerSupportAgent}}}
 
-                Always follow these rules when choosing the next participant:
-                - Start the chat with {{{CordinatorAgent}}}.
-                - {{{CordinatorAgent}}} invokes the next participant only after identifying the user's login.
-                - Determine the nature of the user's request and route it to the appropriate agent
-                RESPONSE:
-                {{$lastmessage}}
-                """,
+                    Always follow these rules when choosing the next participant:
+                    - Determine the nature of the user's request and route it to the appropriate agent
+                    - If the user is responding to an agent, select that same agent.
+                    - If the agent is responding after fetching or verifying data , select that same agent.
+                    - If unclear, select {{{CordinatorAgent}}}.
+                    
+                    RESPONSE:
+                    {{$lastmessage}}
+                    """,
                     safeParameterNames: "lastmessage");
 
-            const string TerminationToken = "yes";
+            const string TerminationToken = "no";
+            const string ContinuationToken = "yes";
 
             KernelFunction terminationFunction =
                 AgentGroupChat.CreatePromptFunctionForStrategy(
-                    $$$"""
-                Determine if agent has requested user input or has responded to the user's query.
-                Otherwise another agent must particpate in the conversation.
-                If no further agent participation is required, respond with a single word without explanation: {{{TerminationToken}}}.
+                    $$$"""           
+                    Determine if agent has requested user input or has responded to the user's query.
+                    Respond with the word {{{TerminationToken}}} (without explanation) if agent has requested user input.
+                    Otherwise, respond with the word {{{ContinuationToken}}} (without explanation) if any the following conditions are met:
+                    - An action is pending by an agent.
+                    - Further participation from an agent is required
 
-
-                RESPONSE:
-                {{$lastmessage}}
-                """,
+                    RESPONSE:
+                    {{$lastmessage}}
+                    """,
                     safeParameterNames: "lastmessage");
 
 
@@ -236,16 +258,16 @@ namespace SKMultiAgent
             // Set up ChatHistoryTruncationReducer to summarize older chat messages
             //var historyReducer = new ChatHistorySummarizationReducer(chatModel, 1000);
 
-            ChatHistoryTruncationReducer historyReducer = new(2);
+            ChatHistoryTruncationReducer historyReducer = new(5);
 
-            ChatResponseFormat chatResponseFormat = ChatResponseFormat.CreateJsonSchemaFormat(
+            ChatResponseFormat continutationInfoFormat = ChatResponseFormat.CreateJsonSchemaFormat(
              jsonSchemaFormatName: "agent_result",
              jsonSchema: BinaryData.FromString($"""
-                {ChatResponseFormatBuilder.BuildFormat(ChatResponseFormatBuilder.ChatResponseFormatBuilderType.Defaut)}
+                {ChatResponseFormatBuilder.BuildFormat(ChatResponseFormatBuilder.ChatResponseFormatBuilderType.Continuation)}
                 """));
 
 
-            ChatResponseFormat chatResponseFormat2 = ChatResponseFormat.CreateJsonSchemaFormat(
+            ChatResponseFormat terminationInfoFormat = ChatResponseFormat.CreateJsonSchemaFormat(
              jsonSchemaFormatName: "termination_result",
              jsonSchema: BinaryData.FromString($"""
                 {ChatResponseFormatBuilder.BuildFormat(ChatResponseFormatBuilder.ChatResponseFormatBuilderType.Termination)}
@@ -253,29 +275,27 @@ namespace SKMultiAgent
 
 
             // Specify response format by setting ChatResponseFormat object in prompt execution settings.
-#pragma warning disable SKEXP0010 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-            var executionSettings2 = new OpenAIPromptExecutionSettings
+            var continuationExecSettings = new OpenAIPromptExecutionSettings
             {
-                ResponseFormat = chatResponseFormat
+                ResponseFormat = continutationInfoFormat
             };
 
-            var executionSettings3 = new OpenAIPromptExecutionSettings
+            var terminationExecSettings = new OpenAIPromptExecutionSettings
             {
-                ResponseFormat = chatResponseFormat
+                ResponseFormat = terminationInfoFormat
             };
-#pragma warning restore SKEXP0010 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 
 
             AgentGroupChat chat =
-                new(supportAgent, cordinatorAgent, transactionsAgent, newProductsAgent)
+                new(supportAgent, cordinatorAgent)
                 {
                     ExecutionSettings = new AgentGroupChatSettings
                     {
                         SelectionStrategy =
                             new KernelFunctionSelectionStrategy(selectionFunction, kernel)
                             {
-                                Arguments = new KernelArguments(executionSettings2),
+                                Arguments = new KernelArguments(continuationExecSettings),
                                 // Always start with the editor agent.
                                 InitialAgent = cordinatorAgent,
                                 // Save tokens by only including the final response
@@ -283,18 +303,18 @@ namespace SKMultiAgent
                                 // The prompt variable name for the history argument.
                                 HistoryVariableName = "lastmessage",
                                 // Returns the entire result value as a string.
-                                ResultParser = (result) => {
-                                    var agentInfo = JsonSerializer.Deserialize<AgentInfo>(result.GetValue<string>());
-                                    Console.WriteLine($"Selection Agent Name:{agentInfo.AgentName},Selection Agent Reason:{agentInfo.Reason} "); // provides visibility (can use logger)
-                                    return agentInfo.AgentName;// .result.GetValue<string>() ?? cordinatorAgent.Name; // will accept a breakpoint
+                                ResultParser = (result) =>
+                                {
+                                    var ContinuationInfo = JsonSerializer.Deserialize<ContinuationInfo>(result.GetValue<string>());
+                                    Trace($"SELECTION - Agent:{ContinuationInfo.AgentName}"); // provides visibility (can use logger)
+                                    Trace($"SELECTION - Reason:{ContinuationInfo.Reason}"); // provides visibility (can use logger)
+                                    return ContinuationInfo.AgentName;
                                 }
                             },
                         TerminationStrategy =
                             new KernelFunctionTerminationStrategy(terminationFunction, kernel)
                             {
-                                Arguments = new KernelArguments(executionSettings3),
-                                // Only evaluate for editor's response
-                                Agents = [supportAgent],
+                                Arguments = new KernelArguments(terminationExecSettings),
                                 // Save tokens by only including the final response
                                 HistoryReducer = historyReducer,
                                 // The prompt variable name for the history argument.
@@ -302,11 +322,13 @@ namespace SKMultiAgent
                                 // Limit total number of turns
                                 MaximumIterations = 8,
                                 // user result parser to determine if the response is "yes"
-                                //ResultParser = (result) => result.GetValue<string>()?.Contains(TerminationToken, StringComparison.OrdinalIgnoreCase) ?? false
-                                ResultParser = (result) => {
-                                    var termination = JsonSerializer.Deserialize<terminationjson>(result.GetValue<string>());
-                                    Console.WriteLine($"Termination Is Complete:{termination.IsComplete},Termination Reason:{termination.Reason} ");
-                                    return termination.IsComplete;// result.GetValue<string>()?.Contains(TerminationToken, StringComparison.OrdinalIgnoreCase) ?? false;
+                                
+                                ResultParser = (result) =>
+                                {
+                                    var terminationInfo = JsonSerializer.Deserialize<TerminationInfo>(result.GetValue<string>());
+                                    Trace($"TERMINATION - Continue:{terminationInfo.ShouldContinue}"); // provides visibility (can use logger)
+                                    Trace($"TERMINATION - Reason:{terminationInfo.Reason}"); // provides visibility (can use logger)
+                                    return !terminationInfo.ShouldContinue;
                                 }
                             },
 
@@ -314,11 +336,19 @@ namespace SKMultiAgent
                 };
 
 
-            Console.WriteLine("Ready!");
+            Trace("Ready!");
 
 
-            chat.AddChatMessage(new ChatMessageContent(AuthorRole.Assistant, "Welcome to ABC Bank"));
             Console.WriteLine($"{"Welcome to ABC Bank"}");
+
+            //var chatHistory=await LoadChatHistoryAsync("chatHistory.json");
+
+            //List< ChatMessageContent> chatMessageList = new();
+            //if (chatHistory!=null)
+            //{
+            //    chat.AddChatMessages((IReadOnlyList<ChatMessageContent>)chatHistory);
+            //}
+
             bool isComplete = false;
             do
             {
@@ -327,22 +357,19 @@ namespace SKMultiAgent
                 {
                     await foreach (ChatMessageContent response in chat.InvokeAsync())
                     {
+                        //chatMessageList.Add(response);
                         Console.WriteLine();
-#pragma warning disable SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
                         if (!string.IsNullOrEmpty(response.Content))// && response.Content != "[[[I CANT HELP]]]")
                             Console.WriteLine($"{response.AuthorName.ToUpperInvariant()}:{Environment.NewLine}{response.Content}");
-#pragma warning restore SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
                     }
 
-                    Debug.WriteLine("Completed: " + chat.IsComplete);
+                    Trace("Completed: " + chat.IsComplete);
 
                 }
-                catch(Exception ex) when(ex.Message.Contains("unable to select next agent"))
+                catch (KernelException ex) when (ex.Message.Contains("unable to select next agent"))
                 {
-                    Debug.WriteLine(ex.Message);
+                    Trace("FAILURE: " + ex.Message);
                     chat.AddChatMessage(new ChatMessageContent(AuthorRole.User, "Who else can help?"));
-
-                    chat.IsComplete = false;
                 }
                 catch (HttpOperationException exception)
                 {
@@ -357,9 +384,11 @@ namespace SKMultiAgent
                     }
                 }
 
+                Console.ForegroundColor = ConsoleColor.Cyan;
                 Console.WriteLine();
                 Console.Write("> ");
-                string input = Console.ReadLine();
+                string? input = Console.ReadLine();
+                Console.ResetColor();
 
 
                 if (string.IsNullOrWhiteSpace(input))
@@ -376,7 +405,9 @@ namespace SKMultiAgent
                 if (input.Equals("RESET", StringComparison.OrdinalIgnoreCase))
                 {
                     await chat.ResetAsync();
+                    
                     Console.WriteLine("[Converation has been reset]");
+                    //await SaveChatHistoryAsync(chatMessageList,chat.Agents ,"chatHistory.json");
                     continue;
                 }
 
@@ -384,11 +415,53 @@ namespace SKMultiAgent
 
                 chat.IsComplete = false;
 
+
+
             } while (!isComplete);
         }
 
+        private static void Trace(string message)
+        {
+#if TRACE_CONSOLE
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.WriteLine("# " + message);
+            Console.ResetColor();
+#else
+            Debug.WriteLine(message);
+#endif
+        }
+               
+
+        //private static async Task SaveChatHistoryAsync(List<ChatMessageContent> chatHistory, List<ChatCompletionAgent> agents,string filePath)
+        //{
+        //    var checkpoint = new
+        //    {
+        //        Messages = chatHistory,
+        //        AgentNames = agents.ConvertAll(a => a.Name) // Save agent identifiers
+        //    };
 
 
+        //    var options = new JsonSerializerOptions { WriteIndented = true };
+        //    string json = JsonSerializer.Serialize(checkpoint, options);
+        //    await File.WriteAllTextAsync(filePath, json);
+        //}
+
+
+        
+
+
+        //private static async Task<List<ChatMessageContent>> LoadChatHistoryAsync(string filePath)
+        //{
+        //    if (!File.Exists(filePath))
+        //    {
+        //        return null;
+        //        //throw new FileNotFoundException("The specified file does not exist.", filePath);
+        //    }
+
+        //    string json = await File.ReadAllTextAsync(filePath);
+        //    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        //    return JsonSerializer.Deserialize<List<ChatMessageContent>>(json, options) ?? new List<ChatMessageContent>();
+        //}
 
 
     }

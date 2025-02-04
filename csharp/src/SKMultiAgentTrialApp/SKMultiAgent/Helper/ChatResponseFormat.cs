@@ -5,24 +5,24 @@ using System.Text;
 using System.Threading.Tasks;
 
 
-namespace SKMultiAgent.Model
+namespace SKMultiAgent.Helper
 {
     internal static class ChatResponseFormatBuilder
     {
         internal enum ChatResponseFormatBuilderType
         {
-            Defaut,
             Blank,
+            Continuation,
             Termination
 
         }
 
         internal static string BuildFormat(ChatResponseFormatBuilderType formatType)
         {
-            switch(formatType)
+            switch (formatType)
             {
-                case ChatResponseFormatBuilderType.Defaut:
-                    string jsonSchemaFormat = """
+                case ChatResponseFormatBuilderType.Continuation:
+                    string jsonSchemaFormat_Continuation = """
                     {
 
                         "type": "object", 
@@ -36,29 +36,29 @@ namespace SKMultiAgent.Model
                     }
                     """;
 
-                    return jsonSchemaFormat;
+                    return jsonSchemaFormat_Continuation;
                 case ChatResponseFormatBuilderType.Termination:
-                    string jsonSchemaFormat2 = """
+                    string jsonSchemaFormat_termination = """
                     {
 
                         "type": "object", 
                             "properties": {
-                                "IsComplete": { "type": "bool", "description":"Does conversation not require further agent participation" },
-                                "Reason": { "type": "string","description":"Reason for further agent participation" }
+                                "ShouldContinue": { "type": "boolean", "description":"Does conversation require further agent participation" },
+                                "Reason": { "type": "string","description":"List the conditions that evaluated to true for further agent participation" }
                             },
-                            "required": ["IsComplete", "Reason"],
+                            "required": ["ShouldContinue", "Reason"],
                             "additionalProperties": false
 
                     }
                     """;
 
-                    return jsonSchemaFormat2;
+                    return jsonSchemaFormat_termination;
                 default:
                     return "";
             }
-            
+
         }
     }
-    
+
 
 }
