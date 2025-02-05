@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using System.Xml;
 using Azure;
 using Azure.Identity;
+using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.Agents.Chat;
@@ -22,8 +23,10 @@ using Microsoft.SemanticKernel.Connectors.OpenAI;
 using OpenAI.Chat;
 using SKMultiAgent.Helper;
 using SKMultiAgent.KernelPlugins;
+using SKMultiAgent.Log;
 using SKMultiAgent.Model;
 using ChatMessageContent = Microsoft.SemanticKernel.ChatMessageContent;
+using Microsoft.Extensions.Logging.Console;
 
 namespace SKMultiAgent
 {
@@ -48,7 +51,17 @@ namespace SKMultiAgent
 
 
             Kernel kernel = builder.Build();
+            // Inside the Main method, replace the line with the following:
 
+            var loggerFactory = Microsoft.Extensions.Logging.LoggerFactory.Create(builder =>
+            {
+                builder.AddConsole();
+                builder.SetMinimumLevel(LogLevel.Warning);
+            });
+
+            var logger = loggerFactory.CreateLogger<AutoFunctionInvocationLoggingFilter>();
+            kernel.AutoFunctionInvocationFilters.Add(new AutoFunctionInvocationLoggingFilter(logger));
+    
 
             Kernel cordinatorKernel = kernel.Clone();
             cordinatorKernel.Plugins.AddFromType<CordinatorOperations>();
@@ -63,7 +76,7 @@ namespace SKMultiAgent
             bankingKernel.Plugins.AddFromType<CommonOperations>();
 
             Kernel newProductKernel = kernel.Clone();
-            newProductKernel.Plugins.AddFromType<NewProductOperations>();
+            newProductKernel.Plugins.AddFromType<NewAccountOperations>();
             newProductKernel.Plugins.AddFromType<CommonOperations>();
 
 
@@ -72,11 +85,12 @@ namespace SKMultiAgent
             const string CordinatorAgent = "Cordinator";
             const string CustomerSupportAgent = "CustomerSupport";
             const string TransactionsAgent = "Transactions";
-            const string NewProductsAgent = "NewProducts";
+            const string NewAccountsAgent = "NewAccounts";
 
             const string CommonAgentRules =
                 """
                 Important:
+                - Always use current datetime as datetime retrieved from the database.
                 - Understand the user's query and respond only if it aligns with your responsibilities.
                 - State why you think, you have a solution to the user's query.
                 - Ensure responses are grounded to the following data sources.
@@ -94,9 +108,10 @@ namespace SKMultiAgent
 
             //const string GlobalRules = 
             //    """                                   
-                
+
             //    """;
             //- If user's response is pending, wait for the user to provide the necessary before proceeding.
+
 
             ChatCompletionAgent cordinatorAgent =
                 new()
@@ -133,26 +148,31 @@ namespace SKMultiAgent
                         $"""
                         Your sole responsiblity is to:
                         1. Helping customers lodge service request.
-                        2. Lookup on existing service request.
+                        2. Searching existing service requests.
                         2. Providing status updates on existing service request.
-                        3. Taking requests for account details updates, check book requests, and card replacements.
+                        3. Creating and updating service requests for user registered accounts.
 
                         Guidelines:
-                        - Let user know you can submit a service request for them to address a complain.
-                        - Execute the below steps in order to proces Support Request                           
-                            1. Ask the user to provide their account ID, if you don't have the users account ID.                        - 
-                            1. Start by verifying  the account ID against database.
-                            2. If account is verified, search the database for pending service requests matching the current request.
-                                - If pending service request is found, inform the user of the status and estimated time of resolution. Ask if the user would like to add any comments and update the existing record with new request comments.
-                                - If no matching pending service request found, create a new service request.
-                            3. If account details are not available, inform the user that you cannot proceed without the necessary information.
-                        - If no agent is able to assist the user, check if they would like to speak to a tele banker. Tele bankers are available Monday to Friday, 9 AM to 5 PM PST. Check tele banker availability and queue length before suggesting this option.
+                        - If you don't have the users account Id, ask the user to provide it.                         - 
+                        - Check if the account Id is registered to user.
+                        - If account Id is registered to user, search user's pending service requests.
+                            - If pending service request found:
+                                - Inform the user of the status and estimated time of resolution.
+                                - Ask if user wants to add any comments and update the existing record.
+                            - If not found:
+                                - Ask if user wants to create new service request.
+                        - If account Id is not registered
+                            - Inform the user that you cannot proceed without the correct account Id. 
+                        - If no agent is able to assist the user, check if they would like to speak to a tele banker.
+                            - Tele bankers are available Monday to Friday, 9 AM to 5 PM PST.
+                            - Check tele banker availability and queue length before suggesting this option.
 
                         {CommonAgentRules}.  
                         """,
                     Kernel = supportKernel,
+                    Arguments = new KernelArguments(new AzureOpenAIPromptExecutionSettings() { FunctionChoiceBehavior = FunctionChoiceBehavior.Auto() })
                 };
-            /*
+            
             ChatCompletionAgent transactionsAgent =
                 new()
                 {
@@ -186,35 +206,40 @@ namespace SKMultiAgent
                         {CommonAgentRules}
                         """,
                     Kernel = bankingKernel,
+                    Arguments = new KernelArguments(new AzureOpenAIPromptExecutionSettings() { FunctionChoiceBehavior = FunctionChoiceBehavior.Auto() })
                 };
  
-            ChatCompletionAgent newProductsAgent =
+            ChatCompletionAgent newAccountsAgent =
                 new()
                 {
-                    Name = NewProductsAgent,
+                    Name = NewAccountsAgent,
                     Instructions =
                         $"""
-                    Your sole responsiblity is to suggest suitable products based on user profiles. Use the user's profile information to recommend products such as credit cards, loans, deposits, and lockers. Ensure that the recommendations are personalized and relevant to the user's needs.
+                    Your sole responsiblity is to:                        
+                        - Suggest suitable accounts based on the user profile.
+                        - Use the user's profile information to recommend from the avialable account type.
+                        - Ensure that the recommendations are personalized and relevant to the user's needs.
 
-                    1. Collecting Details for New Products:
-                       - Gather all necessary details required to register for a new product. The required details may vary for each product.
-                       - Retrieve the application fields from the database and ensure you have collected all necessary information from the user.
-                       - Validate the collected details by showing a summary to the user. Once approved, store the information in the database by creating a new product request.
+                    1. Collecting details for New Account Registration:
+                       - Get the list of available account types.
+                       - Based on the user selection, get the registration details for the selected account type. The registration details may vary for each account type.
+                       - Ask the user to provide all registration details and ensure you have collected all necessary information from the user.
+                       - Validate the collected details by showing a summary to the user. Once approved by user, store the information in the database by creating a new account request.
                        - Confirm the submission of the application to the user.
 
                     2. Highlighting Promotions and Offers:
                        - Use the user's profile information to highlight relevant promotions and offers.
-                       - Ensure that the information provided is accurate and up-to-date.
+                       - Ensure that the information provided is accurate based on the available account types.
 
                     3. Conducting Eligibility Checks:
-                       - Conduct eligibility checks for various products using the user's profile information.
-                       - Determine the user's eligibility for products such as credit cards, loans, deposits, and lockers.
+                       - Conduct eligibility checks for various account type using the user's profile information.
                        - Inform the user of the results of the eligibility check and provide guidance on the next steps.
                     {CommonAgentRules}
                     """,
-                    Kernel = newProductKernel
+                    Kernel = newProductKernel,
+                    Arguments = new KernelArguments(new AzureOpenAIPromptExecutionSettings() { FunctionChoiceBehavior = FunctionChoiceBehavior.Auto() })
                     //HistoryReducer = new ChatHistorySummarizationReducer(1000)
-                };*/
+                };
             KernelFunction selectionFunction =
                 AgentGroupChat.CreatePromptFunctionForStrategy(
                     $$$"""
@@ -223,6 +248,8 @@ namespace SKMultiAgent
                     Choose only from these participants:
                     - {{{CordinatorAgent}}}
                     - {{{CustomerSupportAgent}}}
+                    - {{{NewAccountsAgent}}}
+                    - {{{TransactionsAgent}}}
 
                     Always follow these rules when choosing the next participant:
                     - Determine the nature of the user's request and route it to the appropriate agent
@@ -255,9 +282,6 @@ namespace SKMultiAgent
 
             var chatModel = kernel.GetRequiredService<IChatCompletionService>();
 
-            // Set up ChatHistoryTruncationReducer to summarize older chat messages
-            //var historyReducer = new ChatHistorySummarizationReducer(chatModel, 1000);
-
             ChatHistoryTruncationReducer historyReducer = new(5);
 
             ChatResponseFormat continutationInfoFormat = ChatResponseFormat.CreateJsonSchemaFormat(
@@ -288,7 +312,7 @@ namespace SKMultiAgent
 
 
             AgentGroupChat chat =
-                new(supportAgent, cordinatorAgent)
+                new(supportAgent, cordinatorAgent,transactionsAgent, newAccountsAgent)
                 {
                     ExecutionSettings = new AgentGroupChatSettings
                     {

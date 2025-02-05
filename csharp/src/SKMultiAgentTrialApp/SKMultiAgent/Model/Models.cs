@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -27,12 +28,24 @@ namespace SKMultiAgent.Model
         public string? CreditNote { get; set; }
     }
 
-    public class Product
+    public class AccountType
     {
-        public string ProductId { get; set; } = string.Empty;
+        public string AccountId { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public string EligibilityCriteria { get; set; } = string.Empty;
         public string RegistrationDetails { get; set; } = string.Empty;
+    }
+
+    public class ServiceRequest
+    {
+        public string RequestId { get; set; } = string.Empty;
+        public string UserId { get; set; } = string.Empty;
+        public string AccountId { get; set; } = string.Empty;
+        public string RequestDescription { get; set; } = string.Empty;
+        public DateTime RequestDate { get; set; }
+        public DateTime ResolutionETA { get; set; }
+        public DateTime ResolutionDate { get; set; }
+        public bool IsResolved { get; set; }
     }
 }

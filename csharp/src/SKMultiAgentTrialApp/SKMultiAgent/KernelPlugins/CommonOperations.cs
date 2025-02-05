@@ -8,15 +8,16 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using SKMultiAgent.Helper;
+using System.Text.Json;
 
 namespace SKMultiAgent.KernelPlugins
 {
     public class CommonOperations
     {
 
-        [KernelFunction]
-        [Description("Returns the current logged-in user")]
-        public static User GetLoggedInUser()
+        [KernelFunction("GetLoggedInUser")]
+        [Description("Get the current logged-in user")]
+        public static async Task<User> GetLoggedInUser()
         {
             var usr = new User { Id = "User123", Name = "John" }; // Simulate returning a hardcoded user            
             Helper.Logger.LogMessage($"Get User: {usr.Id}");
@@ -25,38 +26,15 @@ namespace SKMultiAgent.KernelPlugins
         }
 
 
-        [KernelFunction]
-        [Description("Returns list of enrolled accounts. A account is identified by a unique Id.")]
-        public static List<Account> GetUserEnrolledAccounts(string userId)
+        [KernelFunction("GetCurrentDateTime")]
+        [Description("Get the current date time in UTC")]
+        public static DateTime GetCurrentDateTime()
         {
-            Helper.Logger.LogMessage($"Fetching accounts for User ID: {userId}");
-            return new List<Account>
-            {
-                new Account { Id = "Acc123", Name = "Savings Account" },
-                new Account { Id = "Acc456", Name = "Credit Card" },
-            };
+                   
+            Helper.Logger.LogMessage($"Get Datetime: {System.DateTime.Now.ToUniversalTime()}");
+            // Dummy implementation for getting the current user ID
+            return System.DateTime.Now.ToUniversalTime();// new User { Id = "User123", Name = "John" }; // Simulate returning a hardcoded user
         }
-
-        [KernelFunction]
-        [Description("Checks if account is valid, pass account Id and user login Id")]
-        public static bool VerifyAccount(string accountId, string userId)
-        {
-            Helper.Logger.LogMessage($"Validating account for User ID: {userId}- {accountId}");
-            return true;
-        }
-
-
-        [KernelFunction]
-        [Description("Searches the database for pending requests, use natural language description of the service requested.")]
-        public static List<string> ServiceRequest_CheckPendingRequests(string userId, string accountId, string requestDescription)
-        {
-            Helper.Logger.LogMessage($"Searching database for matching requests for User: {userId}, Account: {accountId}");
-            // Simulated vector search
-            return new List<string> { "Request1", "Request2" }; // Dummy matching requests
-        }
-
-
-        
 
     }
 }
