@@ -1,8 +1,9 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 import uuid
-from langgraph.graph import StateGraph, MessagesState, START, END
-from typing import Literal, List, Optional
+from langgraph.graph import StateGraph, MessagesState
+from typing import Optional
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from chat_history import fetch_conversation_messages, save_message_to_cosmos
 from banking_agents import get_compiled_graph
 import settings
@@ -10,17 +11,30 @@ import settings
 # Initialize FastAPI
 app = FastAPI()
 
+# Enable CORS (Allow Frontend to Access API from Another Domain)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Change "*" to a specific frontend URL for security, e.g., ["http://localhost:3000"]
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all HTTP methods (GET, POST, etc.)
+    allow_headers=["*"],  # Allows all headers
+)
+
+
 # Conversation model
 class ConversationRequest(BaseModel):
     conversation_id: Optional[str] = None
     user_message: str
 
+
 compiled_graph = get_compiled_graph()
 print("[DEBUG] State graph compiled successfully.")
+
 
 @app.post("/conversation")
 def conversation(request: ConversationRequest):
     """Handle both new and existing conversations."""
+
     # Create a new conversation if no conversation_id is provided
     if not request.conversation_id:
         settings.CURRENT_CONVERSATION_ID = str(uuid.uuid4())
@@ -53,23 +67,27 @@ def conversation(request: ConversationRequest):
         for event in compiled_graph.stream(state):
             print(f"[DEBUG] Processing graph event: {event}")
             for value in event.values():
-                # Validate that 'messages' is present and is a list
                 if "messages" not in value or not isinstance(value["messages"], list):
                     print(f"[ERROR] Invalid 'messages' format: {value}")
                     raise TypeError("Expected 'messages' to be a list in the graph response.")
 
-                # Ensure the list is not empty before accessing the last element
                 if not value["messages"]:
                     print(f"[ERROR] 'messages' is empty: {value}")
                     raise ValueError("The 'messages' list in the graph response is empty.")
 
-                # Save and debug the response
                 response_message = value["messages"][-1]
                 print(f"[DEBUG] Processed event with message: {response_message}")
-                all_responses.append(response_message)  # Accumulate the response
+                all_responses.append(response_message)
     except Exception as e:
         print(f"[ERROR] Error during graph execution: {e}")
         raise HTTPException(status_code=500, detail=f"Error during conversation: {str(e)}")
 
     print(f"[DEBUG] All responses: {all_responses}")
     return {"conversation_id": settings.CURRENT_CONVERSATION_ID, "responses": all_responses}
+
+
+# Run FastAPI server (only for local development)
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(app, host="0.0.0.0", port=8000)
