@@ -1,6 +1,3 @@
-# Initialize the AzureChatOpenAI model
-import os
-
 from langchain_openai import AzureChatOpenAI
 
 try:
