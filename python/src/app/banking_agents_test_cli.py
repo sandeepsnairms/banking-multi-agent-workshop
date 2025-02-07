@@ -7,7 +7,7 @@ def main():
     print("Interactive Agent Shell")
     print("Type 'exit' to end the conversation.")
 
-    conversation_id = None  # Keeps track of the current conversation ID.
+    conversation_id = ""  # Keeps track of the current conversation ID.
 
     while True:
         user_message = input("You: ")

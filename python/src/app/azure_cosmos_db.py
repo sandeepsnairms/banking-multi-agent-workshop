@@ -2,10 +2,10 @@ import os
 from azure.cosmos import CosmosClient, PartitionKey
 
 # Azure Cosmos DB configuration
-COSMOS_DB_URL = os.getenv("COSMOSDB_AI_ENDPOINT")
-COSMOS_DB_KEY = os.getenv("COSMOSDB_AI_KEY")
+COSMOS_DB_URL = os.getenv("COSMOSDB_ENDPOINT")
+COSMOS_DB_KEY = os.getenv("COSMOSDB_KEY")
 DATABASE_NAME = "BankingAgentDemoDB"
-CONTAINER_NAME = "ChatHistory"
+CONTAINER_NAME = "ChatMemory"
 
 cosmos_client = None
 database = None
