@@ -51,7 +51,7 @@ namespace SKMultiAgent.KernelPlugins
             {
                 new Transaction
                 {
-                    Date = new DateTime(2023, 11, 15),
+                    Date = DateTime.Now.AddDays(-10),
                     DebitAmount = 200,
                     CreditAmount = 0,
                     AccountBalance = 1800,
@@ -60,12 +60,30 @@ namespace SKMultiAgent.KernelPlugins
                 },
                 new Transaction
                 {
-                    Date = new DateTime(2023, 11, 1),
+                    Date = DateTime.Now.AddDays(-5),
                     DebitAmount = 0,
                     CreditAmount = 1500,
                     AccountBalance = 2000,
                     DebitNote = null,
                     CreditNote = "Salary"
+                },
+                new Transaction
+                {
+                    Date = DateTime.Now.AddDays(-6),
+                    DebitAmount = 0,
+                    CreditAmount = 500,
+                    AccountBalance = 2500,
+                    DebitNote = null,
+                    CreditNote = "Interest"
+                },
+                new Transaction
+                {
+                    Date = DateTime.Now.AddDays(-2),
+                    DebitAmount = 60,
+                    CreditAmount = 0,
+                    AccountBalance = 2440,
+                    DebitNote = "Card Payment",
+                    CreditNote =null
                 }
             };
         }
