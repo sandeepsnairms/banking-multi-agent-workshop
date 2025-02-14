@@ -1,117 +1,149 @@
 import uuid
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, HTTPException, Body
+from langchain_core.messages import HumanMessage
 from pydantic import BaseModel
 from typing import List
 from langgraph.graph.state import CompiledStateGraph
 from starlette.middleware.cors import CORSMiddleware
-
-# Importing the LangGraph workflow
 from src.app.banking_agents_native import graph
+from src.app.azure_cosmos_db import userdata_container
+import logging
+
+# Setup logging
+logging.basicConfig(level=logging.DEBUG)
 
 
 def get_compiled_graph():
     return graph
 
 
-app = FastAPI()
+app = FastAPI(title="Cosmos DB Multi-Agent Banking API")
 
-# Enable CORS (Allow Frontend to Access API from Another Domain)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Change "*" to a specific frontend URL for security, e.g., ["http://localhost:3000"]
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],  # Allows all HTTP methods (GET, POST, etc.)
-    allow_headers=["*"],  # Allows all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
-class ConversationRequest(BaseModel):
-    user_message: str
-    conversation_id: str = None
+class Session(BaseModel):
+    id: str
+    type: str = "session"
+    sessionId: str
+    tenantId: str
+    userId: str
+
+
+def create_thread(tenantId: str, userId: str):
+    sessionId = str(uuid.uuid4())
+    userdata_container.upsert_item({
+        "id": sessionId,
+        "tenantId": tenantId,
+        "userId": userId,
+        "sessionId": sessionId,
+        "activeAgent": "unknown"
+    })
+    return Session(id=sessionId, sessionId=sessionId, tenantId=tenantId, userId=userId)
+
+
+@app.post("/tenant/{tenantId}/user/{userId}/sessions", response_model=Session)
+def create_chat_session(tenantId: str, userId: str):
+    return create_thread(tenantId, userId)
 
 
 class MessageModel(BaseModel):
-    content: str
-    role: str  # Renamed from "type"
+    id: str
+    type: str
+    sessionId: str
+    tenantId: str
+    userId: str
+    timeStamp: str
+    sender: str
+    senderRole: str
+    text: str
+    debugLogId: str
+    tokensUsed: int
+    rating: bool
+    completionPromptId: str
 
 
-class SimpleResponseModel(BaseModel):
-    conversation_id: str
-    responses: List[MessageModel]
+def extract_relevant_messages(response_data, tenantId, userId, sessionId):
+    if not response_data:
+        return []
 
-
-def get_config(conversation_id: str = None):
-    if conversation_id is None or conversation_id == "":
-        conversation_id = str(uuid.uuid4())
-    return {"configurable": {"thread_id": conversation_id}}
-
-
-def extract_relevant_messages(response_data):
-    """
-    Extracts messages after the last 'human' message.
-    - Renames 'ai' to 'assistant'
-    - Renames 'type' to 'role'
-    - Removes empty 'content' messages
-    - Ensures duplicate messages before the last human message are not included
-    """
-    messages = []
-
-    # Traverse through response structure
-    for section in response_data:
-        for key, value in section.items():
-            if isinstance(value, list):
-                for conv in value:
-                    if isinstance(conv, dict) and "messages" in conv:
-                        messages.extend(conv["messages"])
-            elif isinstance(value, dict) and "messages" in value:
-                messages.extend(value["messages"])
-
-    # Identify the index of the last human message
-    last_human_index = None
-    for i in range(len(messages) - 1, -1, -1):
-        if hasattr(messages[i], "type") and messages[i].type == "human":
-            last_human_index = i
+    last_agent_node = None
+    last_agent_name = "unknown"
+    for i in range(len(response_data) - 1, -1, -1):
+        if "__interrupt__" in response_data[i]:
+            if i > 0:
+                last_agent_node = response_data[i - 1]
+                last_agent_name = list(last_agent_node.keys())[0]
             break
 
-    # If there's no human message, return everything
-    if last_human_index is None:
-        filtered_messages = messages
-    else:
-        filtered_messages = messages[last_human_index + 1:]  # Get only messages after last human message
+    userdata_container.upsert_item({
+        "id": sessionId,
+        "tenantId": tenantId,
+        "userId": userId,
+        "sessionId": sessionId,
+        "activeAgent": last_agent_name
+    })
+    if not last_agent_node:
+        return []
 
-    # Convert to desired format and filter empty content
-    relevant_messages = [
+    messages = []
+    for key, value in last_agent_node.items():
+        if isinstance(value, dict) and "messages" in value:
+            messages.extend(value["messages"])
+
+    last_user_index = -1
+    for i in range(len(messages) - 1, -1, -1):
+        if isinstance(messages[i], HumanMessage):
+            last_user_index = i
+            break
+
+    if last_user_index == -1:
+        return []
+
+    filtered_messages = messages[last_user_index:]
+
+    return [
         MessageModel(
-            content=msg.content,
-            role="assistant" if msg.type == "ai" else msg.type  # Renaming "type" to "role"
+            id=str(uuid.uuid4()),
+            type="ai_response",
+            sessionId=sessionId,
+            tenantId=tenantId,
+            userId=userId,
+            timeStamp=msg.response_metadata.get("timestamp", "") if hasattr(msg, "response_metadata") else "",
+            sender="user" if isinstance(msg, HumanMessage) else "assistant",
+            senderRole="user" if isinstance(msg, HumanMessage) else last_agent_name,
+            text=msg.content if hasattr(msg, "content") else msg.get("content", ""),
+            debugLogId=str(uuid.uuid4()),
+            tokensUsed=msg.response_metadata.get("token_usage", {}).get("total_tokens", 0) if hasattr(msg, "response_metadata") else 0,
+            rating=True,
+            completionPromptId=""
         )
-        for msg in filtered_messages if hasattr(msg, "content") and msg.content.strip()
+        for msg in filtered_messages
+        if msg.content
     ]
 
-    return relevant_messages  # Only return messages after the last human message
 
-
-@app.post("/conversation", tags=["conversation"], response_model=SimpleResponseModel)
-def conversation(
-        request: ConversationRequest,
+@app.post("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/completion", response_model=List[MessageModel])
+def get_chat_completion(
+        tenantId: str,
+        userId: str,
+        sessionId: str,
+        request_body: str = Body(..., media_type="application/json"),  # Expect raw string in request body
         workflow: CompiledStateGraph = Depends(get_compiled_graph)
 ):
-    config = get_config(request.conversation_id)
+    if not request_body.strip():
+        raise HTTPException(status_code=400, detail="Request body cannot be empty")
+
     response_data = workflow.invoke(
-        {"messages": [{"role": "user", "content": request.user_message}]},
-        config,
+        {"messages": [{"role": "user", "content": request_body}]},
+        {"configurable": {"thread_id": sessionId}},
         stream_mode="updates"
     )
 
-    simplified_response = extract_relevant_messages(response_data)
-
-    return SimpleResponseModel(
-        conversation_id=config["configurable"]["thread_id"],
-        responses=simplified_response
-    )
-
-# Run FastAPI server (only for local development)
-if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    return extract_relevant_messages(response_data, tenantId, userId, sessionId)
