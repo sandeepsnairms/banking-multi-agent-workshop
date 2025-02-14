@@ -116,11 +116,12 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
                 await foreach (ChatMessageContent response in agentGroupChat.InvokeAsync())
                 {
                     string messageId = Guid.NewGuid().ToString();
-                    completionMessages.Add(new Message(userMessage.SessionId, response.AuthorName, response.Role.ToString(), response.Content, messageId));
+                    string debugLogId = Guid.NewGuid().ToString();
+                    completionMessages.Add(new Message(userMessage.SessionId, response.AuthorName, response.Role.ToString(), response.Content, messageId, debugLogId));
 
                     if(_promptDebugProperties.Count>0)
                     {
-                        var completionMessagesLog = new DebugLog(userMessage.SessionId, messageId);
+                        var completionMessagesLog = new DebugLog(userMessage.SessionId, messageId, debugLogId);
                         completionMessagesLog.PropertyBag = _promptDebugProperties;
                         completionMessagesLogs.Add(completionMessagesLog);
                     }

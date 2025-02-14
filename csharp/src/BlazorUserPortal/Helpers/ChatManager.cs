@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Options;
 using MultiAgentCopilot.Common.Models.Chat;
+using MultiAgentCopilot.Common.Models.Debug;
 using Newtonsoft.Json;
 
 namespace MultiAgentCopilot.Helpers
@@ -30,7 +31,7 @@ namespace MultiAgentCopilot.Helpers
         /// </summary>
         public async Task<List<Session>> GetAllChatSessionsAsync()
         {
-            _sessions = await SendRequest<List<Session>>(HttpMethod.Get, "/sessions");
+            _sessions = await SendRequest<List<Session>>(HttpMethod.Get, "/tenant/t1/user/u1/sessions");
 
             return _sessions;
         }
@@ -49,7 +50,7 @@ namespace MultiAgentCopilot.Helpers
 
             var index = _sessions.FindIndex(s => s.SessionId == sessionId);
 
-            chatMessages = await SendRequest<List<Message>>(HttpMethod.Get, $"/sessions/{sessionId}/messages");
+            chatMessages = await SendRequest<List<Message>>(HttpMethod.Get, $"/tenant/t1/user/u1/sessions/{sessionId}/messages");
 
             // Cache results
             _sessions[index].Messages = chatMessages;
@@ -62,7 +63,7 @@ namespace MultiAgentCopilot.Helpers
         /// </summary>
         public async Task CreateNewChatSessionAsync()
         {
-            var session = await SendRequest<Session>(HttpMethod.Post, "/sessions");
+            var session = await SendRequest<Session>(HttpMethod.Post, "/tenant/t1/user/u1/sessions");
             _sessions.Add(session);
         }
 
@@ -79,7 +80,7 @@ namespace MultiAgentCopilot.Helpers
             if (!onlyUpdateLocalSessionsCollection)
             {
                 await SendRequest<Session>(HttpMethod.Post,
-                    $"/sessions/{sessionId}/rename?newChatSessionName={newChatSessionName}");
+                    $"/tenant/t1/user/u1/sessions/{sessionId}/rename?newChatSessionName={newChatSessionName}");
             }
         }
 
@@ -93,7 +94,7 @@ namespace MultiAgentCopilot.Helpers
             var index = _sessions.FindIndex(s => s.SessionId == sessionId);
             _sessions.RemoveAt(index);
 
-            await SendRequest(HttpMethod.Delete, $"/sessions/{sessionId}");
+            await SendRequest(HttpMethod.Delete, $"/tenant/t1/user/u1/sessions/{sessionId}");
         }
 
         /// <summary>
@@ -105,19 +106,19 @@ namespace MultiAgentCopilot.Helpers
 
 
 
-            List<Message> completionMessages = await SendRequest<List<Message>>(HttpMethod.Post,$"/sessions/{sessionId}/completion", userPrompt);
+            List<Message> completionMessages = await SendRequest<List<Message>>(HttpMethod.Post,$"/tenant/t1/user/u1/sessions/{sessionId}/completion", userPrompt);
             // Refresh the local messages cache:
             await GetChatSessionMessagesAsync(sessionId);
             return completionMessages[0].Text;
         }
 
-        public async Task<string> GetCompletionPrompt(string sessionId, string completionPromptId)
+        public async Task<DebugLog> GetDebugLog(string sessionId, string debugLogId)
         {
             ArgumentNullException.ThrowIfNullOrEmpty(sessionId);
-            ArgumentNullException.ThrowIfNullOrEmpty(completionPromptId);
+            ArgumentNullException.ThrowIfNullOrEmpty(debugLogId);
 
-            var completionPrompt = await SendRequest<string>(HttpMethod.Get,
-                $"/sessions/{sessionId}/completionprompts/{completionPromptId}");
+            var completionPrompt = await SendRequest<DebugLog>(HttpMethod.Get,
+                $"/tenant/t1/user/u1/sessions/{sessionId}/completiondetails/{debugLogId}");
             return completionPrompt;
         }
 
@@ -125,7 +126,7 @@ namespace MultiAgentCopilot.Helpers
         {
             ArgumentNullException.ThrowIfNull(sessionId);
 
-            string response = await SendRequest<string>(HttpMethod.Post,$"/sessions/{sessionId}/summarize-name", prompt);
+            string response = await SendRequest<string>(HttpMethod.Post,$"/tenant/t1/user/u1/sessions/{sessionId}/summarize-name", prompt);
 
             //await RenameChatSessionAsync(sessionId, response, true);
 
@@ -141,8 +142,8 @@ namespace MultiAgentCopilot.Helpers
             ArgumentNullException.ThrowIfNull(sessionId);
 
             string url = rating == null 
-                        ? $"/sessions/{sessionId}/message/{id}/rate" 
-                        : $"/sessions/{sessionId}/message/{id}/rate?rating={rating}";
+                        ? $"/tenant/t1/user/u1/sessions/{sessionId}/message/{id}/rate" 
+                        : $"/tenant/t1/user/u1/sessions/{sessionId}/message/{id}/rate?rating={rating}";
 
             return await SendRequest<Message>(HttpMethod.Post, url);
         }

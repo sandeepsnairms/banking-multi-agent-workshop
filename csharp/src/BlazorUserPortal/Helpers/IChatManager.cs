@@ -1,4 +1,5 @@
 ﻿using MultiAgentCopilot.Common.Models.Chat;
+using MultiAgentCopilot.Common.Models.Debug;
 
 namespace MultiAgentCopilot.Helpers;
 
@@ -41,5 +42,5 @@ public interface IChatManager
     /// </summary>
     Task<Message> RateMessageAsync(string id, string sessionId, bool? rating);
 
-    Task<string> GetCompletionPrompt(string sessionId, string completionPromptId);
+    Task<DebugLog> GetDebugLog(string sessionId, string debugLogId);
 }

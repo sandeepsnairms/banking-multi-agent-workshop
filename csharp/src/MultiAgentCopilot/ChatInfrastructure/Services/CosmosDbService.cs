@@ -239,11 +239,12 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
             await batch.ExecuteAsync();
         }
 
-        public async Task<Message> GetCompletionPrompt(string sessionId, string completionPromptId)
+        public async Task<DebugLog> GetChatCompletionDetailsAsync(string sessionId, string debugLogId)
         {
-            return await _completions.ReadItemAsync<Message>(
-                id: completionPromptId,
+            return await _completions.ReadItemAsync<DebugLog>(
+                id: debugLogId,
                 partitionKey: new PartitionKey(sessionId));
+
         }
     }
 }

@@ -46,7 +46,7 @@ public class ChatService : IChatService
     /// <summary>
     /// Returns list of chat session ids and names.
     /// </summary>
-    public async Task<List<Session>> GetAllChatSessionsAsync()
+    public async Task<List<Session>> GetAllChatSessionsAsync(string tenantId, string userId)
     {
         return await _cosmosDBService.GetSessionsAsync();
     }
@@ -54,7 +54,7 @@ public class ChatService : IChatService
     /// <summary>
     /// Returns the chat messages related to an existing session.
     /// </summary>
-    public async Task<List<Message>> GetChatSessionMessagesAsync(string sessionId)
+    public async Task<List<Message>> GetChatSessionMessagesAsync(string tenantId, string userId,string sessionId)
     {
         ArgumentNullException.ThrowIfNull(sessionId);
         return await _cosmosDBService.GetSessionMessagesAsync(sessionId);
@@ -72,7 +72,7 @@ public class ChatService : IChatService
     /// <summary>
     /// Rename the chat session from its default (eg., "New Chat") to the summary provided by OpenAI.
     /// </summary>
-    public async Task<Session> RenameChatSessionAsync(string sessionId, string newChatSessionName)
+    public async Task<Session> RenameChatSessionAsync(string tenantId, string userId,string sessionId, string newChatSessionName)
     {
         ArgumentNullException.ThrowIfNull(sessionId);
         ArgumentException.ThrowIfNullOrEmpty(newChatSessionName);
@@ -83,7 +83,7 @@ public class ChatService : IChatService
     /// <summary>
     /// Delete a chat session and related messages.
     /// </summary>
-    public async Task DeleteChatSessionAsync(string sessionId)
+    public async Task DeleteChatSessionAsync(string tenantId, string userId,string sessionId)
     {
         ArgumentNullException.ThrowIfNull(sessionId);
         await _cosmosDBService.DeleteSessionAndMessagesAsync(sessionId);
@@ -92,7 +92,7 @@ public class ChatService : IChatService
     /// <summary>
     /// Receive a prompt from a user, vectorize it from the OpenAI service, and get a completion from the OpenAI service.
     /// </summary>
-    public async Task<List<Message>> GetChatCompletionAsync(string? sessionId, string userPrompt)
+    public async Task<List<Message>> GetChatCompletionAsync(string tenantId, string userId,string? sessionId, string userPrompt)
     {
         try
         {
@@ -107,7 +107,7 @@ public class ChatService : IChatService
             // Generate the completion to return to the user
             var result = await _skService.GetResponse(userMessage, archivedMessages);
 
-            await AddPromptCompletionMessagesAsync(sessionId, userMessage, result.Item1, result.Item2);
+            await AddPromptCompletionMessagesAsync(tenantId, userId,sessionId, userMessage, result.Item1, result.Item2);
 
             return result.Item1;
         }
@@ -121,7 +121,7 @@ public class ChatService : IChatService
     /// <summary>
     /// Generate a name for a chat message, based on the passed in prompt.
     /// </summary>
-    public async Task<string> SummarizeChatSessionNameAsync(string? sessionId, string prompt)
+    public async Task<string> SummarizeChatSessionNameAsync(string tenantId, string userId,string? sessionId, string prompt)
     {
         try
         {
@@ -129,7 +129,7 @@ public class ChatService : IChatService
 
             var summary = await _skService.Summarize(sessionId, prompt);
 
-            var session = await RenameChatSessionAsync(sessionId, summary);
+            var session = await RenameChatSessionAsync(tenantId, userId,sessionId, summary);
 
             return session.Name;
         }
@@ -144,7 +144,7 @@ public class ChatService : IChatService
     /// <summary>
     /// Add user prompt and AI assistance response to the chat session message list object and insert into the data service as a transaction.
     /// </summary>
-    private async Task AddPromptCompletionMessagesAsync(string sessionId, Message promptMessage, List<Message> completionMessages, List<DebugLog> completionMessageLogs)
+    private async Task AddPromptCompletionMessagesAsync(string tenantId, string userId,string sessionId, Message promptMessage, List<Message> completionMessages, List<DebugLog> completionMessageLogs)
     {
         var session = await _cosmosDBService.GetSessionAsync(sessionId);
 
@@ -155,7 +155,7 @@ public class ChatService : IChatService
     /// <summary>
     /// Rate an assistant message. This can be used to discover useful AI responses for training, discoverability, and other benefits down the road.
     /// </summary>
-    public async Task<Message> RateMessageAsync(string id, string sessionId, bool? rating)
+    public async Task<Message> RateMessageAsync(string tenantId, string userId,string id, string sessionId, bool? rating)
     {
         ArgumentNullException.ThrowIfNull(id);
         ArgumentNullException.ThrowIfNull(sessionId);
@@ -163,14 +163,14 @@ public class ChatService : IChatService
         return await _cosmosDBService.UpdateMessageRatingAsync(id, sessionId, rating);
     }
 
-    public async Task<Message> GetCompletionPrompt(string sessionId, string completionPromptId)
+    public async Task<DebugLog> GetChatCompletionDetailsAsync(string tenantId, string userId,string sessionId, string completionPromptId)
     {
         ArgumentException.ThrowIfNullOrEmpty(sessionId);
         ArgumentException.ThrowIfNullOrEmpty(completionPromptId);
 
-        return await _cosmosDBService.GetCompletionPrompt(sessionId, completionPromptId);
+        return await _cosmosDBService.GetChatCompletionDetailsAsync(sessionId, completionPromptId);
     }
 
-    public async Task ResetSemanticCache() =>
+    public async Task ResetSemanticCache(string tenantId, string userId) =>
         await _skService.ResetSemanticCache();
 }

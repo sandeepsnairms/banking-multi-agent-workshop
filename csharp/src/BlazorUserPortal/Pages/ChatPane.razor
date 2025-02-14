@@ -2,6 +2,7 @@
 @using MultiAgentCopilot.Constants
 @using MultiAgentCopilot.Common.Models.Chat
 @using MultiAgentCopilot.ChatInfrastructure.Interfaces
+@using System.Text.Json
 @inject IChatManager chatManager
 @inject IJSRuntime JSRuntime
 
@@ -140,10 +141,10 @@
                                                 </button>
                                             </div>
                                         }
-                                        @if (msg.CompletionPromptId is not null)
+                                        @if (msg.DebugLogId is not null)
                                         {
-                                            <button class="btn btn-link text-success" @onclick="() => DisplayCompletionPrompt(msg.Id)">
-                                                <i class="bi bi-chat-square-text"></i> View Prompt
+                                            <button class="btn btn-link text-success" @onclick="() => DisplayDebugLog(msg.Id)">
+                                                <i class="bi bi-chat-square-text"></i> View Log
                                             </button>
                                         }
                                     </div>
@@ -173,10 +174,10 @@
 
 @if (_completionPromptPopUpOpen)
 {
-    <Confirmation Caption="Completion Prompt"
-                  Message="@_completionPromptContent"
-                  OnClose="@OnConfirmationClose"
-                  Type="Confirmation.Category.Okay">
+    <Confirmation Caption="Debug Log"
+    Message="@_completionPromptContent"
+    OnClose="@OnConfirmationClose"
+    Type="Confirmation.Category.Okay">
     </Confirmation>
 }
 
@@ -203,12 +204,12 @@
     private bool _loadingComplete;
 
     private bool _completionPromptPopUpOpen = false;
-    private string _completionPromptContent = string.Empty;
+    private MarkupString _completionPromptContent = (MarkupString)$"<pre>{string.Empty}</pre>";
 
     private async Task OnConfirmationClose(bool isOk)
     {
         _completionPromptPopUpOpen = false;
-        _completionPromptContent = string.Empty;
+        _completionPromptContent = (MarkupString)$"<pre>{string.Empty}</pre>";
     }
 
     private async Task ToggleNavMenu()
@@ -274,13 +275,16 @@
         }
     }
 
-    private async Task DisplayCompletionPrompt(string messageId)
+
+    private async Task DisplayDebugLog(string messageId)
     {
         var message = _messagesInChat?.FirstOrDefault(m => m.Id == messageId);
         if (message != null)
         {
-            var completionPrompt = await chatManager.GetCompletionPrompt(message.SessionId, message.CompletionPromptId);
-            _completionPromptContent = completionPrompt;
+            var completionPrompt = await chatManager.GetDebugLog(message.SessionId, message.DebugLogId);
+            var options = new JsonSerializerOptions { WriteIndented = true };
+            var formattedJson = JsonSerializer.Serialize(completionPrompt, options);
+            _completionPromptContent = (MarkupString)$"<pre>{formattedJson}</pre>";
             _completionPromptPopUpOpen = true;
         }
     }

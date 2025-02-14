@@ -113,5 +113,5 @@ public interface ICosmosDBService
     /// <returns></returns>
     //Task DeleteProductAsync(string productId, string categoryId);
 
-    Task<Message> GetCompletionPrompt(string sessionId, string completionPromptId);
+    Task<DebugLog> GetChatCompletionDetailsAsync(string sessionId, string completionPromptId);
 }

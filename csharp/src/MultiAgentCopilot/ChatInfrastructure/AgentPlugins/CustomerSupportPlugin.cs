@@ -62,8 +62,8 @@ namespace MultiAgentCopilot.ChatInfrastructure.Plugins
             _logger.LogTrace($"Searching database for matching requests for User: {userId}, Account: {accountId}");
             // Simulated vector search
 
-            ServiceRequest sr1 = new ServiceRequest { AccountId = "acc123", RequestDescription = "abcd", ResolutionETA = DateTime.Now.AddDays(2), UserId = "User123", RequestId = "SR1234", IsResolved = false, RequestDate = DateTime.Now.AddDays(-2) };
-            ServiceRequest sr2 = new ServiceRequest { AccountId = "acc123", RequestDescription = "abcd", ResolutionETA = DateTime.Now.AddDays(2), UserId = "User123", RequestId = "SR1234", IsResolved = false, RequestDate = DateTime.Now.AddDays(-2) };
+            ServiceRequest sr1 = new ServiceRequest { AccountId = "acc123", RequestDescription = "abcd", ResolutionETA = DateTime.Now.AddDays(2), userId = "User123", RequestId = "SR1234", IsResolved = false, RequestDate = DateTime.Now.AddDays(-2) };
+            ServiceRequest sr2 = new ServiceRequest { AccountId = "acc123", RequestDescription = "abcd", ResolutionETA = DateTime.Now.AddDays(2), userId = "User123", RequestId = "SR1234", IsResolved = false, RequestDate = DateTime.Now.AddDays(-2) };
 
             var retObj = new List<ServiceRequest> { sr1, sr2 }; // Dummy matching requests
 

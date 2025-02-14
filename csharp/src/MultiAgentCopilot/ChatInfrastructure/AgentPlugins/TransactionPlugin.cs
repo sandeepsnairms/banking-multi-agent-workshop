@@ -30,7 +30,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Plugins
             string? recipientPhoneNumber = null,
             string? recipientEmailId = null)
         {
-            _logger.LogTrace("Adding AccountTransaction request for User ID: {UserId}, Debit Account: {DebitAccountNumber}", userId, debitAccountNumber);
+            _logger.LogTrace("Adding AccountTransaction request for User ID: {userId}, Debit Account: {DebitAccountNumber}", userId, debitAccountNumber);
             _logger.LogTrace("Amount: {Amount}, Note: {DebitNote}", amount, debitNote);
             if (!string.IsNullOrEmpty(recipientPhoneNumber))
                 _logger.LogTrace("Recipient Phone: {RecipientPhoneNumber}", recipientPhoneNumber);

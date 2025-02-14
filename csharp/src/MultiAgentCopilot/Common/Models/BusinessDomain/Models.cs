@@ -40,7 +40,7 @@ namespace MultiAgentCopilot.Common.Models.BusinessDomain
     public class ServiceRequest
     {
         public string RequestId { get; set; } = string.Empty;
-        public string UserId { get; set; } = string.Empty;
+        public string userId { get; set; } = string.Empty;
         public string AccountId { get; set; } = string.Empty;
         public string RequestDescription { get; set; } = string.Empty;
         public DateTime RequestDate { get; set; }
