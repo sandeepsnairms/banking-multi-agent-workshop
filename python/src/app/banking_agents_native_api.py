@@ -23,7 +23,7 @@ def get_compiled_graph():
     return graph
 
 
-app = FastAPI(title="Cosmos DB Multi-Agent Banking API", openapi_url="/swagger.json")
+app = FastAPI(title="Cosmos DB Multi-Agent Banking API", openapi_url="/cosmos-multi-agent-api.json")
 
 app.add_middleware(
     CORSMiddleware,
@@ -169,7 +169,8 @@ def get_chat_sessions(tenantId: str, userId: str):
 
 
 # create a function that gets chat session by tenantId, userId, sessionId
-@app.get("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/messages", tags=[endpointTitle], response_model=List[MessageModel])
+@app.get("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/messages", tags=[endpointTitle],
+         response_model=List[MessageModel])
 def get_chat_session(tenantId: str, userId: str, sessionId: str):
     sessionId = sessionId
     messages = []
@@ -228,8 +229,10 @@ def get_chat_session(tenantId: str, userId: str, sessionId: str):
     ]
     return messages
 
+
 # to be implemented
-@app.post("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/message/{messageId}/rate", tags=[endpointTitle], operation_id="RateMessage", response_description="Success", response_model=MessageModel)
+@app.post("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/message/{messageId}/rate", tags=[endpointTitle],
+          operation_id="RateMessage", response_description="Success", response_model=MessageModel)
 def rate_message(tenantId: str, userId: str, sessionId: str, messageId: str, rating: bool):
     return {
         "id": messageId,
@@ -257,7 +260,8 @@ class DebugLog(BaseModel):
     details: str
 
 
-@app.get("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/completiondetails/{debuglogId}", tags=[endpointTitle], operation_id="GetChatCompletionDetails", response_description="Success", response_model=DebugLog)
+@app.get("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/completiondetails/{debuglogId}", tags=[endpointTitle],
+         operation_id="GetChatCompletionDetails", response_description="Success", response_model=DebugLog)
 def get_chat_completion_details(tenantId: str, userId: str, sessionId: str, debuglogId: str):
     return {
         "id": debuglogId,
@@ -266,6 +270,7 @@ def get_chat_completion_details(tenantId: str, userId: str, sessionId: str, debu
         "userId": userId,
         "details": "This is a hardcoded debug log detail"
     }
+
 
 # create a post function that renames the ChatName in the user data container
 @app.post("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/rename", tags=[endpointTitle], response_model=Session)
@@ -328,7 +333,7 @@ def delete_all_thread_records(cosmos_saver: CosmosDBSaver, thread_id: str) -> No
 
 
 # deletes the session user data container and all messages in the checkpointer store
-@app.delete("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}", tags=[endpointTitle],)
+@app.delete("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}", tags=[endpointTitle], )
 def delete_chat_session(tenantId: str, userId: str, sessionId: str):
     delete_userdata_item(tenantId, userId, sessionId)
 
@@ -421,8 +426,8 @@ def extract_relevant_messages(response_data, tenantId, userId, sessionId):
     ]
 
 
-
-@app.post("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/completion", tags=[endpointTitle], response_model=List[MessageModel])
+@app.post("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/completion", tags=[endpointTitle],
+          response_model=List[MessageModel])
 def get_chat_completion(
         tenantId: str,
         userId: str,
@@ -441,10 +446,15 @@ def get_chat_completion(
 
     return extract_relevant_messages(response_data, tenantId, userId, sessionId)
 
-@app.post("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/summarize-name", tags=[endpointTitle], operation_id="SummarizeChatSessionName", response_description="Success", response_model=str)
-def summarize_chat_session_name(tenantId: str, userId: str, sessionId: str, request_body: str = Body(..., media_type="application/json")):
+
+@app.post("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/summarize-name", tags=[endpointTitle],
+          operation_id="SummarizeChatSessionName", response_description="Success", response_model=str)
+def summarize_chat_session_name(tenantId: str, userId: str, sessionId: str,
+                                request_body: str = Body(..., media_type="application/json")):
     return "Summarized Chat Session Name not yet implemented"
 
-@app.post("/tenant/{tenantId}/user/{userId}/semanticcache/reset", tags=[endpointTitle], operation_id="ResetSemanticCache", response_description="Success")
+
+@app.post("/tenant/{tenantId}/user/{userId}/semanticcache/reset", tags=[endpointTitle],
+          operation_id="ResetSemanticCache", response_description="Success")
 def reset_semantic_cache(tenantId: str, userId: str):
     return {"message": "Semantic cache reset not yet implemented"}
