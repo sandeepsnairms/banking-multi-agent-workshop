@@ -4,7 +4,6 @@ BASE_URL = "http://127.0.0.1:8000"  # Update if hosted elsewhere.
 TENANT_ID = "test_tenant"  # Replace with actual tenant ID if needed.
 USER_ID = "test_user"  # Replace with actual user ID if needed.
 
-
 def create_session():
     response = requests.post(f"{BASE_URL}/tenant/{TENANT_ID}/user/{USER_ID}/sessions")
     if response.status_code == 200:
@@ -13,13 +12,11 @@ def create_session():
         print(f"Failed to create session: {response.json()}.")
         return None
 
-
 def send_message(session_id, user_message):
-    # Wrap the string in JSON format by encoding it as a JSON string
     headers = {"Content-Type": "application/json"}
     response = requests.post(
         f"{BASE_URL}/tenant/{TENANT_ID}/user/{USER_ID}/sessions/{session_id}/completion",
-        data=f'"{user_message}"',  # Ensures the string is correctly formatted as JSON
+        data=f'"{user_message}"',
         headers=headers
     )
 
@@ -29,10 +26,16 @@ def send_message(session_id, user_message):
         print(f"Error in response: {response.json()}.")
         return []
 
+def delete_session(session_id):
+    response = requests.delete(f"{BASE_URL}/tenant/{TENANT_ID}/user/{USER_ID}/sessions/{session_id}")
+    if response.status_code == 200:
+        print("Session deleted successfully.")
+    else:
+        print(f"Failed to delete session: {response.json()}.")
 
 def main():
     print("Interactive Agent Shell")
-    print("Type 'exit' to end the conversation.")
+    print("Type 'exit' to end the conversation and DELETE the session.")
 
     session_id = create_session()
     if not session_id:
@@ -42,6 +45,7 @@ def main():
     while True:
         user_message = input("You: ")
         if user_message.lower() == "exit":
+            delete_session(session_id)
             print("Exiting the conversation. Goodbye!")
             break
 
@@ -51,7 +55,6 @@ def main():
             sender = message.get("sender", "unknown")
             text = message.get("text", "[No response received]")
             print(f"{sender}: {text}")
-
 
 if __name__ == "__main__":
     main()

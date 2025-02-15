@@ -8,7 +8,7 @@ This is a sample that exposes turn-by-turn conversation with a multi-agent banki
 1. `banking_agents_native_api.py`: This is a FastAPI server that exposes a REST API to interact with the banking multi-agent program build using LangGraph. It will:
    - save conversation memory in Azure CosmosDB using the native LangGraph [checkpoint implementation for Azure Cosmos DB](https://pypi.org/project/langgraph-checkpoint-cosmosdb/).
    - create a sessionId (used as [thread_id](https://langchain-ai.github.io/langgraph/concepts/persistence/#threads) in langgraph) and return it to the client if this is the first message in the conversation
-   - create user data so that multiple tenants and user sessions can be supported.
+   - create user data in Cosmos DB with [hierarchical partitioning](https://learn.microsoft.com/azure/cosmos-db/hierarchical-partition-keys) so that multitenancy for users and sessions can be supported.
    - return the latest responses in the conversation to the client
 2. `banking_agents_native.py`: This defines the agents and tools in the graph with routing logic. It will:
    - Always route to supervisor agent first, which then routes to other agents as needed.
@@ -54,6 +54,7 @@ The banking agent is a simple state machine that can handle a few banking-relate
     ```bash
     uvicorn src.app.banking_agents_native_api:app --reload --host 0.0.0.0 --port 8000
     ```
+   View and test out the swagger UI at http://localhost:8000/docs
 
 5. Run cli test tool that interacts with agent api server
     ```bash
