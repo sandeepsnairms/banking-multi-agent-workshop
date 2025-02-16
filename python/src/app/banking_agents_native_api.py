@@ -85,13 +85,13 @@ def create_thread(tenantId: str, userId: str):
                    address=address, activeAgent=activeAgent, ChatName=ChatName, messages=messages)
 
 
-@app.get("/status", tags=[endpointTitle], operation_id="GetServiceStatus", response_description="Success",
+@app.get("/status", tags=[endpointTitle], description="Gets the service status", operation_id="GetServiceStatus", response_description="Success",
          response_model=str)
 def get_service_status():
     return "CosmosDBService: initializing"
 
 
-@app.get("/tenant/{tenantId}/user/{userId}/sessions", tags=[endpointTitle], response_model=List[Session])
+@app.get("/tenant/{tenantId}/user/{userId}/sessions", description="Creates a chat session for the given tenantId and userId", tags=[endpointTitle], response_model=List[Session])
 def get_chat_sessions(tenantId: str, userId: str):
     items = fetch_userdata_container(tenantId, userId)
     sessions = []
@@ -169,7 +169,7 @@ def get_chat_sessions(tenantId: str, userId: str):
 
 
 # create a function that gets chat session by tenantId, userId, sessionId
-@app.get("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/messages", tags=[endpointTitle],
+@app.get("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/messages", description="Retrieves messages from the sessionId", tags=[endpointTitle],
          response_model=List[MessageModel])
 def get_chat_session(tenantId: str, userId: str, sessionId: str):
     sessionId = sessionId
@@ -231,7 +231,7 @@ def get_chat_session(tenantId: str, userId: str, sessionId: str):
 
 
 # to be implemented
-@app.post("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/message/{messageId}/rate", tags=[endpointTitle],
+@app.post("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/message/{messageId}/rate", description="Not yet implemented", tags=[endpointTitle],
           operation_id="RateMessage", response_description="Success", response_model=MessageModel)
 def rate_message(tenantId: str, userId: str, sessionId: str, messageId: str, rating: bool):
     return {
@@ -260,7 +260,7 @@ class DebugLog(BaseModel):
     details: str
 
 
-@app.get("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/completiondetails/{debuglogId}", tags=[endpointTitle],
+@app.get("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/completiondetails/{debuglogId}", description="Not yet implemented", tags=[endpointTitle],
          operation_id="GetChatCompletionDetails", response_description="Success", response_model=DebugLog)
 def get_chat_completion_details(tenantId: str, userId: str, sessionId: str, debuglogId: str):
     return {
@@ -273,7 +273,7 @@ def get_chat_completion_details(tenantId: str, userId: str, sessionId: str, debu
 
 
 # create a post function that renames the ChatName in the user data container
-@app.post("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/rename", tags=[endpointTitle], response_model=Session)
+@app.post("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/rename", description="Renames the chat session", tags=[endpointTitle], response_model=Session)
 def rename_chat_session(tenantId: str, userId: str, sessionId: str, newChatSessionName: str):
     items = fetch_userdata_container_by_session(tenantId, userId, sessionId)
     if not items:
