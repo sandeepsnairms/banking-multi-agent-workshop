@@ -26,8 +26,6 @@ This is a sample that exposes turn-by-turn conversation with a multi-agent banki
 6. `azure_cosmos_db.py`: This is a utility class that defines Azure Cosmos DB credentials, Database and Container name for storing conversation memory
 
 
-The banking agent is a simple state machine that can handle a few banking-related tasks. The agent is implemented as a FastAPI server that exposes a REST API. The API is used by a simple CLI tool that allows the user to interact with the agent.
-
 ## How to run the project
 
 1. Clone the repository.
