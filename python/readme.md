@@ -6,19 +6,22 @@ This is a sample that exposes turn-by-turn conversation with a multi-agent banki
 
 ### How it works
 1. `banking_agents_native_api.py`: This is a FastAPI server that exposes a REST API to interact with the banking multi-agent program build using LangGraph. It will:
-   - save conversation memory in Azure CosmosDB using the native LangGraph [checkpoint implementation for Azure Cosmos DB](https://pypi.org/project/langgraph-checkpoint-cosmosdb/).
-   - create a sessionId (used as [thread_id](https://langchain-ai.github.io/langgraph/concepts/persistence/#threads) in langgraph) and return it to the client if this is the first message in the conversation
-   - create user data in Cosmos DB with [hierarchical partitioning](https://learn.microsoft.com/azure/cosmos-db/hierarchical-partition-keys) so that multitenancy for users and sessions can be supported.
-   - return the latest responses in the conversation to the client
+   - Saves chat memory in Azure CosmosDB using the native LangGraph [checkpoint implementation for Azure Cosmos DB](https://pypi.org/project/langgraph-checkpoint-cosmosdb/).
+   - Provides operations including `/tenant/{tenantId}/user/{userId}/sessions` to create a sessionId (used as [thread_id](https://langchain-ai.github.io/langgraph/concepts/persistence/#threads) in langgraph) in UserData for each user.
+   - Creates user data in Cosmos DB with [hierarchical partitioning](https://learn.microsoft.com/azure/cosmos-db/hierarchical-partition-keys) so that multitenancy for users and sessions can be supported.
+   - Maintains an "active agent" in the UserData for each session for more deterministic agent routing after collecting user input/prompt.
+   - Returns user prompt and the agents responses in the last "turn" of the conversation to the client.
 2. `banking_agents_native.py`: This defines the agents and tools in the graph with routing logic. It will:
-   - Always route to supervisor agent first, which then routes to other agents as needed.
+   - Always routes to supervisor agent first, which either: 
+     - Handles the question and hands of to another agent, or...
+     - Routes directly to another agent if that agent was the last "active agent" in the session.
    - Each sub-agent either:
-     - Route to another agent
-     - Call a tool (functionality)
+     - Route to another agent.
+     - Calls a tool (functionality).
 3. `banking_agents_test_cli.py`: This is a simple CLI tool that consumes the FastAPI server endpoint. It will:
-   - send a message to the agent
-   - retrieve the response from the agent and store conversation_id for subsequent messages
-   - print the responses to the console
+   - Creates a sessionId using `POST /tenant/{tenantId}/user/{userId}/sessions` endpoint
+   - Sends messages to the agent using `POST /tenant/{tenantId}/user/{userId}/sessions/{sessionId}/completion` endpoint and prints the responses to the console
+   - Deletes session using `DELETE /tenant/{tenantId}/user/{userId}/sessions/{sessionId}` endpoint when user types "exit".
 5. `azure_open_ai.py`: This is a utility class that defines Azure OpenAI credentials and initialises Azure OpenAI API client
 6. `azure_cosmos_db.py`: This is a utility class that defines Azure Cosmos DB credentials, Database and Container name for storing conversation memory
 
