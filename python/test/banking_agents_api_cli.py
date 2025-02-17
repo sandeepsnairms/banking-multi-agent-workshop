@@ -1,6 +1,6 @@
 import requests
 
-BASE_URL = "http://127.0.0.1:8000"  # Update if hosted elsewhere.
+BASE_URL = "https://agent-api.redsand-ffbf1b38.westus.azurecontainerapps.io"  # Update if hosted elsewhere.
 TENANT_ID = "test_tenant"  # Replace with actual tenant ID if needed.
 USER_ID = "test_user"  # Replace with actual user ID if needed.
 
@@ -53,8 +53,9 @@ def main():
 
         for message in responses:
             sender = message.get("sender", "unknown")
-            text = message.get("text", "[No response received]")
-            print(f"{sender}: {text}")
+            if sender != "user":
+                text = message.get("text", "[No response received]")
+                print(f"{sender}: {text}")
 
 if __name__ == "__main__":
     main()
