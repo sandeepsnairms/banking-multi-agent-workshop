@@ -1,47 +1,60 @@
 import requests
 
-API_URL = "http://127.0.0.1:8000/conversation"  # Update to the correct endpoint if hosted elsewhere.
+BASE_URL = "http://127.0.0.1:8000"  # Update if hosted elsewhere.
+TENANT_ID = "test_tenant"  # Replace with actual tenant ID if needed.
+USER_ID = "test_user"  # Replace with actual user ID if needed.
 
+def create_session():
+    response = requests.post(f"{BASE_URL}/tenant/{TENANT_ID}/user/{USER_ID}/sessions")
+    if response.status_code == 200:
+        return response.json().get("sessionId")
+    else:
+        print(f"Failed to create session: {response.json()}.")
+        return None
+
+def send_message(session_id, user_message):
+    headers = {"Content-Type": "application/json"}
+    response = requests.post(
+        f"{BASE_URL}/tenant/{TENANT_ID}/user/{USER_ID}/sessions/{session_id}/completion",
+        data=f'"{user_message}"',
+        headers=headers
+    )
+
+    if response.status_code == 200:
+        return response.json()
+    else:
+        print(f"Error in response: {response.json()}.")
+        return []
+
+def delete_session(session_id):
+    response = requests.delete(f"{BASE_URL}/tenant/{TENANT_ID}/user/{USER_ID}/sessions/{session_id}")
+    if response.status_code == 200:
+        print("Session deleted successfully.")
+    else:
+        print(f"Failed to delete session: {response.json()}.")
 
 def main():
     print("Interactive Agent Shell")
-    print("Type 'exit' to end the conversation.")
+    print("Type 'exit' to end the conversation and DELETE the session.")
 
-    conversation_id = ""  # Keeps track of the current conversation ID.
+    session_id = create_session()
+    if not session_id:
+        print("Failed to start a session. Exiting.")
+        return
 
     while True:
         user_message = input("You: ")
         if user_message.lower() == "exit":
+            delete_session(session_id)
             print("Exiting the conversation. Goodbye!")
             break
 
-        # Build the payload for the API call.
-        payload = {
-            "conversation_id": conversation_id,
-            "user_message": user_message
-        }
+        responses = send_message(session_id, user_message)
 
-        try:
-            # Call the API.
-            response = requests.post(API_URL, json=payload)
-            response_data = response.json()
-
-            if response.status_code == 200:
-                # Extract conversation ID and responses.
-                conversation_id = response_data.get("conversation_id")
-                responses = response_data.get("responses", [])
-
-                # Display responses with active agent annotation.
-                for message in responses:
-                    active_agent = message.get("role")
-                    content = message.get("content", "No content received.")
-                    if active_agent == "assistant":
-                        print(f"{active_agent}: {content}")
-            else:
-                print(f"Error: {response_data.get('detail', 'Unknown error occurred.')}")
-        except Exception as e:
-            print(f"An error occurred: {e}")
-
+        for message in responses:
+            sender = message.get("sender", "unknown")
+            text = message.get("text", "[No response received]")
+            print(f"{sender}: {text}")
 
 if __name__ == "__main__":
     main()

@@ -1,15 +1,14 @@
 import random
-from typing import Annotated, Literal
-
+from typing import Annotated, Literal, List, Dict, Any
+from pydantic import BaseModel
 from langchain_core.tools import tool
 from langchain_core.tools.base import InjectedToolCallId
-from langgraph.graph import MessagesState, StateGraph, START
+from langgraph.graph import StateGraph, START, MessagesState
 from langgraph.prebuilt import create_react_agent, InjectedState
 from langgraph.types import Command, interrupt
 from langgraph_checkpoint_cosmosdb import CosmosDBSaver
 from src.app.azure_open_ai import model
-from src.app.azure_cosmos_db import DATABASE_NAME, CONTAINER_NAME
-
+from src.app.azure_cosmos_db import DATABASE_NAME, CONTAINER_NAME, userdata_container
 
 @tool
 def get_product_advise():
@@ -26,22 +25,18 @@ def get_branch_location(location: str):
 @tool
 def bank_balance(account_number: str):
     """Transfer to bank agent"""
-
     return f"The balance for account number {account_number} is $1000"
 
 
 @tool
 def bank_transfer(account_number: str, amount: float):
     """Transfer to bank agent"""
-
     return f"Successfully transferred ${amount} to account number {account_number}"
 
 
 @tool
 def calculate_monthly_payment(loan_amount: float, years: int) -> float:
-    """
-    Calculate the monthly payment for a loan.
-    """
+    """Calculate the monthly payment for a loan."""
     interest_rate = 0.05  # Hardcoded annual interest rate (5%)
     monthly_rate = interest_rate / 12  # Convert annual rate to monthly
     total_payments = years * 12  # Total number of monthly payments
@@ -72,22 +67,15 @@ def make_handoff_tool(*, agent_name: str):
             "tool_call_id": tool_call_id,
         }
         return Command(
-            # navigate to another agent node in the PARENT graph
             goto=agent_name,
             graph=Command.PARENT,
-            # This is the state update that the agent `agent_name` will see when it is invoked.
-            # We're passing agent's FULL internal message history AND adding a tool message to make sure
-            # the resulting chat history is valid.
             update={"messages": state["messages"] + [tool_message]},
         )
 
     return handoff_to_agent
 
 
-# Define travel advisor tools and ReAct agent
-supervisor_agent_tools = [
-    make_handoff_tool(agent_name="banking_agent"),
-]
+supervisor_agent_tools = [make_handoff_tool(agent_name="banking_agent")]
 supervisor_agent = create_react_agent(
     model,
     supervisor_agent_tools,
@@ -99,7 +87,6 @@ supervisor_agent = create_react_agent(
     ),
 )
 
-# Define support agent tools and ReAct agent
 banking_agent_tools = [
     get_product_advise,
     get_branch_location,
@@ -111,14 +98,15 @@ banking_agent = create_react_agent(
     model,
     banking_agent_tools,
     state_modifier=(
-        "You are a banking agent that can give general advise on banking products, branch locations, balances and transfers. "
-        "If the user wants a bank loan, transfer to the 'loan_agent' for help. "
+        "You are a banking agent that can give general advice on banking products, branch locations, balances and transfers. "
+        "If the user asks for a bank loan, you call make_handoff_tool with agent_name 'loan_agent'. "
         "You MUST include human-readable response before transferring to another agent."
     ),
 )
 
 loan_agent_tools = [
     calculate_monthly_payment,
+    make_handoff_tool(agent_name="banking_agent"),
 ]
 loan_agent = create_react_agent(
     model,
@@ -130,67 +118,70 @@ loan_agent = create_react_agent(
 )
 
 
-def call_supervisor_agent(
-        state: MessagesState,
-) -> Command[Literal["supervisor_agent", "human"]]:
-    response = supervisor_agent.invoke(state)
-    return Command(update=response, goto="human")
+def call_supervisor_agent(state: MessagesState, config) -> Command[Literal["supervisor_agent", "human"]]:
+    thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")  # Get thread_id from config
+    print(f"Calling supervisor agent with Thread ID: {thread_id}")
+
+    activeAgent = userdata_container.query_items(
+        query=f"SELECT c.activeAgent FROM c WHERE c.id = '{thread_id}'",
+        enable_cross_partition_query=True
+    )
+    result = list(activeAgent)
+    if result:
+        active_agent_value = result[0]['activeAgent']
+    else:
+        active_agent_value = None  # or handle the case where no result is found
+    print(f"Active agent: {active_agent_value}")
+    # if active agent is something other than unknown or supervisor_agent,
+    # then transfer directly to that agent to respond to the last collected user input
+    if active_agent_value is not None and active_agent_value != "unknown" and active_agent_value != "supervisor_agent":
+        print(f"routing straight to active agent: ", active_agent_value)
+        return Command(update=state, goto=active_agent_value)
+    else:
+        response = supervisor_agent.invoke(state)
+        print(f"collecting user input")
+        return Command(update=response, goto="human")
 
 
-def call_banking_agent(
-        state: MessagesState,
-) -> Command[Literal["banking_agent", "human"]]:
+def call_banking_agent(state: MessagesState, config) -> Command[Literal["banking_agent", "human"]]:
+    thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
+    print(f"Calling banking agent with Thread ID: {thread_id}")
+
     response = banking_agent.invoke(state)
     return Command(update=response, goto="human")
 
 
-def call_loan_agent(
-        state: MessagesState,
-) -> Command[Literal["loan_agent", "human"]]:
+def call_loan_agent(state: MessagesState, config) -> Command[Literal["loan_agent", "human"]]:
+    thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
+    print(f"Calling loan agent with Thread ID: {thread_id}")
+
     response = loan_agent.invoke(state)
     return Command(update=response, goto="human")
 
 
-def human_node(
-        state: MessagesState, config
-) -> Command[Literal["supervisor_agent", "banking_agent", "loan_agent", "human"]]:
+# In this implementation, the human_node with interrupt function only serves as a mechanism to stop
+# the graph and collect user input. Since the graph being exposed as an API, the Command object
+# return value will never be reached. In interactive mode, the Command object would
+# be returned after user input collected, and the graph would continue to the active agent.
+def human_node(state: MessagesState, config) -> Command[
+    Literal["supervisor_agent", "banking_agent", "loan_agent", "human"]]:
     """A node for collecting user input."""
-
     user_input = interrupt(value="Ready for user input.")
-
-    # identify the last active agent
-    # (the last active node before returning to human)
     langgraph_triggers = config["metadata"]["langgraph_triggers"]
     if len(langgraph_triggers) != 1:
         raise AssertionError("Expected exactly 1 trigger in human node")
-
     active_agent = langgraph_triggers[0].split(":")[1]
-
-    return Command(
-        update={
-            "messages": [
-                {
-                    "role": "human",
-                    "content": user_input,
-                }
-            ]
-        },
-        goto=active_agent,
-    )
+    print(f"Active agent: {active_agent}")
+    return Command(update={"messages": [{"role": "human", "content": user_input}]}, goto=active_agent)
 
 
 builder = StateGraph(MessagesState)
 builder.add_node("supervisor_agent", call_supervisor_agent)
 builder.add_node("banking_agent", call_banking_agent)
 builder.add_node("loan_agent", call_loan_agent)
-
-# This adds a node to collect human input, which will route
-# back to the active agent.
 builder.add_node("human", human_node)
 
-# We'll always start with supervisor agent.
 builder.add_edge(START, "supervisor_agent")
 
-# Compile the graph and set up CosmosDB as the checkpointer storage
 checkpointer = CosmosDBSaver(database_name=DATABASE_NAME, container_name=CONTAINER_NAME)
 graph = builder.compile(checkpointer=checkpointer)
