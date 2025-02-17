@@ -20,4 +20,4 @@ EXPOSE 8000
 ENV PYTHONPATH=/app
 
 # Run the FastAPI application with Uvicorn
-CMD ["uvicorn", "src.app.banking_agents_native_api:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "src.app.banking_agents_api:app", "--host", "0.0.0.0", "--port", "8000"]

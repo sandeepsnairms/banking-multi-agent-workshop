@@ -53,8 +53,9 @@ def main():
 
         for message in responses:
             sender = message.get("sender", "unknown")
-            text = message.get("text", "[No response received]")
-            print(f"{sender}: {text}")
+            if sender != "user":
+                text = message.get("text", "[No response received]")
+                print(f"{sender}: {text}")
 
 if __name__ == "__main__":
     main()
