@@ -1,18 +1,17 @@
-﻿using MultiAgentCopilot.Common.Models.BusinessDomain;
+﻿using BankingAPI.Models.Banking;
 using MultiAgentCopilot.Common.Models.Chat;
 using MultiAgentCopilot.Common.Models.Debug;
 
-namespace MultiAgentCopilot.Common.Interfaces;
+namespace MultiAgentCopilot.ChatInfrastructure.Interfaces;
 
 public interface ICosmosDBService
 {
-    bool IsInitialized { get; }
 
     /// <summary>
     /// Gets a list of all current chat sessions.
     /// </summary>
     /// <returns>List of distinct chat session items.</returns>
-    Task<List<Session>> GetSessionsAsync();
+    Task<List<Session>> GetSessionsAsync(string tenantId, string userId);
 
     /// <summary>
     /// Gets a list of all current chat messages for a specified session identifier.
@@ -55,7 +54,7 @@ public interface ICosmosDBService
     /// <param name="sessionId">The message's partition key (session id).</param>
     /// <param name="rating">The rating to replace.</param>
     /// <returns>Revised chat message item.</returns>
-    Task<Message> UpdateMessageRatingAsync(string id, string sessionId, bool? rating);
+    Task<Message> UpdateMessageRatingAsync(string messageId, string sessionId, bool? rating);
 
     /// <summary>
     /// Updates an existing chat session.
@@ -70,7 +69,7 @@ public interface ICosmosDBService
     /// <param name="id">The session id.</param>
     /// <param name="name">The session's new name.</param>
     /// <returns>Revised chat session item.</returns>
-    Task<Session> UpdateSessionNameAsync(string id, string name);
+    Task<Session> UpdateSessionNameAsync(string tenantId, string userId,string id, string name);
 
     /// <summary>
     /// Batch create or update chat messages and session.
@@ -82,36 +81,8 @@ public interface ICosmosDBService
     /// Batch deletes an existing chat session and all related messages.
     /// </summary>
     /// <param name="sessionId">Chat session identifier used to flag messages and sessions for deletion.</param>
-    Task DeleteSessionAndMessagesAsync(string sessionId);
+    Task DeleteSessionAndMessagesAsync(string tenantId, string userId,string sessionId);
 
-    /// <summary>
-    /// Inserts a product into the product container.
-    /// </summary>
-    /// <param name="product">Product item to create.</param>
-    /// <returns>Newly created product item.</returns>
-    //Task<Product> InsertProductAsync(Product product);
-
-    /// <summary>
-    /// Inserts a customer into the customer container.
-    /// </summary>
-    /// <param name="product">Customer item to create.</param>
-    /// <returns>Newly created customer item.</returns>
-    //Task<Customer> InsertCustomerAsync(Customer customer);
-
-    /// <summary>
-    /// Inserts a sales order into the customer container.
-    /// </summary>
-    /// <param name="product">Sales order item to create.</param>
-    /// <returns>Newly created sales order item.</returns>
-    //Task<SalesOrder> InsertSalesOrderAsync(SalesOrder salesOrder);
-
-    /// <summary>
-    /// Deletes a product by its Id and category (its partition key).
-    /// </summary>
-    /// <param name="productId">The Id of the product to delete.</param>
-    /// <param name="categoryId">The category Id of the product to delete.</param>
-    /// <returns></returns>
-    //Task DeleteProductAsync(string productId, string categoryId);
-
+   
     Task<DebugLog> GetChatCompletionDetailsAsync(string sessionId, string completionPromptId);
 }

@@ -18,6 +18,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using MultiAgentCopilot.ChatInfrastructure.Logs;
 using MultiAgentCopilot.ChatInfrastructure.Models;
+using BankingAPI.Interfaces;
 
 #pragma warning disable SKEXP0110 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable SKEXP0010 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
@@ -29,13 +30,13 @@ namespace MultiAgentCopilot.ChatInfrastructure.Factories
     {
         public delegate void LogCallback(string key, string value);
 
-        private ChatCompletionAgent BuildAgent(Kernel kernel, AgentType agentType, ILoggerFactory loggerFactory)
+        private ChatCompletionAgent BuildAgent(Kernel kernel, AgentType agentType, ILoggerFactory loggerFactory, IBankDBService bankService, string tenantId, string userId)
         {
             ChatCompletionAgent agent = new ChatCompletionAgent
             {
                 Name = SystemPromptFactory.GetAgentName(agentType),
                 Instructions = $"""{SystemPromptFactory.GetAgentPrompts(agentType)}""",
-                Kernel = PluginFactory.GetAgentKernel(kernel, agentType, loggerFactory),
+                Kernel = PluginFactory.GetAgentKernel(kernel, agentType, loggerFactory, bankService, tenantId, userId),
                 Arguments = new KernelArguments(new AzureOpenAIPromptExecutionSettings() { FunctionChoiceBehavior = FunctionChoiceBehavior.Auto() })
             };
 
@@ -75,7 +76,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Factories
         }
                
 
-        public AgentGroupChat BuildAgentGroupChat(Kernel kernel, ILoggerFactory loggerFactory, LogCallback logCallback)
+        public AgentGroupChat BuildAgentGroupChat(Kernel kernel, ILoggerFactory loggerFactory, LogCallback logCallback, IBankDBService bankService, string tenantId, string userId)
         {
             AgentGroupChat agentGroupChat = new AgentGroupChat();
             var chatModel = kernel.GetRequiredService<IChatCompletionService>();
@@ -84,7 +85,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Factories
 
             foreach (AgentType agentType in Enum.GetValues(typeof(AgentType)))
             {
-                agentGroupChat.AddAgent(BuildAgent(kernel, agentType, loggerFactory));
+                agentGroupChat.AddAgent(BuildAgent(kernel, agentType, loggerFactory, bankService, tenantId, userId));
             }
 
             agentGroupChat.ExecutionSettings = GetExecutionSettings(kernel, logCallback);

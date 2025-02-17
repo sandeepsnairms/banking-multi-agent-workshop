@@ -10,15 +10,10 @@ namespace ChatAPI
             if (!builder.Environment.IsDevelopment())
                 builder.Services.AddApplicationInsightsTelemetry();
 
-            //builder.AddItemTransformerFactory();
 
             builder.AddCosmosDBService();
-
             builder.AddSemanticKernelService();
-            //builder.AddMemorySourceServices();
-
-            //builder.AddPromptService();
-            //builder.AddTextSplittingServices();
+            builder.AddBankingCosmosDBService();
 
             builder.AddChatService();
             builder.Services.AddScoped<ChatEndpoints>();

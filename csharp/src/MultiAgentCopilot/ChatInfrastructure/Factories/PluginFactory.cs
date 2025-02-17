@@ -8,40 +8,37 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using MultiAgentCopilot.ChatInfrastructure.Plugins;
 using MultiAgentCopilot.ChatInfrastructure.Models;
+using BankingAPI.Interfaces;
 
 namespace MultiAgentCopilot.ChatInfrastructure.Factories
 {
     internal static class PluginFactory
     {
-        internal static Kernel GetAgentKernel(Kernel kernel, AgentType agentType, ILoggerFactory loggerFactory)
+        internal static Kernel GetAgentKernel(Kernel kernel, AgentType agentType, ILoggerFactory loggerFactory, IBankDBService bankService, string tenantId, string userId)
         {
             Kernel agentKernel = kernel.Clone();
             switch (agentType)
             {
                 case AgentType.Sales:
-                    var salesPlugin = new SalesPlugin(loggerFactory.CreateLogger<SalesPlugin>());
+                    var salesPlugin = new SalesPlugin(loggerFactory.CreateLogger<SalesPlugin>(), bankService, tenantId, userId);
                     agentKernel.Plugins.AddFromObject(salesPlugin);
                     break;
                 case AgentType.Transactions:
-                    var transactionsPlugin = new TransactionPlugin(loggerFactory.CreateLogger<TransactionPlugin>());
+                    var transactionsPlugin = new TransactionPlugin(loggerFactory.CreateLogger<TransactionPlugin>(), bankService, tenantId, userId);
                     agentKernel.Plugins.AddFromObject(transactionsPlugin);
                     break;
                 case AgentType.CustomerSupport:
-                    var customerSupportPlugin = new CustomerSupportPlugin(loggerFactory.CreateLogger<CustomerSupportPlugin>());
+                    var customerSupportPlugin = new CustomerSupportPlugin(loggerFactory.CreateLogger<CustomerSupportPlugin>(), bankService, tenantId, userId);
                     agentKernel.Plugins.AddFromObject(customerSupportPlugin);
                     break;
                 case AgentType.Cordinator:
-                    var cordinatorPlugin = new CordinatorPlugin(loggerFactory.CreateLogger<CordinatorPlugin>());
+                    var cordinatorPlugin = new CordinatorPlugin(loggerFactory.CreateLogger<CordinatorPlugin>(), bankService, tenantId, userId);
                     agentKernel.Plugins.AddFromObject(cordinatorPlugin);
-                    //var agentPlugin = KernelPluginFactory.CreateFromObject(cordinatorPlugin, agentName);
-                    //agentKernel.Plugins.Add(agentPlugin);
                     break;
                 default:
                     throw new ArgumentException("Invalid plugin name");
             }
 
-            var commonPlugin = new CommonPlugin(loggerFactory.CreateLogger<CommonPlugin>());
-            agentKernel.Plugins.AddFromObject(commonPlugin);
             return agentKernel;
         }
     }

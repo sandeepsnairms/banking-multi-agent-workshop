@@ -1,12 +1,10 @@
-﻿using MultiAgentCopilot.Common.Models.BusinessDomain;
+﻿using BankingAPI.Models.Banking;
 using MultiAgentCopilot.Common.Models.Chat;
 using MultiAgentCopilot.Common.Models.Debug;
 namespace MultiAgentCopilot.ChatInfrastructure.Interfaces;
 
 public interface IChatService
 {
-    string Status { get; }
-
     /// <summary>
     /// Returns list of chat session ids and names for left-hand nav to bind to (display Name and ChatSessionId as hidden)
     /// </summary>
@@ -20,7 +18,7 @@ public interface IChatService
     /// <summary>
     /// User creates a new Chat Session.
     /// </summary>
-    Task<Session> CreateNewChatSessionAsync();
+    Task<Session> CreateNewChatSessionAsync(string tenantId, string userId);
 
     /// <summary>
     /// Rename the Chat Session from "New Chat" to the summary provided by OpenAI

@@ -1,4 +1,4 @@
-﻿using MultiAgentCopilot.Common.Models.BusinessDomain;
+﻿using BankingAPI.Models.Banking;
 using MultiAgentCopilot.ChatInfrastructure.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using MultiAgentCopilot.Common.Models.Debug;
@@ -17,8 +17,6 @@ namespace ChatAPI
 
         public void Map(WebApplication app)
         {
-            app.MapGet("/status", () => _chatService.Status)
-                .WithName("GetServiceStatus");
 
             app.MapGet("/tenant/{tenantId}/user/{userId}/sessions/", async (string tenantId, string userId) =>
                 await _chatService.GetAllChatSessionsAsync(tenantId, userId))
@@ -40,7 +38,7 @@ namespace ChatAPI
                 .WithName("GetChatCompletionDetails");
 
             app.MapPost("/tenant/{tenantId}/user/{userId}/sessions/", async (string tenantId, string userId) =>
-                await _chatService.CreateNewChatSessionAsync())
+                await _chatService.CreateNewChatSessionAsync(tenantId, userId))
                 .WithName("CreateNewChatSession");
 
             app.MapPost("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/rename", async (string tenantId, string userId, string sessionId, string newChatSessionName) =>

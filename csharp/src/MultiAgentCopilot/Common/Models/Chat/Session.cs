@@ -16,6 +16,10 @@ public record Session
     /// </summary>
     public string SessionId { get; set; }
 
+    public string TenantId { get; set; }
+
+    public string UserId { get; set; }
+
     public int? TokensUsed { get; set; }
 
     public string Name { get; set; }
@@ -23,9 +27,11 @@ public record Session
     [JsonIgnore]
     public List<Message> Messages { get; set; }
 
-    public Session()
+    public Session(string tenantId, string userId)
     {
         Id = Guid.NewGuid().ToString();
+        TenantId = tenantId;
+        UserId = userId;
         Type = nameof(Session);
         SessionId = Id;
         TokensUsed = 0;

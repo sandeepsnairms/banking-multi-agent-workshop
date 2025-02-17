@@ -182,7 +182,7 @@
             if (!updateCurrentChat)
                 return;
 
-            CurrentSession = new Session();
+            CurrentSession = new Session("t1","u1");
             CurrentSession.SessionId = Interface.EMPTY_SESSION;
             CurrentSession.Name = string.Empty;
 
@@ -288,7 +288,7 @@
         }
         if (CurrentSession is null || index < 0)
         {
-            CurrentSession = new Session();
+            CurrentSession = new Session("t1","u1");
             CurrentSession.SessionId = Interface.EMPTY_SESSION;
             CurrentSession.Name = string.Empty;
 
@@ -314,7 +314,7 @@
         if (ChatSessions is null) return 0;
 
         if (CurrentSession is null)
-            CurrentSession = new Session();
+            CurrentSession = new Session("t1","u1");
 
         CurrentSession.SessionId = _sessionId;
         CurrentSession.Name = sessionName;

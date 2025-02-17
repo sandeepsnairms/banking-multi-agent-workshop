@@ -1,45 +1,31 @@
-﻿using MultiAgentCopilot.Common.Interfaces;
-using MultiAgentCopilot.Common.Models.BusinessDomain;
+﻿using BankingAPI.Models.Banking;
 using MultiAgentCopilot.Common.Models.Chat;
 using MultiAgentCopilot.ChatInfrastructure.Interfaces;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel.ChatCompletion;
 using MultiAgentCopilot.Common.Models.Debug;
 using System.Collections.Generic;
+using BankingAPI.Interfaces;
 
 namespace MultiAgentCopilot.ChatInfrastructure.Services;
 
 public class ChatService : IChatService
 {
     private readonly ICosmosDBService _cosmosDBService;
+    private readonly IBankDBService _bankService;
     private readonly ISemanticKernelService _skService;
     private readonly ILogger _logger;
 
-    public string Status
-    {
-        get
-        {
-            if (_cosmosDBService.IsInitialized && _skService.IsInitialized)
-                return "ready";
-
-            var status = new List<string>();
-
-            if (!_cosmosDBService.IsInitialized)
-                status.Add("CosmosDBService: initializing");
-            if (!_skService.IsInitialized)
-                status.Add("SemanticKernelService: initializing");
-
-            return string.Join(",", status);
-        }
-    }
-
+    
     public ChatService(
         ICosmosDBService cosmosDBService,
         ISemanticKernelService ragService,
+        IBankDBService bankService,
         ILogger<ChatService> logger)
     {
         _cosmosDBService = cosmosDBService;
         _skService = ragService;
+        _bankService = bankService;
         _logger = logger;
     }
 
@@ -48,7 +34,7 @@ public class ChatService : IChatService
     /// </summary>
     public async Task<List<Session>> GetAllChatSessionsAsync(string tenantId, string userId)
     {
-        return await _cosmosDBService.GetSessionsAsync();
+        return await _cosmosDBService.GetSessionsAsync(tenantId, userId);
     }
 
     /// <summary>
@@ -63,9 +49,9 @@ public class ChatService : IChatService
     /// <summary>
     /// Creates a new chat session.
     /// </summary>
-    public async Task<Session> CreateNewChatSessionAsync()
+    public async Task<Session> CreateNewChatSessionAsync(string tenantId, string userId)
     {
-        Session session = new();
+        Session session = new(tenantId, userId);
         return await _cosmosDBService.InsertSessionAsync(session);
     }
 
@@ -77,7 +63,7 @@ public class ChatService : IChatService
         ArgumentNullException.ThrowIfNull(sessionId);
         ArgumentException.ThrowIfNullOrEmpty(newChatSessionName);
 
-        return await _cosmosDBService.UpdateSessionNameAsync(sessionId, newChatSessionName);
+        return await _cosmosDBService.UpdateSessionNameAsync( tenantId, userId,sessionId, newChatSessionName);
     }
 
     /// <summary>
@@ -86,7 +72,7 @@ public class ChatService : IChatService
     public async Task DeleteChatSessionAsync(string tenantId, string userId,string sessionId)
     {
         ArgumentNullException.ThrowIfNull(sessionId);
-        await _cosmosDBService.DeleteSessionAndMessagesAsync(sessionId);
+        await _cosmosDBService.DeleteSessionAndMessagesAsync(tenantId, userId,sessionId);
     }
 
     /// <summary>
@@ -102,10 +88,10 @@ public class ChatService : IChatService
             var archivedMessages = await _cosmosDBService.GetSessionMessagesAsync(sessionId);
 
             // Add both prompt and completion to cache, then persist in Cosmos DB
-            var userMessage = new Message(sessionId, "User","User", userPrompt);
+            var userMessage = new Message(tenantId,userId,sessionId, "User","User", userPrompt);
 
             // Generate the completion to return to the user
-            var result = await _skService.GetResponse(userMessage, archivedMessages);
+            var result = await _skService.GetResponse(userMessage, archivedMessages,_bankService,tenantId,userId);
 
             await AddPromptCompletionMessagesAsync(tenantId, userId,sessionId, userMessage, result.Item1, result.Item2);
 
@@ -155,12 +141,12 @@ public class ChatService : IChatService
     /// <summary>
     /// Rate an assistant message. This can be used to discover useful AI responses for training, discoverability, and other benefits down the road.
     /// </summary>
-    public async Task<Message> RateMessageAsync(string tenantId, string userId,string id, string sessionId, bool? rating)
+    public async Task<Message> RateMessageAsync(string tenantId, string userId,string messageId, string sessionId, bool? rating)
     {
-        ArgumentNullException.ThrowIfNull(id);
+        ArgumentNullException.ThrowIfNull(messageId);
         ArgumentNullException.ThrowIfNull(sessionId);
 
-        return await _cosmosDBService.UpdateMessageRatingAsync(id, sessionId, rating);
+        return await _cosmosDBService.UpdateMessageRatingAsync(messageId, sessionId, rating);
     }
 
     public async Task<DebugLog> GetChatCompletionDetailsAsync(string tenantId, string userId,string sessionId, string completionPromptId)

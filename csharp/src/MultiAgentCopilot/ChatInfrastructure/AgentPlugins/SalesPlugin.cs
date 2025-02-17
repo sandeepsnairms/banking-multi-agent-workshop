@@ -6,104 +6,32 @@ using System.Threading.Tasks;
 using Microsoft.SemanticKernel;
 using System.ComponentModel;
 using Microsoft.Extensions.Logging;
-using MultiAgentCopilot.Common.Models.BusinessDomain;
+using BankingAPI.Models.Banking;
+using BankingAPI.Interfaces;
 
 namespace MultiAgentCopilot.ChatInfrastructure.Plugins
 {
-    internal class SalesPlugin
+    internal class SalesPlugin : BasePlugin
     {
-
-        private readonly ILogger<SalesPlugin> _logger;
-
-        public SalesPlugin(ILogger<SalesPlugin> logger)
+        public SalesPlugin(ILogger<BasePlugin> logger, IBankDBService bankService, string tenantId, string userId )
+            : base(logger, bankService, tenantId, userId)
         {
-            _logger = logger;
         }
-
-
-        [KernelFunction("GetUserProfile")]
-        [Description("Get a user's detailed profile")]
-        public string GetUserProfile(string userId)
-        {
-
-            _logger.LogTrace($"Get User Profile: {userId}");
-            // Dummy implementation for getting the current user ID
-            return " User is a high networth individual with a credit score of 800+ and a salary of $100,000 per year.";
-        }
-
+        
         [KernelFunction]
-        [Description("List all account types available.")]
-        public List<AccountType> GetAccountTypes()
+        [Description("List all available offers")]
+        public async Task<List<Offer>> GetOffers(AccountType accountType)
         {
-            _logger.LogTrace($"Fetching accountTypes");
-            return new List<AccountType>
-            {
-                new AccountType
-                {
-                    AccountId = "Prod004",
-                    Name = "Savings Account",
-                    Description = "A savings account.",
-                    EligibilityCriteria = "Minimum salary of $5,000 per year.",
-                    RegistrationDetails = "Proof of income, ID, Proof of Age."
-                },
-                new AccountType
-                {
-                    AccountId = "Prod001",
-                    Name = "Personal Loan",
-                    Description = "A loan for personal use.",
-                    EligibilityCriteria = "Minimum salary of $30,000 per year.",
-                    RegistrationDetails = "ID, SSN"
-                },
-                new AccountType
-                {
-                    AccountId = "Prod002",
-                    Name = "Credit Card",
-                    Description = "A card with flexible credit limits.",
-                    EligibilityCriteria = "Credit score of 200+.",
-                    RegistrationDetails = "Proof of income, credit score, and ID."
-                },
-                new AccountType
-                {
-                    AccountId = "Prod002",
-                    Name = "Premium Credit Card",
-                    Description = "A card with flexible credit limits.",
-                    EligibilityCriteria = "Credit score of 700+.",
-                    RegistrationDetails = "Proof of income, credit score, and ID."
-                },
-                 new AccountType
-                {
-                    AccountId = "Prod003",
-                    Name = "Locker",
-                    Description = "A secure locker.",
-                    EligibilityCriteria = "Credit score of 700+.",
-                    RegistrationDetails = "Proof of income, credit score, and ID."
-                }
-            };
+            _logger.LogTrace($"Fetching Offers");
+            return await _bankService.GetOffersAsync(_tenantId, accountType);
         }
 
         [KernelFunction]
         [Description("Register a new account.")]
-        public string RegisterAccount(string userId, AccountType accType, string AccountDetailsJson)
+        public async Task<ServiceRequest> RegisterAccount(string userId, AccountType accType, Dictionary<string,string> fulfilmentDetails)
         {
             _logger.LogTrace($"Registering Account. User ID: {userId}, Account Type: {accType}");
-            _logger.LogTrace($"Account Details JSON: {AccountDetailsJson}");
-            string registrationId = Guid.NewGuid().ToString();
-            _logger.LogTrace($"Generated Registration ID: {registrationId}");
-            return registrationId;
-        }
-
-
-
-        [KernelFunction]
-        [Description("Details required to register a new account")]
-        public List<string> GetAccounRegistrationRequestDetails(
-            [Description("Type of Account")]
-                 AccountType accType
-        )
-        {
-            _logger.LogTrace($"Fetching service request details for account type: {accType}");
-            // Simulated service request details
-            return new List<string> { "Document Verification", "ID Proof", "Address Proof" }; // Dummy details
+            return await _bankService.CreateFulfilmentRequestAsync(_tenantId, string.Empty,_userId,null,fulfilmentDetails);
         }
 
     }
