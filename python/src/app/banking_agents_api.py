@@ -33,6 +33,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+class DebugLog(BaseModel):
+    id: str
+    sessionId: str
+    tenantId: str
+    userId: str
+    details: str
 
 class Session(BaseModel):
     id: str
@@ -43,7 +49,6 @@ class Session(BaseModel):
     tokensUsed: int = 0
     name: str
     messages: List
-
 
 class MessageModel(BaseModel):
     id: str
@@ -195,14 +200,6 @@ def rate_message(tenantId: str, userId: str, sessionId: str, messageId: str, rat
 
 
 # to be implemented
-class DebugLog(BaseModel):
-    id: str
-    sessionId: str
-    tenantId: str
-    userId: str
-    details: str
-
-
 @app.get("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/completiondetails/{debuglogId}", description="Not yet implemented", tags=[endpointTitle],
          operation_id="GetChatCompletionDetails", response_description="Success", response_model=DebugLog)
 def get_chat_completion_details(tenantId: str, userId: str, sessionId: str, debuglogId: str):
@@ -297,22 +294,6 @@ def create_chat_session(tenantId: str, userId: str):
     return create_thread(tenantId, userId)
 
 
-class MessageModel(BaseModel):
-    id: str
-    type: str
-    sessionId: str
-    tenantId: str
-    userId: str
-    timeStamp: str
-    sender: str
-    senderRole: str
-    text: str
-    debugLogId: str
-    tokensUsed: int
-    rating: bool
-    completionPromptId: str
-
-
 def extract_relevant_messages(response_data, tenantId, userId, sessionId):
     if not response_data:
         return []
@@ -386,12 +367,15 @@ def get_chat_completion(
 
     if not checkpoints:
         # No previous state, start fresh
-        new_state = {"messages": [{"role": "user", "content": request_body}]}
+        new_state = {
+            "messages": [{"role": "user", "content": request_body}]
+        }
         response_data = workflow.invoke(new_state, config, stream_mode="updates")
     else:
         # Resume from last checkpoint
         last_checkpoint = checkpoints[-1]
         last_state = last_checkpoint.checkpoint  # Extract last known state
+
 
         # Ensure messages exist
         if "messages" not in last_state:
@@ -401,7 +385,7 @@ def get_chat_completion(
         last_state["messages"].append({"role": "user", "content": request_body})
 
         # Extract last active agent from the transition path in `channel_versions`
-        last_active_agent = "supervisor_agent"  # Default fallback
+        last_active_agent = "coordinator_agent"  # Default fallback
         if "channel_versions" in last_state:
             for key in reversed(last_state["channel_versions"].keys()):
                 if key.startswith("branch:") and "__self__:human" in key:
@@ -410,6 +394,9 @@ def get_chat_completion(
                     break
 
         print(f"Resuming execution from last active agent: {last_active_agent}")
+
+        # Force execution to continue at last active agent
+        last_state["langgraph_triggers"] = [f"resume:{last_active_agent}"]
 
         # Resume execution using the updated state
         response_data = workflow.invoke(

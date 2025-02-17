@@ -6,7 +6,7 @@ from langgraph_checkpoint_cosmosdb import CosmosDBSaver
 from src.app.services.azure_open_ai import model
 from src.app.services.azure_cosmos_db import DATABASE_NAME, CONTAINER_NAME, userdata_container
 from src.app.tools.product import get_product_advise, get_branch_location
-from src.app.tools.banking import bank_balance, bank_transfer, calculate_monthly_payment
+from src.app.tools.banking import bank_balance, bank_transfer, calculate_monthly_payment, create_account
 from src.app.tools.agent_transfers import create_agent_transfer
 
 coordinator_agent_tools = [
@@ -59,16 +59,21 @@ transactions_agent = create_react_agent(
     ),
 )
 
+
+
 sales_agent_tools = [
     calculate_monthly_payment,
+    create_account,
     create_agent_transfer(agent_name="customer_support_agent"),
 ]
+
 sales_agent = create_react_agent(
     model,
     sales_agent_tools,
     state_modifier=(
-        "You are a sales agent that can help users with taking out bank loans. "
-        "You must ask for the loan amount and the number of years for the loan. "
+        "You are a sales agent that can help users with creating a new account, or taking out bank loans. "
+        "If the user wants to create a new account, you must ask for the account holder's name and the initial balance. Call create_account tool with these values. "
+        "If user wants to ake out a loan, you must ask for the loan amount and the number of years for the loan. "
         "When user provides these, calculate the monthly payment using calculate_monthly_payment tool and provide the result as part of the response. "
         "Do not return the monthly payment tool call output directly to the user, include it with the rest of your response. "
         "You MUST respond with the repayment amounts before transferring to another agent."
@@ -114,10 +119,11 @@ def call_customer_support_agent(state: MessagesState, config) -> Command[Literal
 
 def call_sales_agent(state: MessagesState, config) -> Command[Literal["sales_agent", "human"]]:
     thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
+    # Get userId from state
     print(f"Calling sales agent with Thread ID: {thread_id}")
-
-    response = sales_agent.invoke(state)
+    response = sales_agent.invoke(state)  # Invoke sales agent with state
     return Command(update=response, goto="human")
+
 
 def call_transactions_agent(state: MessagesState, config) -> Command[Literal["transactions_agent", "human"]]:
     thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
