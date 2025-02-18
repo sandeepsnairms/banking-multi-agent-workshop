@@ -6,149 +6,87 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using MultiAgentCopilot.Common.Models.BusinessDomain;
+using BankingAPI.Models.Banking;
+using BankingAPI.Interfaces;
+using Microsoft.Identity.Client;
+using MultiAgentCopilot.Common.Extensions;
 
 namespace MultiAgentCopilot.ChatInfrastructure.Plugins
 {
-    internal class CustomerSupportPlugin
+    public class CustomerSupportPlugin: BasePlugin
     {
-        private readonly ILogger<CustomerSupportPlugin> _logger;
 
-        public CustomerSupportPlugin(ILogger<CustomerSupportPlugin> logger)
+        public CustomerSupportPlugin(ILogger<BasePlugin> logger, IBankDBService bankService, string tenantId, string userId )
+          : base(logger, bankService, tenantId, userId)
         {
-            _logger = logger;
         }
 
         [KernelFunction("GetUserRegisteredAccounts")]
-            [Description("Get accounts registered accounts")]
-            public List<Account> GetUserRegisteredAccounts(
-            [Description("Users Login Id")]
-            string userId
-           )
+        [Description("Get accounts registered accounts")]
+        public async Task<List<BankAccount>> GetUserRegisteredAccounts()
         {
-            _logger.LogTrace($"Fetching accounts for User ID: {userId}");
-            var accounts = new List<Account>
-            {
-                new Account { Id = "Acc123", Name = "Savings Account" },
-                new Account { Id = "Acc456", Name = "Credit Card" },
-            };
-            return accounts;
+            _logger.LogTrace($"Fetching accounts for Tenant: {_tenantId} User ID: {_userId}");
+            return await _bankService.GetUserRegisteredAccountsAsync(_tenantId, _userId);
         }
 
         [KernelFunction("IsAccountRegisteredToUser")]
         [Description("Check if account is registered to user")]
-        public bool IsAccountRegisteredToUser(
-             [Description("Account Id Of User")]
-                    string accountId,
-            [Description("Users Login Id")]
-                        string userId
-            )
+        public async Task<bool> IsAccountRegisteredToUser(string accountId)
         {
-            _logger.LogTrace($"Validating account for User ID: {userId}- {accountId}");
-            return true;
+            _logger.LogTrace($"Validating account for Tenant: {_tenantId} User ID: {_userId}- {accountId}");
+            if (_bankService.GetUserRegisteredAccountsAsync(_tenantId, _userId, accountId).Result.Count > 0)
+                return true;
+            else
+                return false;
         }
 
         [KernelFunction("CheckPendingServiceRequests")]
         [Description("Search the database for pending requests")]
-        public  List<ServiceRequest> CheckPendingServiceRequests(
-            [Description("Users Login Id")]
-                string userId,
-            [Description("Account Id Of User")]
-                string accountId,
-            [Description("Natural language description of the request")]
-            string requestDescription
-        )
+        public async Task<List<ServiceRequest>> CheckPendingServiceRequests(string? accountId=null,ServiceRequestType? srType=null)
         {
-            _logger.LogTrace($"Searching database for matching requests for User: {userId}, Account: {accountId}");
-            // Simulated vector search
+            _logger.LogTrace($"Searching database for matching requests for Tenant: {_tenantId} User: {_userId}");
 
-            ServiceRequest sr1 = new ServiceRequest { AccountId = "acc123", RequestDescription = "abcd", ResolutionETA = DateTime.Now.AddDays(2), UserId = "User123", RequestId = "SR1234", IsResolved = false, RequestDate = DateTime.Now.AddDays(-2) };
-            ServiceRequest sr2 = new ServiceRequest { AccountId = "acc123", RequestDescription = "abcd", ResolutionETA = DateTime.Now.AddDays(2), UserId = "User123", RequestId = "SR1234", IsResolved = false, RequestDate = DateTime.Now.AddDays(-2) };
+            return await _bankService.GetServiceRequestsAsync(_tenantId, accountId, null, srType);
 
-            var retObj = new List<ServiceRequest> { sr1, sr2 }; // Dummy matching requests
-
-            return retObj; 
         }
 
         [KernelFunction]
         [Description("Adds a telebanker callback request for the specified account.")]
-        public string AddTeleBankerRequest(
-             [Description("")]
-                string userId,
-        [Description("")]
-                string accountId
-        )
+        public async Task<ServiceRequest> AddTeleBankerRequest(string accountId,string requestAnnotation ,DateTime callbackTime)
         {
-            _logger.LogTrace($"Adding Tele Banker request for User: {userId}, account: {accountId}");
-            // Simulated callback time
-            return "15 minutes"; // Dummy callback time
+            _logger.LogTrace($"Adding Tele Banker request for Tenant: {_tenantId} User: {_userId}, account: {accountId}");
+
+            return await _bankService.CreateTeleBankerRequestAsync(_tenantId, accountId,_userId, requestAnnotation, callbackTime);
         }
 
         [KernelFunction]
-        [Description("Checks the availability of telebankers for a specific account type and provides the estimated time for contact.")]
-        public string IsTeleBankerAvailable(
-        [Description("")]
-                string accountType
-        )
+        [Description("Get list of availble slots for telebankers specializng in an account type")]
+        public async Task<List<string>> GetTeleBankerSlots(AccountType accountType)
         {
-            _logger.LogTrace($"Checking availability for Tele Banker for account: {accountType}");
-            // Simulated availability check
-            return "Next available Tele Banker in 10 minutes"; // Dummy availability time
+            _logger.LogTrace($"Checking availability for Tele Banker for Tenant: {_tenantId} AccountType: {accountType.ToString()}");
+
+            return await _bankService.GetTeleBankerAvailabilityAsync(_tenantId, accountType);
         }
 
 
         [KernelFunction]
-        [Description("Create new service request")]
-        public string CreateNewServiceRequest(
-            [Description("")]
-                string userId,
-            [Description("")]
-                string accountId,
-            [Description("")]
-                string requestDetails,
-            [Description("")]
-                string requestDescription
-        )
+        [Description("Create new complaint")]
+        public async Task<ServiceRequest> CreateComplaint(string accountId, string requestAnnotation)
         {
-            _logger.LogTrace($"Adding new service request for User: {userId}, Account: {accountId}");
-            _logger.LogTrace($"Request Details: {requestDetails}");
-            _logger.LogTrace($"Request Description: {requestDescription}");
-            // Simulated service request ID
-            return "SR12345"; // Dummy request ID
+            _logger.LogTrace($"Adding new service request for Tenant: {_tenantId} User: {_userId}, Account: {accountId}");
+
+            return await _bankService.CreateComplaintAsync(_tenantId, accountId, _userId, requestAnnotation);
         }
 
         [KernelFunction]
         [Description("Updates an existing service request with additional details")]
-        public void UpdateExistingServiceRequest(
-            [Description("")]
-                string userId,
-            [Description("")]
-                 string accountId,
-            [Description("")]
-                string requestDetails,
-            [Description("")]
-                string requestDescription
-        )
+        public async Task<bool> UpdateExistingServiceRequest(string requestId, string requestAnnotation)
         {
-            _logger.LogTrace($"Updating service request for User: {userId}, Account: {accountId}");
-            _logger.LogTrace($"Request Details: {requestDetails}");
-            _logger.LogTrace($"Request Description: {requestDescription}");
-            // Simulated update
-            _logger.LogTrace("Service request updated successfully (simulated).");
+            _logger.LogTrace($"Updating service request for Request: {requestId}");
+
+            return await  _bankService.AddServiceRequestDescriptionAsync(_tenantId, requestId, requestAnnotation);
         }
 
-        /*
-        [KernelFunction]
-        [Description("Summarizes the JSON into a natural language description.")]
-        public static string ConvertJSONToNaturalLanguage(
-            [Description("")]
-                string requestJSON
-        )
-        {
-            _logger.LogTrace($"Using LLM to convert request details to natural language: {requestJSON}");
-            // Simulated natural language generation
-            return $"Please {requestJSON} for my account."; // Dummy generated description
-        }
-        */
+       
     }
 }

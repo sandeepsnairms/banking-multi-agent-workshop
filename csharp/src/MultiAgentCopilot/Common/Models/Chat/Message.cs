@@ -1,5 +1,7 @@
 namespace MultiAgentCopilot.Common.Models.Chat;
 using Microsoft.SemanticKernel.ChatCompletion;
+using MultiAgentCopilot.Common.Models.Debug;
+
 public record Message
 {
     /// <summary>
@@ -13,6 +15,10 @@ public record Message
     /// </summary>
     public string SessionId { get; set; }
 
+    public string TenantId { get; set; }
+
+    public string UserId { get; set; }
+
     public DateTime TimeStamp { get; set; }
 
     public string Sender { get; set; }
@@ -20,6 +26,8 @@ public record Message
     public string SenderRole { get; set; }
 
     public string Text { get; set; }
+
+    public string? DebugLogId { get; set; }
 
     //public int? TokensSize { get; set; }
 
@@ -33,10 +41,14 @@ public record Message
 
     public string CompletionPromptId { get; set; }
 
-    public Message(string sessionId, string author, string authorRole, string textContent, string? id = null)
+    public Message(string tenantId, string userId,string sessionId, string author, string authorRole, string textContent, string? id = null, string? debugLogId=null)
     {
         SessionId = sessionId;
+        TenantId = tenantId;
+        UserId = userId;
         Id = id ?? Guid.NewGuid().ToString();
+        if (debugLogId != null)
+            DebugLogId = debugLogId;
         Type = nameof(Message);
         Sender = author;
         SenderRole = authorRole;

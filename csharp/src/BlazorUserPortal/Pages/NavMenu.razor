@@ -96,7 +96,7 @@
 @if (_renamePopUpOpen)
 {
     <Input Caption="Rename a Chat"
-       Value="@_popUpText"
+       Value="@_popUpText.ToString()"
        OnClose="@OnInputClose">
         </Input>
 }
@@ -117,7 +117,7 @@
     public EventCallback OnThemeUpdated { get; set; }
 
     private string? _sessionId;
-    private string? _popUpText;
+    private MarkupString? _popUpText;
     private bool _deletePopUpOpen = false;
     private bool _loadingComplete;
     private bool _renamePopUpOpen = false;
@@ -152,7 +152,7 @@
     {
         _deletePopUpOpen = true;
         _sessionId = id;
-        _popUpText = $"Do you want to delete the chat \"{title}\"?";
+        _popUpText = (MarkupString)$"Do you want to delete the chat \"{title}";
     }
 
     public void UpdateNavMenuDisplay(string reason = "")
@@ -182,7 +182,7 @@
             if (!updateCurrentChat)
                 return;
 
-            CurrentSession = new Session();
+            CurrentSession = new Session("t1","u1");
             CurrentSession.SessionId = Interface.EMPTY_SESSION;
             CurrentSession.Name = string.Empty;
 
@@ -207,7 +207,7 @@
     {
         _renamePopUpOpen = true;
         _sessionId = id;
-        _popUpText = title;
+        _popUpText = _popUpText = (MarkupString)$"{title}";
     }
 
     private async Task OnInputClose(string newName)
@@ -288,7 +288,7 @@
         }
         if (CurrentSession is null || index < 0)
         {
-            CurrentSession = new Session();
+            CurrentSession = new Session("t1","u1");
             CurrentSession.SessionId = Interface.EMPTY_SESSION;
             CurrentSession.Name = string.Empty;
 
@@ -314,7 +314,7 @@
         if (ChatSessions is null) return 0;
 
         if (CurrentSession is null)
-            CurrentSession = new Session();
+            CurrentSession = new Session("t1","u1");
 
         CurrentSession.SessionId = _sessionId;
         CurrentSession.Name = sessionName;

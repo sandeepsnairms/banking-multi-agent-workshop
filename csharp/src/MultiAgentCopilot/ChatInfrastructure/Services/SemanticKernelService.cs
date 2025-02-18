@@ -1,6 +1,6 @@
 ﻿using MultiAgentCopilot.Common.Models.Chat;
 using MultiAgentCopilot.ChatInfrastructure.Interfaces;
-using MultiAgentCopilot.ChatInfrastructure.Models.ConfigurationOptions;
+using MultiAgentCopilot.Common.Models.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -14,6 +14,7 @@ using MultiAgentCopilot.ChatInfrastructure.Factories;
 using Newtonsoft.Json;
 using System.Data;
 using MultiAgentCopilot.Common.Models.Debug;
+using BankingAPI.Interfaces;
 
 
 #pragma warning disable SKEXP0001, SKEXP0010, SKEXP0020, SKEXP0050, SKEXP0060
@@ -23,7 +24,6 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services;
 
 public class SemanticKernelService : ISemanticKernelService, IDisposable
 {
-    readonly ICosmosDBClientFactory _cosmosDBClientFactory;
     readonly SemanticKernelServiceSettings _settings;
     readonly ILoggerFactory _loggerFactory;
     readonly ILogger<SemanticKernelService> _logger;
@@ -38,11 +38,10 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
     public bool IsInitialized => _serviceInitialized;
 
     public SemanticKernelService(
-        ICosmosDBClientFactory cosmosDBClientFactory,
         IOptions<SemanticKernelServiceSettings> options,
         ILoggerFactory loggerFactory)
     {
-        _cosmosDBClientFactory = cosmosDBClientFactory;
+
         _settings = options.Value;
         _loggerFactory = loggerFactory;
 
@@ -82,13 +81,13 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
         _promptDebugProperties.Add(new LogProperty(key, value));
     }
 
-    public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory)
+    public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, IBankDBService bankService, string tenantId, string userId)
     {
         try
         {
             MultiAgentChatFactory multiAgentChatGeneratorService = new MultiAgentChatFactory();
 
-            var agentGroupChat = multiAgentChatGeneratorService.BuildAgentGroupChat(_semanticKernel, _loggerFactory, LogMessage);
+            var agentGroupChat = multiAgentChatGeneratorService.BuildAgentGroupChat(_semanticKernel, _loggerFactory, LogMessage, bankService, tenantId, userId);
 
             // Load history
             foreach (var chatMessage in messageHistory)
@@ -116,11 +115,12 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
                 await foreach (ChatMessageContent response in agentGroupChat.InvokeAsync())
                 {
                     string messageId = Guid.NewGuid().ToString();
-                    completionMessages.Add(new Message(userMessage.SessionId, response.AuthorName, response.Role.ToString(), response.Content, messageId));
+                    string debugLogId = Guid.NewGuid().ToString();
+                    completionMessages.Add(new Message(userMessage.TenantId, userMessage.UserId,userMessage.SessionId, response.AuthorName, response.Role.ToString(), response.Content, messageId, debugLogId));
 
                     if(_promptDebugProperties.Count>0)
                     {
-                        var completionMessagesLog = new DebugLog(userMessage.SessionId, messageId);
+                        var completionMessagesLog = new DebugLog(userMessage.TenantId, userMessage.UserId, userMessage.SessionId, messageId, debugLogId);
                         completionMessagesLog.PropertyBag = _promptDebugProperties;
                         completionMessagesLogs.Add(completionMessagesLog);
                     }

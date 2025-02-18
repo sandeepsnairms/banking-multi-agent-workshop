@@ -1,12 +1,12 @@
-﻿using MultiAgentCopilot.Common.Interfaces;
-using MultiAgentCopilot.Common.Models.Configuration;
+﻿using MultiAgentCopilot.Common.Models.Configuration;
 using MultiAgentCopilot.ChatInfrastructure.Interfaces;
-using MultiAgentCopilot.ChatInfrastructure.Models.ConfigurationOptions;
 using MultiAgentCopilot.ChatInfrastructure.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using MultiAgentCopilot.ChatInfrastructure.Factories;
-
+using BankingAPI.Interfaces;
+using BankingAPI.Services;
+using BankingAPI.Models.Configuration;
 namespace MultiAgentCopilot
 {
     /// <summary>
@@ -15,15 +15,14 @@ namespace MultiAgentCopilot
     public static partial class DependencyInjection
     {
         /// <summary>
-        /// Registers the <see cref="ICosmosDBService"/> implementation with the dependency injection container."/>
+        /// Registers the <see cref="IBankDBService"/> implementation with the dependency injection container."/>
         /// </summary>
         /// <param name="builder">The hosted applications and services builder.</param>
-        public static void AddCosmosDBService(this IHostApplicationBuilder builder)
+        public static void AddBankingCosmosDBService(this IHostApplicationBuilder builder)
         {
-            builder.Services.AddOptions<CosmosDBSettings>()
-                .Bind(builder.Configuration.GetSection("CosmosDBSettings"));
-            builder.Services.AddSingleton<ICosmosDBService, CosmosDBService>();
-            builder.Services.AddSingleton<ICosmosDBClientFactory, CosmosDBClientFactory>();
+            builder.Services.AddOptions<BankingCosmosDBSettings>()
+                .Bind(builder.Configuration.GetSection("BankingCosmosDBSettings"));
+            builder.Services.AddSingleton<IBankDBService, BankingCosmosDBService>();            
         }
 
         /// <summary>
@@ -35,6 +34,13 @@ namespace MultiAgentCopilot
             builder.Services.AddOptions<SemanticKernelServiceSettings>()
                 .Bind(builder.Configuration.GetSection("SemanticKernelServiceSettings"));
             builder.Services.AddSingleton<ISemanticKernelService, SemanticKernelService>();
+        }
+
+        public static void AddCosmosDBService(this IHostApplicationBuilder builder)
+        {
+            builder.Services.AddOptions<CosmosDBSettings>()
+                .Bind(builder.Configuration.GetSection("CosmosDBSettings"));
+            builder.Services.AddSingleton<ICosmosDBService, CosmosDBService>();
         }
 
         /// <summary>
