@@ -7,7 +7,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using BankingAPI.Models.Banking;
+using MultiAgentCopilot.Common.Models.Banking;
 using BankingAPI.Interfaces;
 
 namespace MultiAgentCopilot.ChatInfrastructure.Plugins
@@ -25,6 +25,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Plugins
             _logger = logger;
             _tenantId = tenantId;
             _userId = userId;
+            _bankService = bankService;
         }
 
 
@@ -44,6 +45,14 @@ namespace MultiAgentCopilot.ChatInfrastructure.Plugins
         {
             _logger.LogTrace($"Get Datetime: {System.DateTime.Now.ToUniversalTime()}");
             return System.DateTime.Now.ToUniversalTime();
+        }
+
+        [KernelFunction("GetUserRegisteredAccounts")]
+        [Description("Get user registered accounts")]
+        public async Task<List<BankAccount>> GetUserRegisteredAccounts()
+        {
+            _logger.LogTrace($"Fetching accounts for Tenant: {_tenantId} User ID: {_userId}");
+            return await _bankService.GetUserRegisteredAccountsAsync(_tenantId, _userId);
         }
 
         /*

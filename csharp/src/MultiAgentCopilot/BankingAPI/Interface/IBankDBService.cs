@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using BankingAPI.Models.Banking;
+using MultiAgentCopilot.Common.Models.Banking;
 
 namespace BankingAPI.Interfaces
 {
@@ -12,7 +12,9 @@ namespace BankingAPI.Interfaces
     {
         Task<BankUser> GetUserAsync(string tenantId, string userId);
 
-        Task<BankAccount> GetAccountDetailsAsync(string tenantId, string userId);        
+        Task<BankAccount> GetAccountDetailsAsync(string tenantId, string userId, string accountId);
+
+        Task<List<BankAccount>> GetUserRegisteredAccountsAsync(string tenantId, string userId);
 
         Task<List<BankTransaction>> GetTransactionsAsync(string tenantId, string accountId, DateTime startDate, DateTime endDate);
 
@@ -27,8 +29,6 @@ namespace BankingAPI.Interfaces
         Task<List<ServiceRequest>> GetServiceRequestsAsync(string tenantId, string accountId, string? userId = null, ServiceRequestType? SRType = null);
 
         Task<bool> AddServiceRequestDescriptionAsync(string tenantId, string requestId, string annotationToAdd);
-
-        Task<List<BankAccount>> GetUserRegisteredAccountsAsync(string tenantId, string userId, string? accountId = null);
 
         Task<List<Offer>> GetOffersAsync(string tenantId, AccountType accountType);
 

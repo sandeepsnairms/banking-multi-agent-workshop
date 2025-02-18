@@ -16,6 +16,7 @@
 		<PackageReference Include="Microsoft.SemanticKernel.Core" Version="1.36.1" />
 	</ItemGroup>
 	<ItemGroup>
+	  <ProjectReference Include="..\BankingAPI\BankingAPI.csproj" />
 	  <ProjectReference Include="..\Common\Common.csproj" />
 	</ItemGroup>
 	<ItemGroup>

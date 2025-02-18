@@ -43,9 +43,9 @@
                         @foreach (var session in ChatSessions)
                         {
                             <div class="col">
-                                <div class="card @(IsActiveSession(session.SessionId) ? "bg-primary text-light" : "bg-primary opacity-50 text-light")" @onclick="@(e => LoadChat(session.SessionId,session.Name, session.TokensUsed))">
+                                <div class="card @(IsActiveSession(session.SessionId) ? "bg-primary text-light" : "bg-primary opacity-50 text-light")" @onclick="@(e => LoadChat(session.SessionId,session.Name))">
                                     <div class="card-body">
-                                        <a class="card-title text-decoration-none h6" @onclick="@(e => LoadChat(session.SessionId,session.Name, session.TokensUsed))">
+                                        <a class="card-title text-decoration-none h6" @onclick="@(e => LoadChat(session.SessionId,session.Name))">
                                             @if (IsActiveSession(session.SessionId))
                                             {
                                                 <i class="bi bi-chat-right-dots-fill me-2"></i>
@@ -58,9 +58,9 @@
                                     <div class="card-footer d-flex align-items-between">
                                         <span class="flex-grow-1"></span>
                                         <div class="align-items-between">
-                                            <span class="me-2 badge rounded-pill bg-light">
+                                           @*  <span class="me-2 badge rounded-pill bg-light">
                                                 Tokens Used: @session.TokensUsed
-                                            </span>
+                                            </span> *@
                                         </div>
                                         <div class="btn-group" role="group">
                                             <button type="button" class="btn btn-sm btn-link text-light" @onclick="@(e => OpenInput(session.SessionId,session.Name))">
@@ -182,7 +182,7 @@
             if (!updateCurrentChat)
                 return;
 
-            CurrentSession = new Session("t1","u1");
+            CurrentSession = new Session("T1","1");
             CurrentSession.SessionId = Interface.EMPTY_SESSION;
             CurrentSession.Name = string.Empty;
 
@@ -193,7 +193,7 @@
                 {
                     CurrentSession.SessionId = match.SessionId;
                     CurrentSession.Name = match.Name;
-                    CurrentSession.TokensUsed = match.TokensUsed;
+                    // CurrentSession.TokensUsed = match.TokensUsed;
                 }
             }
 
@@ -270,7 +270,7 @@
             {
                 CurrentSession.SessionId = match.SessionId;
                 CurrentSession.Name = match.Name;
-                CurrentSession.TokensUsed = match.TokensUsed;
+                // CurrentSession.TokensUsed = match.TokensUsed;
             }
         }
 
@@ -288,7 +288,7 @@
         }
         if (CurrentSession is null || index < 0)
         {
-            CurrentSession = new Session("t1","u1");
+            CurrentSession = new Session("T1","1");
             CurrentSession.SessionId = Interface.EMPTY_SESSION;
             CurrentSession.Name = string.Empty;
 
@@ -299,7 +299,7 @@
                 {
                     CurrentSession.SessionId = match.SessionId;
                     CurrentSession.Name = match.Name;
-                    CurrentSession.TokensUsed = match.TokensUsed;
+                    // CurrentSession.TokensUsed = match.TokensUsed;
                 }
             }
         }
@@ -309,16 +309,16 @@
         return 0;
     }
 
-    async private Task<int> LoadChat(string _sessionId, string sessionName, int? tokensUsed)
+    async private Task<int> LoadChat(string _sessionId, string sessionName)
     {
         if (ChatSessions is null) return 0;
 
         if (CurrentSession is null)
-            CurrentSession = new Session("t1","u1");
+            CurrentSession = new Session("T1","1");
 
         CurrentSession.SessionId = _sessionId;
         CurrentSession.Name = sessionName;
-        CurrentSession.TokensUsed = tokensUsed;
+        // CurrentSession.TokensUsed = tokensUsed;
 
         await LoadCurrentChatAsync();
 

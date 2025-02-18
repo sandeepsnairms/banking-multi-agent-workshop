@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Transactions;
-using BankingAPI.Models.Banking;
+using MultiAgentCopilot.Common.Models.Banking;
 using BankingAPI.Interfaces;
 
 namespace MultiAgentCopilot.ChatInfrastructure.Plugins
@@ -20,7 +20,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Plugins
         }
 
         [KernelFunction]
-        [Description("Adds a new AccountTransaction request")]
+        [Description("Adds a new Account Transaction request")]
         public async Task<ServiceRequest> AddFunTransferRequest(
             string debitAccountId,
             decimal amount,
@@ -41,5 +41,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Plugins
             return await _bankService.GetTransactionsAsync(_tenantId,accountId, startDate, endDate);
 
         }
+
+       
     }
 }

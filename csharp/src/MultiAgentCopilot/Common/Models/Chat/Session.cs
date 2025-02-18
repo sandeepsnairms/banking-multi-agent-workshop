@@ -20,8 +20,6 @@ public record Session
 
     public string UserId { get; set; }
 
-    public int? TokensUsed { get; set; }
-
     public string Name { get; set; }
 
     [JsonIgnore]
@@ -34,7 +32,6 @@ public record Session
         UserId = userId;
         Type = nameof(Session);
         SessionId = Id;
-        TokensUsed = 0;
         Name = "New Chat";
         Messages = new List<Message>();
     }

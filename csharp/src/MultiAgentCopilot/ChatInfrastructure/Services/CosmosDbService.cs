@@ -1,4 +1,4 @@
-﻿using BankingAPI.Models.Banking;
+﻿using MultiAgentCopilot.Common.Models.Banking;
 using MultiAgentCopilot.Common.Models.Chat;
 using MultiAgentCopilot.Common.Models.Configuration;
 using MultiAgentCopilot.ChatInfrastructure.Interfaces;
@@ -15,7 +15,11 @@ using Microsoft.Azure.Cosmos.Serialization.HybridRow.Schemas;
 using System.Xml.Linq;
 using PartitionKey = Microsoft.Azure.Cosmos.PartitionKey;
 using Container = Microsoft.Azure.Cosmos.Container;
-
+using MultiAgentCopilot.Common.Helper;
+using System.Collections.Concurrent;
+using Microsoft.VisualStudio.TestPlatform.ObjectModel.DataCollection;
+using Microsoft.VisualStudio.TestPlatform.CommunicationUtilities;
+using Message = MultiAgentCopilot.Common.Models.Chat.Message;
 namespace MultiAgentCopilot.ChatInfrastructure.Services
 {
     /// <summary>
@@ -68,14 +72,15 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
             _logger.LogInformation("Cosmos DB service initialized.");
         }
 
-        public async Task<List<Session>> GetSessionsAsync(string tenantId, string userId)
+        public async Task<List<Session>> GetUserSessionsAsync(string tenantId, string userId)
         {
             try
             {
                 QueryDefinition query = new QueryDefinition("SELECT DISTINCT * FROM c WHERE c.type = @type")
                     .WithParameter("@type", nameof(Session));
 
-                FeedIterator<Session> response = _chatData.GetItemQueryIterator<Session>(query);
+                var partitionKey= PartitionManager.GetChatDataPartialPK(tenantId, userId);
+                FeedIterator<Session> response = _chatData.GetItemQueryIterator<Session>(query, null, new QueryRequestOptions() { PartitionKey = partitionKey });
 
                 List<Session> output = new();
                 while (response.HasMoreResults)
@@ -93,21 +98,25 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
             }
         }
 
-        public async Task<Session> GetSessionAsync(string id)
+        public async Task<Session> GetSessionAsync(string tenantId, string userId, string sessionId)
         {
+            var partitionKey = PartitionManager.GetChatDataFullPK(tenantId, userId,sessionId);
+
             return await _chatData.ReadItemAsync<Session>(
-                id: id,
-                partitionKey: new PartitionKey(id));
+                id: sessionId,
+                partitionKey: partitionKey);
+
         }
 
-        public async Task<List<Message>> GetSessionMessagesAsync(string sessionId)
+        public async Task<List<Message>> GetSessionMessagesAsync(string tenantId, string userId,string sessionId)
         {
             QueryDefinition query =
-                new QueryDefinition("SELECT * FROM c WHERE c.sessionId = @sessionId AND c.type = @type")
-                    .WithParameter("@sessionId", sessionId)
+                new QueryDefinition("SELECT * FROM c WHERE c.type = @type")
                     .WithParameter("@type", nameof(Message));
 
-            FeedIterator<Message> results = _chatData.GetItemQueryIterator<Message>(query);
+            var partitionKey = PartitionManager.GetChatDataFullPK(tenantId, userId,sessionId);
+
+            FeedIterator<Message> results = _chatData.GetItemQueryIterator<Message>(query, null, new QueryRequestOptions() { PartitionKey = partitionKey });
 
             List<Message> output = new();
             while (results.HasMoreResults)
@@ -121,20 +130,20 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
 
         public async Task<Session> InsertSessionAsync(Session session)
         {
-            PartitionKey partitionKey = new(session.SessionId);
+            var partitionKey = PartitionManager.GetChatDataFullPK(session.TenantId, session.UserId,session.SessionId);
+
             var response= await _chatData.CreateItemAsync(
                 item: session,
                 partitionKey: partitionKey
             );
-
-            await UpdateSessionInUserData(OperationType.Add, session.TenantId, session.UserId, session.SessionId, session.Name);
 
             return response;
         }
 
         public async Task<Message> InsertMessageAsync(Message message)
         {
-            PartitionKey partitionKey = new(message.SessionId);
+            var partitionKey = PartitionManager.GetChatDataFullPK(message.TenantId, message.UserId, message.SessionId);
+
             return await _chatData.CreateItemAsync(
                 item: message,
                 partitionKey: partitionKey
@@ -143,7 +152,8 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
 
         public async Task<Message> UpdateMessageAsync(Message message)
         {
-            PartitionKey partitionKey = new(message.SessionId);
+            var partitionKey = PartitionManager.GetChatDataFullPK(message.TenantId, message.UserId, message.SessionId);
+
             return await _chatData.ReplaceItemAsync(
                 item: message,
                 id: message.Id,
@@ -151,11 +161,13 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
             );
         }
 
-        public async Task<Message> UpdateMessageRatingAsync(string messageId, string sessionId, bool? rating)
+        public async Task<Message> UpdateMessageRatingAsync(string tenantId, string userId, string sessionId,string messageId, bool? rating)
         {
+            var partitionKey = PartitionManager.GetChatDataFullPK(tenantId, userId, sessionId);
+
             var response = await _chatData.PatchItemAsync<Message>(
-                id: messageId,
-                partitionKey: new PartitionKey(sessionId),
+            id: messageId,
+            partitionKey: new PartitionKey(sessionId),
                 patchOperations: new[]
                 {
                         PatchOperation.Set("/rating", rating),
@@ -166,7 +178,8 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
 
         public async Task<Session> UpdateSessionAsync(Session session)
         {
-            PartitionKey partitionKey = new(session.SessionId);
+            var partitionKey = PartitionManager.GetChatDataFullPK(session.TenantId, session.UserId, session.SessionId);
+
             return await _chatData.ReplaceItemAsync(
                 item: session,
                 id: session.Id,
@@ -176,80 +189,19 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
 
         public async Task<Session> UpdateSessionNameAsync(string tenantId, string userId,string sessionId, string name)
         {
+            var partitionKey = PartitionManager.GetChatDataFullPK(tenantId, userId, sessionId);
+
             var response = await _chatData.PatchItemAsync<Session>(
                 id: sessionId,
-                partitionKey: new PartitionKey(sessionId),
+                partitionKey: partitionKey,
                 patchOperations: new[]
                 {
                         PatchOperation.Set("/name", name),
                 }
             );
 
-            UpdateSessionInUserData(OperationType.Rename, tenantId, userId, sessionId, name);
 
             return response.Resource;
-        }
-
-        private enum OperationType
-        {
-            Add,
-            Rename,
-            Delete,
-        }
-
-        private async Task<bool> UpdateSessionInUserData(OperationType opType, string tenantId, string userId, string sessionId, string? newName = null)
-        {
-            try
-            {
-                // Read the document
-                var response = await _userData.ReadItemAsync<dynamic>(userId, new PartitionKey(tenantId));
-                dynamic document = response.Resource;
-
-                switch (opType)
-                {
-                    case OperationType.Add:
-                        if (document.chatSessions == null || document.chatSessions.Type != JTokenType.Array)
-                        {
-                            document.chatSessions = new JArray();
-                        }
-                        document.chatSessions.Add(JObject.FromObject(new { id = sessionId, name = newName }));
-                        break;
-
-                    case OperationType.Rename:
-                        if (document.chatSessions is JArray chatSessionsArray)
-                        {
-                            foreach (var session in chatSessionsArray)
-                            {
-                                if (session["id"]?.ToString() == sessionId)
-                                {
-                                    session["name"] = newName;  // Correct way to modify JArray
-                                    break;
-                                }
-                            }
-                        }
-                        break;
-
-                    case OperationType.Delete:
-                        if (document.chatSessions is JArray chatSessionsArray2)
-                        {
-                            var updatedSessions = chatSessionsArray2
-                                .Where(session => session["id"]?.ToString() != sessionId)
-                                .ToArray();  // Create a new array excluding the session to delete
-
-                            document.chatSessions = new JArray(updatedSessions); // Reassign filtered array
-                        }
-                        break;
-                }
-
-                // Replace the document with updated content
-                await _userData.ReplaceItemAsync(document, userId, new PartitionKey(tenantId));
-                return true;
-            }
-            catch (CosmosException ex)
-            {
-                _logger.LogError(ex.Message);
-                return false;
-            }
         }
 
 
@@ -266,7 +218,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
                 throw new ArgumentException("All items must have the same partition key as message.");
             }
 
-            PartitionKey partitionKey = new(messages.First().SessionId);
+            PartitionKey partitionKey = PartitionManager.GetChatDataFullPK(session.TenantId, session.UserId, session.SessionId);
             var batch = _chatData.CreateTransactionalBatch(partitionKey);
             foreach (var message in messages)
             {
@@ -291,7 +243,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
 
         public async Task DeleteSessionAndMessagesAsync(string tenantId, string userId,string sessionId)
         {
-            PartitionKey partitionKey = new(sessionId);
+            var partitionKey = PartitionManager.GetChatDataFullPK(tenantId, userId, sessionId);
 
             var query = new QueryDefinition("SELECT c.id FROM c WHERE c.sessionId = @sessionId")
                 .WithParameter("@sessionId", sessionId);
@@ -310,16 +262,16 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
                 }
             }
 
-            await UpdateSessionInUserData(OperationType.Delete, tenantId, userId, sessionId,"");
-
             await batch.ExecuteAsync();
         }
 
-        public async Task<DebugLog> GetChatCompletionDetailsAsync(string sessionId, string debugLogId)
+        public async Task<DebugLog> GetChatCompletionDebugLogAsync(string tenantId, string userId,string sessionId, string debugLogId)
         {
+            var partitionKey = PartitionManager.GetChatDataFullPK(tenantId, userId, sessionId);
+
             return await _chatData.ReadItemAsync<DebugLog>(
                 id: debugLogId,
-                partitionKey: new PartitionKey(sessionId));
+                partitionKey: partitionKey);
 
         }
     }

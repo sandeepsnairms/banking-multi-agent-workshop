@@ -1,4 +1,4 @@
-﻿using BankingAPI.Models.Banking;
+﻿using MultiAgentCopilot.Common.Models.Banking;
 using MultiAgentCopilot.Common.Models.Chat;
 using MultiAgentCopilot.Common.Models.Debug;
 namespace MultiAgentCopilot.ChatInfrastructure.Interfaces;
@@ -40,9 +40,9 @@ public interface IChatService
     /// <summary>
     /// Rate an assistant message. This can be used to discover useful AI responses for training, discoverability, and other benefits down the road.
     /// </summary>
-    Task<Message> RateMessageAsync(string tenantId, string userId,string id, string sessionId, bool? rating);
+    Task<Message> RateChatCompletionAsync(string tenantId, string userId,string id, string sessionId, bool? rating);
 
-    Task<DebugLog> GetChatCompletionDetailsAsync(string tenantId, string userId,string sessionId, string completionPromptId);
+    Task<DebugLog> GetChatCompletionDebugLogAsync(string tenantId, string userId,string sessionId, string debugLogId);
 
     Task ResetSemanticCache(string tenantId, string userId);
 }

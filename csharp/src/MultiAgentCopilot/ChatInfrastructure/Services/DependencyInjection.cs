@@ -18,12 +18,6 @@ namespace MultiAgentCopilot
         /// Registers the <see cref="IBankDBService"/> implementation with the dependency injection container."/>
         /// </summary>
         /// <param name="builder">The hosted applications and services builder.</param>
-        public static void AddBankingCosmosDBService(this IHostApplicationBuilder builder)
-        {
-            builder.Services.AddOptions<BankingCosmosDBSettings>()
-                .Bind(builder.Configuration.GetSection("BankingCosmosDBSettings"));
-            builder.Services.AddSingleton<IBankDBService, BankingCosmosDBService>();            
-        }
 
         /// <summary>
         /// Registers the <see cref="ISemanticKernelService"/> implementation with the dependency injection container.
@@ -49,6 +43,8 @@ namespace MultiAgentCopilot
         /// <param name="builder">The hosted applications and services builder.</param>
         public static void AddChatService(this IHostApplicationBuilder builder)
         {
+            builder.Services.AddOptions<BankingCosmosDBSettings>()
+                .Bind(builder.Configuration.GetSection("BankingCosmosDBSettings"));
             builder.Services.AddSingleton<IChatService, ChatService>();
         }
 
