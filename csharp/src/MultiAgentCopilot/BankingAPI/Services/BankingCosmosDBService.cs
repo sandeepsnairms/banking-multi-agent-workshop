@@ -7,12 +7,16 @@ using Microsoft.Extensions.Logging;
 using BankingAPI.Models.Configuration;
 using Container = Microsoft.Azure.Cosmos.Container;
 using Azure.Identity;
-using BankingAPI.Models.Banking;
+using MultiAgentCopilot.Common.Models.Banking;
 using Microsoft.Identity.Client;
 using System.Text;
 using  BankingAPI.Interfaces;
 using Microsoft.VisualBasic;
 using Microsoft.Extensions.Options;
+using MultiAgentCopilot.Common.Helper;
+using MultiAgentCopilot.Common.Models.Chat;
+using Microsoft.Azure.Cosmos.Serialization.HybridRow.Schemas;
+using PartitionKey = Microsoft.Azure.Cosmos.PartitionKey;
 
 namespace BankingAPI.Services
 {
@@ -30,13 +34,13 @@ namespace BankingAPI.Services
         public bool IsInitialized { get; private set; }
 
         public BankingCosmosDBService(
-            IOptions<BankingCosmosDBSettings> settings,
-            ILogger<BankingCosmosDBService> logger)
+            BankingCosmosDBSettings settings,
+            ILoggerFactory loggerFactory )
         {
-            _settings = settings.Value; 
+            _settings = settings; 
             ArgumentException.ThrowIfNullOrEmpty(_settings.CosmosUri);
 
-            _logger = logger;
+            _logger = loggerFactory.CreateLogger<BankingCosmosDBService>();
             _logger.LogInformation("Initializing Cosmos DB service.");
 
             if (!_settings.EnableTracing)
@@ -72,9 +76,11 @@ namespace BankingAPI.Services
         {
             try
             {
+                var partitionKey = PartitionManager.GetUserDataFullPK(tenantId);
+
                 return await _userData.ReadItemAsync<BankUser>(
                        id: userId,
-                       partitionKey: new PartitionKey(tenantId));
+                       partitionKey: partitionKey);
             }
             catch (CosmosException ex)
             {
@@ -83,10 +89,41 @@ namespace BankingAPI.Services
             }
         }
 
-        public async Task<BankAccount> GetAccountDetailsAsync(string tenantId, string accountId)
+
+        public async Task<List<BankAccount>> GetUserRegisteredAccountsAsync(string tenantId, string userId)
         {
             try
             {
+                QueryDefinition query = new QueryDefinition("SELECT * FROM c WHERE c.type = @type and c.userId=@userId")
+                     .WithParameter("@type", nameof(BankAccount))
+                     .WithParameter("@userId", userId);
+
+                var partitionKey = PartitionManager.GetAccountsPartialPK(tenantId);
+                FeedIterator<BankAccount> response = _accountData.GetItemQueryIterator<BankAccount>(query, null, new QueryRequestOptions() { PartitionKey = partitionKey });
+
+                List<BankAccount> output = new();
+                while (response.HasMoreResults)
+                {
+                    FeedResponse<BankAccount> results = await response.ReadNextAsync();
+                    output.AddRange(results);
+                }
+
+                return output;
+            }
+            catch (CosmosException ex)
+            {
+                _logger.LogError(ex.ToString());
+                return null;
+            }
+        }
+
+
+        public async Task<BankAccount> GetAccountDetailsAsync(string tenantId, string userId, string accountId)
+        {
+            try
+            {
+                var partitionKey = PartitionManager.GetAccountsDataFullPK(tenantId, accountId);
+
                 return await _userData.ReadItemAsync<BankAccount>(
                        id: accountId,
                        partitionKey: new PartitionKey(tenantId));
@@ -98,21 +135,25 @@ namespace BankingAPI.Services
             }
         }
 
-        public async Task<List<BankTransaction>> GetTransactionsAsync(string tenanatId, string accountId, DateTime startDate, DateTime endDate)
+        public async Task<List<BankTransaction>> GetTransactionsAsync(string tenantId, string accountId, DateTime startDate, DateTime endDate)
         {
             try
             {
+                var partitionKey = PartitionManager.GetAccountsDataFullPK(tenantId, accountId);
+
                 QueryDefinition queryDefinition = new QueryDefinition(
-                    "SELECT * FROM c WHERE c.accountId = @accountId AND c.transactionDate >= @startDate AND c.transactionDate <= @endDate")
-                    .WithParameter("@accountId", accountId)
-                    .WithParameter("@startDate", startDate)
-                    .WithParameter("@endDate", endDate);              
+                       "SELECT * FROM c WHERE c.accountId = @accountId AND c.transactionDateTime >= @startDate AND c.transactionDateTime <= @endDate AND c.type = @type")
+                       .WithParameter("@accountId", accountId)
+                       .WithParameter("@type", nameof(BankTransaction))
+                       .WithParameter("@startDate", startDate)
+                       .WithParameter("@endDate", endDate);
 
                 List<BankTransaction> transactions = new List<BankTransaction>();
-                using (FeedIterator<BankTransaction> feedIterator = _accountData.GetItemQueryIterator<BankTransaction>(queryDefinition, requestOptions: new QueryRequestOptions { PartitionKey = new PartitionKey(tenanatId) }))
+                using (FeedIterator<BankTransaction> feedIterator = _accountData.GetItemQueryIterator<BankTransaction>(queryDefinition, requestOptions: new QueryRequestOptions { PartitionKey = partitionKey }))
                 {
                     while (feedIterator.HasMoreResults)
                     {
+                        //var abc= await feedIterator.ReadNextAsync();
                         FeedResponse<BankTransaction> response = await feedIterator.ReadNextAsync();
                         transactions.AddRange(response);
                     }
@@ -160,8 +201,9 @@ namespace BankingAPI.Services
         private async Task<ServiceRequest> AddServiceRequestAsync(ServiceRequest req)
         {
             try
-            { 
-                ItemResponse<ServiceRequest> response = await _accountData.CreateItemAsync(req, new PartitionKey(req.TenantId));
+            {
+                var partitionKey = PartitionManager.GetAccountsDataFullPK(req.TenantId,req.AccountId);
+                ItemResponse<ServiceRequest> response = await _accountData.CreateItemAsync(req, partitionKey);
                 return response.Resource;
             }
             catch (CosmosException ex) 
@@ -176,9 +218,11 @@ namespace BankingAPI.Services
         {
             try
             {
-                var queryBuilder = new StringBuilder("SELECT * FROM c WHERE c.accountId = @accountId");
+                var partitionKey = PartitionManager.GetAccountsDataFullPK(tenantId, accountId);
+
+                var queryBuilder = new StringBuilder("SELECT * FROM c WHERE c.type = @type");
                 var queryDefinition = new QueryDefinition(queryBuilder.ToString())
-                    .WithParameter("@accountId", accountId);
+                      .WithParameter("@type", nameof(ServiceRequest));
 
                 if (!string.IsNullOrEmpty(userId))
                 {
@@ -195,7 +239,7 @@ namespace BankingAPI.Services
                 queryDefinition = new QueryDefinition(queryBuilder.ToString());
 
                 List<ServiceRequest> reqs = new List<ServiceRequest>();
-                using (FeedIterator<ServiceRequest> feedIterator = _requestData.GetItemQueryIterator<ServiceRequest>(queryDefinition, requestOptions: new QueryRequestOptions { PartitionKey = new PartitionKey(tenantId) }))
+                using (FeedIterator<ServiceRequest> feedIterator = _requestData.GetItemQueryIterator<ServiceRequest>(queryDefinition, requestOptions: new QueryRequestOptions { PartitionKey = partitionKey }))
                 {
                     while (feedIterator.HasMoreResults)
                     {
@@ -238,45 +282,6 @@ namespace BankingAPI.Services
             }
         }
 
-
-        public async Task<List<BankAccount>> GetUserRegisteredAccountsAsync(string tenantId, string userId, string? accountId = null)
-        {
-            try
-            {
-                QueryDefinition queryDefinition;
-
-                if (string.IsNullOrEmpty(accountId))
-                {
-                    queryDefinition = new QueryDefinition(
-                        "SELECT * FROM c WHERE c.userId = @userId")
-                        .WithParameter("@userId", userId);
-                }
-                else
-                {
-                    queryDefinition = new QueryDefinition(
-                        "SELECT * FROM c WHERE c.userId = @userId AND c.accountId = @accountId")
-                        .WithParameter("@userId", userId)
-                        .WithParameter("@accountId", accountId);
-                }
-
-                List<BankAccount> accounts = new List<BankAccount>();
-                using (FeedIterator<BankAccount> feedIterator = _accountData.GetItemQueryIterator<BankAccount>(queryDefinition, requestOptions: new QueryRequestOptions { PartitionKey = new PartitionKey(tenantId) }))
-                {
-                    while (feedIterator.HasMoreResults)
-                    {
-                        FeedResponse<BankAccount> response = await feedIterator.ReadNextAsync();
-                        accounts.AddRange(response);
-                    }
-                }
-
-                return accounts;
-            }
-            catch (CosmosException ex)
-            {
-                _logger.LogError(ex.ToString());
-                return new List<BankAccount>();
-            }
-        }
 
 
         public async Task<List<Offer>> GetOffersAsync(string tenantId, AccountType accountType)

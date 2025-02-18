@@ -1,4 +1,4 @@
-﻿using BankingAPI.Models.Banking;
+﻿using MultiAgentCopilot.Common.Models.Banking;
 using MultiAgentCopilot.Common.Models.Chat;
 using MultiAgentCopilot.ChatInfrastructure.Interfaces;
 using Microsoft.Extensions.Logging;
@@ -6,6 +6,10 @@ using Microsoft.SemanticKernel.ChatCompletion;
 using MultiAgentCopilot.Common.Models.Debug;
 using System.Collections.Generic;
 using BankingAPI.Interfaces;
+using BankingAPI.Services;
+using Microsoft.Extensions.Options;
+using MultiAgentCopilot.Common.Models.Configuration;
+using BankingAPI.Models.Configuration;
 
 namespace MultiAgentCopilot.ChatInfrastructure.Services;
 
@@ -18,15 +22,15 @@ public class ChatService : IChatService
 
     
     public ChatService(
+        IOptions<BankingCosmosDBSettings> options,
         ICosmosDBService cosmosDBService,
         ISemanticKernelService ragService,
-        IBankDBService bankService,
-        ILogger<ChatService> logger)
+        ILoggerFactory loggerFactory)
     {
         _cosmosDBService = cosmosDBService;
         _skService = ragService;
-        _bankService = bankService;
-        _logger = logger;
+        _bankService = new BankingCosmosDBService(options.Value, loggerFactory);
+        _logger = loggerFactory.CreateLogger<ChatService>();
     }
 
     /// <summary>
@@ -34,7 +38,7 @@ public class ChatService : IChatService
     /// </summary>
     public async Task<List<Session>> GetAllChatSessionsAsync(string tenantId, string userId)
     {
-        return await _cosmosDBService.GetSessionsAsync(tenantId, userId);
+        return await _cosmosDBService.GetUserSessionsAsync(tenantId, userId);
     }
 
     /// <summary>
@@ -43,7 +47,7 @@ public class ChatService : IChatService
     public async Task<List<Message>> GetChatSessionMessagesAsync(string tenantId, string userId,string sessionId)
     {
         ArgumentNullException.ThrowIfNull(sessionId);
-        return await _cosmosDBService.GetSessionMessagesAsync(sessionId);
+        return await _cosmosDBService.GetSessionMessagesAsync(tenantId,userId,sessionId);
     }
 
     /// <summary>
@@ -85,7 +89,7 @@ public class ChatService : IChatService
             ArgumentNullException.ThrowIfNull(sessionId);
 
             // Retrieve conversation, including latest prompt.
-            var archivedMessages = await _cosmosDBService.GetSessionMessagesAsync(sessionId);
+            var archivedMessages = await _cosmosDBService.GetSessionMessagesAsync(tenantId, userId, sessionId);
 
             // Add both prompt and completion to cache, then persist in Cosmos DB
             var userMessage = new Message(tenantId,userId,sessionId, "User","User", userPrompt);
@@ -132,7 +136,7 @@ public class ChatService : IChatService
     /// </summary>
     private async Task AddPromptCompletionMessagesAsync(string tenantId, string userId,string sessionId, Message promptMessage, List<Message> completionMessages, List<DebugLog> completionMessageLogs)
     {
-        var session = await _cosmosDBService.GetSessionAsync(sessionId);
+        var session = await _cosmosDBService.GetSessionAsync(tenantId, userId,sessionId);
 
         completionMessages.Insert(0, promptMessage);
             await _cosmosDBService.UpsertSessionBatchAsync(completionMessages, completionMessageLogs, session);
@@ -141,20 +145,20 @@ public class ChatService : IChatService
     /// <summary>
     /// Rate an assistant message. This can be used to discover useful AI responses for training, discoverability, and other benefits down the road.
     /// </summary>
-    public async Task<Message> RateMessageAsync(string tenantId, string userId,string messageId, string sessionId, bool? rating)
+    public async Task<Message> RateChatCompletionAsync(string tenantId, string userId,string messageId, string sessionId, bool? rating)
     {
         ArgumentNullException.ThrowIfNull(messageId);
         ArgumentNullException.ThrowIfNull(sessionId);
 
-        return await _cosmosDBService.UpdateMessageRatingAsync(messageId, sessionId, rating);
+        return await _cosmosDBService.UpdateMessageRatingAsync(tenantId,userId, sessionId, messageId,rating);
     }
 
-    public async Task<DebugLog> GetChatCompletionDetailsAsync(string tenantId, string userId,string sessionId, string completionPromptId)
+    public async Task<DebugLog> GetChatCompletionDebugLogAsync(string tenantId, string userId,string sessionId, string debugLogId)
     {
         ArgumentException.ThrowIfNullOrEmpty(sessionId);
-        ArgumentException.ThrowIfNullOrEmpty(completionPromptId);
+        ArgumentException.ThrowIfNullOrEmpty(debugLogId);
 
-        return await _cosmosDBService.GetChatCompletionDetailsAsync(sessionId, completionPromptId);
+        return await _cosmosDBService.GetChatCompletionDebugLogAsync(tenantId,userId, sessionId, debugLogId);
     }
 
     public async Task ResetSemanticCache(string tenantId, string userId) =>

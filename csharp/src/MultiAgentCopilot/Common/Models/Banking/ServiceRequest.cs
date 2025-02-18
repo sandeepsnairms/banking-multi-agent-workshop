@@ -4,13 +4,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BankingAPI.Models.Banking
+namespace MultiAgentCopilot.Common.Models.Banking
 {
     public class ServiceRequest
     {
         public string Id { get; set; }
         public string TenantId { get; set; }
         public string UserId { get; set; }
+        public string Type { get; set; }
         public DateTime RequestedOn { get; set; }
         public DateTime ScheduledDateTime { get; set; }
         public string AccountId { get; set; }
@@ -22,10 +23,11 @@ namespace BankingAPI.Models.Banking
         public List<string> RequestAnnotations  { get; set; }
         public Dictionary<string,string> FulfilmentDetails { get; set; }
 
-        internal ServiceRequest(ServiceRequestType serviceRequestType, string tenantId, string accountId, string userId, string requestAnnotation, string recipientEmail, string recipientPhone, decimal debitAmount,  DateTime scheduledDateTime, Dictionary<string,string>? fulfilmentDetails)
+        public ServiceRequest(ServiceRequestType serviceRequestType, string tenantId, string accountId, string userId, string requestAnnotation, string recipientEmail, string recipientPhone, decimal debitAmount,  DateTime scheduledDateTime, Dictionary<string,string>? fulfilmentDetails)
         {
             Id = Guid.NewGuid().ToString();
             TenantId = tenantId;
+            Type= nameof(ServiceRequest);
             SRType = serviceRequestType;
             RequestedOn = DateTime.Now;
             AccountId = accountId;

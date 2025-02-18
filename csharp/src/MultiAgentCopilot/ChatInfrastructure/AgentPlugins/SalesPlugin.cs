@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.SemanticKernel;
 using System.ComponentModel;
 using Microsoft.Extensions.Logging;
-using BankingAPI.Models.Banking;
+using MultiAgentCopilot.Common.Models.Banking;
 using BankingAPI.Interfaces;
 
 namespace MultiAgentCopilot.ChatInfrastructure.Plugins

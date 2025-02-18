@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BankingAPI.Models.Banking
+namespace MultiAgentCopilot.Common.Models.Banking
 {
     public enum ServiceRequestType
     {

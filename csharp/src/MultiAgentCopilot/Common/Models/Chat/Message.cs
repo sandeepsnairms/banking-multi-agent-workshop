@@ -29,17 +29,8 @@ public record Message
 
     public string? DebugLogId { get; set; }
 
-    //public int? TokensSize { get; set; }
-
-    //public int? RenderedTokensSize { get; set; }
-
-    public int? TokensUsed { get; set; }
-
     public bool? Rating { get; set; }
 
-    //public float[]? Vector { get; set; }
-
-    public string CompletionPromptId { get; set; }
 
     public Message(string tenantId, string userId,string sessionId, string author, string authorRole, string textContent, string? id = null, string? debugLogId=null)
     {
@@ -53,7 +44,6 @@ public record Message
         Sender = author;
         SenderRole = authorRole;
         Text = textContent;
-        TimeStamp = DateTime.UtcNow;
-        CompletionPromptId = string.Empty; // or any default value
+        TimeStamp = DateTime.UtcNow; 
     }
 }

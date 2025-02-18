@@ -124,10 +124,11 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
                         completionMessagesLog.PropertyBag = _promptDebugProperties;
                         completionMessagesLogs.Add(completionMessagesLog);
                     }
-                    _promptDebugProperties.Clear();
+                    
                 }
             }
             while (!agentGroupChat.IsComplete);
+            //_promptDebugProperties.Clear();
 
             return new Tuple<List<Message>, List<DebugLog>>(completionMessages, completionMessagesLogs);
         }

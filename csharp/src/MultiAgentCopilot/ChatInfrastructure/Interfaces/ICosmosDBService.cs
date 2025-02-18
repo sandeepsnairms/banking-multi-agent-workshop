@@ -1,4 +1,4 @@
-﻿using BankingAPI.Models.Banking;
+﻿using MultiAgentCopilot.Common.Models.Banking;
 using MultiAgentCopilot.Common.Models.Chat;
 using MultiAgentCopilot.Common.Models.Debug;
 
@@ -11,20 +11,20 @@ public interface ICosmosDBService
     /// Gets a list of all current chat sessions.
     /// </summary>
     /// <returns>List of distinct chat session items.</returns>
-    Task<List<Session>> GetSessionsAsync(string tenantId, string userId);
+    Task<List<Session>> GetUserSessionsAsync(string tenantId, string userId);
 
     /// <summary>
     /// Gets a list of all current chat messages for a specified session identifier.
     /// </summary>
     /// <param name="sessionId">Chat session identifier used to filter messsages.</param>
     /// <returns>List of chat message items for the specified session.</returns>
-    Task<List<Message>> GetSessionMessagesAsync(string sessionId);
+    Task<List<Message>> GetSessionMessagesAsync(string tenantId, string userId, string sessionId);
 
     /// <summary>
     /// Performs a point read to retrieve a single chat session item.
     /// </summary>
     /// <returns>The chat session item.</returns>
-    Task<Session> GetSessionAsync(string id);
+    Task<Session> GetSessionAsync(string tenantId, string userId,string sessionId);
 
     /// <summary>
     /// Creates a new chat session.
@@ -54,7 +54,7 @@ public interface ICosmosDBService
     /// <param name="sessionId">The message's partition key (session id).</param>
     /// <param name="rating">The rating to replace.</param>
     /// <returns>Revised chat message item.</returns>
-    Task<Message> UpdateMessageRatingAsync(string messageId, string sessionId, bool? rating);
+    Task<Message> UpdateMessageRatingAsync(string tenantId, string userId, string sessionId, string messageId, bool? rating);
 
     /// <summary>
     /// Updates an existing chat session.
@@ -84,5 +84,5 @@ public interface ICosmosDBService
     Task DeleteSessionAndMessagesAsync(string tenantId, string userId,string sessionId);
 
    
-    Task<DebugLog> GetChatCompletionDetailsAsync(string sessionId, string completionPromptId);
+    Task<DebugLog> GetChatCompletionDebugLogAsync(string tenantId, string userId,string sessionId, string debugLogId);
 }

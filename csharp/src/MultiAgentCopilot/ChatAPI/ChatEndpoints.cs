@@ -1,5 +1,4 @@
-﻿using BankingAPI.Models.Banking;
-using MultiAgentCopilot.ChatInfrastructure.Interfaces;
+﻿using MultiAgentCopilot.ChatInfrastructure.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using MultiAgentCopilot.Common.Models.Debug;
 
@@ -29,12 +28,12 @@ namespace ChatAPI
 
             app.MapPost("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/message/{messageId}/rate",
                     async (string tenantId, string userId, string messageId, string sessionId, bool? rating) =>
-                    await _chatService.RateMessageAsync(tenantId, userId, messageId, sessionId, rating))
+                    await _chatService.RateChatCompletionAsync(tenantId, userId, messageId, sessionId, rating))
                 .WithName("RateMessage");
 
             app.MapGet("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/completiondetails/{debuglogId}",
                     async (string tenantId, string userId, string sessionId, string debuglogId) =>
-                    await _chatService.GetChatCompletionDetailsAsync(tenantId, userId, sessionId, debuglogId))
+                    await _chatService.GetChatCompletionDebugLogAsync(tenantId, userId, sessionId, debuglogId))
                 .WithName("GetChatCompletionDetails");
 
             app.MapPost("/tenant/{tenantId}/user/{userId}/sessions/", async (string tenantId, string userId) =>
@@ -51,7 +50,7 @@ namespace ChatAPI
 
             app.MapPost("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/completion", async (string tenantId, string userId, string sessionId, [FromBody] string userPrompt) =>
                     await _chatService.GetChatCompletionAsync(tenantId, userId, sessionId, userPrompt))
-                .WithName("GetChatCompletionDetailsAsync");
+                .WithName("GetChatCompletionDebugLogAsync");
 
             app.MapPost("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/summarize-name", async (string tenantId, string userId, string sessionId, [FromBody] string prompt) =>
                     await _chatService.SummarizeChatSessionNameAsync(tenantId, userId, sessionId, prompt))

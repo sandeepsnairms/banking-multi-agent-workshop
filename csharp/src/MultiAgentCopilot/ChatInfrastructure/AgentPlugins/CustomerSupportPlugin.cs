@@ -6,7 +6,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using BankingAPI.Models.Banking;
+using MultiAgentCopilot.Common.Models.Banking;
 using BankingAPI.Interfaces;
 using Microsoft.Identity.Client;
 using MultiAgentCopilot.Common.Extensions;
@@ -21,20 +21,14 @@ namespace MultiAgentCopilot.ChatInfrastructure.Plugins
         {
         }
 
-        [KernelFunction("GetUserRegisteredAccounts")]
-        [Description("Get accounts registered accounts")]
-        public async Task<List<BankAccount>> GetUserRegisteredAccounts()
-        {
-            _logger.LogTrace($"Fetching accounts for Tenant: {_tenantId} User ID: {_userId}");
-            return await _bankService.GetUserRegisteredAccountsAsync(_tenantId, _userId);
-        }
+        
 
         [KernelFunction("IsAccountRegisteredToUser")]
         [Description("Check if account is registered to user")]
         public async Task<bool> IsAccountRegisteredToUser(string accountId)
         {
             _logger.LogTrace($"Validating account for Tenant: {_tenantId} User ID: {_userId}- {accountId}");
-            if (_bankService.GetUserRegisteredAccountsAsync(_tenantId, _userId, accountId).Result.Count > 0)
+            if (_bankService.GetAccountDetailsAsync(_tenantId, _userId, accountId).Result !=null)
                 return true;
             else
                 return false;

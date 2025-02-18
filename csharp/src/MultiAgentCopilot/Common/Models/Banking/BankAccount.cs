@@ -4,11 +4,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BankingAPI.Models.Banking
+namespace MultiAgentCopilot.Common.Models.Banking
 {
     public class BankAccount
     {
         public string Id { get; set; } = string.Empty;
+        public string TenantId { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public AccountType AccountType { get; set; }
         public long Balance { get; set; }
