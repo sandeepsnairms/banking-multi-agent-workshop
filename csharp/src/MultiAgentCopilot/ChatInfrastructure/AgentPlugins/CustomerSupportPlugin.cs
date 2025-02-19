@@ -74,11 +74,11 @@ namespace MultiAgentCopilot.ChatInfrastructure.Plugins
 
         [KernelFunction]
         [Description("Updates an existing service request with additional details")]
-        public async Task<bool> UpdateExistingServiceRequest(string requestId, string requestAnnotation)
+        public async Task<bool> UpdateExistingServiceRequest(string requestId, string accountId, string requestAnnotation)
         {
             _logger.LogTrace($"Updating service request for Request: {requestId}");
 
-            return await  _bankService.AddServiceRequestDescriptionAsync(_tenantId, requestId, requestAnnotation);
+            return await  _bankService.AddServiceRequestDescriptionAsync(_tenantId, accountId, requestId, requestAnnotation);
         }
 
        

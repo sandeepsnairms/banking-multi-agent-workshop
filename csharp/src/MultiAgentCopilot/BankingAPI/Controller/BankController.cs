@@ -86,7 +86,7 @@ namespace BankingAPI.Controllers
         [HttpPost("service-request-description")]
         public async Task<ActionResult<bool>> AddServiceRequestDescriptionAsync([FromBody] ServiceRequestDescription request)
         {
-            var result = await _bankDBService.AddServiceRequestDescriptionAsync(request.TenantId, request.RequestId, request.AnnotationToAdd);
+            var result = await _bankDBService.AddServiceRequestDescriptionAsync(request.TenantId, request.AccountId, request.RequestId, request.AnnotationToAdd);
             return Ok(result);
         }
 
@@ -153,6 +153,7 @@ namespace BankingAPI.Controllers
     {
         public string TenantId { get; set; }
         public string RequestId { get; set; }
+        public string AccountId { get; set; }
         public string AnnotationToAdd { get; set; }
     }
 }

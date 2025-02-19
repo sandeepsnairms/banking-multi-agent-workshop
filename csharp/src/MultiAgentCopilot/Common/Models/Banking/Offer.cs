@@ -13,8 +13,8 @@ namespace MultiAgentCopilot.Common.Models.Banking
         string Name { get; set; }
         public string Description { get; set; }
         public AccountType AccountType { get; set; }
-        public Dictionary<string, string> Tags { get; set; }
-        public Dictionary<string, string> PreRequsites { get; set; }
+        public Dictionary<string, string> EligibilityConditions { get; set; }
+        public Dictionary<string, string> PrerequsiteSubmissions { get; set; }
     }
 
 

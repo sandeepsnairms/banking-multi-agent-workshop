@@ -213,7 +213,7 @@ namespace BankingAPI.Services
             }
         }
 
-      
+
         public async Task<List<ServiceRequest>> GetServiceRequestsAsync(string tenantId, string accountId, string? userId = null, ServiceRequestType? SRType = null)
         {
             try
@@ -236,7 +236,6 @@ namespace BankingAPI.Services
                     queryDefinition = queryDefinition.WithParameter("@SRType", SRType);
                 }
 
-                queryDefinition = new QueryDefinition(queryBuilder.ToString());
 
                 List<ServiceRequest> reqs = new List<ServiceRequest>();
                 using (FeedIterator<ServiceRequest> feedIterator = _requestData.GetItemQueryIterator<ServiceRequest>(queryDefinition, requestOptions: new QueryRequestOptions { PartitionKey = partitionKey }))
@@ -258,18 +257,21 @@ namespace BankingAPI.Services
         }
 
 
-        public async Task<bool> AddServiceRequestDescriptionAsync(string tenantId, string requestId, string annotationToAdd)
+
+        public async Task<bool> AddServiceRequestDescriptionAsync(string tenantId, string accountId, string requestId, string annotationToAdd)
         {
             try
             {
+                var partitionKey = PartitionManager.GetAccountsDataFullPK(tenantId, accountId);
+
                 var patchOperations = new List<PatchOperation>
                 {
-                    PatchOperation.Add("/Notes/-", $"[{DateTime.Now.ToUniversalTime().ToString()}] : {annotationToAdd}]")
+                    PatchOperation.Add("/requestAnnotations/-", $"[{DateTime.Now.ToUniversalTime().ToString()}] : {annotationToAdd}")
                 };
 
                 ItemResponse<ServiceRequest> response = await _requestData.PatchItemAsync<ServiceRequest>(
                     id: requestId,
-                    partitionKey: new PartitionKey(tenantId),
+                    partitionKey: partitionKey,
                     patchOperations: patchOperations
                 );
 
@@ -289,7 +291,7 @@ namespace BankingAPI.Services
             try
             {
                 var queryDefinition = new QueryDefinition("SELECT * FROM c where c.accountType = @accountType")
-                    .WithParameter("@accountType", accountType);
+                    .WithParameter("@accountType", accountType.ToString());
               
                 List<Offer> offers = new List<Offer>();
                 using (FeedIterator<Offer> feedIterator = _offerData.GetItemQueryIterator<Offer>(queryDefinition, requestOptions: new QueryRequestOptions { PartitionKey = new PartitionKey(tenantId) }))
