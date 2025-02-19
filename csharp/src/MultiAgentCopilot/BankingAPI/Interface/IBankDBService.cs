@@ -28,7 +28,7 @@ namespace BankingAPI.Interfaces
 
         Task<List<ServiceRequest>> GetServiceRequestsAsync(string tenantId, string accountId, string? userId = null, ServiceRequestType? SRType = null);
 
-        Task<bool> AddServiceRequestDescriptionAsync(string tenantId, string requestId, string annotationToAdd);
+        Task<bool> AddServiceRequestDescriptionAsync(string tenantId, string accountId, string requestId, string annotationToAdd);
 
         Task<List<Offer>> GetOffersAsync(string tenantId, AccountType accountType);
 
