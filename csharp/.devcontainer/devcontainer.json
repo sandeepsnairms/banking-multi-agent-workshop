@@ -1,0 +1,10 @@
+{
+  "name": "My Codespace",
+  "dockerFile": "Dockerfile",
+  "forwardPorts": [3000], 
+  "postCreateCommand": "dotnet build",
+  "remoteUser": "vscode",
+  "settings": {
+    "terminal.integrated.defaultProfile.linux": "bash"
+  }
+}
