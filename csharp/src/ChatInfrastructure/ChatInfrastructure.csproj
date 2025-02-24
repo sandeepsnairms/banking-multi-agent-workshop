@@ -8,6 +8,7 @@
   </PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="Azure.Identity" Version="1.13.2" />
+		<PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.23.0" />
 		<PackageReference Include="Microsoft.Azure.Cosmos" Version="3.47.0" />
 		<PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.2" />
 		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.6.1" />
@@ -16,7 +17,7 @@
 		<PackageReference Include="Microsoft.SemanticKernel.Core" Version="1.36.1" />
 	</ItemGroup>
 	<ItemGroup>
-	  <ProjectReference Include="..\BankingAPI\BankingAPI.csproj" />
+	  <ProjectReference Include="..\BankingAPI\BankingServices.csproj" />
 	  <ProjectReference Include="..\Common\Common.csproj" />
 	</ItemGroup>
 	<ItemGroup>

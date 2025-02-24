@@ -14,7 +14,7 @@ using MultiAgentCopilot.ChatInfrastructure.Factories;
 using Newtonsoft.Json;
 using System.Data;
 using MultiAgentCopilot.Common.Models.Debug;
-using BankingAPI.Interfaces;
+using BankingServices.Interfaces;
 
 
 #pragma warning disable SKEXP0001, SKEXP0010, SKEXP0020, SKEXP0050, SKEXP0060

@@ -1,4 +1,4 @@
-﻿namespace BankingAPI.Models.Configuration
+﻿namespace BankingServices.Models.Configuration
 {
     public record BankingCosmosDBSettings
     {

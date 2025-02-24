@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using MultiAgentCopilot.Common.Models.Banking;
 
-namespace BankingAPI.Interfaces
+namespace BankingServices.Interfaces
 {
     public interface IBankDBService
     {

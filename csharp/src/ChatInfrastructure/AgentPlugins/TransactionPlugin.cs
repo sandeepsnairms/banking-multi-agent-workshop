@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Transactions;
 using MultiAgentCopilot.Common.Models.Banking;
-using BankingAPI.Interfaces;
+using BankingServices.Interfaces;
 
 namespace MultiAgentCopilot.ChatInfrastructure.Plugins
 {

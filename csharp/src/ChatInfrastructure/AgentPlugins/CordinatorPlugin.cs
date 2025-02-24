@@ -1,4 +1,4 @@
-﻿using BankingAPI.Interfaces;
+﻿using BankingServices.Interfaces;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using System;

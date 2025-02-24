@@ -4,13 +4,13 @@ using System.Runtime;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Fluent;
 using Microsoft.Extensions.Logging;
-using BankingAPI.Models.Configuration;
+using BankingServices.Models.Configuration;
 using Container = Microsoft.Azure.Cosmos.Container;
 using Azure.Identity;
 using MultiAgentCopilot.Common.Models.Banking;
 using Microsoft.Identity.Client;
 using System.Text;
-using  BankingAPI.Interfaces;
+using  BankingServices.Interfaces;
 using Microsoft.VisualBasic;
 using Microsoft.Extensions.Options;
 using MultiAgentCopilot.Common.Helper;
@@ -18,7 +18,7 @@ using MultiAgentCopilot.Common.Models.Chat;
 using Microsoft.Azure.Cosmos.Serialization.HybridRow.Schemas;
 using PartitionKey = Microsoft.Azure.Cosmos.PartitionKey;
 
-namespace BankingAPI.Services
+namespace BankingServices.Services
 {
     public class BankingCosmosDBService: IBankDBService
 {

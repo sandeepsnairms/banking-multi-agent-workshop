@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using MultiAgentCopilot.ChatInfrastructure.Plugins;
 using MultiAgentCopilot.ChatInfrastructure.Models;
-using BankingAPI.Interfaces;
+using BankingServices.Interfaces;
 
 namespace MultiAgentCopilot.ChatInfrastructure.Factories
 {

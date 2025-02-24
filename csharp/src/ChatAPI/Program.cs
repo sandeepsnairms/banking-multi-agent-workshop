@@ -17,14 +17,11 @@ namespace ChatAPI
                               .AllowAnyMethod()   // Allow all HTTP methods
                               .AllowAnyHeader();  // Allow all headers
                     });
-            });
-
-
-           
+            });                   
 
 
             if (!builder.Environment.IsDevelopment())
-                builder.Services.AddApplicationInsightsTelemetry();
+                builder.AddApplicationInsightsTelemetry();
 
 
             builder.AddCosmosDBService();

@@ -5,11 +5,11 @@ using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel.ChatCompletion;
 using MultiAgentCopilot.Common.Models.Debug;
 using System.Collections.Generic;
-using BankingAPI.Interfaces;
-using BankingAPI.Services;
+using BankingServices.Interfaces;
+using BankingServices.Services;
 using Microsoft.Extensions.Options;
 using MultiAgentCopilot.Common.Models.Configuration;
-using BankingAPI.Models.Configuration;
+using BankingServices.Models.Configuration;
 
 namespace MultiAgentCopilot.ChatInfrastructure.Services;
 

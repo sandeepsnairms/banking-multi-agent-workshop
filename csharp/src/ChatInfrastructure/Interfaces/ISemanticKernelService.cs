@@ -1,4 +1,4 @@
-﻿using BankingAPI.Interfaces;
+﻿using BankingServices.Interfaces;
 using MultiAgentCopilot.Common.Models.Chat;
 using MultiAgentCopilot.Common.Models.Debug;
 

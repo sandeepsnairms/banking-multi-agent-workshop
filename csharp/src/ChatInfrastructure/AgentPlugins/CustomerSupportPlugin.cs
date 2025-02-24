@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using MultiAgentCopilot.Common.Models.Banking;
-using BankingAPI.Interfaces;
+using BankingServices.Interfaces;
 using Microsoft.Identity.Client;
 using MultiAgentCopilot.Common.Extensions;
 

@@ -3,10 +3,13 @@ using MultiAgentCopilot.ChatInfrastructure.Interfaces;
 using MultiAgentCopilot.ChatInfrastructure.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.ApplicationInsights.AspNetCore.Extensions;
+using Microsoft.ApplicationInsights.Extensibility;
 using MultiAgentCopilot.ChatInfrastructure.Factories;
-using BankingAPI.Interfaces;
-using BankingAPI.Services;
-using BankingAPI.Models.Configuration;
+using BankingServices.Interfaces;
+using BankingServices.Services;
+using BankingServices.Models.Configuration;
+using Azure.Identity;
 namespace MultiAgentCopilot
 {
     /// <summary>
@@ -36,6 +39,25 @@ namespace MultiAgentCopilot
                 .Bind(builder.Configuration.GetSection("CosmosDBSettings"));
             builder.Services.AddSingleton<ICosmosDBService, CosmosDBService>();
         }
+
+
+        public static void AddApplicationInsightsTelemetry(this IHostApplicationBuilder builder)
+        {
+            // Use Managed Identity to get Application Insights authentication token
+            var credential = new DefaultAzureCredential();
+            var telemetryConfig = TelemetryConfiguration.CreateDefault();
+            telemetryConfig.SetAzureTokenCredential(credential);
+
+            // Add Application Insights telemetry
+            builder.Services.AddApplicationInsightsTelemetry(new ApplicationInsightsServiceOptions
+            {
+                ConnectionString = builder.Configuration["ApplicationInsightsConnectionString"]
+            });
+
+            // Register the TelemetryConfiguration instance
+            builder.Services.AddSingleton(telemetryConfig);
+        }
+
 
         /// <summary>
         /// Registers the <see cref="IChatService"/> implementation with the dependency injection container.
