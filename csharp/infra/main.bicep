@@ -76,7 +76,7 @@ module openAi './shared/openai.bicep' = {
       name: 'completions'
       sku: {
         name: 'Standard'
-        capacity: 120
+        capacity: 10
       }
       model: {
         name: 'gpt-4o'

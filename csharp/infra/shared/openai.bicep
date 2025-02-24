@@ -32,7 +32,6 @@ resource openAiDeployment 'Microsoft.CognitiveServices/accounts/deployments@2024
         name: deployment.model.name
         version: deployment.model.version
       }
-      capabilities: deployment.capabilities ?? {}
     }
 }
 
