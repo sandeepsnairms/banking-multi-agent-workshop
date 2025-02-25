@@ -75,7 +75,7 @@ module openAi './shared/openai.bicep' = {
     deployment: {  
       name: 'completions'
       sku: {
-        name: 'Standard'
+        name: 'GlobalStandard'
         capacity: 10
       }
       model: {
