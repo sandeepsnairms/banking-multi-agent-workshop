@@ -20,7 +20,7 @@ This is the easiest way to get started with the development environment. You can
 
 For details, follow the instructions in the [GitHub Codespaces documentation](https://docs.github.com/en/codespaces/developing-in-a-codespace/creating-a-codespace-for-a-repository#creating-a-codespace-for-a-repository) on how to create a new codespace.
 
-### Using GitHub Codespaces in Visual Studio Code
+### Option 2: Using GitHub Codespaces in Visual Studio Code
 
 You can develop with GitHub Codespaces directly in VS Code as well. Although the development environment is hosted in the cloud, you can use your local VS Code editor to connect to the Codespace.
 
@@ -33,7 +33,7 @@ You can develop with GitHub Codespaces directly in VS Code as well. Although the
 
 For detailed walkthrough follow the GitHub Codespaces documentation on the [Prerequisites](https://github.com/AzureCosmosDB/banking-multi-agent-workshop) and [Creating a codespace in VS Code](https://docs.github.com/en/codespaces/developing-in-a-codespace/using-github-codespaces-in-visual-studio-code#creating-a-codespace-in-vs-code)    
 
-### Using Visual Studio Code Dev Containers extension
+### Option 3: Using Visual Studio Code Dev Containers extension
 
 If you cannot use GitHub Codespaces, you can use the Visual Studio Code Dev Containers extension to open the repository in a container, and develop locally. The main pre-requisite is to have Docker and Visual Studio Code installed on your local machine.
 
