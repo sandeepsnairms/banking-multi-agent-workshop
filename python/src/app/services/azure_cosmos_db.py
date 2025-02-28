@@ -1,15 +1,16 @@
 import os
 from azure.cosmos import CosmosClient, PartitionKey
+from azure.identity import DefaultAzureCredential
 
 # Azure Cosmos DB configuration
 COSMOS_DB_URL = os.getenv("COSMOSDB_ENDPOINT")
-COSMOS_DB_KEY = os.getenv("COSMOSDB_KEY")
 DATABASE_NAME = "MultiAgentBankingDemoDB"
 CONTAINER_NAME = "Chat"
 
 cosmos_client = None
 database = None
 container = None
+credential = DefaultAzureCredential()
 
 # Define Cosmos DB container for user data
 USERDATA_CONTAINER = "UserData"
@@ -18,8 +19,8 @@ account_container = None
 
 # Initialize Cosmos DB client
 try:
-    cosmos_client = CosmosClient(COSMOS_DB_URL, credential=COSMOS_DB_KEY)
-    database = cosmos_client.create_database_if_not_exists(DATABASE_NAME)
+    cosmos_client = CosmosClient(COSMOS_DB_URL, credential=credential)
+    database = cosmos_client.get_database_client(DATABASE_NAME)
     container = database.create_container_if_not_exists(
         id=CONTAINER_NAME,
         partition_key=PartitionKey(path="/partition_key"),
