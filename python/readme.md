@@ -48,7 +48,18 @@ This is a sample that exposes turn-by-turn conversation with a multi-agent banki
     pip install langchain-openai
     pip install uvicorn
     ```
-4. Start the agent api server
+4. Cosmos DB authentication is done using Entra ID (formerly AAD). To authenticate locally, us az login: 
+    ```bash
+    az login
+    ```
+    If you are using a service principal, you can set the following environment variables:
+    ```bash
+    export AZURE_TENANT_ID=
+    export AZURE_CLIENT_ID=
+    export AZURE_CLIENT_SECRET=
+    ```
+
+5. Start the agent api server
     ```bash
     uvicorn src.app.banking_agents_native_api:app --reload --host 0.0.0.0 --port 8000
     ```
