@@ -39,3 +39,4 @@ resource openAiDeployment 'Microsoft.CognitiveServices/accounts/deployments@2024
 
 output endpoint string = 'https://${openAi.name}.openai.azure.com/'
 output name string = openAi.name
+output modelDeploymentName string = openAiDeployment.name  

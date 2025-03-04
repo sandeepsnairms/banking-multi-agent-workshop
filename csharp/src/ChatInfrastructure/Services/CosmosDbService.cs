@@ -20,6 +20,7 @@ using System.Collections.Concurrent;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.DataCollection;
 using Microsoft.VisualStudio.TestPlatform.CommunicationUtilities;
 using Message = MultiAgentCopilot.Common.Models.Chat.Message;
+using System.Security.Principal;
 namespace MultiAgentCopilot.ChatInfrastructure.Services
 {
     /// <summary>
@@ -58,7 +59,21 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
                 PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase
             };
 
-            CosmosClient client = new CosmosClientBuilder(_settings.CosmosUri, new DefaultAzureCredential())
+
+            DefaultAzureCredential credential;
+            if (string.IsNullOrEmpty(_settings.UserAssignedIdentityClientID))
+            {
+                credential = new DefaultAzureCredential();
+            }
+            else
+            {
+                credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
+                {
+                    ManagedIdentityClientId = _settings.UserAssignedIdentityClientID
+                });
+
+            }
+            CosmosClient client = new CosmosClientBuilder(_settings.CosmosUri, credential)
                 .WithSerializerOptions(options)
                 .WithConnectionModeGateway()
                 .Build();
@@ -100,179 +115,265 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
 
         public async Task<Session> GetSessionAsync(string tenantId, string userId, string sessionId)
         {
-            var partitionKey = PartitionManager.GetChatDataFullPK(tenantId, userId,sessionId);
+            try
+            { 
+                var partitionKey = PartitionManager.GetChatDataFullPK(tenantId, userId,sessionId);
 
-            return await _chatData.ReadItemAsync<Session>(
-                id: sessionId,
-                partitionKey: partitionKey);
-
+                return await _chatData.ReadItemAsync<Session>(
+                    id: sessionId,
+                    partitionKey: partitionKey);
+            }
+            catch (CosmosException ex)
+            {
+                _logger.LogError(ex.Message);
+                throw;
+            }
         }
 
         public async Task<List<Message>> GetSessionMessagesAsync(string tenantId, string userId,string sessionId)
         {
-            QueryDefinition query =
-                new QueryDefinition("SELECT * FROM c WHERE c.type = @type")
-                    .WithParameter("@type", nameof(Message));
-
-            var partitionKey = PartitionManager.GetChatDataFullPK(tenantId, userId,sessionId);
-
-            FeedIterator<Message> results = _chatData.GetItemQueryIterator<Message>(query, null, new QueryRequestOptions() { PartitionKey = partitionKey });
-
-            List<Message> output = new();
-            while (results.HasMoreResults)
+            try
             {
-                FeedResponse<Message> response = await results.ReadNextAsync();
-                output.AddRange(response);
-            }
+                QueryDefinition query =
+                    new QueryDefinition("SELECT * FROM c WHERE c.type = @type")
+                        .WithParameter("@type", nameof(Message));
 
-            return output;
-        }
+                var partitionKey = PartitionManager.GetChatDataFullPK(tenantId, userId, sessionId);
+
+                FeedIterator<Message> results = _chatData.GetItemQueryIterator<Message>(query, null, new QueryRequestOptions() { PartitionKey = partitionKey });
+
+                List<Message> output = new();
+                while (results.HasMoreResults)
+                {
+                    FeedResponse<Message> response = await results.ReadNextAsync();
+                    output.AddRange(response);
+                }
+
+                return output;
+            }
+            catch (CosmosException ex)
+            {
+                _logger.LogError(ex.Message);
+                throw;
+            }
+}
 
         public async Task<Session> InsertSessionAsync(Session session)
         {
-            var partitionKey = PartitionManager.GetChatDataFullPK(session.TenantId, session.UserId,session.SessionId);
+            try
+            { 
+                var partitionKey = PartitionManager.GetChatDataFullPK(session.TenantId, session.UserId,session.SessionId);
 
-            var response= await _chatData.CreateItemAsync(
-                item: session,
-                partitionKey: partitionKey
-            );
+                var response= await _chatData.CreateItemAsync(
+                    item: session,
+                    partitionKey: partitionKey
+                );
 
-            return response;
+                return response;
+            }
+            catch (CosmosException ex)
+            {
+                _logger.LogError(ex.Message);
+                throw;
+            }
         }
 
         public async Task<Message> InsertMessageAsync(Message message)
         {
-            var partitionKey = PartitionManager.GetChatDataFullPK(message.TenantId, message.UserId, message.SessionId);
+            try
+            { 
+                var partitionKey = PartitionManager.GetChatDataFullPK(message.TenantId, message.UserId, message.SessionId);
 
-            return await _chatData.CreateItemAsync(
-                item: message,
-                partitionKey: partitionKey
-            );
+                return await _chatData.CreateItemAsync(
+                    item: message,
+                    partitionKey: partitionKey
+                );
+            }
+            catch (CosmosException ex)
+            {
+                _logger.LogError(ex.Message);
+                throw;
+            }
         }
 
         public async Task<Message> UpdateMessageAsync(Message message)
         {
-            var partitionKey = PartitionManager.GetChatDataFullPK(message.TenantId, message.UserId, message.SessionId);
+            try
+            { 
+                var partitionKey = PartitionManager.GetChatDataFullPK(message.TenantId, message.UserId, message.SessionId);
 
-            return await _chatData.ReplaceItemAsync(
-                item: message,
-                id: message.Id,
-                partitionKey: partitionKey
-            );
+                return await _chatData.ReplaceItemAsync(
+                    item: message,
+                    id: message.Id,
+                    partitionKey: partitionKey
+                );
+            }
+            catch (CosmosException ex)
+            {
+                _logger.LogError(ex.Message);
+                throw;
+            }
         }
 
         public async Task<Message> UpdateMessageRatingAsync(string tenantId, string userId, string sessionId,string messageId, bool? rating)
         {
-            var partitionKey = PartitionManager.GetChatDataFullPK(tenantId, userId, sessionId);
+            try
+            { 
+                var partitionKey = PartitionManager.GetChatDataFullPK(tenantId, userId, sessionId);
 
-            var response = await _chatData.PatchItemAsync<Message>(
-            id: messageId,
-            partitionKey: new PartitionKey(sessionId),
-                patchOperations: new[]
-                {
-                        PatchOperation.Set("/rating", rating),
-                }
-            );
-            return response.Resource;
+                var response = await _chatData.PatchItemAsync<Message>(
+                id: messageId,
+                partitionKey: new PartitionKey(sessionId),
+                    patchOperations: new[]
+                    {
+                            PatchOperation.Set("/rating", rating),
+                    }
+                );
+                return response.Resource;
+            }
+            catch (CosmosException ex)
+            {
+                _logger.LogError(ex.Message);
+                throw;
+            }
         }
 
         public async Task<Session> UpdateSessionAsync(Session session)
         {
-            var partitionKey = PartitionManager.GetChatDataFullPK(session.TenantId, session.UserId, session.SessionId);
+            try
+            { 
+                var partitionKey = PartitionManager.GetChatDataFullPK(session.TenantId, session.UserId, session.SessionId);
 
-            return await _chatData.ReplaceItemAsync(
-                item: session,
-                id: session.Id,
-                partitionKey: partitionKey
-            );
+                return await _chatData.ReplaceItemAsync(
+                    item: session,
+                    id: session.Id,
+                    partitionKey: partitionKey
+                );
+            }
+            catch (CosmosException ex)
+            {
+                _logger.LogError(ex.Message);
+                throw;
+            }
         }
 
         public async Task<Session> UpdateSessionNameAsync(string tenantId, string userId,string sessionId, string name)
         {
-            var partitionKey = PartitionManager.GetChatDataFullPK(tenantId, userId, sessionId);
+            try
+            {
+                var partitionKey = PartitionManager.GetChatDataFullPK(tenantId, userId, sessionId);
 
-            var response = await _chatData.PatchItemAsync<Session>(
-                id: sessionId,
-                partitionKey: partitionKey,
-                patchOperations: new[]
-                {
+                var response = await _chatData.PatchItemAsync<Session>(
+                    id: sessionId,
+                    partitionKey: partitionKey,
+                    patchOperations: new[]
+                    {
                         PatchOperation.Set("/name", name),
-                }
-            );
+                    }
+                );
 
 
-            return response.Resource;
-        }
+                return response.Resource;
+            }
+            catch (CosmosException ex)
+            {
+                _logger.LogError(ex.Message);
+                throw;
+            }
+}
 
 
 
         public async Task UpsertSessionBatchAsync(List<Message> messages, List<DebugLog>debugLogs, Session session)
         {
-            if (messages.Select(m => m.SessionId).Distinct().Count() > 1 || session.SessionId != messages.Select(m => m.SessionId).FirstOrDefault())
-            {
-                throw new ArgumentException("All items must have the same partition key.");
-            }
+            try
+            { 
+                if (messages.Select(m => m.SessionId).Distinct().Count() > 1 || session.SessionId != messages.Select(m => m.SessionId).FirstOrDefault())
+                {
+                    throw new ArgumentException("All items must have the same partition key.");
+                }
 
-            if (debugLogs.Select(m => m.SessionId).Distinct().Count() > 1 || session.SessionId != debugLogs.Select(m => m.SessionId).FirstOrDefault())
-            {
-                throw new ArgumentException("All items must have the same partition key as message.");
-            }
+                if (debugLogs.Select(m => m.SessionId).Distinct().Count() > 1 || session.SessionId != debugLogs.Select(m => m.SessionId).FirstOrDefault())
+                {
+                    throw new ArgumentException("All items must have the same partition key as message.");
+                }
 
-            PartitionKey partitionKey = PartitionManager.GetChatDataFullPK(session.TenantId, session.UserId, session.SessionId);
-            var batch = _chatData.CreateTransactionalBatch(partitionKey);
-            foreach (var message in messages)
-            {
+                PartitionKey partitionKey = PartitionManager.GetChatDataFullPK(session.TenantId, session.UserId, session.SessionId);
+                var batch = _chatData.CreateTransactionalBatch(partitionKey);
+                foreach (var message in messages)
+                {
+                    batch.UpsertItem(
+                        item: message
+                    );
+                }
+
+                foreach (var log in debugLogs)
+                {
+                    batch.UpsertItem(
+                        item: log
+                    );
+                }
+
                 batch.UpsertItem(
-                    item: message
+                    item: session
                 );
-            }
 
-            foreach (var log in debugLogs)
+                await batch.ExecuteAsync();
+            }
+            catch (CosmosException ex)
             {
-                batch.UpsertItem(
-                    item: log
-                );
+                _logger.LogError(ex.Message);
+                throw;
             }
-
-            batch.UpsertItem(
-                item: session
-            );
-
-            await batch.ExecuteAsync();
         }
 
         public async Task DeleteSessionAndMessagesAsync(string tenantId, string userId,string sessionId)
         {
-            var partitionKey = PartitionManager.GetChatDataFullPK(tenantId, userId, sessionId);
+            try
+            { 
+                var partitionKey = PartitionManager.GetChatDataFullPK(tenantId, userId, sessionId);
 
-            var query = new QueryDefinition("SELECT c.id FROM c WHERE c.sessionId = @sessionId")
-                .WithParameter("@sessionId", sessionId);
+                var query = new QueryDefinition("SELECT c.id FROM c WHERE c.sessionId = @sessionId")
+                    .WithParameter("@sessionId", sessionId);
 
-            var response = _chatData.GetItemQueryIterator<Message>(query);
+                var response = _chatData.GetItemQueryIterator<Message>(query);
 
-            var batch = _chatData.CreateTransactionalBatch(partitionKey);
-            while (response.HasMoreResults)
-            {
-                var results = await response.ReadNextAsync();
-                foreach (var item in results)
+                var batch = _chatData.CreateTransactionalBatch(partitionKey);
+                while (response.HasMoreResults)
                 {
-                    batch.DeleteItem(
-                        id: item.Id
-                    );
+                    var results = await response.ReadNextAsync();
+                    foreach (var item in results)
+                    {
+                        batch.DeleteItem(
+                            id: item.Id
+                        );
+                    }
                 }
-            }
 
-            await batch.ExecuteAsync();
+                await batch.ExecuteAsync();
+            }
+            catch (CosmosException ex)
+            {
+                _logger.LogError(ex.Message);
+                throw;
+            }
         }
 
         public async Task<DebugLog> GetChatCompletionDebugLogAsync(string tenantId, string userId,string sessionId, string debugLogId)
         {
-            var partitionKey = PartitionManager.GetChatDataFullPK(tenantId, userId, sessionId);
+            try
+            { 
+                var partitionKey = PartitionManager.GetChatDataFullPK(tenantId, userId, sessionId);
 
-            return await _chatData.ReadItemAsync<DebugLog>(
-                id: debugLogId,
-                partitionKey: partitionKey);
-
+                return await _chatData.ReadItemAsync<DebugLog>(
+                    id: debugLogId,
+                    partitionKey: partitionKey);
+            }
+            catch (CosmosException ex)
+            {
+                _logger.LogError(ex.Message);
+                throw;
+            }
         }
     }
 }
