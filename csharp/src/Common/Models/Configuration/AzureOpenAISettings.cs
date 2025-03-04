@@ -10,8 +10,10 @@ namespace MultiAgentCopilot.Common.Models.Configuration
     {
         public required string Endpoint { get; init; }
 
-        public required string Key { get; init; }           
+        public  string? Key { get; init; }           
 
         public required string CompletionsDeployment { get; init; } 
+
+        public required string UserAssignedIdentityClientID { get; init; }
     }
 }

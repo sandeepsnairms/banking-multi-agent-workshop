@@ -3,6 +3,7 @@ param location string = resourceGroup().location
 param tags object = {}
 param cosmosDbAccountName string
 param identityName string
+param openAIName string
 param containerRegistryName string
 param containerAppsEnvironmentId string
 param applicationInsightsName string
@@ -34,6 +35,23 @@ resource acrPullRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
 }
 
 
+resource openAi 'Microsoft.CognitiveServices/accounts@2024-10-01' existing = {
+  name: openAIName
+}
+
+// Role Assignment for Cognitive Services User
+resource cognitiveServicesRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(identity.id, openAi.id, 'cognitive-services-user')  // Unique GUID for role assignment
+  scope: openAi
+  dependsOn: [ identity, openAi ]  // Ensure resources exist before assigning the role
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a97b65f3-24c7-4388-baec-2e87135dc908')  // Cognitive Services User Role ID
+    principalId: identity.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+
 resource cosmosDb 'Microsoft.DocumentDB/databaseAccounts@2023-11-15' existing = {
   name: cosmosDbAccountName
 }
@@ -56,11 +74,12 @@ module fetchLatestImage '../modules/fetch-container-image.bicep' = {
   }
 }
 
+
 resource app 'Microsoft.App/containerApps@2024-02-02-preview' = {
   name: name
   location: location
-  tags: union(tags, {'azd-service-name': 'ChatAPI' })
-  dependsOn: [ acrPullRole ]
+  tags: union(tags, {'azd-service-name': 'ChatServiceWebApi' })
+  dependsOn: [acrPullRole,cognitiveServicesRoleAssignment]
   identity: {
     type: 'UserAssigned'
     userAssignedIdentities: { '${identity.id}': {} }
@@ -70,7 +89,7 @@ resource app 'Microsoft.App/containerApps@2024-02-02-preview' = {
     configuration: {
       ingress:  {
         external: true
-        targetPort: 80
+        targetPort: 8080
         transport: 'auto'
       }
       registries: [
@@ -79,22 +98,42 @@ resource app 'Microsoft.App/containerApps@2024-02-02-preview' = {
           identity: identity.id
         }
       ]
+	  activeRevisionsMode: 'Single' // Ensures only one active revision at a time
     }
     template: {
       containers: [
         {
-          image: fetchLatestImage.outputs.containers[0].image ?? 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
+          image: fetchLatestImage.outputs.?containers[?0].image ?? 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
           name: 'main'
-          env: union([
+          env: union(
+            [
+              {
+                name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+                value: applicationInsights.properties.connectionString
+              }
+              {
+                name: 'PORT'
+                value: '8080'
+              }
 			  {
-				name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-				value: applicationInsights.properties.connectionString
+				name: 'SemanticKernelServiceSettings__AzureOpenAISettings__UserAssignedIdentityClientID'
+				value: identity.properties.clientID
 			  }
 			  {
-				name: 'PORT'
-				value: '80'
+				name: 'CosmosDBSettings__UserAssignedIdentityClientID'
+				value: identity.properties.clientID
 			  }
-			], envSettings)
+			  {
+				name: 'BankingCosmosDBSettings__UserAssignedIdentityClientID'
+				value: identity.properties.clientID
+			  }
+            ],
+            envSettings
+          )
+          resources: {
+            cpu: json('1.0')
+            memory: '2.0Gi'
+          }  
         }
       ]
       scale: {
@@ -108,3 +147,4 @@ resource app 'Microsoft.App/containerApps@2024-02-02-preview' = {
 output name string = app.name
 output uri string = 'https://${app.properties.configuration.ingress.fqdn}'
 output id string = app.id
+output identity string = identity.properties.principalId

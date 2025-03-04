@@ -10,6 +10,9 @@ using BankingServices.Interfaces;
 using BankingServices.Services;
 using BankingServices.Models.Configuration;
 using Azure.Identity;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.ApplicationInsights;
 namespace MultiAgentCopilot
 {
     /// <summary>
@@ -37,25 +40,9 @@ namespace MultiAgentCopilot
         {
             builder.Services.AddOptions<CosmosDBSettings>()
                 .Bind(builder.Configuration.GetSection("CosmosDBSettings"));
+
+            Console.WriteLine("Adding CosmosDBService:" + builder.Configuration["CosmosDBSettings:CosmosUri"]);
             builder.Services.AddSingleton<ICosmosDBService, CosmosDBService>();
-        }
-
-
-        public static void AddApplicationInsightsTelemetry(this IHostApplicationBuilder builder)
-        {
-            // Use Managed Identity to get Application Insights authentication token
-            var credential = new DefaultAzureCredential();
-            var telemetryConfig = TelemetryConfiguration.CreateDefault();
-            telemetryConfig.SetAzureTokenCredential(credential);
-
-            // Add Application Insights telemetry
-            builder.Services.AddApplicationInsightsTelemetry(new ApplicationInsightsServiceOptions
-            {
-                ConnectionString = builder.Configuration["ApplicationInsightsConnectionString"]
-            });
-
-            // Register the TelemetryConfiguration instance
-            builder.Services.AddSingleton(telemetryConfig);
         }
 
 
