@@ -85,7 +85,7 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Semantic Kernel service was not initialized. The following error occurred: {ErrorMessage}.", ex.Message);
+            _logger.LogError(ex, "Semantic Kernel service was not initialized. The following error occurred: {ErrorMessage}.", ex.ToString());
         }
     }
 
@@ -147,7 +147,7 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.Message);
+            _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.ToString());
             return new Tuple<List<Message>, List<DebugLog>>(new List<Message>(), new List<DebugLog>());
         }
     }
@@ -155,16 +155,24 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
 
     public async Task<string> Summarize(string sessionId, string userPrompt)
     {
-        // Use an AI function to summarize the text in 2 words
-        var summarizeFunction = _semanticKernel.CreateFunctionFromPrompt(
-            "Summarize the following text into exactly two words:\n\n{{$input}}",
-            executionSettings: new OpenAIPromptExecutionSettings { MaxTokens = 10 }
-        );
+        try
+        {
+            // Use an AI function to summarize the text in 2 words
+            var summarizeFunction = _semanticKernel.CreateFunctionFromPrompt(
+                "Summarize the following text into exactly two words:\n\n{{$input}}",
+                executionSettings: new OpenAIPromptExecutionSettings { MaxTokens = 10 }
+            );
 
-        // Invoke the function
-        var summary = await _semanticKernel.InvokeAsync(summarizeFunction, new() { ["input"] = userPrompt });
+            // Invoke the function
+            var summary = await _semanticKernel.InvokeAsync(summarizeFunction, new() { ["input"] = userPrompt });
 
-        return summary.GetValue<string>() ?? "No summary generated";
+            return summary.GetValue<string>() ?? "No summary generated";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.ToString());
+            return string.Empty;
+        }
     }
 
     public async Task ResetSemanticCache()

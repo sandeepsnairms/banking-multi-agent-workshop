@@ -108,7 +108,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
             }
             catch (CosmosException ex)
             {
-                _logger.LogError(ex.Message);
+                _logger.LogError(ex.ToString());
                 throw;
             }
         }
@@ -125,7 +125,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
             }
             catch (CosmosException ex)
             {
-                _logger.LogError(ex.Message);
+                _logger.LogError(ex.ToString());
                 throw;
             }
         }
@@ -153,7 +153,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
             }
             catch (CosmosException ex)
             {
-                _logger.LogError(ex.Message);
+                _logger.LogError(ex.ToString());
                 throw;
             }
 }
@@ -173,7 +173,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
             }
             catch (CosmosException ex)
             {
-                _logger.LogError(ex.Message);
+                _logger.LogError(ex.ToString());
                 throw;
             }
         }
@@ -191,7 +191,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
             }
             catch (CosmosException ex)
             {
-                _logger.LogError(ex.Message);
+                _logger.LogError(ex.ToString());
                 throw;
             }
         }
@@ -210,7 +210,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
             }
             catch (CosmosException ex)
             {
-                _logger.LogError(ex.Message);
+                _logger.LogError(ex.ToString());
                 throw;
             }
         }
@@ -233,7 +233,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
             }
             catch (CosmosException ex)
             {
-                _logger.LogError(ex.Message);
+                _logger.LogError(ex.ToString());
                 throw;
             }
         }
@@ -252,7 +252,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
             }
             catch (CosmosException ex)
             {
-                _logger.LogError(ex.Message);
+                _logger.LogError(ex.ToString());
                 throw;
             }
         }
@@ -277,7 +277,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
             }
             catch (CosmosException ex)
             {
-                _logger.LogError(ex.Message);
+                _logger.LogError(ex.ToString());
                 throw;
             }
 }
@@ -322,7 +322,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
             }
             catch (CosmosException ex)
             {
-                _logger.LogError(ex.Message);
+                _logger.LogError(ex.ToString());
                 throw;
             }
         }
@@ -354,7 +354,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
             }
             catch (CosmosException ex)
             {
-                _logger.LogError(ex.Message);
+                _logger.LogError(ex.ToString());
                 throw;
             }
         }
@@ -371,7 +371,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
             }
             catch (CosmosException ex)
             {
-                _logger.LogError(ex.Message);
+                _logger.LogError(ex.ToString());
                 throw;
             }
         }

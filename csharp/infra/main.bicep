@@ -114,6 +114,7 @@ module ChatAPI './app/ChatAPI.bicep' = {
     identityName: '${abbrs.managedIdentityUserAssignedIdentities}chatservicew-${resourceToken}'
     applicationInsightsName: monitoring.outputs.applicationInsightsName
 	openAIName: openAi.outputs.name
+	userPrincipalId: !empty(principalId) ? principalId : null
     containerAppsEnvironmentId: appsEnv.outputs.id
     containerRegistryName: registry.outputs.name
     exists: ChatAPIExists

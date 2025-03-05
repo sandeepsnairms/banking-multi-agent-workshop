@@ -41,7 +41,7 @@ namespace BankingServices.Services
             ArgumentException.ThrowIfNullOrEmpty(_settings.CosmosUri);
 
             _logger = loggerFactory.CreateLogger<BankingCosmosDBService>();
-            _logger.LogInformation("Initializing Cosmos DB service.");
+            _logger.LogInformation("Initializing Banking Cosmos DB service.");
 
             if (!_settings.EnableTracing)
             {
@@ -83,7 +83,7 @@ namespace BankingServices.Services
             _requestData = _database.GetContainer(_settings.RequestDataContainer.Trim());
             _offerData= _database.GetContainer(_settings.OfferDataContainer.Trim());
 
-            _logger.LogInformation("Cosmos DB service initialized.");
+            _logger.LogInformation("Banking Cosmos DB service initialized.");
         }
 
         public async Task<BankUser> GetUserAsync(string tenantId,string userId)
