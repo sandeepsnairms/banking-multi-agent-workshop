@@ -90,7 +90,7 @@ var deployments = [
     modelVersion: '2024-11-20'
   }
   {
-    name: 'text-3-large'
+    name: 'text-embedding-3-small'
     skuCapacity: 5
 	skuName: 'Standard'
     modelName: 'text-embedding-3-small'
