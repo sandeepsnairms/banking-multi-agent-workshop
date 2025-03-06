@@ -19,9 +19,6 @@ using Microsoft.SemanticKernel.Embeddings;
 using System.Runtime;
 
 
-#pragma warning disable SKEXP0001, SKEXP0010, SKEXP0020, SKEXP0050, SKEXP0060
-#pragma warning disable SKEXP0110 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-
 namespace MultiAgentCopilot.ChatInfrastructure.Services;
 
 public class SemanticKernelService : ISemanticKernelService, IDisposable
@@ -188,9 +185,9 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
     public  async Task<float[]> GenerateEmbedding(string text)
     {
         // Generate Embedding
-#pragma warning disable SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
         var embeddingModel = _semanticKernel.Services.GetRequiredService<ITextEmbeddingGenerationService>();
-#pragma warning restore SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
         var embedding = await embeddingModel.GenerateEmbeddingAsync(text);
 
         // Convert ReadOnlyMemory<float> to IList<float>

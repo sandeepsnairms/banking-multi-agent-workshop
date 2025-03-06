@@ -8,6 +8,7 @@
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <EnableSdkContainerSupport>true</EnableSdkContainerSupport>
     <RootNamespace>MultiAgentCopilot.$(MSBuildProjectName.Replace(" ", "_"))</RootNamespace>
+	<NoWarn>CA1416;SKEXP0001;SKEXP0110;SKEXP0010;SKEXP0020;SKEXP0050;SKEXP0060;</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

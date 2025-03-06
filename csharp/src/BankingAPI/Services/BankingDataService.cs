@@ -102,12 +102,12 @@ namespace BankingServices.Services
 
             builder.Services.AddSingleton<ILoggerFactory>(loggerFactory);
 
-#pragma warning disable SKEXP0010 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
             builder.AddAzureOpenAITextEmbeddingGeneration(
                 skSettings.AzureOpenAISettings.EmbeddingsDeployment,
                 skSettings.AzureOpenAISettings.Endpoint,
                 credential);
-#pragma warning restore SKEXP0010 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
             _semanticKernel = builder.Build();
 
 
@@ -331,9 +331,9 @@ namespace BankingServices.Services
         public async Task<List<OfferTermBasic>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription)
         {
             // Generate Embedding
-#pragma warning disable SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
             var embeddingModel = _semanticKernel.Services.GetRequiredService<ITextEmbeddingGenerationService>();
-#pragma warning restore SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
             var embedding = await embeddingModel.GenerateEmbeddingAsync(requirementDescription);
 
             // Convert ReadOnlyMemory<float> to IList<float>
