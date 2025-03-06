@@ -7,7 +7,7 @@ param location string = resourceGroup().location
 param name string
 param tags object = {}
 
-resource cosmosDb 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' = {
+resource cosmosDb 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' = {
   name: name
   location: location
   kind: 'GlobalDocumentDB'
@@ -25,8 +25,11 @@ resource cosmosDb 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' = {
     ]
     capabilities: [
       {
-        name: 'EnableServerless'
+        name: 'EnableServerless'		
       }
+	  {
+        name: 'EnableNoSQLVectorSearch'
+	  }
     ]
   }
   tags: tags
@@ -82,23 +85,59 @@ resource cosmosContainerChats 'Microsoft.DocumentDB/databaseAccounts/sqlDatabase
     tags: tags
   }
   
-resource cosmosContainerOffers 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2023-04-15' = {
+resource cosmosContainerOffers 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-12-01-preview' = {
     parent: database
     name: offersContainerName
     properties: {
-      resource: {
-        id: offersContainerName
-        partitionKey: {
-          paths: [
-            '/tenantId'
-          ]
-          kind: 'Hash'
-          version: 2
+        resource: {
+            id: offersContainerName
+            partitionKey: {
+                paths: [
+                    '/tenantId'
+                ]
+                kind: 'Hash'
+                version: 2
+            }
+            indexingPolicy: {
+                indexingMode: 'consistent'
+                automatic: true
+                includedPaths: [
+						{
+							path: '/*'
+						}
+					]
+					excludedPaths: [
+						{
+							path: '/"_etag"/?'
+						}
+						{
+							path: '/vector/*'
+						}
+					]
+					fullTextIndexes: []
+					vectorIndexes: [
+						{
+							path: '/vector'
+							type: 'quantizedFlat'
+						}
+					]
+			}
+			vectorEmbeddingPolicy: {
+				vectorEmbeddings: [
+					{
+						path: '/vector'
+						dataType: 'float32'
+						distanceFunction: 'cosine'
+						dimensions: 1536
+					}
+				]
+            }
         }
-      }
     }
     tags: tags
-  }
+}
+
+
   
 resource cosmosContainerUsers 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2023-04-15' = {
     parent: database

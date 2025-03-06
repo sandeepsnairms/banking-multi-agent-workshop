@@ -122,6 +122,11 @@ resource app 'Microsoft.App/containerApps@2024-02-02-preview' = {
         targetPort: 8080
         transport: 'auto'
       }
+	  corsPolicy: {
+		allowedOrigins: [
+			"*"
+		]
+	  }
       registries: [
         {
           server: '${containerRegistryName}.azurecr.io'
@@ -136,15 +141,7 @@ resource app 'Microsoft.App/containerApps@2024-02-02-preview' = {
           image: fetchLatestImage.outputs.?containers[?0].image ?? 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
           name: 'main'
           env: union(
-            [
-              {
-                name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-                value: applicationInsights.properties.connectionString
-              }
-              {
-                name: 'PORT'
-                value: '8080'
-              }
+            [              
 			  {
 				name: 'SemanticKernelServiceSettings__AzureOpenAISettings__UserAssignedIdentityClientID'
 				value: identity.properties.clientId

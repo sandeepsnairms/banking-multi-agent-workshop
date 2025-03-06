@@ -1,6 +1,8 @@
 ﻿using MultiAgentCopilot.ChatInfrastructure.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using MultiAgentCopilot.Common.Models.Debug;
+using Newtonsoft.Json.Linq;
+using System.Text.Json;
 
 
 namespace ChatAPI
@@ -59,6 +61,20 @@ namespace ChatAPI
             app.MapPost("/tenant/{tenantId}/user/{userId}/semanticcache/reset", async (string tenantId, string userId) =>
                 await _chatService.ResetSemanticCache(tenantId, userId))
                 .WithName("ResetSemanticCache");
+
+            app.MapPut("/offerdata", async ([FromBody] JsonElement document) =>
+                    await _chatService.AddDocument("OfferData", document))
+                .WithName("AddOfferData");
+
+            app.MapPut("/accountdata", async ([FromBody] JsonElement document) =>
+                    await _chatService.AddDocument("AccountData", document))
+                .WithName("AddAccountData");
+
+            app.MapPut("/userdata", async ([FromBody] JsonElement document) =>
+                    await _chatService.AddDocument("UserData", document))
+                .WithName("AddUserData");
+
+
         }
     }
 }

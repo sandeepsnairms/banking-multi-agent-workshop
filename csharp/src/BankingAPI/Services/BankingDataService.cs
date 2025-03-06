@@ -4,7 +4,7 @@ using System.Runtime;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Fluent;
 using Microsoft.Extensions.Logging;
-using BankingServices.Models.Configuration;
+using MultiAgentCopilot.Common.Models.Configuration;
 using Container = Microsoft.Azure.Cosmos.Container;
 using Azure.Identity;
 using MultiAgentCopilot.Common.Models.Banking;
@@ -17,31 +17,42 @@ using MultiAgentCopilot.Common.Helper;
 using MultiAgentCopilot.Common.Models.Chat;
 using Microsoft.Azure.Cosmos.Serialization.HybridRow.Schemas;
 using PartitionKey = Microsoft.Azure.Cosmos.PartitionKey;
+using Microsoft.SemanticKernel.Memory;
+using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
+using Microsoft.SemanticKernel.Connectors.AzureCosmosDBNoSQL;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Identity.Client.Platforms.Features.DesktopOs.Kerberos;
+using Microsoft.SemanticKernel.Embeddings;
 
 namespace BankingServices.Services
 {
-    public class BankingCosmosDBService: IBankDBService
-{
+    public class BankingDataService: IBankDataService
+    {
         private readonly Container _accountData;
         private readonly Container _userData;
         private readonly Container _requestData;
         private readonly Container _offerData;
 
         private readonly Database _database;
-        private readonly Models.Configuration.BankingCosmosDBSettings _settings;
+        private readonly CosmosDBSettings _settings;
         private readonly ILogger _logger;
 
         public bool IsInitialized { get; private set; }
 
-        public BankingCosmosDBService(
-            BankingCosmosDBSettings settings,
+        readonly Kernel _semanticKernel;
+
+        public BankingDataService(
+            CosmosDBSettings settings,
+            SemanticKernelServiceSettings skSettings,
             ILoggerFactory loggerFactory )
         {
             _settings = settings; 
             ArgumentException.ThrowIfNullOrEmpty(_settings.CosmosUri);
 
-            _logger = loggerFactory.CreateLogger<BankingCosmosDBService>();
-            _logger.LogInformation("Initializing Banking Cosmos DB service.");
+            _logger = loggerFactory.CreateLogger<BankingDataService>();
+
+            _logger.LogInformation("Initializing Banking service.");
 
             if (!_settings.EnableTracing)
             {
@@ -83,7 +94,24 @@ namespace BankingServices.Services
             _requestData = _database.GetContainer(_settings.RequestDataContainer.Trim());
             _offerData= _database.GetContainer(_settings.OfferDataContainer.Trim());
 
-            _logger.LogInformation("Banking Cosmos DB service initialized.");
+            _logger.LogInformation("Banking service initialized for Cosmos DB.");
+
+
+            // Set up Semantic Kernel with Azure OpenAI and Managed Identity
+            var builder = Kernel.CreateBuilder();
+
+            builder.Services.AddSingleton<ILoggerFactory>(loggerFactory);
+
+#pragma warning disable SKEXP0010 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+            builder.AddAzureOpenAITextEmbeddingGeneration(
+                skSettings.AzureOpenAISettings.EmbeddingsDeployment,
+                skSettings.AzureOpenAISettings.Endpoint,
+                credential);
+#pragma warning restore SKEXP0010 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+            _semanticKernel = builder.Build();
+
+
+           _logger.LogInformation("Banking service initialized.");
         }
 
         public async Task<BankUser> GetUserAsync(string tenantId,string userId)
@@ -300,29 +328,64 @@ namespace BankingServices.Services
 
 
 
-        public async Task<List<Offer>> GetOffersAsync(string tenantId, AccountType accountType)
+        public async Task<List<OfferTermBasic>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription)
         {
+            // Generate Embedding
+#pragma warning disable SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+            var embeddingModel = _semanticKernel.Services.GetRequiredService<ITextEmbeddingGenerationService>();
+#pragma warning restore SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+            var embedding = await embeddingModel.GenerateEmbeddingAsync(requirementDescription);
+
+            // Convert ReadOnlyMemory<float> to IList<float>
+            var embeddingList = embedding.ToArray();
+
+            // Perform Vector Search in Cosmos DB
             try
             {
-                var queryDefinition = new QueryDefinition("SELECT * FROM c where c.accountType = @accountType")
-                    .WithParameter("@accountType", accountType.ToString());
-              
-                List<Offer> offers = new List<Offer>();
-                using (FeedIterator<Offer> feedIterator = _offerData.GetItemQueryIterator<Offer>(queryDefinition, requestOptions: new QueryRequestOptions { PartitionKey = new PartitionKey(tenantId) }))
+                var queryDefinition = new QueryDefinition(@"
+                       SELECT c.offerId, c.text, c.name
+                        FROM c
+                        WHERE c.type = 'Term'
+                        AND c.accountType = @accountType
+                        AND VectorDistance(c.vector, @referenceVector)> 0.075
+                        ")
+                    .WithParameter("@accountType", accountType.ToString())
+                    .WithParameter("@referenceVector", embeddingList);
+
+                List<OfferTermBasic> offerTerms = new List<OfferTermBasic>();
+                using (FeedIterator<OfferTermBasic> feedIterator = _offerData.GetItemQueryIterator<OfferTermBasic>(queryDefinition, requestOptions: new QueryRequestOptions { PartitionKey = new PartitionKey(tenantId) }))
                 {
                     while (feedIterator.HasMoreResults)
                     {
-                        FeedResponse<Offer> response = await feedIterator.ReadNextAsync();
-                        offers.AddRange(response);
+                        FeedResponse<OfferTermBasic> response = await feedIterator.ReadNextAsync();
+                        offerTerms.AddRange(response);
                     }
                 }
 
-                return offers;
+                return offerTerms;
             }
             catch (CosmosException ex)
             {
                 _logger.LogError(ex.ToString());
-                return new List<Offer>();
+                return new List<OfferTermBasic>();
+                //}
+            }
+        }
+
+        public async Task<Offer> GetOfferDetailsAsync(string tenantId, string offerId)
+        {
+            try
+            {
+                var partitionKey = new PartitionKey(tenantId);
+
+                return await _offerData.ReadItemAsync<Offer>(
+                       id: offerId,
+                       partitionKey: new PartitionKey(tenantId));
+            }
+            catch (CosmosException ex)
+            {
+                _logger.LogError(ex.ToString());
+                return null;
             }
         }
     }

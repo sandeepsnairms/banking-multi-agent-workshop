@@ -8,7 +8,6 @@ using Microsoft.ApplicationInsights.Extensibility;
 using MultiAgentCopilot.ChatInfrastructure.Factories;
 using BankingServices.Interfaces;
 using BankingServices.Services;
-using BankingServices.Models.Configuration;
 using Azure.Identity;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
@@ -21,7 +20,7 @@ namespace MultiAgentCopilot
     public static partial class DependencyInjection
     {
         /// <summary>
-        /// Registers the <see cref="IBankDBService"/> implementation with the dependency injection container."/>
+        /// Registers the <see cref="IBankDataService"/> implementation with the dependency injection container."/>
         /// </summary>
         /// <param name="builder">The hosted applications and services builder.</param>
 
@@ -52,8 +51,8 @@ namespace MultiAgentCopilot
         /// <param name="builder">The hosted applications and services builder.</param>
         public static void AddChatService(this IHostApplicationBuilder builder)
         {
-            builder.Services.AddOptions<BankingCosmosDBSettings>()
-                .Bind(builder.Configuration.GetSection("BankingCosmosDBSettings"));
+            builder.Services.AddOptions<CosmosDBSettings>()
+                .Bind(builder.Configuration.GetSection("CosmosDBSettings"));
             builder.Services.AddSingleton<IChatService, ChatService>();
         }
 

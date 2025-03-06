@@ -14,7 +14,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Factories
 {
     internal static class PluginFactory
     {
-        internal static Kernel GetAgentKernel(Kernel kernel, AgentType agentType, ILoggerFactory loggerFactory, IBankDBService bankService, string tenantId, string userId)
+        internal static Kernel GetAgentKernel(Kernel kernel, AgentType agentType, ILoggerFactory loggerFactory, IBankDataService bankService, string tenantId, string userId)
         {
             Kernel agentKernel = kernel.Clone();
             switch (agentType)

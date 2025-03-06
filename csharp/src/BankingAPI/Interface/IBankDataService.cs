@@ -8,7 +8,7 @@ using MultiAgentCopilot.Common.Models.Banking;
 
 namespace BankingServices.Interfaces
 {
-    public interface IBankDBService
+    public interface IBankDataService
     {
         Task<BankUser> GetUserAsync(string tenantId, string userId);
 
@@ -30,7 +30,9 @@ namespace BankingServices.Interfaces
 
         Task<bool> AddServiceRequestDescriptionAsync(string tenantId, string accountId, string requestId, string annotationToAdd);
 
-        Task<List<Offer>> GetOffersAsync(string tenantId, AccountType accountType);
+        Task<List<OfferTermBasic>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription);
+
+        Task<Offer> GetOfferDetailsAsync(string tenantId, string offerId);
 
         Task<List<String>> GetTeleBankerAvailabilityAsync(string tenantId, AccountType accountType);
     }

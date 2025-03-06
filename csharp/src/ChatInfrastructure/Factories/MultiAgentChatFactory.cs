@@ -30,7 +30,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Factories
     {
         public delegate void LogCallback(string key, string value);
 
-        private ChatCompletionAgent BuildAgent(Kernel kernel, AgentType agentType, ILoggerFactory loggerFactory, IBankDBService bankService, string tenantId, string userId)
+        private ChatCompletionAgent BuildAgent(Kernel kernel, AgentType agentType, ILoggerFactory loggerFactory, IBankDataService bankService, string tenantId, string userId)
         {
             ChatCompletionAgent agent = new ChatCompletionAgent
             {
@@ -76,7 +76,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Factories
         }
                
 
-        public AgentGroupChat BuildAgentGroupChat(Kernel kernel, ILoggerFactory loggerFactory, LogCallback logCallback, IBankDBService bankService, string tenantId, string userId)
+        public AgentGroupChat BuildAgentGroupChat(Kernel kernel, ILoggerFactory loggerFactory, LogCallback logCallback, IBankDataService bankService, string tenantId, string userId)
         {
             AgentGroupChat agentGroupChat = new AgentGroupChat();
             var chatModel = kernel.GetRequiredService<IChatCompletionService>();

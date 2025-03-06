@@ -1,4 +1,7 @@
-﻿namespace MultiAgentCopilot.Common.Models.Configuration
+﻿using Microsoft.Azure.Cosmos;
+using Microsoft.Azure.Cosmos.Core.Networking;
+
+namespace MultiAgentCopilot.Common.Models.Configuration
 {
     public record CosmosDBSettings
     {
@@ -13,6 +16,16 @@
         public required string ChatDataContainer { get; init; }
 
         public required string UserDataContainer { get; init; }
+
+        public required string AccountsContainer { get; init; }
+
+        public required string RequestDataContainer { get; init; }
+
+        public required string OfferDataContainer { get; init; }
+
+        public VectorEmbeddingPolicy? VectorEmbeddingPolicy { get; init; }
+
+        public IndexingPolicy? VectorIndexingPolicy { get; init; }
 
         public required string UserAssignedIdentityClientID { get; init; }
     }

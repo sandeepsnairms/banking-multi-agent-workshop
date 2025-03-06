@@ -1,6 +1,8 @@
 ﻿using MultiAgentCopilot.Common.Models.Banking;
 using MultiAgentCopilot.Common.Models.Chat;
 using MultiAgentCopilot.Common.Models.Debug;
+using Newtonsoft.Json.Linq;
+using System.Text.Json;
 
 namespace MultiAgentCopilot.ChatInfrastructure.Interfaces;
 
@@ -85,4 +87,9 @@ public interface ICosmosDBService
 
    
     Task<DebugLog> GetChatCompletionDebugLogAsync(string tenantId, string userId,string sessionId, string debugLogId);
+
+    Task<bool> InsertDocumentAsync(string containerName, JObject document);
+
+    Task<bool> InsertDocumentAsync<T>(string containerName, T document) where T : class;
+
 }
