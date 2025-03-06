@@ -4,7 +4,7 @@
     {
         public required string CosmosUri { get; init; }
 
-        public string CosmosKey { get; init; }
+        public string? CosmosKey { get; init; }
 
         public required string Database { get; init; }
 
@@ -16,7 +16,8 @@
 
         public required string RequestDataContainer { get; init; }
 
-        public required string OfferDataContainer { get; init; }        
+        public required string OfferDataContainer { get; init; }
 
+        public required string UserAssignedIdentityClientID { get; init; }
     }
 }

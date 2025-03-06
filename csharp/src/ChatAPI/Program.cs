@@ -1,4 +1,6 @@
 using MultiAgentCopilot;
+using Microsoft.Extensions.Configuration;
+
 namespace ChatAPI
 {
     public class Program
@@ -7,22 +9,28 @@ namespace ChatAPI
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            // Load configuration from appsettings.json and environment variables
+            builder.Configuration.SetBasePath(Directory.GetCurrentDirectory())
+                                 .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+                                 .AddJsonFile("appsettings.development.json", optional: true, reloadOnChange: true)
+                                 .AddEnvironmentVariables();
+
             // Add CORS policy
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy("AllowAllOrigins",
                     policy =>
                     {
-                        policy.AllowAnyOrigin()   // Allow all origins
-                              .AllowAnyMethod()   // Allow all HTTP methods
-                              .AllowAnyHeader();  // Allow all headers
+                        policy.AllowAnyOrigin()
+                              .AllowAnyMethod()
+                              .AllowAnyHeader();
                     });
-            });                   
+            });
 
+            if (!builder.Environment.IsDevelopment())                
+                builder.Services.AddApplicationInsightsTelemetry();
 
-            if (!builder.Environment.IsDevelopment())
-                builder.AddApplicationInsightsTelemetry();
-
+            //builder.AddApplicationInsightsTelemetry();
 
             builder.AddCosmosDBService();
             builder.AddSemanticKernelService();
@@ -38,13 +46,11 @@ namespace ChatAPI
             builder.Services.AddSwaggerGen();
 
             var app = builder.Build();
-            app.UseCors("AllowAllOrigins"); // Apply the CORS policy
+            app.UseCors("AllowAllOrigins");
 
             app.UseExceptionHandler(exceptionHandlerApp
                     => exceptionHandlerApp.Run(async context
                         => await Results.Problem().ExecuteAsync(context)));
-
-            //
 
             // Configure the HTTP request pipeline.
             app.UseSwagger();

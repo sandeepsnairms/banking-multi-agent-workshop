@@ -52,11 +52,24 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
         var builder = Kernel.CreateBuilder();
 
         builder.Services.AddSingleton<ILoggerFactory>(loggerFactory);
+        
+        DefaultAzureCredential credential;
+        if (string.IsNullOrEmpty(_settings.AzureOpenAISettings.UserAssignedIdentityClientID))
+        {
+            credential = new DefaultAzureCredential();
+        }
+        else
+        {
+            credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
+            {
+                ManagedIdentityClientId = _settings.AzureOpenAISettings.UserAssignedIdentityClientID
+            });
 
+        }
         builder.AddAzureOpenAIChatCompletion(
             _settings.AzureOpenAISettings.CompletionsDeployment,
             _settings.AzureOpenAISettings.Endpoint,
-            new DefaultAzureCredential());
+            credential);
 
         _semanticKernel = builder.Build();
 

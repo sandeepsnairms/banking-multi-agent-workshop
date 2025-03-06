@@ -56,7 +56,21 @@ namespace BankingServices.Services
                 PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase
             };
 
-            CosmosClient client = new CosmosClientBuilder(_settings.CosmosUri, new DefaultAzureCredential())
+            DefaultAzureCredential credential;
+            if (string.IsNullOrEmpty(_settings.UserAssignedIdentityClientID))
+            {
+                credential = new DefaultAzureCredential();
+            }
+            else
+            {
+                credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
+                {
+                    ManagedIdentityClientId = _settings.UserAssignedIdentityClientID
+                });
+
+            }
+
+            CosmosClient client = new CosmosClientBuilder(_settings.CosmosUri, credential)
                 .WithSerializerOptions(options)
                 .WithConnectionModeGateway()
             .Build();

@@ -112,20 +112,66 @@ module ChatAPI './app/ChatAPI.bicep' = {
     tags: tags
     cosmosDbAccountName: cosmos.outputs.name
     identityName: '${abbrs.managedIdentityUserAssignedIdentities}chatservicew-${resourceToken}'
-    applicationInsightsName: monitoring.outputs.applicationInsightsConnectionString
+    applicationInsightsName: monitoring.outputs.applicationInsightsName
+	openAIName: openAi.outputs.name
     containerAppsEnvironmentId: appsEnv.outputs.id
     containerRegistryName: registry.outputs.name
     exists: ChatAPIExists
     envSettings: [      
       {
-        name: 'MSCosmosDBOpenAI__OpenAI__Endpoint'
+        name: 'SemanticKernelServiceSettings__AzureOpenAISettings__Endpoint'
         value: openAi.outputs.endpoint
+      }	  
+	  {
+        name: 'SemanticKernelServiceSettings__AzureOpenAISettings__CompletionsDeployment'
+        value: openAi.outputs.modelDeploymentName
       }
       {
-        name: 'MSCosmosDBOpenAI__CosmosDB__Endpoint'
+        name: 'CosmosDBSettings__CosmosUri'
         value: cosmos.outputs.endpoint
-      }      
-    ]    
+      }
+	  {
+        name: 'CosmosDBSettings__Database'
+        value: 'vsai-database'
+      }
+	  {
+        name: 'CosmosDBSettings__ChatDataContainer'
+        value: 'ChatsData'
+      }
+	  {
+        name: 'CosmosDBSettings__UserDataContainer'
+        value: 'Users'
+      }
+      {
+        name: 'BankingCosmosDBSettings__CosmosUri'
+        value: cosmos.outputs.endpoint
+      }	
+      {
+        name: 'BankingCosmosDBSettings__Database'
+        value: 'vsai-database'
+      }
+	  {
+        name: 'BankingCosmosDBSettings__AccountsContainer'
+        value: 'AccountsData'
+      }
+	  {
+        name: 'BankingCosmosDBSettings__UserDataContainer'
+        value: 'Users'
+      }
+	  {
+        name: 'BankingCosmosDBSettings__RequestDataContainer'
+        value: 'AccountsData'
+      }
+	  {
+        name: 'BankingCosmosDBSettings__OfferDataContainer'
+        value: 'Offers'
+      }
+      {
+        name: 'ApplicationInsightsConnectionString'
+        value: monitoring.outputs.applicationInsightsConnectionString
+      }
+  
+    ]
   }
   scope: rg
   dependsOn: [cosmos, monitoring, openAi]
@@ -135,3 +181,4 @@ module ChatAPI './app/ChatAPI.bicep' = {
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = registry.outputs.loginServer
 output AZURE_COSMOS_DB_NAME string = cosmos.outputs.name
 output SERVICE_ChatAPI_ENDPOINT_URL string = ChatAPI.outputs.uri
+
