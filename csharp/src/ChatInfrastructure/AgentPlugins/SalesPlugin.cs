@@ -13,18 +13,28 @@ namespace MultiAgentCopilot.ChatInfrastructure.Plugins
 {
     internal class SalesPlugin : BasePlugin
     {
-        public SalesPlugin(ILogger<BasePlugin> logger, IBankDBService bankService, string tenantId, string userId )
+        public SalesPlugin(ILogger<BasePlugin> logger, IBankDataService bankService, string tenantId, string userId )
             : base(logger, bankService, tenantId, userId)
         {
         }
         
         [KernelFunction]
-        [Description("List all available offers")]
-        public async Task<List<Offer>> GetOffers(AccountType accountType)
+        [Description("Search offer terms of all available offers using vector search")]
+        public async Task<List<OfferTermBasic>> SearchOfferTerms(AccountType accountType, string requirementDescription)
         {
-            _logger.LogTrace($"Fetching Offers");
-            return await _bankService.GetOffersAsync(_tenantId, accountType);
+            _logger.LogTrace($"Searching terms of all available offers matching '{requirementDescription}'");
+            return await _bankService.SearchOfferTermsAsync(_tenantId, accountType,requirementDescription);
         }
+
+
+        [KernelFunction]
+        [Description("Get detail for an offers")]
+        public async Task<Offer> GetOfferDetails(string offerId)
+        {
+            _logger.LogTrace($"Fetching Offer");
+            return await _bankService.GetOfferDetailsAsync(_tenantId, offerId);
+        }
+
 
         [KernelFunction]
         [Description("Register a new account.")]

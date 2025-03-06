@@ -15,6 +15,8 @@ using Newtonsoft.Json;
 using System.Data;
 using MultiAgentCopilot.Common.Models.Debug;
 using BankingServices.Interfaces;
+using Microsoft.SemanticKernel.Embeddings;
+using System.Runtime;
 
 
 #pragma warning disable SKEXP0001, SKEXP0010, SKEXP0020, SKEXP0050, SKEXP0060
@@ -71,6 +73,12 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
             _settings.AzureOpenAISettings.Endpoint,
             credential);
 
+
+        builder.AddAzureOpenAITextEmbeddingGeneration(
+               _settings.AzureOpenAISettings.EmbeddingsDeployment,
+               _settings.AzureOpenAISettings.Endpoint,
+               credential);
+
         _semanticKernel = builder.Build();
 
         Task.Run(Initialize).ConfigureAwait(false);
@@ -85,7 +93,7 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Semantic Kernel service was not initialized. The following error occurred: {ErrorMessage}.", ex.Message);
+            _logger.LogError(ex, "Semantic Kernel service was not initialized. The following error occurred: {ErrorMessage}.", ex.ToString());
         }
     }
 
@@ -94,7 +102,7 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
         _promptDebugProperties.Add(new LogProperty(key, value));
     }
 
-    public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, IBankDBService bankService, string tenantId, string userId)
+    public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, IBankDataService bankService, string tenantId, string userId)
     {
         try
         {
@@ -147,7 +155,7 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.Message);
+            _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.ToString());
             return new Tuple<List<Message>, List<DebugLog>>(new List<Message>(), new List<DebugLog>());
         }
     }
@@ -155,16 +163,38 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
 
     public async Task<string> Summarize(string sessionId, string userPrompt)
     {
-        // Use an AI function to summarize the text in 2 words
-        var summarizeFunction = _semanticKernel.CreateFunctionFromPrompt(
-            "Summarize the following text into exactly two words:\n\n{{$input}}",
-            executionSettings: new OpenAIPromptExecutionSettings { MaxTokens = 10 }
-        );
+        try
+        {
+            // Use an AI function to summarize the text in 2 words
+            var summarizeFunction = _semanticKernel.CreateFunctionFromPrompt(
+                "Summarize the following text into exactly two words:\n\n{{$input}}",
+                executionSettings: new OpenAIPromptExecutionSettings { MaxTokens = 10 }
+            );
 
-        // Invoke the function
-        var summary = await _semanticKernel.InvokeAsync(summarizeFunction, new() { ["input"] = userPrompt });
+            // Invoke the function
+            var summary = await _semanticKernel.InvokeAsync(summarizeFunction, new() { ["input"] = userPrompt });
 
-        return summary.GetValue<string>() ?? "No summary generated";
+            return summary.GetValue<string>() ?? "No summary generated";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.ToString());
+            return string.Empty;
+        }
+    }
+
+
+
+    public  async Task<float[]> GenerateEmbedding(string text)
+    {
+        // Generate Embedding
+#pragma warning disable SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        var embeddingModel = _semanticKernel.Services.GetRequiredService<ITextEmbeddingGenerationService>();
+#pragma warning restore SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        var embedding = await embeddingModel.GenerateEmbeddingAsync(text);
+
+        // Convert ReadOnlyMemory<float> to IList<float>
+       return embedding.ToArray();
     }
 
     public async Task ResetSemanticCache()

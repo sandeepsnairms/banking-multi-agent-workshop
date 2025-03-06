@@ -9,27 +9,31 @@ using BankingServices.Interfaces;
 using BankingServices.Services;
 using Microsoft.Extensions.Options;
 using MultiAgentCopilot.Common.Models.Configuration;
-using BankingServices.Models.Configuration;
+using Newtonsoft.Json.Linq;
+using System.Text.Json;
+using Newtonsoft.Json;
+
 
 namespace MultiAgentCopilot.ChatInfrastructure.Services;
 
 public class ChatService : IChatService
 {
     private readonly ICosmosDBService _cosmosDBService;
-    private readonly IBankDBService _bankService;
+    private readonly IBankDataService _bankService;
     private readonly ISemanticKernelService _skService;
     private readonly ILogger _logger;
 
     
     public ChatService(
-        IOptions<BankingCosmosDBSettings> options,
+        IOptions<CosmosDBSettings> cosmosOptions,
+        IOptions<SemanticKernelServiceSettings> skOptions,
         ICosmosDBService cosmosDBService,
         ISemanticKernelService ragService,
         ILoggerFactory loggerFactory)
     {
         _cosmosDBService = cosmosDBService;
         _skService = ragService;
-        _bankService = new BankingCosmosDBService(options.Value, loggerFactory);
+        _bankService = new BankingDataService(cosmosOptions.Value, skOptions.Value, loggerFactory);
         _logger = loggerFactory.CreateLogger<ChatService>();
     }
 
@@ -161,6 +165,53 @@ public class ChatService : IChatService
         return await _cosmosDBService.GetChatCompletionDebugLogAsync(tenantId,userId, sessionId, debugLogId);
     }
 
+
+    public async Task<bool> AddDocument(string containerName, JsonElement document)
+    {
+        try
+        {
+            // Extract raw JSON from JsonElement
+            var json = document.GetRawText();
+            var docJObject = JsonConvert.DeserializeObject<JObject>(json);
+
+            // Ensure "id" exists
+            if (!docJObject.ContainsKey("id"))
+            {
+                throw new ArgumentException("Document must contain an 'id' property.");
+            }
+
+            switch (containerName)
+            {
+                case "OfferData":
+                    if (document.TryGetProperty("type", out JsonElement typeElement) &&
+                        typeElement.GetString() == "Term")
+                    {
+                        // Deserialize into OfferTerm model
+                        var offerTerm = JsonConvert.DeserializeObject<OfferTerm>(json);
+
+                        // Generate vector and assign it
+                        offerTerm.Vector = await _skService.GenerateEmbedding(offerTerm.Text);
+
+
+                        return await _cosmosDBService.InsertDocumentAsync<OfferTerm>(containerName, offerTerm);
+                    }
+                    break;
+                default:
+                    return await _cosmosDBService.InsertDocumentAsync(containerName, docJObject);
+            }
+
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error adding document to container {containerName}.");
+            return false;
+        }
+    }
+
+
+
     public async Task ResetSemanticCache(string tenantId, string userId) =>
         await _skService.ResetSemanticCache();
 }
+

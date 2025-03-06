@@ -16,7 +16,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Plugins
     public class CustomerSupportPlugin: BasePlugin
     {
 
-        public CustomerSupportPlugin(ILogger<BasePlugin> logger, IBankDBService bankService, string tenantId, string userId )
+        public CustomerSupportPlugin(ILogger<BasePlugin> logger, IBankDataService bankService, string tenantId, string userId )
           : base(logger, bankService, tenantId, userId)
         {
         }

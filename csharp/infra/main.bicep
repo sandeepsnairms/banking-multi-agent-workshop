@@ -68,30 +68,52 @@ module registry './shared/registry.bicep' = {
   scope: rg
 }
 
-
 module openAi './shared/openai.bicep' = {
-  name: 'openai'
+  name: 'openai-account'
   params: {
-    deployment: {  
-      name: 'completions'
-      sku: {
-        name: 'GlobalStandard'
-        capacity: 10
-      }
-      model: {
-        name: 'gpt-4o'
-        version: '2024-11-20'
-      }
-    }    
-    location: location
     name: '${abbrs.openAiAccounts}${resourceToken}'
-    sku: 'S0'
+    location: location
     tags: tags
+    sku: 'S0'
   }
   scope: rg
 }
 
 
+
+var deployments = [
+  {
+    name: 'gpt-4o'
+    skuCapacity: 10
+	skuName: 'GlobalStandard'
+    modelName: 'gpt-4o'
+    modelVersion: '2024-11-20'
+  }
+  {
+    name: 'text-3-large'
+    skuCapacity: 5
+	skuName: 'Standard'
+    modelName: 'text-embedding-3-small'
+    modelVersion: '1'
+  }
+]
+
+@batchSize(1)
+module openAiModelDeployments './shared/modeldeployment.bicep' = [
+  for (deployment, _) in deployments: {
+    name: 'openai-model-deployment-${deployment.name}'
+    params: {
+      name: deployment.name
+      parentAccountName: openAi.outputs.name
+      skuName: deployment.skuName
+      skuCapacity: deployment.skuCapacity
+      modelName: deployment.modelName
+      modelVersion: deployment.modelVersion
+      modelFormat: 'OpenAI'
+    }
+	scope: rg
+  }
+]
 
 module appsEnv './shared/apps-env.bicep' = {
   name: 'apps-env'
@@ -114,6 +136,7 @@ module ChatAPI './app/ChatAPI.bicep' = {
     identityName: '${abbrs.managedIdentityUserAssignedIdentities}chatservicew-${resourceToken}'
     applicationInsightsName: monitoring.outputs.applicationInsightsName
 	openAIName: openAi.outputs.name
+	userPrincipalId: !empty(principalId) ? principalId : null
     containerAppsEnvironmentId: appsEnv.outputs.id
     containerRegistryName: registry.outputs.name
     exists: ChatAPIExists
@@ -124,7 +147,11 @@ module ChatAPI './app/ChatAPI.bicep' = {
       }	  
 	  {
         name: 'SemanticKernelServiceSettings__AzureOpenAISettings__CompletionsDeployment'
-        value: openAi.outputs.modelDeploymentName
+        value: openAiModelDeployments[0].outputs.name
+      }
+	  {
+        name: 'SemanticKernelServiceSettings__AzureOpenAISettings__EmbeddingsDeployment'
+        value: openAiModelDeployments[1].outputs.name
       }
       {
         name: 'CosmosDBSettings__CosmosUri'

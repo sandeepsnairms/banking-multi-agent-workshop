@@ -27,8 +27,18 @@ namespace ChatAPI
                     });
             });
 
+
+            builder.Logging.ClearProviders();
+            builder.Logging.AddConsole();
+
             if (!builder.Environment.IsDevelopment())                
                 builder.Services.AddApplicationInsightsTelemetry();
+
+            builder.Logging.SetMinimumLevel(LogLevel.Trace);
+            builder.Services.Configure<LoggerFilterOptions>(options =>
+            {
+                options.MinLevel = LogLevel.Trace;
+            });
 
             //builder.AddApplicationInsightsTelemetry();
 

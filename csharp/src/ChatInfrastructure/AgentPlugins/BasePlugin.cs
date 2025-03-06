@@ -16,11 +16,11 @@ namespace MultiAgentCopilot.ChatInfrastructure.Plugins
     public class BasePlugin
     {
         protected readonly ILogger<BasePlugin> _logger;
-        protected readonly IBankDBService _bankService;
+        protected readonly IBankDataService _bankService;
         protected readonly string _userId;
         protected readonly string _tenantId;
 
-        public BasePlugin(ILogger<BasePlugin> logger, IBankDBService bankService, string tenantId, string userId)
+        public BasePlugin(ILogger<BasePlugin> logger, IBankDataService bankService, string tenantId, string userId)
         {
             _logger = logger;
             _tenantId = tenantId;

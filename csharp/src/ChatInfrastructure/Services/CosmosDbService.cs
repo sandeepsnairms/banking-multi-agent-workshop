@@ -21,6 +21,8 @@ using Microsoft.VisualStudio.TestPlatform.ObjectModel.DataCollection;
 using Microsoft.VisualStudio.TestPlatform.CommunicationUtilities;
 using Message = MultiAgentCopilot.Common.Models.Chat.Message;
 using System.Security.Principal;
+using Newtonsoft.Json;
+using System.Text.Json;
 namespace MultiAgentCopilot.ChatInfrastructure.Services
 {
     /// <summary>
@@ -30,6 +32,8 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
     {
         private readonly Container _chatData;
         private readonly Container _userData;
+        private readonly Container _offersData;
+        private readonly Container _accountsData;
 
         private readonly Database _database;
         private readonly CosmosDBSettings _settings;
@@ -83,6 +87,8 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
 
             _chatData = _database.GetContainer(_settings.ChatDataContainer.Trim());
             _userData = _database.GetContainer(_settings.UserDataContainer.Trim());
+            _offersData = _database.GetContainer(_settings.OfferDataContainer.Trim());
+            _accountsData = _database.GetContainer(_settings.AccountsContainer.Trim());
 
             _logger.LogInformation("Cosmos DB service initialized.");
         }
@@ -108,7 +114,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
             }
             catch (CosmosException ex)
             {
-                _logger.LogError(ex.Message);
+                _logger.LogError(ex.ToString());
                 throw;
             }
         }
@@ -125,7 +131,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
             }
             catch (CosmosException ex)
             {
-                _logger.LogError(ex.Message);
+                _logger.LogError(ex.ToString());
                 throw;
             }
         }
@@ -153,7 +159,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
             }
             catch (CosmosException ex)
             {
-                _logger.LogError(ex.Message);
+                _logger.LogError(ex.ToString());
                 throw;
             }
 }
@@ -173,7 +179,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
             }
             catch (CosmosException ex)
             {
-                _logger.LogError(ex.Message);
+                _logger.LogError(ex.ToString());
                 throw;
             }
         }
@@ -191,7 +197,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
             }
             catch (CosmosException ex)
             {
-                _logger.LogError(ex.Message);
+                _logger.LogError(ex.ToString());
                 throw;
             }
         }
@@ -210,7 +216,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
             }
             catch (CosmosException ex)
             {
-                _logger.LogError(ex.Message);
+                _logger.LogError(ex.ToString());
                 throw;
             }
         }
@@ -233,7 +239,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
             }
             catch (CosmosException ex)
             {
-                _logger.LogError(ex.Message);
+                _logger.LogError(ex.ToString());
                 throw;
             }
         }
@@ -252,7 +258,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
             }
             catch (CosmosException ex)
             {
-                _logger.LogError(ex.Message);
+                _logger.LogError(ex.ToString());
                 throw;
             }
         }
@@ -277,7 +283,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
             }
             catch (CosmosException ex)
             {
-                _logger.LogError(ex.Message);
+                _logger.LogError(ex.ToString());
                 throw;
             }
 }
@@ -322,7 +328,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
             }
             catch (CosmosException ex)
             {
-                _logger.LogError(ex.Message);
+                _logger.LogError(ex.ToString());
                 throw;
             }
         }
@@ -354,7 +360,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
             }
             catch (CosmosException ex)
             {
-                _logger.LogError(ex.Message);
+                _logger.LogError(ex.ToString());
                 throw;
             }
         }
@@ -371,9 +377,93 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
             }
             catch (CosmosException ex)
             {
-                _logger.LogError(ex.Message);
+                _logger.LogError(ex.ToString());
                 throw;
             }
         }
+
+        public async Task<bool> InsertDocumentAsync<T>(string containerName, T document) where T : class
+        {
+            Container container = null;
+
+            switch (containerName)
+            {
+                case "OfferData":
+                    container = _offersData;
+                    break;
+                case "AccountData":
+                    container = _accountsData;
+                    break;
+                case "UserData":
+                    container = _userData;
+                    break;
+            }
+            try
+            {
+
+                // Insert cleaned document
+                await container.CreateItemAsync(document);
+
+
+                return true;
+            }
+            catch (CosmosException ex)
+            {
+                // Ignore conflict errors.
+                if (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
+                {
+                    _logger.LogInformation($"Duplicate document detected.");
+                }
+                else
+                {
+                    _logger.LogError(ex, "Error inserting document.");
+                    throw;
+                }
+                return false;
+            }
+        }
+
+
+        public async Task<bool> InsertDocumentAsync(string containerName, JObject document)
+        {
+            Container container=null;
+
+            switch (containerName)
+            {
+                case "OfferData":
+                    container = _offersData;
+                    break;
+                case "AccountData":
+                    container = _accountsData;
+                    break;
+                case "UserData":
+                    container = _userData;
+                    break;
+            }
+            try
+            {
+
+                // Insert cleaned document
+                await container.CreateItemAsync(document);
+
+
+                return true;
+            }
+            catch (CosmosException ex)
+            {
+                // Ignore conflict errors.
+                if (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
+                {
+                    _logger.LogInformation($"Duplicate document detected.");
+                }
+                else
+                {
+                    _logger.LogError(ex, "Error inserting document.");
+                    throw;
+                }
+                return false;
+            }
+        }
+
     }
 }
