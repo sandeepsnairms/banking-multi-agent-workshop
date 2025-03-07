@@ -4,7 +4,7 @@ from azure.identity import DefaultAzureCredential
 
 # Azure Cosmos DB configuration
 COSMOS_DB_URL = os.getenv("COSMOSDB_ENDPOINT")
-DATABASE_NAME = "MultiAgentBankingDemoDB"
+DATABASE_NAME = "MultiAgentBanking"
 CONTAINER_NAME = "Chat"
 
 cosmos_client = None

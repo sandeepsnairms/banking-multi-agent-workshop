@@ -133,8 +133,8 @@ def _fetch_messages_for_session(sessionId: str, tenantId: str, userId: str) -> L
             tenantId=tenantId,
             userId=userId,
             timeStamp=msg.response_metadata.get("timestamp", "") if hasattr(msg, "response_metadata") else "",
-            sender="user" if isinstance(msg, HumanMessage) else "assistant",
-            senderRole="user" if isinstance(msg, HumanMessage) else "agent",
+            sender="User" if isinstance(msg, HumanMessage) else "Cordinator",
+            senderRole="User" if isinstance(msg, HumanMessage) else "Assistant",
             text=msg.content if hasattr(msg, "content") else msg.get("content", ""),
             debugLogId=str(uuid.uuid4()),
             tokensUsed=msg.response_metadata.get("token_usage", {}).get("total_tokens", 0) if hasattr(msg,
@@ -294,7 +294,8 @@ def create_chat_session(tenantId: str, userId: str):
     return create_thread(tenantId, userId)
 
 
-def extract_relevant_messages(response_data, tenantId, userId, sessionId):
+def extract_relevant_messages(last_active_agent, response_data, tenantId, userId, sessionId):
+    last_active_agent = last_active_agent
     if not response_data:
         return []
 
@@ -336,8 +337,8 @@ def extract_relevant_messages(response_data, tenantId, userId, sessionId):
             tenantId=tenantId,
             userId=userId,
             timeStamp=msg.response_metadata.get("timestamp", "") if hasattr(msg, "response_metadata") else "",
-            sender="user" if isinstance(msg, HumanMessage) else "assistant",
-            senderRole="user" if isinstance(msg, HumanMessage) else last_agent_name,
+            sender="User" if isinstance(msg, HumanMessage) else last_active_agent,
+            senderRole="User" if isinstance(msg, HumanMessage) else "Assistant",
             text=msg.content if hasattr(msg, "content") else msg.get("content", ""),
             debugLogId=str(uuid.uuid4()),
             tokensUsed=msg.response_metadata.get("token_usage", {}).get("total_tokens", 0) if hasattr(msg,
@@ -364,7 +365,7 @@ def get_chat_completion(
     # Retrieve last checkpoint
     config = {"configurable": {"thread_id": sessionId, "checkpoint_ns": ""}}
     checkpoints = list(checkpointer.list(config))
-
+    last_active_agent = "coordinator_agent"  # Default fallback
     if not checkpoints:
         # No previous state, start fresh
         new_state = {
@@ -406,7 +407,7 @@ def get_chat_completion(
         )
         print(f"response_data: {response_data}")
 
-    return extract_relevant_messages(response_data, tenantId, userId, sessionId)
+    return extract_relevant_messages(last_active_agent, response_data, tenantId, userId, sessionId)
 
 
 @app.post("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/summarize-name", tags=[endpointTitle],
