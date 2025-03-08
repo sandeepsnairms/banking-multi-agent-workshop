@@ -14,10 +14,10 @@ RUN pip install --upgrade --no-cache-dir -r requirements.txt
 COPY src /app/src
 
 # Expose the required port
-EXPOSE 8000
+EXPOSE 8080
 
 # Set the PYTHONPATH to ensure `src` is found
 ENV PYTHONPATH=/app
 
 # Run the FastAPI application with Uvicorn
-CMD ["uvicorn", "src.app.banking_agents_api:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "src.app.banking_agents_api:app", "--host", "0.0.0.0", "--port", "8080"]
