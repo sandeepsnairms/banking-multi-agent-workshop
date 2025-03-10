@@ -109,10 +109,7 @@ resource cosmosContainerOffers 'Microsoft.DocumentDB/databaseAccounts/sqlDatabas
 					excludedPaths: [
 						{
 							path: '/"_etag"/?'
-						}
-						{
-							path: '/vector/*'
-						}
+						}						
 					]
 					fullTextIndexes: []
 					vectorIndexes: [
