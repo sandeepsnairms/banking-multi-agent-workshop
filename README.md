@@ -3,7 +3,10 @@ A multi-agent sample and workshop for a retail banking scenario. Implemented in 
 
 # Build a Multi-Agent AI application using Semantic Kernel Agents or LangGraph
 
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/AzureCosmosDB/banking-multi-agent-workshop)
+Csharp project - [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/abhirockzz/banking-multi-agent-workshop?devcontainer_path=.devcontainer%2Fcsharp%2Fdevcontainer.json)
+
+Python project - [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/abhirockzz/banking-multi-agent-workshop?devcontainer_path=.devcontainer%2Fpython%2Fdevcontainer.json)
+
 [![Open in Dev Containers](https://img.shields.io/static/v1?style=for-the-badge&label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/AzureCosmosDB/banking-multi-agent-workshop)
 
 This sample application and full-day workshop shows how to build a multi-tenant, multi-agent, banking application with containerized applications built in two different versions

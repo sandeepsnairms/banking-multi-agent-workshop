@@ -1,0 +1,22 @@
+{
+    "name": "C# Development Container",
+    "image": "mcr.microsoft.com/devcontainers/dotnet:8.0",
+    "features": {
+        "ghcr.io/devcontainers/features/azure-cli:1": {
+            "version": "latest",
+            "installBicep": true
+        },
+        "ghcr.io/azure/azure-dev/azd:latest": {}
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-dotnettools.csharp",
+                "ms-dotnettools.csdevkit",
+                "ms-azuretools.vscode-cosmosdb",
+                "esbenp.prettier-vscode"
+            ]
+        }
+    },
+    "remoteUser": "vscode"
+}
