@@ -187,19 +187,26 @@ public class ChatService : IChatService
             switch (containerName)
             {
                 case "OfferData":
-                    if (document.TryGetProperty("type", out JsonElement typeElement) &&
-                        typeElement.GetString() == "Term")
+
+                    if (document.TryGetProperty("type", out JsonElement typeElement))
                     {
-                        // Deserialize into OfferTerm model
-                        var offerTerm = JsonConvert.DeserializeObject<OfferTerm>(json);
+                        if(typeElement.GetString() == "Term")
+                        {
+                            // Deserialize into OfferTerm model
+                            var offerTerm = JsonConvert.DeserializeObject<OfferTerm>(json);
 
-                        // Generate vector and assign it
-                        offerTerm.Vector = await _skService.GenerateEmbedding(offerTerm.Text);
+                            // Generate vector and assign it
+                            offerTerm.Vector = await _skService.GenerateEmbedding(offerTerm.Text);
 
 
-                        return await _cosmosDBService.InsertDocumentAsync<OfferTerm>(containerName, offerTerm);
+                            return await _cosmosDBService.InsertDocumentAsync<OfferTerm>(containerName, offerTerm);
+                        }
                     }
-                    break;
+                    else
+                    {
+                        return await _cosmosDBService.InsertDocumentAsync(containerName, docJObject);
+                    }
+                        break;
                 default:
                     return await _cosmosDBService.InsertDocumentAsync(containerName, docJObject);
             }

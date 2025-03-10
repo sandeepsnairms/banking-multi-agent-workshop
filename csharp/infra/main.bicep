@@ -49,7 +49,7 @@ module cosmos './shared/cosmosdb.bicep' = {
     databaseName: 'vsai-database'
 	chatsContainerName: 'ChatsData'
 	accountsContainerName: 'AccountsData'
-	offersContainerName:'Offers'
+	offersContainerName:'OffersData'
 	usersContainerName:'Users'
     location: location
     name: '${abbrs.documentDBDatabaseAccounts}${resourceToken}'
@@ -189,7 +189,7 @@ applicationInsightsName: monitoring.outputs.applicationInsightsName
       }
 	  {
         name: 'BankingCosmosDBSettings__OfferDataContainer'
-        value: 'Offers'
+        value: 'OffersData'
       }
       {
         name: 'ApplicationInsightsConnectionString'
