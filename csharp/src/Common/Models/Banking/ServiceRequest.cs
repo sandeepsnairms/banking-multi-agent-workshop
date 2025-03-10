@@ -15,37 +15,32 @@ namespace MultiAgentCopilot.Common.Models.Banking
         public DateTime RequestedOn { get; set; }
         public DateTime ScheduledDateTime { get; set; }
         public string AccountId { get; set; }
-        public ServiceRequestType  SRType { get; set; }
+        public ServiceRequestType SRType { get; set; }
         public string? RecipientEmail { get; set; }
         public string? RecipientPhone { get; set; }
         public decimal? DebitAmount { get; set; }
         public bool IsComplete { get; set; }
-        public List<string> RequestAnnotations  { get; set; }
-        public Dictionary<string,string> FulfilmentDetails { get; set; }
+        public List<string> RequestAnnotations { get; set; }
+        public Dictionary<string, string> FulfilmentDetails { get; set; }
 
-        public ServiceRequest(ServiceRequestType serviceRequestType, string tenantId, string accountId, string userId, string requestAnnotation, string recipientEmail, string recipientPhone, decimal debitAmount,  DateTime scheduledDateTime, Dictionary<string,string>? fulfilmentDetails)
+        public ServiceRequest(ServiceRequestType serviceRequestType, string tenantId, string accountId, string userId, string requestAnnotation, string recipientEmail, string recipientPhone, decimal debitAmount, DateTime scheduledDateTime, Dictionary<string, string>? fulfilmentDetails)
         {
             Id = Guid.NewGuid().ToString();
             TenantId = tenantId;
-            Type= nameof(ServiceRequest);
+            Type = nameof(ServiceRequest);
             SRType = serviceRequestType;
             RequestedOn = DateTime.Now;
             AccountId = accountId;
             UserId = userId;
-            RequestAnnotations  = new List<string> { requestAnnotation };
+            RequestAnnotations = new List<string> { requestAnnotation };
             RecipientEmail = recipientEmail;
             RecipientPhone = recipientPhone;
             DebitAmount = debitAmount;
             if (scheduledDateTime != DateTime.MinValue)
                 ScheduledDateTime = scheduledDateTime;
             IsComplete = false;
-            if(fulfilmentDetails != null)
-                FulfilmentDetails = fulfilmentDetails;
-
+            FulfilmentDetails = fulfilmentDetails ?? new Dictionary<string, string>();
         }
-
-        
-
     }
 }
 

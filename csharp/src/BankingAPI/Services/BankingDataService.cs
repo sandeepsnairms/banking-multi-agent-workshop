@@ -56,10 +56,18 @@ namespace BankingServices.Services
 
             if (!_settings.EnableTracing)
             {
-                Type defaultTrace = Type.GetType("Microsoft.Azure.Cosmos.Core.Trace.DefaultTrace,Microsoft.Azure.Cosmos.Direct");
-                TraceSource traceSource = (TraceSource)defaultTrace.GetProperty("TraceSource").GetValue(null);
-                traceSource.Switch.Level = SourceLevels.All;
-                traceSource.Listeners.Clear();
+                Type? defaultTrace = Type.GetType("Microsoft.Azure.Cosmos.Core.Trace.DefaultTrace,Microsoft.Azure.Cosmos.Direct");
+               
+                if (defaultTrace != null)
+                {
+                    TraceSource? traceSource = (TraceSource?)defaultTrace.GetProperty("TraceSource")?.GetValue(null);
+                    if (traceSource != null)
+                    {
+                        traceSource.Switch.Level = SourceLevels.All;
+                        traceSource.Listeners.Clear();
+                    }
+                }                 
+                
             }
 
             CosmosSerializationOptions options = new()
@@ -102,12 +110,12 @@ namespace BankingServices.Services
 
             builder.Services.AddSingleton<ILoggerFactory>(loggerFactory);
 
-#pragma warning disable SKEXP0010 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
             builder.AddAzureOpenAITextEmbeddingGeneration(
                 skSettings.AzureOpenAISettings.EmbeddingsDeployment,
                 skSettings.AzureOpenAISettings.Endpoint,
                 credential);
-#pragma warning restore SKEXP0010 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
             _semanticKernel = builder.Build();
 
 
@@ -222,9 +230,9 @@ namespace BankingServices.Services
             return await AddServiceRequestAsync(req);
         }
 
-        public async Task<List<String>> GetTeleBankerAvailabilityAsync(string tenantId, AccountType accountType)
+        public Task<string> GetTeleBankerAvailabilityAsync()
         {
-            return null;
+            return Task.FromResult("Monday to Friday, 8 AM to 8 PM Pacific Time");
         }
 
         public async Task<ServiceRequest> CreateComplaintAsync(string tenantId, string accountId, string userId, string requestAnnotation)
@@ -331,9 +339,9 @@ namespace BankingServices.Services
         public async Task<List<OfferTermBasic>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription)
         {
             // Generate Embedding
-#pragma warning disable SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
             var embeddingModel = _semanticKernel.Services.GetRequiredService<ITextEmbeddingGenerationService>();
-#pragma warning restore SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
             var embedding = await embeddingModel.GenerateEmbeddingAsync(requirementDescription);
 
             // Convert ReadOnlyMemory<float> to IList<float>

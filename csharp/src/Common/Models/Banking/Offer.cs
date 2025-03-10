@@ -8,13 +8,13 @@ namespace MultiAgentCopilot.Common.Models.Banking
 {
     public class Offer
     {
-        public string Id { get; set; }
-        public string TenantId { get; set; }
-        string Name { get; set; }
-        public string Description { get; set; }
-        public AccountType AccountType { get; set; }
-        public Dictionary<string, string> EligibilityConditions { get; set; }
-        public Dictionary<string, string> PrerequsiteSubmissions { get; set; }
+        public required string Id { get; set; }
+        public required string TenantId { get; set; }
+        public required string Name { get; set; }
+        public required string Description { get; set; }
+        public required AccountType AccountType { get; set; }
+        public required Dictionary<string, string> EligibilityConditions { get; set; }
+        public required Dictionary<string, string> PrerequsiteSubmissions { get; set; }
     }
 
 

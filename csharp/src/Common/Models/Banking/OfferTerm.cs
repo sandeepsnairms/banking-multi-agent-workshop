@@ -8,24 +8,24 @@ namespace MultiAgentCopilot.Common.Models.Banking
 {
     public class OfferTerm
     {
-        public string Id { get; set; }
-        public string TenantId { get; set; }
-        public string OfferId { get; set; }
-        public string Name { get; set; }
-        public string Text { get; set; }
-        public string Type { get; set; }
-        public string AccountType { get; set; }
-        public float[] Vector { get; set; }
+        public required string Id { get; set; }
+        public required string TenantId { get; set; }
+        public required string OfferId { get; set; }
+        public required string Name { get; set; }
+        public required string Text { get; set; }
+        public required string Type { get; set; }
+        public required string AccountType { get; set; }
+        public required float[] Vector { get; set; }
         
     }
 
 
     public class OfferTermBasic
     {
-        public string Id { get; set; }
-        public string OfferId { get; set; }
-        public string Name { get; set; }
-        public string Text { get; set; }
+        public required string Id { get; set; }
+        public required string OfferId { get; set; }
+        public required string Name { get; set; }
+        public required string Text { get; set; }
     }
 
 

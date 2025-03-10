@@ -6,7 +6,6 @@ param identityName string
 param openAIName string
 param containerRegistryName string
 param containerAppsEnvironmentId string
-param applicationInsightsName string
 @description('Id of the user principals to assign database and application roles.')    
 param userPrincipalId string = '' 
 param exists bool
@@ -24,9 +23,6 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2022-02-01-pr
   name: containerRegistryName
 }
 
-resource applicationInsights 'Microsoft.Insights/components@2020-02-02' existing = {
-  name: applicationInsightsName
-}
 
 resource acrPullRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   scope: containerRegistry
@@ -120,12 +116,12 @@ resource app 'Microsoft.App/containerApps@2024-02-02-preview' = {
       ingress:  {
         external: true
         targetPort: 8080
-        transport: 'auto'
-      }
-	  corsPolicy: {
-		allowedOrigins: [
-			"*"
-		]
+        transport: 'auto'      
+        corsPolicy: {
+          allowedOrigins: [
+				'*'
+          ]
+        }
 	  }
       registries: [
         {

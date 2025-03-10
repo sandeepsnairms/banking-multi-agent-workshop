@@ -120,7 +120,6 @@ module appsEnv './shared/apps-env.bicep' = {
   params: {
     name: '${abbrs.appManagedEnvironments}${resourceToken}'
     location: location
-    tags: tags
   }
   scope: rg
 }
@@ -134,7 +133,6 @@ module ChatAPI './app/ChatAPI.bicep' = {
     tags: tags
     cosmosDbAccountName: cosmos.outputs.name
     identityName: '${abbrs.managedIdentityUserAssignedIdentities}chatservicew-${resourceToken}'
-    applicationInsightsName: monitoring.outputs.applicationInsightsName
 	openAIName: openAi.outputs.name
 	userPrincipalId: !empty(principalId) ? principalId : null
     containerAppsEnvironmentId: appsEnv.outputs.id

@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using MultiAgentCopilot.Common.Models.Banking;
 using BankingServices.Interfaces;
 using Microsoft.Identity.Client;
-using MultiAgentCopilot.Common.Extensions;
+
 
 namespace MultiAgentCopilot.ChatInfrastructure.Plugins
 {
@@ -28,20 +28,17 @@ namespace MultiAgentCopilot.ChatInfrastructure.Plugins
         public async Task<bool> IsAccountRegisteredToUser(string accountId)
         {
             _logger.LogTrace($"Validating account for Tenant: {_tenantId} User ID: {_userId}- {accountId}");
-            if (_bankService.GetAccountDetailsAsync(_tenantId, _userId, accountId).Result !=null)
-                return true;
-            else
-                return false;
+            var accountDetails = await _bankService.GetAccountDetailsAsync(_tenantId, _userId, accountId);
+            return accountDetails != null;
         }
 
         [KernelFunction("CheckPendingServiceRequests")]
         [Description("Search the database for pending requests")]
-        public async Task<List<ServiceRequest>> CheckPendingServiceRequests(string? accountId=null,ServiceRequestType? srType=null)
+        public async Task<List<ServiceRequest>> CheckPendingServiceRequests(string? accountId = null, ServiceRequestType? srType = null)
         {
             _logger.LogTrace($"Searching database for matching requests for Tenant: {_tenantId} User: {_userId}");
 
-            return await _bankService.GetServiceRequestsAsync(_tenantId, accountId, null, srType);
-
+            return await _bankService.GetServiceRequestsAsync(_tenantId, accountId ?? string.Empty, null, srType);
         }
 
         [KernelFunction]
@@ -55,11 +52,11 @@ namespace MultiAgentCopilot.ChatInfrastructure.Plugins
 
         [KernelFunction]
         [Description("Get list of availble slots for telebankers specializng in an account type")]
-        public async Task<List<string>> GetTeleBankerSlots(AccountType accountType)
+        public async Task<string> GetTeleBankerSlots(AccountType accountType)
         {
             _logger.LogTrace($"Checking availability for Tele Banker for Tenant: {_tenantId} AccountType: {accountType.ToString()}");
 
-            return await _bankService.GetTeleBankerAvailabilityAsync(_tenantId, accountType);
+            return await _bankService.GetTeleBankerAvailabilityAsync();
         }
 
 

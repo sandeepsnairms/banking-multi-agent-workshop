@@ -34,6 +34,6 @@ namespace BankingServices.Interfaces
 
         Task<Offer> GetOfferDetailsAsync(string tenantId, string offerId);
 
-        Task<List<String>> GetTeleBankerAvailabilityAsync(string tenantId, AccountType accountType);
+        Task<String> GetTeleBankerAvailabilityAsync();
     }
 }
