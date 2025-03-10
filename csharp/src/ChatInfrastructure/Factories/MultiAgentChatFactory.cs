@@ -103,7 +103,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Factories
                     {
                         Arguments = new KernelArguments(GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStratergy.Continuation)),
                         // Always start with the editor agent.
-                        //InitialAgent = cordinatorAgent,//do not set else cordinator initates after each stateless call.
+                        //InitialAgent = CoordinatorAgent,//do not set else Coordinator initates after each stateless call.
                         // Save tokens by only including the final few responses
                         HistoryReducer = historyReducer,
                         // The prompt variable name for the history argument.

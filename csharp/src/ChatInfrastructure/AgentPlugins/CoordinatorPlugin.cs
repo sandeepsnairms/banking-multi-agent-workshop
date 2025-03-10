@@ -12,10 +12,10 @@ using System.Threading.Tasks;
 
 namespace MultiAgentCopilot.ChatInfrastructure.Plugins
 {
-    public class CordinatorPlugin: BasePlugin
+    public class CoordinatorPlugin: BasePlugin
     {
 
-        public CordinatorPlugin(ILogger<BasePlugin> logger, IBankDataService bankService, string tenantId, string userId )
+        public CoordinatorPlugin(ILogger<BasePlugin> logger, IBankDataService bankService, string tenantId, string userId )
            : base(logger, bankService, tenantId, userId)
         {
         }             

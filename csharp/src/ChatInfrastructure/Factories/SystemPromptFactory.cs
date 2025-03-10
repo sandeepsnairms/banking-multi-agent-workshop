@@ -29,8 +29,8 @@ namespace MultiAgentCopilot.ChatInfrastructure.Factories
                 case AgentType.CustomerSupport:
                     name = "CustomerSupport";
                     break;
-                case AgentType.Cordinator:
-                    name = "Cordinator";
+                case AgentType.Coordinator:
+                    name = "Coordinator";
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(agentType), agentType, null);
@@ -57,8 +57,8 @@ namespace MultiAgentCopilot.ChatInfrastructure.Factories
                 case AgentType.CustomerSupport:
                     promptFile = "CustomerSupport.prompty";
                     break;
-                case AgentType.Cordinator:
-                    promptFile = "Cordinator.prompty";
+                case AgentType.Coordinator:
+                    promptFile = "Coordinator.prompty";
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(agentType), agentType, null);
