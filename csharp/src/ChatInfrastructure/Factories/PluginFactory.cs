@@ -31,9 +31,9 @@ namespace MultiAgentCopilot.ChatInfrastructure.Factories
                     var customerSupportPlugin = new CustomerSupportPlugin(loggerFactory.CreateLogger<CustomerSupportPlugin>(), bankService, tenantId, userId);
                     agentKernel.Plugins.AddFromObject(customerSupportPlugin);
                     break;
-                case AgentType.Cordinator:
-                    var cordinatorPlugin = new CordinatorPlugin(loggerFactory.CreateLogger<CordinatorPlugin>(), bankService, tenantId, userId);
-                    agentKernel.Plugins.AddFromObject(cordinatorPlugin);
+                case AgentType.Coordinator:
+                    var CoordinatorPlugin = new CoordinatorPlugin(loggerFactory.CreateLogger<CoordinatorPlugin>(), bankService, tenantId, userId);
+                    agentKernel.Plugins.AddFromObject(CoordinatorPlugin);
                     break;
                 default:
                     throw new ArgumentException("Invalid plugin name");

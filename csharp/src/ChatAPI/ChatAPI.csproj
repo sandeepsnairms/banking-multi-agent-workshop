@@ -48,7 +48,7 @@
     <None Update="Prompts\CommonAgentRules.prompty">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="Prompts\Cordinator.prompty">
+    <None Update="Prompts\Coordinator.prompty">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Prompts\CustomerSupport.prompty">

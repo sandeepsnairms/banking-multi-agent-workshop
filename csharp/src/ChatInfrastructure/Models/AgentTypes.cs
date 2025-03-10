@@ -11,6 +11,6 @@ namespace MultiAgentCopilot.ChatInfrastructure.Models
         Transactions = 0,
         Sales = 1,
         CustomerSupport = 2,
-        Cordinator = 3,
+        Coordinator = 3,
     }
 }
