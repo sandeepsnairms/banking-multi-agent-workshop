@@ -40,18 +40,17 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
         IOptions<SemanticKernelServiceSettings> options,
         ILoggerFactory loggerFactory)
     {
-
         _settings = options.Value;
         _loggerFactory = loggerFactory;
-
         _logger = _loggerFactory.CreateLogger<SemanticKernelService>();
+        _promptDebugProperties = new List<LogProperty>();
 
         _logger.LogInformation("Initializing the Semantic Kernel service...");
 
         var builder = Kernel.CreateBuilder();
 
         builder.Services.AddSingleton<ILoggerFactory>(loggerFactory);
-        
+
         DefaultAzureCredential credential;
         if (string.IsNullOrEmpty(_settings.AzureOpenAISettings.UserAssignedIdentityClientID))
         {
@@ -63,13 +62,11 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
             {
                 ManagedIdentityClientId = _settings.AzureOpenAISettings.UserAssignedIdentityClientID
             });
-
         }
         builder.AddAzureOpenAIChatCompletion(
             _settings.AzureOpenAISettings.CompletionsDeployment,
             _settings.AzureOpenAISettings.Endpoint,
             credential);
-
 
         builder.AddAzureOpenAITextEmbeddingGeneration(
                _settings.AzureOpenAISettings.EmbeddingsDeployment,
@@ -81,7 +78,7 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
         Task.Run(Initialize).ConfigureAwait(false);
     }
 
-    private async Task Initialize()
+    private Task Initialize()
     {
         try
         {
@@ -92,6 +89,7 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
         {
             _logger.LogError(ex, "Semantic Kernel service was not initialized. The following error occurred: {ErrorMessage}.", ex.ToString());
         }
+        return Task.CompletedTask;
     }
 
     private void LogMessage(string key, string value)
@@ -113,7 +111,7 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
                 AuthorRole? role = AuthorRoleHelper.FromString(chatMessage.SenderRole);
                 var chatMessageContent = new ChatMessageContent
                 {
-                    Role = (AuthorRole)role,
+                    Role = role ?? AuthorRole.User,
                     Content = chatMessage.Text
                 };
                 agentGroupChat.AddChatMessage(chatMessageContent);
@@ -134,15 +132,15 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
                 {
                     string messageId = Guid.NewGuid().ToString();
                     string debugLogId = Guid.NewGuid().ToString();
-                    completionMessages.Add(new Message(userMessage.TenantId, userMessage.UserId,userMessage.SessionId, response.AuthorName, response.Role.ToString(), response.Content, messageId, debugLogId));
+                    completionMessages.Add(new Message(userMessage.TenantId, userMessage.UserId, userMessage.SessionId, response.AuthorName ?? string.Empty, response.Role.ToString(), response.Content ?? string.Empty, messageId, debugLogId));
 
-                    if(_promptDebugProperties.Count>0)
+                    if (_promptDebugProperties.Count > 0)
                     {
                         var completionMessagesLog = new DebugLog(userMessage.TenantId, userMessage.UserId, userMessage.SessionId, messageId, debugLogId);
                         completionMessagesLog.PropertyBag = _promptDebugProperties;
                         completionMessagesLogs.Add(completionMessagesLog);
                     }
-                    
+
                 }
             }
             while (!agentGroupChat.IsComplete);
@@ -194,7 +192,9 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
        return embedding.ToArray();
     }
 
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
     public async Task ResetSemanticCache()
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
     {
         // Implementation for resetting the semantic cache
     }

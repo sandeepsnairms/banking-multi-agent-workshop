@@ -8,13 +8,13 @@ namespace MultiAgentCopilot.Common.Models.Banking
 {
     public class BankAccount
     {
-        public string Id { get; set; } = string.Empty;
-        public string TenantId { get; set; } = string.Empty;
-        public string Name { get; set; } = string.Empty;
-        public AccountType AccountType { get; set; }
-        public long Balance { get; set; }
-        public long Limit { get; set; }
-        public int InterestRate { get; set; }
-        public string ShortDescription { get; set; }
+        public required string Id { get; set; } = string.Empty;
+        public required string TenantId { get; set; } = string.Empty;
+        public required string Name { get; set; } = string.Empty;
+        public required AccountType AccountType { get; set; }
+        public required long Balance { get; set; }
+        public required long Limit { get; set; }
+        public required int InterestRate { get; set; }
+        public required string ShortDescription { get; set; }
     }
 }

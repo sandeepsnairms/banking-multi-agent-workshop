@@ -111,7 +111,6 @@ resource cosmosContainerOffers 'Microsoft.DocumentDB/databaseAccounts/sqlDatabas
 							path: '/"_etag"/?'
 						}						
 					]
-					fullTextIndexes: []
 					vectorIndexes: [
 						{
 							path: '/vector'

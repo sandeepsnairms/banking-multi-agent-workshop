@@ -56,10 +56,18 @@ namespace BankingServices.Services
 
             if (!_settings.EnableTracing)
             {
-                Type defaultTrace = Type.GetType("Microsoft.Azure.Cosmos.Core.Trace.DefaultTrace,Microsoft.Azure.Cosmos.Direct");
-                TraceSource traceSource = (TraceSource)defaultTrace.GetProperty("TraceSource").GetValue(null);
-                traceSource.Switch.Level = SourceLevels.All;
-                traceSource.Listeners.Clear();
+                Type? defaultTrace = Type.GetType("Microsoft.Azure.Cosmos.Core.Trace.DefaultTrace,Microsoft.Azure.Cosmos.Direct");
+               
+                if (defaultTrace != null)
+                {
+                    TraceSource? traceSource = (TraceSource?)defaultTrace.GetProperty("TraceSource")?.GetValue(null);
+                    if (traceSource != null)
+                    {
+                        traceSource.Switch.Level = SourceLevels.All;
+                        traceSource.Listeners.Clear();
+                    }
+                }                 
+                
             }
 
             CosmosSerializationOptions options = new()
@@ -222,9 +230,9 @@ namespace BankingServices.Services
             return await AddServiceRequestAsync(req);
         }
 
-        public async Task<List<String>> GetTeleBankerAvailabilityAsync(string tenantId, AccountType accountType)
+        public Task<string> GetTeleBankerAvailabilityAsync()
         {
-            return null;
+            return Task.FromResult("Monday to Friday, 8 AM to 8 PM Pacific Time");
         }
 
         public async Task<ServiceRequest> CreateComplaintAsync(string tenantId, string accountId, string userId, string requestAnnotation)

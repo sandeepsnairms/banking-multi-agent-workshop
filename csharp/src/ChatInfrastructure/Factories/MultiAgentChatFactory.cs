@@ -111,7 +111,9 @@ namespace MultiAgentCopilot.ChatInfrastructure.Factories
                         // Returns the entire result value as a string.
                         ResultParser = (result) =>
                         {
+#pragma warning disable CS8604 // Possible null reference argument.
                             var ContinuationInfo = JsonSerializer.Deserialize<ContinuationInfo>(result.GetValue<string>());
+#pragma warning restore CS8604 // Possible null reference argument.
                             logCallback("SELECTION - Agent",ContinuationInfo.AgentName); // provides visibility (can use logger)
                             logCallback("SELECTION - Reason",ContinuationInfo.Reason); // provides visibility (can use logger)                            
                             return ContinuationInfo.AgentName;
@@ -130,7 +132,9 @@ namespace MultiAgentCopilot.ChatInfrastructure.Factories
                         // user result parser to determine if the response is "yes"
                         ResultParser = (result) =>
                         {
+#pragma warning disable CS8604 // Possible null reference argument.
                             var terminationInfo = JsonSerializer.Deserialize<TerminationInfo>(result.GetValue<string>());
+#pragma warning restore CS8604 // Possible null reference argument.
                             logCallback("TERMINATION - Continue",terminationInfo.ShouldContinue.ToString()); // provides visibility (can use logger)
                             logCallback("TERMINATION - Reason",terminationInfo.Reason); // provides visibility (can use logger)
                             return !terminationInfo.ShouldContinue;

@@ -41,7 +41,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Plugins
         public async Task<ServiceRequest> RegisterAccount(string userId, AccountType accType, Dictionary<string,string> fulfilmentDetails)
         {
             _logger.LogTrace($"Registering Account. User ID: {userId}, Account Type: {accType}");
-            return await _bankService.CreateFulfilmentRequestAsync(_tenantId, string.Empty,_userId,null,fulfilmentDetails);
+            return await _bankService.CreateFulfilmentRequestAsync(_tenantId, string.Empty,_userId,string.Empty,fulfilmentDetails);
         }
 
     }
