@@ -229,7 +229,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
 
                 var response = await _chatData.PatchItemAsync<Message>(
                 id: messageId,
-                partitionKey: new PartitionKey(sessionId),
+                partitionKey: partitionKey,
                     patchOperations: new[]
                     {
                             PatchOperation.Set("/rating", rating),
