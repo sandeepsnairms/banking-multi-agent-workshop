@@ -4,7 +4,7 @@ from azure.identity import DefaultAzureCredential
 
 # Azure Cosmos DB configuration
 COSMOS_DB_URL = os.getenv("COSMOSDB_ENDPOINT")
-DATABASE_NAME = "MultiAgentBankingDemoDB"
+DATABASE_NAME = "MultiAgentBanking"
 CONTAINER_NAME = "Chat"
 
 cosmos_client = None
@@ -14,8 +14,10 @@ credential = DefaultAzureCredential()
 
 # Define Cosmos DB container for user data
 USERDATA_CONTAINER = "UserData"
+DEBUG_CONTAINER = "Debug"
 userdata_container = None
 account_container = None
+debug_container = None
 
 # Initialize Cosmos DB client
 try:
@@ -29,6 +31,11 @@ try:
     account_container = database.create_container_if_not_exists(
         id="Account",
         partition_key=PartitionKey(path="/accountId"),
+        offer_throughput=400,
+    )
+    debug_container = database.create_container_if_not_exists(
+        id=DEBUG_CONTAINER,
+        partition_key=PartitionKey(path="/sessionId"),
         offer_throughput=400,
     )
     print(f"[DEBUG] Connected to Cosmos DB: {DATABASE_NAME}/{CONTAINER_NAME}")

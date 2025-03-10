@@ -1,20 +1,22 @@
 import uuid
+from datetime import datetime
 
 from azure.cosmos.exceptions import CosmosHttpResponseError
 from fastapi import FastAPI, Depends, HTTPException, Body
 from langchain_core.messages import HumanMessage, ToolMessage
 from pydantic import BaseModel
 from typing import List
+from src.app.services.azure_open_ai import model
 from langgraph_checkpoint_cosmosdb import CosmosDBSaver
 from langgraph.graph.state import CompiledStateGraph
 from starlette.middleware.cors import CORSMiddleware
 from src.app.banking_agents import graph, checkpointer
 from src.app.services.azure_cosmos_db import update_userdata_container, patch_active_agent, fetch_userdata_container, \
-    fetch_userdata_container_by_session, delete_userdata_item
+    fetch_userdata_container_by_session, delete_userdata_item, debug_container
 import logging
 
 # Setup logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 endpointTitle = "ChatEndpoints"
 
@@ -64,6 +66,93 @@ class MessageModel(BaseModel):
     tokensUsed: int
     rating: bool
     completionPromptId: str
+
+class DebugLog(BaseModel):
+    id: str
+    messageId: str
+    type: str
+    sessionId: str
+    tenantId: str
+    userId: str
+    timeStamp: str
+    propertyBag: list
+
+
+def store_debug_log(sessionId, tenantId, userId, response_data):
+    """Stores detailed debug log information in Cosmos DB."""
+    debug_log_id = str(uuid.uuid4())
+    message_id = str(uuid.uuid4())
+    timestamp = datetime.utcnow().isoformat()
+
+    # Extract relevant debug details
+    agent_selected = "Unknown"
+    previous_agent = "Unknown"
+    finish_reason = "Unknown"
+    model_name = "Unknown"
+    system_fingerprint = "Unknown"
+    input_tokens = 0
+    output_tokens = 0
+    total_tokens = 0
+    cached_tokens = 0
+    transfer_success = False
+    tool_calls = []
+    logprobs = None
+    content_filter_results = {}
+
+    for entry in response_data:
+        for agent, details in entry.items():
+            if "messages" in details:
+                for msg in details["messages"]:
+                    if hasattr(msg, "response_metadata"):
+                        metadata = msg.response_metadata
+                        finish_reason = metadata.get("finish_reason", finish_reason)
+                        model_name = metadata.get("model_name", model_name)
+                        system_fingerprint = metadata.get("system_fingerprint", system_fingerprint)
+                        input_tokens = metadata.get("token_usage", {}).get("prompt_tokens", input_tokens)
+                        output_tokens = metadata.get("token_usage", {}).get("completion_tokens", output_tokens)
+                        total_tokens = metadata.get("token_usage", {}).get("total_tokens", total_tokens)
+                        cached_tokens = metadata.get("token_usage", {}).get("prompt_tokens_details", {}).get(
+                            "cached_tokens", cached_tokens)
+                        logprobs = metadata.get("logprobs", logprobs)
+                        content_filter_results = metadata.get("content_filter_results", content_filter_results)
+
+                        if "tool_calls" in msg.additional_kwargs:
+                            tool_calls.extend(msg.additional_kwargs["tool_calls"])
+                            transfer_success = any(
+                                call.get("name", "").startswith("transfer_to_") for call in tool_calls)
+                            previous_agent = agent_selected
+                            agent_selected = tool_calls[-1].get("name", "").replace("transfer_to_",
+                                                                                    "") if tool_calls else agent_selected
+
+    property_bag = [
+        {"key": "agent_selected", "value": agent_selected, "timeStamp": timestamp},
+        {"key": "previous_agent", "value": previous_agent, "timeStamp": timestamp},
+        {"key": "finish_reason", "value": finish_reason, "timeStamp": timestamp},
+        {"key": "model_name", "value": model_name, "timeStamp": timestamp},
+        {"key": "system_fingerprint", "value": system_fingerprint, "timeStamp": timestamp},
+        {"key": "input_tokens", "value": input_tokens, "timeStamp": timestamp},
+        {"key": "output_tokens", "value": output_tokens, "timeStamp": timestamp},
+        {"key": "total_tokens", "value": total_tokens, "timeStamp": timestamp},
+        {"key": "cached_tokens", "value": cached_tokens, "timeStamp": timestamp},
+        {"key": "transfer_success", "value": transfer_success, "timeStamp": timestamp},
+        {"key": "tool_calls", "value": str(tool_calls), "timeStamp": timestamp},
+        {"key": "logprobs", "value": str(logprobs), "timeStamp": timestamp},
+        {"key": "content_filter_results", "value": str(content_filter_results), "timeStamp": timestamp}
+    ]
+
+    debug_entry = {
+        "id": debug_log_id,
+        "messageId": message_id,
+        "type": "debug_log",
+        "sessionId": sessionId,
+        "tenantId": tenantId,
+        "userId": userId,
+        "timeStamp": timestamp,
+        "propertyBag": property_bag
+    }
+
+    debug_container.create_item(debug_entry)
+    return debug_log_id
 
 
 # Note: storing activeAgent is actually redundant as we can get last agent from latest graph state in checkpoint
@@ -133,8 +222,8 @@ def _fetch_messages_for_session(sessionId: str, tenantId: str, userId: str) -> L
             tenantId=tenantId,
             userId=userId,
             timeStamp=msg.response_metadata.get("timestamp", "") if hasattr(msg, "response_metadata") else "",
-            sender="user" if isinstance(msg, HumanMessage) else "assistant",
-            senderRole="user" if isinstance(msg, HumanMessage) else "agent",
+            sender="User" if isinstance(msg, HumanMessage) else "Cordinator",
+            senderRole="User" if isinstance(msg, HumanMessage) else "Assistant",
             text=msg.content if hasattr(msg, "content") else msg.get("content", ""),
             debugLogId=str(uuid.uuid4()),
             tokensUsed=msg.response_metadata.get("token_usage", {}).get("total_tokens", 0) if hasattr(msg,
@@ -200,16 +289,15 @@ def rate_message(tenantId: str, userId: str, sessionId: str, messageId: str, rat
 
 
 # to be implemented
-@app.get("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/completiondetails/{debuglogId}", description="Not yet implemented", tags=[endpointTitle],
-         operation_id="GetChatCompletionDetails", response_description="Success", response_model=DebugLog)
+@app.get("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/completiondetails/{debuglogId}",
+         description="Retrieves debug information for chat completions", tags=[endpointTitle],
+         operation_id="GetChatCompletionDetails", response_model=DebugLog)
 def get_chat_completion_details(tenantId: str, userId: str, sessionId: str, debuglogId: str):
-    return {
-        "id": debuglogId,
-        "sessionId": sessionId,
-        "tenantId": tenantId,
-        "userId": userId,
-        "details": "This is a hardcoded debug log detail"
-    }
+    try:
+        debug_log = debug_container.read_item(item=debuglogId, partition_key=sessionId)
+        return debug_log
+    except Exception:
+        raise HTTPException(status_code=404, detail="Debug log not found")
 
 
 # create a post function that renames the ChatName in the user data container
@@ -294,7 +382,10 @@ def create_chat_session(tenantId: str, userId: str):
     return create_thread(tenantId, userId)
 
 
-def extract_relevant_messages(response_data, tenantId, userId, sessionId):
+def extract_relevant_messages(debug_lod_id, last_active_agent, response_data, tenantId, userId, sessionId):
+
+    debug_lod_id = debug_lod_id
+    last_active_agent = last_active_agent
     if not response_data:
         return []
 
@@ -336,10 +427,10 @@ def extract_relevant_messages(response_data, tenantId, userId, sessionId):
             tenantId=tenantId,
             userId=userId,
             timeStamp=msg.response_metadata.get("timestamp", "") if hasattr(msg, "response_metadata") else "",
-            sender="user" if isinstance(msg, HumanMessage) else "assistant",
-            senderRole="user" if isinstance(msg, HumanMessage) else last_agent_name,
+            sender="User" if isinstance(msg, HumanMessage) else last_active_agent,
+            senderRole="User" if isinstance(msg, HumanMessage) else "Assistant",
             text=msg.content if hasattr(msg, "content") else msg.get("content", ""),
-            debugLogId=str(uuid.uuid4()),
+            debugLogId=debug_lod_id,
             tokensUsed=msg.response_metadata.get("token_usage", {}).get("total_tokens", 0) if hasattr(msg,
                                                                                                       "response_metadata") else 0,
             rating=True,
@@ -358,19 +449,21 @@ def get_chat_completion(
         request_body: str = Body(..., media_type="application/json"),
         workflow: CompiledStateGraph = Depends(get_compiled_graph)
 ):
+    debug_lod_id = ""
     if not request_body.strip():
         raise HTTPException(status_code=400, detail="Request body cannot be empty")
 
     # Retrieve last checkpoint
     config = {"configurable": {"thread_id": sessionId, "checkpoint_ns": ""}}
     checkpoints = list(checkpointer.list(config))
-
+    last_active_agent = "coordinator_agent"  # Default fallback
     if not checkpoints:
         # No previous state, start fresh
         new_state = {
             "messages": [{"role": "user", "content": request_body}]
         }
         response_data = workflow.invoke(new_state, config, stream_mode="updates")
+        debug_lod_id = store_debug_log(sessionId, tenantId, userId, response_data)
     else:
         # Resume from last checkpoint
         last_checkpoint = checkpoints[-1]
@@ -405,18 +498,35 @@ def get_chat_completion(
             stream_mode="updates"
         )
         print(f"response_data: {response_data}")
+        debug_lod_id = store_debug_log(sessionId, tenantId, userId, response_data)
 
-    return extract_relevant_messages(response_data, tenantId, userId, sessionId)
+    return extract_relevant_messages(debug_lod_id, last_active_agent, response_data, tenantId, userId, sessionId)
 
 
 @app.post("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/summarize-name", tags=[endpointTitle],
           operation_id="SummarizeChatSessionName", response_description="Success", response_model=str)
 def summarize_chat_session_name(tenantId: str, userId: str, sessionId: str,
                                 request_body: str = Body(..., media_type="application/json")):
-    return "Summarized Chat Session Name not yet implemented"
+    """
+    Generates a summarized name for a chat session based on the chat text provided.
+    """
+    try:
+        prompt = (
+            "Given the following chat transcript, generate a short, meaningful name for the conversation.\n\n"
+            f"Chat Transcript:\n{request_body}\n\n"
+            "Summary Name:"
+        )
+
+        response = model.invoke(prompt)
+        summarized_name = response.content.strip()
+
+        return summarized_name
+
+    except Exception as e:
+        return {"error": f"Failed to generate chat session name: {str(e)}"}
 
 
 @app.post("/tenant/{tenantId}/user/{userId}/semanticcache/reset", tags=[endpointTitle],
-          operation_id="ResetSemanticCache", response_description="Success")
+          operation_id="ResetSemanticCache", response_description="Success", description="Semantic cache reset - not yet implemented",)
 def reset_semantic_cache(tenantId: str, userId: str):
     return {"message": "Semantic cache reset not yet implemented"}
