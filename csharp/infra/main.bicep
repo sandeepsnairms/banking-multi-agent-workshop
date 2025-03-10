@@ -8,7 +8,7 @@ param environmentName string
 @minLength(1)
 @description('Primary location for all resources')
 param location string
-param ChatAPIExists bool
+
 
 
 @description('Id of the user or app to assign application roles')
@@ -133,11 +133,11 @@ module ChatAPI './app/ChatAPI.bicep' = {
     tags: tags
     cosmosDbAccountName: cosmos.outputs.name
     identityName: '${abbrs.managedIdentityUserAssignedIdentities}chatservicew-${resourceToken}'
+applicationInsightsName: monitoring.outputs.applicationInsightsName
 	openAIName: openAi.outputs.name
 	userPrincipalId: !empty(principalId) ? principalId : null
     containerAppsEnvironmentId: appsEnv.outputs.id
     containerRegistryName: registry.outputs.name
-    exists: ChatAPIExists
     envSettings: [      
       {
         name: 'SemanticKernelServiceSettings__AzureOpenAISettings__Endpoint'

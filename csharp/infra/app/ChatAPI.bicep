@@ -6,9 +6,9 @@ param identityName string
 param openAIName string
 param containerRegistryName string
 param containerAppsEnvironmentId string
+param applicationInsightsName string
 @description('Id of the user principals to assign database and application roles.')    
 param userPrincipalId string = '' 
-param exists bool
 param envSettings array = []
 
 
@@ -23,7 +23,9 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2022-02-01-pr
   name: containerRegistryName
 }
 
-
+resource applicationInsights 'Microsoft.Insights/components@2020-02-02' existing = {
+  name: applicationInsightsName
+}
 resource acrPullRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   scope: containerRegistry
   name: guid(subscription().id, resourceGroup().id, identity.id, 'acrPullRole')
@@ -95,8 +97,8 @@ resource cosmosAccessRoleCU 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssign
 module fetchLatestImage '../modules/fetch-container-image.bicep' = {
   name: '${name}-fetch-image'
   params: {
-    exists: exists
     name: name
+	exists:false
   }
 }
 
@@ -138,6 +140,14 @@ resource app 'Microsoft.App/containerApps@2024-02-02-preview' = {
           name: 'main'
           env: union(
             [              
+			  {
+                name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+                value: applicationInsights.properties.ConnectionString
+              }
+              {
+                name: 'PORT'
+                value: '8080'
+              }
 			  {
 				name: 'SemanticKernelServiceSettings__AzureOpenAISettings__UserAssignedIdentityClientID'
 				value: identity.properties.clientId
