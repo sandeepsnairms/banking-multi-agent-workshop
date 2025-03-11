@@ -90,6 +90,4 @@ public interface ICosmosDBService
 
     Task<bool> InsertDocumentAsync(string containerName, JObject document);
 
-    Task<bool> InsertDocumentAsync<T>(string containerName, T document) where T : class;
-
 }
