@@ -98,3 +98,4 @@ __blobstorage__
 __queuestorage__
 __azurite_db*__.json
 /csharp/src/ChatAPI/appsettings.development.json
+/csharp/test.ps1
