@@ -1,5 +1,5 @@
 Param(
-    [parameter(Mandatory=$false)][string]$apiUrl=$env:SERVICE_CHATAPI_ENDPOINT_URL
+    [parameter(Mandatory=$false)][string]$apiUrl=$env:SERVICE_ChatAPI_ENDPOINT_URL
 )
 
 # Check if API URL is provided
