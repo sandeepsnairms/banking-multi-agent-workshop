@@ -1,0 +1,245 @@
+/* General Styles */
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f3f3f3;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* Main Content Container */
+.main-content-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Fixed Toolbar */
+.fixed-toolbar {
+  position: sticky; /* Ensures the toolbar sticks to the top when scrolling */
+  top: 0; /* Makes the toolbar stick to the top of the screen */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #0078d4;
+  color: white;
+  height: 64px;
+  padding: 0 16px;
+  z-index: 1000; /* Keeps the toolbar above other elements */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); /* Optional: Adds a shadow to the toolbar */
+}
+
+.toolbar-title {
+  font-size: 18px;
+}
+
+/* User Icon and Name Container */
+.custom-container {
+  display: flex;
+  align-items: center;  /* Aligns the icon and name vertically in the center */
+  gap: 10px;  /* Adds space between the icon and the name */
+}
+
+.toolbar-spacer {
+  flex-grow: 1;  /* Pushes the user icon and name to the right */
+}
+
+/* User Icon - Circular Image */
+.custom-icon-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%; /* Ensures the container is a circle */
+  overflow: hidden; /* Ensures the image stays inside the circle */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0; /* Remove any padding */
+}
+
+.custom-icon-button img {
+  width: 100%; /* Ensures image takes full width of the circle */
+  height: 100%; /* Ensures image takes full height of the circle */
+  object-fit: cover; /* Ensures the image fits perfectly inside the circle */
+  display: block; /* Ensures the image behaves properly within the circle */
+  border-radius: 50%; /* Enforces the circular shape on the image */
+}
+
+/* User Name */
+.custom-container h6 {
+  font-size: 14px; /* Adjust the font size as needed */
+  color: white; /* Ensures the text color is white */
+  margin: 0; /* Removes any margin around the name */
+}
+
+/* Conversations Area */
+.conversations {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 10px;
+  overflow-x: hidden;
+  flex-grow: 1;
+  max-width: 100%;
+  padding-left: 10%;
+  padding-right: 10%;
+}
+
+/* Message Container */
+.message {
+  display: flex;
+  align-items: flex-start;
+  margin: 5px 0;
+  max-width: 100%;
+}
+
+/* Message Content */
+.message-content {
+  display: flex;
+  align-items: center; /* Keeps icon & text on the same row */
+  gap: 8px; /* Adds spacing between icon & text */
+  padding: 12px;
+  border-radius: 12px;
+  word-wrap: break-word;
+  white-space: normal; /* Allow text to break naturally */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  max-width: 80%;
+  position: relative; /* Ensure proper text alignment */
+}
+
+/* Center Conversation Text */
+.message-content p.user-text {
+  margin-top: 0;
+  text-align: left;
+  width: 100%;
+}
+
+/* User Messages */
+.message.user {
+  justify-content: flex-end;
+  text-align: right;
+  width: 100%;
+}
+
+.message.user .message-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #e1f5fe;
+  border-radius: 12px;
+  padding: 12px;
+  flex-wrap: nowrap;  /* Ensures icon & text stay on the same line */
+  max-width: 80%;
+}
+
+/* Assistant Messages */
+.message.assistant {
+  justify-content: flex-start;
+  text-align: left;
+  width: 100%;
+}
+
+.message.assistant .message-content {
+  background-color: #e6f0ff;
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap; /* Prevents wrapping of icon & text */
+  max-width: 80%;
+}
+
+/* Input Container */
+.input-container {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: white;
+  padding: 12px 16px;
+  box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.input-wrapper {
+  display: flex;
+  align-items: center;
+  width: 70%; /* Same width as messages */
+  gap: 10px;
+  padding-left: 10%;
+}
+
+.input-container input {
+  flex: 1;
+  padding: 16px;
+  border-radius: 20px;
+  border: 1px solid #ccc;
+  font-size: 16px;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.input-container input:focus {
+  border-color: #0078d4;
+}
+
+.send-icon {
+  cursor: pointer;
+  color: #0078d4;
+  font-size: 1.5rem;
+  margin-left: 10px;
+}
+
+.end-chat-btn {
+  background-color: #0078d4;
+  color: white;
+  padding: 8px 16px;
+  font-size: 1rem;
+  border-radius: 20px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.3s ease;
+  margin-left: 10px;
+}
+
+.end-chat-btn:hover {
+  background-color: #005a8d;
+}
+
+.end-chat-btn:focus {
+  outline: none;
+}
+
+/* Error Message */
+.error-message {
+  color: red;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+/* Center the reaction buttons on the same line */
+.reaction-buttons {
+  display: flex;
+  gap: 10px; /* Add space between the icons */
+  align-items: center;
+  visibility: hidden; /* Hide buttons by default */
+}
+
+/* Show reaction buttons on hover */
+.message.assistant:hover .reaction-buttons {
+  visibility: visible;
+}
+
+/* Style the reaction button */
+.reaction-btn {
+  border-radius: 50%;  /* Make the button round */
+  padding: 5px;  /* Adjust padding */
+  background-color: transparent;  /* Keep the background transparent */
+}
+
+/* Style for the thumb icon */
+.thumb-icon {
+  color: black;  /* Set the icon color to black */
+}
