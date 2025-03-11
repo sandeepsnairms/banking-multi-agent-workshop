@@ -183,35 +183,9 @@ public class ChatService : IChatService
             {
                 throw new ArgumentException("Document must contain an 'id' property.");
             }
+           
+            return await _cosmosDBService.InsertDocumentAsync(containerName, docJObject);
 
-            switch (containerName)
-            {
-                case "OfferData":
-
-                    if (document.TryGetProperty("type", out JsonElement typeElement))
-                    {
-                        if(typeElement.GetString() == "Term")
-                        {
-                            // Deserialize into OfferTerm model
-                            var offerTerm = JsonConvert.DeserializeObject<OfferTerm>(json);
-
-                            // Generate vector and assign it
-                            offerTerm.Vector = await _skService.GenerateEmbedding(offerTerm.Text);
-
-
-                            return await _cosmosDBService.InsertDocumentAsync<OfferTerm>(containerName, offerTerm);
-                        }
-                    }
-                    else
-                    {
-                        return await _cosmosDBService.InsertDocumentAsync(containerName, docJObject);
-                    }
-                        break;
-                default:
-                    return await _cosmosDBService.InsertDocumentAsync(containerName, docJObject);
-            }
-
-            return false;
         }
         catch (Exception ex)
         {

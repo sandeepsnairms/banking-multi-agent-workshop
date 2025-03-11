@@ -381,48 +381,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
                 throw;
             }
         }
-
-        public async Task<bool> InsertDocumentAsync<T>(string containerName, T document) where T : class
-        {
-            Container container = null;
-
-            switch (containerName)
-            {
-                case "OfferData":
-                    container = _offersData;
-                    break;
-                case "AccountData":
-                    container = _accountsData;
-                    break;
-                case "UserData":
-                    container = _userData;
-                    break;
-            }
-            try
-            {
-
-                // Insert cleaned document
-                await container.CreateItemAsync(document);
-
-
-                return true;
-            }
-            catch (CosmosException ex)
-            {
-                // Ignore conflict errors.
-                if (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
-                {
-                    _logger.LogInformation($"Duplicate document detected.");
-                }
-                else
-                {
-                    _logger.LogError(ex, "Error inserting document.");
-                    throw;
-                }
-                return false;
-            }
-        }
-
+        
 
         public async Task<bool> InsertDocumentAsync(string containerName, JObject document)
         {
