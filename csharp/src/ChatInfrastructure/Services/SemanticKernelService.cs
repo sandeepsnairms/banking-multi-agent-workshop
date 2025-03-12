@@ -18,7 +18,6 @@ using BankingServices.Interfaces;
 using Microsoft.SemanticKernel.Embeddings;
 using System.Runtime;
 using Microsoft.SemanticKernel.Agents;
-using Microsoft.VisualStudio.TestPlatform.CommunicationUtilities;
 using Message = MultiAgentCopilot.Common.Models.Chat.Message;
 using System;
 
@@ -101,47 +100,32 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
         _promptDebugProperties.Add(new LogProperty(key, value));
     }
 
-     ChatHistory chat = [];
+     ChatHistory chatHistory = [];
     public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, IBankDataService bankService, string tenantId, string userId)
     {
 
-        //string ParrotName = "Parrot";
-        //string ParrotInstructions = "Repeat the user message in the voice of a pirate and then end with a parrot sound.";
-
-   
-        ////Kernel kernel = this.CreateKernelWithChatCompletion();
-
-        //// Define the agent
-        //ChatCompletionAgent agent =
-        //    new()
-        //    {
-        //        Name = ParrotName,
-        //        Instructions = ParrotInstructions,
-        //        Kernel = _semanticKernel.Clone(),
-        //    };
-                
         try
         {
             ChatFactory agentChatGeneratorService = new ChatFactory();
 
             var agent = agentChatGeneratorService.BuildAgent(_semanticKernel, _loggerFactory,  bankService, tenantId, userId);
 
-            ChatHistory chat = [];
+            ChatHistory chatHistory = [];
 
             // Load history
             foreach (var chatMessage in messageHistory)
             {                
                 if(chatMessage.SenderRole == "User")
                 {
-                    chat.AddUserMessage(chatMessage.Text);
+                    chatHistory.AddUserMessage(chatMessage.Text);
                 }
                 else
                 {
-                    chat.AddAssistantMessage(chatMessage.Text);
+                    chatHistory.AddAssistantMessage(chatMessage.Text);
                 }
             }
 
-            chat.AddUserMessage(userMessage.Text);
+            chatHistory.AddUserMessage(userMessage.Text);
 
             _promptDebugProperties = new List<LogProperty>();
 
@@ -152,9 +136,9 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
             //completionMessages.Add(new Message(userMessage.TenantId, userMessage.UserId, userMessage.SessionId, userMessage.Sender, userMessage.SenderRole, userMessage.Text ?? string.Empty, messageId));
 
             ChatMessageContent message = new(AuthorRole.User, userMessage.Text);
-            chat.Add(message);
+            chatHistory.Add(message);
 
-            await foreach (ChatMessageContent response in agent.InvokeAsync(chat))
+            await foreach (ChatMessageContent response in agent.InvokeAsync(chatHistory))
             {
                 string messageId = Guid.NewGuid().ToString();
                 completionMessages.Add(new Message(userMessage.TenantId, userMessage.UserId, userMessage.SessionId, response.AuthorName ?? string.Empty, response.Role.ToString(), response.Content ?? string.Empty, messageId));
