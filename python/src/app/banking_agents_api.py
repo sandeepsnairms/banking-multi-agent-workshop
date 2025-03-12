@@ -5,20 +5,21 @@ from azure.cosmos.exceptions import CosmosHttpResponseError
 from fastapi import FastAPI, Depends, HTTPException, Body
 from langchain_core.messages import HumanMessage, ToolMessage
 from pydantic import BaseModel
-from typing import List
+from typing import List, Dict
 from src.app.services.azure_open_ai import model
 from langgraph_checkpoint_cosmosdb import CosmosDBSaver
 from langgraph.graph.state import CompiledStateGraph
 from starlette.middleware.cors import CORSMiddleware
 from src.app.banking_agents import graph, checkpointer
-from src.app.services.azure_cosmos_db import update_userdata_container, patch_active_agent, fetch_userdata_container, \
-    fetch_userdata_container_by_session, delete_userdata_item, debug_container
+from src.app.services.azure_cosmos_db import update_session_container, patch_active_agent, fetch_session_container_by_tenant_and_user, \
+    fetch_session_container_by_session, delete_userdata_item, debug_container, update_users_container, update_account_container, update_offers_container
 import logging
 
 # Setup logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.ERROR)
 
 endpointTitle = "ChatEndpoints"
+dataLoadTitle = "DataLoadEndpoints"
 
 
 def get_compiled_graph():
@@ -165,7 +166,7 @@ def create_thread(tenantId: str, userId: str):
     activeAgent = "unknown"
     ChatName = "New Chat"
     messages = []
-    update_userdata_container({
+    update_session_container({
         "id": sessionId,
         "tenantId": tenantId,
         "userId": userId,
@@ -240,7 +241,7 @@ def _fetch_messages_for_session(sessionId: str, tenantId: str, userId: str) -> L
          description="Retrieves sessions from the given tenantId and userId", tags=[endpointTitle],
          response_model=List[Session])
 def get_chat_sessions(tenantId: str, userId: str):
-    items = fetch_userdata_container(tenantId, userId)
+    items = fetch_session_container_by_tenant_and_user(tenantId, userId)
     sessions = []
 
     for item in items:
@@ -303,13 +304,13 @@ def get_chat_completion_details(tenantId: str, userId: str, sessionId: str, debu
 # create a post function that renames the ChatName in the user data container
 @app.post("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/rename", description="Renames the chat session", tags=[endpointTitle], response_model=Session)
 def rename_chat_session(tenantId: str, userId: str, sessionId: str, newChatSessionName: str):
-    items = fetch_userdata_container_by_session(tenantId, userId, sessionId)
+    items = fetch_session_container_by_session(tenantId, userId, sessionId)
     if not items:
         raise HTTPException(status_code=404, detail="Session not found")
 
     item = items[0]
     item["ChatName"] = newChatSessionName
-    update_userdata_container(item)
+    update_session_container(item)
 
     return Session(id=item["sessionId"], sessionId=item["sessionId"], tenantId=item["tenantId"], userId=item["userId"],
                    name=item["ChatName"], age=item["age"],
@@ -530,3 +531,31 @@ def summarize_chat_session_name(tenantId: str, userId: str, sessionId: str,
           operation_id="ResetSemanticCache", response_description="Success", description="Semantic cache reset - not yet implemented",)
 def reset_semantic_cache(tenantId: str, userId: str):
     return {"message": "Semantic cache reset not yet implemented"}
+
+# PUT API for /userdata (single document)
+@app.put("/userdata", tags=[dataLoadTitle], description="Inserts or updates a single user data record in Cosmos DB")
+async def put_userdata(data: Dict):
+    try:
+        update_users_container(data)
+        return {"message": "Inserted user record successfully", "id": data.get("id")}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to insert user data: {str(e)}")
+
+# PUT API for /accountdata (single document)
+@app.put("/accountdata", tags=[dataLoadTitle], description="Inserts or updates a single account data record in Cosmos DB")
+async def put_accountdata(data: Dict):
+    try:
+        update_account_container(data)
+        return {"message": "Inserted account record successfully", "id": data.get("id")}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to insert account data: {str(e)}")
+
+# PUT API for /offerdata (single document)
+@app.put("/offerdata", tags=[dataLoadTitle], description="Inserts or updates a single offer data record in Cosmos DB")
+async def put_offerdata(data: Dict):
+    try:
+        update_offers_container(data)
+        return {"message": "Inserted offer record successfully", "id": data.get("id")}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to insert offer data: {str(e)}")
+

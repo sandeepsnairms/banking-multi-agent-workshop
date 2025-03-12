@@ -1,6 +1,12 @@
 name: MultiAgentBankingPython
 metadata:
     template: azd-init@1.5.1
+hooks:
+    postdeploy:
+      shell: pwsh
+      continueOnError: false
+      interactive: true
+      run: ./azd-hooks/postdeploy.ps1
 services:
     ChatServiceWebApi:
         project: .
