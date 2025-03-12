@@ -17,7 +17,8 @@ using MultiAgentCopilot.Common.Models.Debug;
 using BankingServices.Interfaces;
 using Microsoft.SemanticKernel.Embeddings;
 using System.Runtime;
-
+using Microsoft.SemanticKernel.Agents;
+using Message = MultiAgentCopilot.Common.Models.Chat.Message;
 
 namespace MultiAgentCopilot.ChatInfrastructure.Services;
 
