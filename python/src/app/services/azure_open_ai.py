@@ -1,7 +1,9 @@
+import json
 import logging
 import os
 from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
 from langchain_openai import AzureChatOpenAI
+from openai import AzureOpenAI
 
 key = os.getenv("AZURE_OPENAI_API_KEY")
 
@@ -18,6 +20,12 @@ def get_azure_ad_token():
         raise e
     return token.token
 
+def generate_embedding(text):
+    response = aoai_client.embeddings.create(input=text, model=os.getenv("AZURE_OPENAI_EMBEDDINGDEPLOYMENTID"))
+    json_response = response.model_dump_json(indent=2)
+    parsed_response = json.loads(json_response)
+    return parsed_response['data'][0]['embedding']
+
 
 # Fetch AD Token
 azure_ad_token = get_azure_ad_token()
@@ -30,16 +38,26 @@ try:
             azure_deployment=azure_deployment_name,
             api_version=azure_openai_api_version,
             temperature=0,
-            azure_ad_token=azure_ad_token  # Pass the token dynamically
+            azure_ad_token=azure_ad_token
+        )
+        aoai_client = AzureOpenAI(
+            azure_ad_token=azure_ad_token,
+            api_version="2024-09-01-preview",
+            azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT")
         )
     else:
+        aoai_client = AzureOpenAI(
+            api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+            api_version="2024-09-01-preview",
+            azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT")
+        )
         model = AzureChatOpenAI(
             azure_deployment=azure_deployment_name,
             api_version=azure_openai_api_version,
-            temperature=0,  # Pass the token dynamically
+            temperature=0,
         )
 
     print("[DEBUG] Azure OpenAI model initialized successfully.")
 except Exception as e:
-    print(f"[ERROR] Error initializing Azure OpenAI model: {e}, falling back to key auth.")
+    print(f"[ERROR] Error initializing Azure OpenAI model: {e}")
     raise e

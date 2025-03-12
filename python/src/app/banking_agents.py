@@ -4,8 +4,8 @@ from langgraph.prebuilt import create_react_agent
 from langgraph.types import Command, interrupt
 from langgraph_checkpoint_cosmosdb import CosmosDBSaver
 from src.app.services.azure_open_ai import model
-from src.app.services.azure_cosmos_db import DATABASE_NAME, CONTAINER_NAME, userdata_container
-from src.app.tools.product import get_product_advise, get_branch_location
+from src.app.services.azure_cosmos_db import DATABASE_NAME, CHECKPOINT_CONTAINER, session_container
+from src.app.tools.product import get_offer_information, get_branch_location
 from src.app.tools.banking import bank_balance, bank_transfer, calculate_monthly_payment, create_account
 from src.app.tools.agent_transfers import create_agent_transfer
 
@@ -28,7 +28,7 @@ coordinator_agent = create_react_agent(
 )
 
 customer_support_agent_tools = [
-    get_product_advise,
+    get_offer_information,
     get_branch_location,
     create_agent_transfer(agent_name="sales_agent"),
     create_agent_transfer(agent_name="transactions_agent"),
@@ -38,6 +38,8 @@ customer_support_agent = create_react_agent(
     customer_support_agent_tools,
     state_modifier=(
         "You are a customer support agent that can give general advice on banking products and branch locations "
+        "If the wants information about a product or offer, ask whether they want Credit Card or Savings. "
+        "If you have that information, call 'get_offer_information' tool with the user prompt, and the accountType ('CreditCard' or 'Savings'). "
         "If the user wants to open a new account or take our a bank loan, transfer to 'sales_agent'. "
         "If the user wants to check their account balance or make a bank transfer, transfer to 'transactions_agent'. "
         "You MUST include human-readable response before transferring to another agent."
@@ -85,7 +87,7 @@ def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coo
     thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")  # Get thread_id from config
     print(f"Calling coordinator agent with Thread ID: {thread_id}")
 
-    activeAgent = userdata_container.query_items(
+    activeAgent = session_container.query_items(
         query=f"SELECT c.activeAgent FROM c WHERE c.id = '{thread_id}'",
         enable_cross_partition_query=True
     )
@@ -161,5 +163,5 @@ builder.add_node("human", human_node)
 
 builder.add_edge(START, "coordinator_agent")
 
-checkpointer = CosmosDBSaver(database_name=DATABASE_NAME, container_name=CONTAINER_NAME)
+checkpointer = CosmosDBSaver(database_name=DATABASE_NAME, container_name=CHECKPOINT_CONTAINER)
 graph = builder.compile(checkpointer=checkpointer)

@@ -52,7 +52,7 @@ def main():
         responses = send_message(session_id, user_message)
 
         for message in responses:
-            sender = message.get("sender", "unknown")
+            sender = message.get("senderRole", "unknown")
             if sender != "user":
                 text = message.get("text", "[No response received]")
                 print(f"{sender}: {text}")
