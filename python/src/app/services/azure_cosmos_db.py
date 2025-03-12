@@ -1,6 +1,6 @@
 import os
 from azure.cosmos import CosmosClient, PartitionKey
-from azure.identity import DefaultAzureCredential
+from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
 
 # Azure Cosmos DB configuration
 COSMOS_DB_URL = os.getenv("COSMOSDB_ENDPOINT")
@@ -10,7 +10,7 @@ CONTAINER_NAME = "Chat"
 cosmos_client = None
 database = None
 container = None
-credential = DefaultAzureCredential()
+#credential = DefaultAzureCredential()
 
 # Define Cosmos DB container for user data
 USERDATA_CONTAINER = "UserData"
@@ -19,24 +19,55 @@ userdata_container = None
 account_container = None
 debug_container = None
 
+# Retrieve environment variables
+COSMOS_DB_URL = os.getenv("COSMOSDB_ENDPOINT")
+#client_id = os.getenv("UserAssignedIdentityClientID")
+
+# Authenticate using Managed Identity Credential
+try:
+    client_id = os.getenv("ClientID")
+    if client_id:
+        credential = DefaultAzureCredential(
+            exclude_environment_credential=True,
+            exclude_workload_identity_credential=True,
+            managed_identity_client_id=client_id
+        )
+    else:
+        credential = ManagedIdentityCredential()
+
+    # Try Managed Identity first
+    token = credential.get_token("https://cognitiveservices.azure.com/.default")
+    cosmos_client = CosmosClient(COSMOS_DB_URL, credential=credential)
+    print("[DEBUG] Connected to Cosmos DB successfully using Managed Identity.")
+
+except Exception as mi_error:
+    print(f"[WARNING] Managed Identity authentication failed: {mi_error}")
+    print("[INFO] Falling back to DefaultAzureCredential...")
+
+    try:
+        credential = DefaultAzureCredential()
+        token = credential.get_token("https://cognitiveservices.azure.com/.default")
+        cosmos_client = CosmosClient(COSMOS_DB_URL, credential=credential)
+        print("[DEBUG] Connected to Cosmos DB successfully using DefaultAzureCredential.")
+    except Exception as dac_error:
+        print(f"[ERROR] Failed to authenticate using DefaultAzureCredential: {dac_error}")
+        raise dac_error
+
+
 # Initialize Cosmos DB client
 try:
-    cosmos_client = CosmosClient(COSMOS_DB_URL, credential=credential)
     database = cosmos_client.get_database_client(DATABASE_NAME)
     container = database.create_container_if_not_exists(
         id=CONTAINER_NAME,
         partition_key=PartitionKey(path="/partition_key"),
-        offer_throughput=400,
     )
     account_container = database.create_container_if_not_exists(
         id="Account",
         partition_key=PartitionKey(path="/accountId"),
-        offer_throughput=400,
     )
     debug_container = database.create_container_if_not_exists(
         id=DEBUG_CONTAINER,
         partition_key=PartitionKey(path="/sessionId"),
-        offer_throughput=400,
     )
     print(f"[DEBUG] Connected to Cosmos DB: {DATABASE_NAME}/{CONTAINER_NAME}")
 
