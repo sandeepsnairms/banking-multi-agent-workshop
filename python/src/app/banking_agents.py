@@ -2,7 +2,7 @@ from typing import Literal
 from langgraph.graph import StateGraph, START, MessagesState
 from langgraph.prebuilt import create_react_agent
 from langgraph.types import Command, interrupt
-from src.app.langgraph_checkpoint_cosmosdb import CosmosDBSaver
+from langgraph_checkpoint_cosmosdb import CosmosDBSaver
 from src.app.services.azure_open_ai import model
 from src.app.services.azure_cosmos_db import DATABASE_NAME, CONTAINER_NAME, userdata_container
 from src.app.tools.product import get_product_advise, get_branch_location

@@ -7,7 +7,7 @@ from langchain_core.messages import HumanMessage, ToolMessage
 from pydantic import BaseModel
 from typing import List
 from src.app.services.azure_open_ai import model
-from src.app.langgraph_checkpoint_cosmosdb import CosmosDBSaver
+from langgraph_checkpoint_cosmosdb import CosmosDBSaver
 from langgraph.graph.state import CompiledStateGraph
 from starlette.middleware.cors import CORSMiddleware
 from src.app.banking_agents import graph, checkpointer

@@ -141,17 +141,9 @@ resource app 'Microsoft.App/containerApps@2024-02-02-preview' = {
           image: fetchLatestImage.outputs.?containers[?0].image ?? 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
           name: 'main'
           env: union(
-            [              
+            [
 			  {
-				name: 'SemanticKernelServiceSettings__AzureOpenAISettings__UserAssignedIdentityClientID'
-				value: identity.properties.clientId
-			  }
-			  {
-				name: 'ClientID'
-				value: identity.properties.clientId
-			  }
-			  {
-				name: 'BankingCosmosDBSettings__UserAssignedIdentityClientID'
+				name: 'AZURE_CLIENT_ID'
 				value: identity.properties.clientId
 			  }
             ],
