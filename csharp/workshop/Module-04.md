@@ -29,7 +29,44 @@ In this session you will learn how this all comes together and get insights into
 
 In this hands-on exercise, you will learn how to write prompts for agents and define agent routing.
 
-**TBD - this needs langauge specific instructions**
+### Define Agents
+Add ChatInfrastructure\Models\AgentTypes.cs
+
+### Write Agent Prompts
+Update ChatInfrastructure\Factories\SystemPromptFactory.cs
+Create folder ChatAPI\Prompts
+Add ChatAPI\Prompts\Coordinator.prompty
+Add ChatAPI\Prompts\CustomerSupport.prompty
+Add ChatAPI\Prompts\Sales.prompty
+Add ChatAPI\Prompts\Transactions.prompty
+Update ChatInfrastructure\Factories\ChatFactory.cs
+
+### Create Agent Specific Plugins
+Update ChatInfrastructure\Factories\PluginFactory.cs
+Add CoordinatorPlugin.cs
+Add CustomerSupportPlugin.cs
+Add SalesPlugin.cs
+Add TransactionPlugin.cs
+Update ChatInfrastructure\Factories\ChatFactory.cs
+
+### Create Structure formats
+Add folder ChatInfrastructure\StructuredFormats
+Add file ChatInfrastructure\StructuredFormats\ChatResponseFormat.cs
+Update ChatInfrastructure\Factories\ChatFactory.cs
+
+### Create Termination and Selection Strategy
+Add ChatAPI\Prompts\TerminationStratergy.prompty
+Add ChatAPI\Prompts\SelectionStratergy.prompty
+
+Add ChatInfrastructure\Models\ChatInfoFormats\ContinuationInfo.cs
+Add ChatInfrastructure\Models\ChatInfoFormats\TerminationInfo.cs
+Update ChatInfrastructure\Factories\ChatFactory.cs
+
+### Create Agent Group Chat
+Update ChatInfrastructure\Services\SemanticKernelService.cs
+
+### Use Agent Group Chat Response
+Update ChatInfrastructure\Services\SemanticKernelService.cs
 
 ## Activity 3: Session on Testing and Monitoring
 
