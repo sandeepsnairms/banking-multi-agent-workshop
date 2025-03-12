@@ -21,8 +21,5 @@
 	  <ProjectReference Include="..\BankingAPI\BankingServices.csproj" />
 	  <ProjectReference Include="..\Common\Common.csproj" />
 	</ItemGroup>
-	<ItemGroup>
-	  <Folder Include="Models\ConfigurationOptions\" />
-	</ItemGroup>
 
 </Project>

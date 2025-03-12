@@ -299,7 +299,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
                     throw new ArgumentException("All items must have the same partition key.");
                 }
 
-                if (debugLogs.Select(m => m.SessionId).Distinct().Count() > 1 || session.SessionId != debugLogs.Select(m => m.SessionId).FirstOrDefault())
+                if (debugLogs.Count>0 && (debugLogs.Select(m => m.SessionId).Distinct().Count() > 1 || session.SessionId != debugLogs.Select(m => m.SessionId).FirstOrDefault()))
                 {
                     throw new ArgumentException("All items must have the same partition key as message.");
                 }
