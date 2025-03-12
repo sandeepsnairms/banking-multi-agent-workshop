@@ -199,7 +199,7 @@ from typing import Literal
 from langgraph.graph import StateGraph, START, MessagesState
 from langgraph.prebuilt import create_react_agent
 from langgraph.types import Command, interrupt
-from langgraph_checkpoint_cosmosdb import CosmosDBSaver
+from src.app.langgraph_checkpoint_cosmosdb import CosmosDBSaver
 
 from .services.azure_open_ai import model
 from .services.azure_cosmos_db import DATABASE_NAME, CONTAINER_NAME
@@ -284,21 +284,26 @@ transactions_agent = create_react_agent(
     ),
 )
 
+
 def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coordinator_agent", "human"]]:
     response = coordinator_agent.invoke(state)
     return Command(update=response, goto="human")
+
 
 def call_customer_support_agent(state: MessagesState, config) -> Command[Literal["customer_support_agent", "human"]]:
     response = customer_support_agent.invoke(state)
     return Command(update=response, goto="human")
 
+
 def call_sales_agent(state: MessagesState, config) -> Command[Literal["sales_agent", "human"]]:
     response = sales_agent.invoke(state)
     return Command(update=response, goto="human")
 
+
 def call_transactions_agent(state: MessagesState, config) -> Command[Literal["transactions_agent", "human"]]:
     response = transactions_agent.invoke(state)
     return Command(update=response, goto="human")
+
 
 def human_node(state: MessagesState, config) -> Command[
     Literal["coordinator_agent", "customer_support_agent", "sales_agent", "transactions_agent", "human"]]:
@@ -309,6 +314,7 @@ def human_node(state: MessagesState, config) -> Command[
         raise AssertionError("Expected exactly 1 trigger in human node")
     active_agent = langgraph_triggers[0].split(":")[1]
     return Command(update={"messages": [{"role": "human", "content": user_input}]}, goto=active_agent)
+
 
 # Create state graph
 builder = StateGraph(MessagesState)

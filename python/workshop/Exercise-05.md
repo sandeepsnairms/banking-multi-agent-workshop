@@ -53,7 +53,7 @@ from fastapi import FastAPI, Depends, HTTPException, Body
 from langchain_core.messages import HumanMessage, ToolMessage
 from pydantic import BaseModel
 from typing import List
-from langgraph_checkpoint_cosmosdb import CosmosDBSaver
+from src.app.langgraph_checkpoint_cosmosdb import CosmosDBSaver
 from langgraph.graph.state import CompiledStateGraph
 from starlette.middleware.cors import CORSMiddleware
 from src.app.banking_agents import graph, checkpointer
@@ -76,6 +76,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 # Pydantic models for request/response validation
 class DebugLog(BaseModel):
     id: str
@@ -83,6 +84,7 @@ class DebugLog(BaseModel):
     tenantId: str
     userId: str
     details: str
+
 
 class Session(BaseModel):
     id: str
@@ -93,6 +95,7 @@ class Session(BaseModel):
     tokensUsed: int = 0
     name: str
     messages: List
+
 
 class MessageModel(BaseModel):
     id: str
@@ -108,6 +111,7 @@ class MessageModel(BaseModel):
     tokensUsed: int
     rating: bool
     completionPromptId: str
+
 
 def get_compiled_graph():
     return graph

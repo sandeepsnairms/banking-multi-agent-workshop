@@ -8,7 +8,7 @@ param environmentName string
 @minLength(1)
 @description('Primary location for all resources')
 param location string
-param AgentAPIExists bool
+param ChatAPIExists bool
 
 
 @description('Id of the user or app to assign application roles')
@@ -47,6 +47,10 @@ module cosmos './shared/cosmosdb.bicep' = {
   name: 'cosmos'
   params: {    
     databaseName: 'MultiAgentBanking'
+	chatsContainerName: 'Chat'
+	accountsContainerName: 'AccountsData'
+	offersContainerName:'Offers'
+	usersContainerName:'Users'
     location: location
     name: '${abbrs.documentDBDatabaseAccounts}${resourceToken}'
     tags: tags
@@ -64,30 +68,52 @@ module registry './shared/registry.bicep' = {
   scope: rg
 }
 
-
 module openAi './shared/openai.bicep' = {
-  name: 'openai'
+  name: 'openai-account'
   params: {
-    deployment: {  
-      name: 'completions'
-      sku: {
-        name: 'GlobalStandard'
-        capacity: 10
-      }
-      model: {
-        name: 'gpt-4o'
-        version: '2024-11-20'
-      }
-    }    
-    location: location
     name: '${abbrs.openAiAccounts}${resourceToken}'
-    sku: 'S0'
+    location: location
     tags: tags
+    sku: 'S0'
   }
   scope: rg
 }
 
 
+
+var deployments = [
+  {
+    name: 'gpt-4o'
+    skuCapacity: 10
+	skuName: 'GlobalStandard'
+    modelName: 'gpt-4o'
+    modelVersion: '2024-11-20'
+  }
+  {
+    name: 'text-embedding-3-small'
+    skuCapacity: 5
+	skuName: 'Standard'
+    modelName: 'text-embedding-3-small'
+    modelVersion: '1'
+  }
+]
+
+@batchSize(1)
+module openAiModelDeployments './shared/modeldeployment.bicep' = [
+  for (deployment, _) in deployments: {
+    name: 'openai-model-deployment-${deployment.name}'
+    params: {
+      name: deployment.name
+      parentAccountName: openAi.outputs.name
+      skuName: deployment.skuName
+      skuCapacity: deployment.skuCapacity
+      modelName: deployment.modelName
+      modelVersion: deployment.modelVersion
+      modelFormat: 'OpenAI'
+    }
+	scope: rg
+  }
+]
 
 module appsEnv './shared/apps-env.bicep' = {
   name: 'apps-env'
@@ -100,8 +126,8 @@ module appsEnv './shared/apps-env.bicep' = {
 }
 
 
-module AgentAPI './app/AgentAPI.bicep' = {
-  name: 'AgentAPI'
+module ChatAPI './app/ChatAPI.bicep' = {
+  name: 'ChatAPI'
   params: {
     name: '${abbrs.appContainerApps}chatservicew-${resourceToken}'
     location: location
@@ -110,25 +136,54 @@ module AgentAPI './app/AgentAPI.bicep' = {
     identityName: '${abbrs.managedIdentityUserAssignedIdentities}chatservicew-${resourceToken}'
     applicationInsightsName: monitoring.outputs.applicationInsightsName
 	openAIName: openAi.outputs.name
+	userPrincipalId: !empty(principalId) ? principalId : null
     containerAppsEnvironmentId: appsEnv.outputs.id
     containerRegistryName: registry.outputs.name
-    exists: AgentAPIExists
+    exists: ChatAPIExists
     envSettings: [      
       {
         name: 'AZURE_OPENAI_ENDPOINT'
         value: openAi.outputs.endpoint
-      }	  
-	  {
-        name: 'CompletionsDeployment'
-        value: openAi.outputs.modelDeploymentName
-      }
-	  {
-        name: 'DATABASE_NAME'
-        value: 'MultiAgentBanking'
       }
       {
         name: 'COSMOSDB_ENDPOINT'
         value: cosmos.outputs.endpoint
+      }
+	  {
+        name: 'CosmosDBSettings__Database'
+        value: 'MultiAgentBanking'
+      }
+	  {
+        name: 'CosmosDBSettings__ChatDataContainer'
+        value: 'ChatsData'
+      }
+	  {
+        name: 'CosmosDBSettings__UserDataContainer'
+        value: 'Users'
+      }
+      {
+        name: 'BankingCosmosDBSettings__CosmosUri'
+        value: cosmos.outputs.endpoint
+      }	
+      {
+        name: 'BankingCosmosDBSettings__Database'
+        value: 'MultiAgentBanking'
+      }
+	  {
+        name: 'BankingCosmosDBSettings__AccountsContainer'
+        value: 'AccountsData'
+      }
+	  {
+        name: 'BankingCosmosDBSettings__UserDataContainer'
+        value: 'Users'
+      }
+	  {
+        name: 'BankingCosmosDBSettings__RequestDataContainer'
+        value: 'AccountsData'
+      }
+	  {
+        name: 'BankingCosmosDBSettings__OfferDataContainer'
+        value: 'Offers'
       }
       {
         name: 'ApplicationInsightsConnectionString'
@@ -144,5 +199,5 @@ module AgentAPI './app/AgentAPI.bicep' = {
 
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = registry.outputs.loginServer
 output AZURE_COSMOS_DB_NAME string = cosmos.outputs.name
-output SERVICE_AgentAPI_ENDPOINT_URL string = AgentAPI.outputs.uri
+output SERVICE_ChatAPI_ENDPOINT_URL string = ChatAPI.outputs.uri
 

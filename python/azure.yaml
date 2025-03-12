@@ -2,7 +2,7 @@ name: MultiAgentBankingPython
 metadata:
     template: azd-init@1.5.1
 services:
-    AgentServiceWebApi:
+    ChatServiceWebApi:
         project: .
         host: containerapp
         language: python

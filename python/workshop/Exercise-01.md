@@ -144,7 +144,7 @@ Create `src/app/banking_agents.py`:
 from typing import Dict, Any, List, TypedDict
 from langgraph.graph import StateGraph, START
 from langgraph.prebuilt.agents import create_react_agent
-from langgraph_checkpoint_cosmosdb import CosmosDBSaver
+from src.app.langgraph_checkpoint_cosmosdb import CosmosDBSaver
 
 from .banking import get_product_advise, get_branch_location
 from .azure_open_ai import model
@@ -167,16 +167,20 @@ customer_support_agent = create_react_agent(
     ),
 )
 
+
 class MessagesState(TypedDict):
     messages: List[Dict[str, str]]
     current_agent: str
+
 
 async def call_customer_support_agent(state: MessagesState) -> MessagesState:
     result = await customer_support_agent.ainvoke(state)
     return result
 
+
 async def human_node(state: MessagesState) -> MessagesState:
     return state
+
 
 # Create state graph
 builder = StateGraph(MessagesState)
