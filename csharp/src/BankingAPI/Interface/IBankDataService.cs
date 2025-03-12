@@ -30,7 +30,7 @@ namespace BankingServices.Interfaces
 
         Task<bool> AddServiceRequestDescriptionAsync(string tenantId, string accountId, string requestId, string annotationToAdd);
 
-        Task<List<OfferTermBasic>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription);
+        Task<List<OfferTerm>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription);
 
         Task<Offer> GetOfferDetailsAsync(string tenantId, string offerId);
 

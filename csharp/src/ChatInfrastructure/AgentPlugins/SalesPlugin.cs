@@ -20,7 +20,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Plugins
         
         [KernelFunction]
         [Description("Search offer terms of all available offers using vector search")]
-        public async Task<List<OfferTermBasic>> SearchOfferTerms(AccountType accountType, string requirementDescription)
+        public async Task<List<OfferTerm>> SearchOfferTerms(AccountType accountType, string requirementDescription)
         {
             _logger.LogTrace($"Searching terms of all available offers matching '{requirementDescription}'");
             return await _bankService.SearchOfferTermsAsync(_tenantId, accountType,requirementDescription);

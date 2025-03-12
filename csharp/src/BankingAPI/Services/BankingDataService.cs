@@ -24,6 +24,7 @@ using Microsoft.SemanticKernel.Connectors.AzureCosmosDBNoSQL;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Identity.Client.Platforms.Features.DesktopOs.Kerberos;
 using Microsoft.SemanticKernel.Embeddings;
+using Microsoft.Extensions.VectorData;
 
 namespace BankingServices.Services
 {
@@ -35,26 +36,28 @@ namespace BankingServices.Services
         private readonly Container _offerData;
 
         private readonly Database _database;
-        private readonly CosmosDBSettings _settings;
+        private readonly CosmosDBSettings _cosmosSettings;
         private readonly ILogger _logger;
 
         public bool IsInitialized { get; private set; }
 
+        private readonly AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm> _offerDataContainer;
+
         readonly Kernel _semanticKernel;
 
         public BankingDataService(
-            CosmosDBSettings settings,
+            CosmosDBSettings cosmosSettings,
             SemanticKernelServiceSettings skSettings,
             ILoggerFactory loggerFactory )
         {
-            _settings = settings; 
-            ArgumentException.ThrowIfNullOrEmpty(_settings.CosmosUri);
+            _cosmosSettings = cosmosSettings; 
+            ArgumentException.ThrowIfNullOrEmpty(_cosmosSettings.CosmosUri);
 
             _logger = loggerFactory.CreateLogger<BankingDataService>();
 
             _logger.LogInformation("Initializing Banking service.");
 
-            if (!_settings.EnableTracing)
+            if (!_cosmosSettings.EnableTracing)
             {
                 Type? defaultTrace = Type.GetType("Microsoft.Azure.Cosmos.Core.Trace.DefaultTrace,Microsoft.Azure.Cosmos.Direct");
                
@@ -76,7 +79,7 @@ namespace BankingServices.Services
             };
 
             DefaultAzureCredential credential;
-            if (string.IsNullOrEmpty(_settings.UserAssignedIdentityClientID))
+            if (string.IsNullOrEmpty(_cosmosSettings.UserAssignedIdentityClientID))
             {
                 credential = new DefaultAzureCredential();
             }
@@ -84,23 +87,23 @@ namespace BankingServices.Services
             {
                 credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
                 {
-                    ManagedIdentityClientId = _settings.UserAssignedIdentityClientID
+                    ManagedIdentityClientId = _cosmosSettings.UserAssignedIdentityClientID
                 });
 
             }
 
-            CosmosClient client = new CosmosClientBuilder(_settings.CosmosUri, credential)
+            CosmosClient cosmosClient = new CosmosClientBuilder(_cosmosSettings.CosmosUri, credential)
                 .WithSerializerOptions(options)
                 .WithConnectionModeGateway()
             .Build();
 
-            _database = client?.GetDatabase(_settings.Database) ??
+            _database = cosmosClient?.GetDatabase(_cosmosSettings.Database) ??
                         throw new ArgumentException("Unable to connect to existing Azure Cosmos DB database.");
 
-            _accountData = _database.GetContainer(_settings.AccountsContainer.Trim());
-            _userData = _database.GetContainer(_settings.UserDataContainer.Trim());
-            _requestData = _database.GetContainer(_settings.RequestDataContainer.Trim());
-            _offerData= _database.GetContainer(_settings.OfferDataContainer.Trim());
+            _accountData = _database.GetContainer(_cosmosSettings.AccountsContainer.Trim());
+            _userData = _database.GetContainer(_cosmosSettings.UserDataContainer.Trim());
+            _requestData = _database.GetContainer(_cosmosSettings.RequestDataContainer.Trim());
+            _offerData= _database.GetContainer(_cosmosSettings.OfferDataContainer.Trim());
 
             _logger.LogInformation("Banking service initialized for Cosmos DB.");
 
@@ -116,10 +119,28 @@ namespace BankingServices.Services
                 skSettings.AzureOpenAISettings.Endpoint,
                 credential);
 
+
+            //Add Azure CosmosDB NoSql client and Database to the Semantic Kernel
+            builder.Services.AddSingleton<Database>(
+                sp =>
+                {
+                    var client = cosmosClient;
+                    return client.GetDatabase(_cosmosSettings.Database);
+                });
+
+            // Add the Azure CosmosDB NoSQL Vector Store Record Collection for Products
+            var vectorStoreOptions = new AzureCosmosDBNoSQLVectorStoreRecordCollectionOptions<OfferTerm> { PartitionKeyPropertyName = "TenantId" };
+            builder.AddAzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm>(_cosmosSettings.OfferDataContainer, vectorStoreOptions);
+
             _semanticKernel = builder.Build();
 
+            //Get a reference to the product container from Semantic Kernel for vector search and adding/updating products
+            _offerDataContainer = (AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm>)_semanticKernel.Services.GetRequiredService<IVectorStoreRecordCollection<string, OfferTerm>>();
 
-           _logger.LogInformation("Banking service initialized.");
+
+            _logger.LogInformation("Banking service initialized for Vector Search.");
+
+
         }
 
         public async Task<BankUser> GetUserAsync(string tenantId,string userId)
@@ -336,7 +357,7 @@ namespace BankingServices.Services
 
 
 
-        public async Task<List<OfferTermBasic>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription)
+        public async Task<List<OfferTerm>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription)
         {
             // Generate Embedding
 
@@ -344,40 +365,66 @@ namespace BankingServices.Services
 
             var embedding = await embeddingModel.GenerateEmbeddingAsync(requirementDescription);
 
-            // Convert ReadOnlyMemory<float> to IList<float>
-            var embeddingList = embedding.ToArray();
+
+            //// Convert ReadOnlyMemory<float> to IList<float>
+            //var embeddingList = embedding.ToArray();
 
             // Perform Vector Search in Cosmos DB
             try
             {
-                var queryDefinition = new QueryDefinition(@"
-                       SELECT c.offerId, c.text, c.name
-                        FROM c
-                        WHERE c.type = 'Term'
-                        AND c.accountType = @accountType
-                        AND VectorDistance(c.vector, @referenceVector)> 0.075
-                        ")
-                    .WithParameter("@accountType", accountType.ToString())
-                    .WithParameter("@referenceVector", embeddingList);
+                var searchresults= await SearchOffersAsync(embedding, 50);
+                return searchresults;
+                //    var queryDefinition = new QueryDefinition(@"
+                //           SELECT c.offerId, c.text, c.name
+                //            FROM c
+                //            WHERE c.type = 'Term'
+                //            AND c.accountType = @accountType
+                //            AND VectorDistance(c.vector, @referenceVector)> 0.075
+                //            ")
+                //        .WithParameter("@accountType", accountType.ToString())
+                //        .WithParameter("@referenceVector", embeddingList);
 
-                List<OfferTermBasic> offerTerms = new List<OfferTermBasic>();
-                using (FeedIterator<OfferTermBasic> feedIterator = _offerData.GetItemQueryIterator<OfferTermBasic>(queryDefinition, requestOptions: new QueryRequestOptions { PartitionKey = new PartitionKey(tenantId) }))
-                {
-                    while (feedIterator.HasMoreResults)
-                    {
-                        FeedResponse<OfferTermBasic> response = await feedIterator.ReadNextAsync();
-                        offerTerms.AddRange(response);
-                    }
-                }
+                //    List<OfferTerm> offerTerms = new List<OfferTerm>();
+                //    using (FeedIterator<OfferTerm> feedIterator = _offerData.GetItemQueryIterator<OfferTerm>(queryDefinition, requestOptions: new QueryRequestOptions { PartitionKey = new PartitionKey(tenantId) }))
+                //    {
+                //        while (feedIterator.HasMoreResults)
+                //        {
+                //            FeedResponse<OfferTerm> response = await feedIterator.ReadNextAsync();
+                //            offerTerms.AddRange(response);
+                //        }
+                //    }
 
-                return offerTerms;
+                //return offerTerms;
             }
-            catch (CosmosException ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex.ToString());
-                return new List<OfferTermBasic>();
-                //}
+                return new List<OfferTerm>();
             }
+           
+        }
+
+        private async Task<List<OfferTerm>> SearchOffersAsync(ReadOnlyMemory<float> promptVectors, int maxResults)
+        {
+            var filter = new VectorSearchFilter()
+                .EqualTo("Type", "Term")
+                .EqualTo("AccountType", "Savings");
+            var options = new VectorSearchOptions { VectorPropertyName = "Vector", Filter = filter, Top=maxResults, IncludeVectors=false };
+
+            // Call Semantic Kernel to perform the vector search
+            var searchResult = await _offerDataContainer.VectorizedSearchAsync(promptVectors, options);
+
+            var resultRecords = new List<VectorSearchResult<OfferTerm>>();
+            await foreach (var result in searchResult.Results)
+            {
+                resultRecords.Add(result);
+            }
+
+            List<OfferTerm> results = new();
+
+            // Add the vector search results to list
+            results.AddRange(resultRecords.Select(r => r.Record));
+            return results;
         }
 
         public async Task<Offer> GetOfferDetailsAsync(string tenantId, string offerId)

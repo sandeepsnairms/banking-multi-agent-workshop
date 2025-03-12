@@ -1,4 +1,5 @@
 ﻿using BankingServices.Interfaces;
+using MultiAgentCopilot.Common.Models.Banking;
 using MultiAgentCopilot.Common.Models.Chat;
 using MultiAgentCopilot.Common.Models.Debug;
 
@@ -11,7 +12,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Interfaces
         Task<string> Summarize(string sessionId, string userPrompt);
 
         Task<float[]> GenerateEmbedding(string text);
-
+                
         Task ResetSemanticCache();
     }
 }

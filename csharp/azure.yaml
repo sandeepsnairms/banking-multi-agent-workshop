@@ -16,3 +16,9 @@ services:
         language: csharp
         docker:
             path: ./ChatAPI/Dockerfile         # Dockerfile is inside ChatAPI
+    FrontendApp:
+        project: ../../frontend
+        host: containerapp
+        language: javascript
+        docker:
+            path: ../../frontend/Dockerfile

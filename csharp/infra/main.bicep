@@ -133,7 +133,7 @@ module ChatAPI './app/ChatAPI.bicep' = {
     tags: tags
     cosmosDbAccountName: cosmos.outputs.name
     identityName: '${abbrs.managedIdentityUserAssignedIdentities}chatservicew-${resourceToken}'
-applicationInsightsName: monitoring.outputs.applicationInsightsName
+	applicationInsightsName: monitoring.outputs.applicationInsightsName
 	openAIName: openAi.outputs.name
 	userPrincipalId: !empty(principalId) ? principalId : null
     containerAppsEnvironmentId: appsEnv.outputs.id
@@ -203,7 +203,24 @@ applicationInsightsName: monitoring.outputs.applicationInsightsName
 }
 
 
+// Deploy FrontEnd App
+module frontendAppModule './app/frontEndApp.bicep' = {
+  name: 'deployFrontendApp'
+  params: {
+    containerAppName: '${abbrs.appContainerApps}frontend-${resourceToken}'
+    location: location
+    environmentId: appsEnv.outputs.id
+    imageName: 'frontend'
+    registryServer: registry.outputs.loginServer
+    containerPort: 80
+	uamiId: !empty(principalId) ? principalId : null
+  }
+  scope: rg
+}
+
+
+
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = registry.outputs.loginServer
 output AZURE_COSMOS_DB_NAME string = cosmos.outputs.name
 output SERVICE_ChatAPI_ENDPOINT_URL string = ChatAPI.outputs.uri
-
+output FRONTENDPOINT_URL string = frontendAppModule.outputs.uri
