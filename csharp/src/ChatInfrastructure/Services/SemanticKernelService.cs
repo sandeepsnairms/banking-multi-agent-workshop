@@ -102,9 +102,9 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
     {
         try
         {
-            MultiAgentChatFactory multiAgentChatGeneratorService = new MultiAgentChatFactory();
+            ChatFactory chatFactory = new ChatFactory();
 
-            var agentGroupChat = multiAgentChatGeneratorService.BuildAgentGroupChat(_semanticKernel, _loggerFactory, LogMessage, bankService, tenantId, userId);
+            var agentGroupChat = chatFactory.BuildAgentGroupChat(_semanticKernel, _loggerFactory, LogMessage, bankService, tenantId, userId);
 
             // Load history
             foreach (var chatMessage in messageHistory)

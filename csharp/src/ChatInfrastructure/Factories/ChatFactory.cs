@@ -23,7 +23,7 @@ using BankingServices.Interfaces;
 
 namespace MultiAgentCopilot.ChatInfrastructure.Factories
 {
-    internal class MultiAgentChatFactory
+    internal class ChatFactory
     {
         public delegate void LogCallback(string key, string value);
 
