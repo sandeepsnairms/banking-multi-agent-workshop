@@ -58,9 +58,6 @@ namespace ChatAPI
                     await _chatService.SummarizeChatSessionNameAsync(tenantId, userId, sessionId, prompt))
                 .WithName("SummarizeChatSessionName");
 
-            app.MapPost("/tenant/{tenantId}/user/{userId}/semanticcache/reset", async (string tenantId, string userId) =>
-                await _chatService.ResetSemanticCache(tenantId, userId))
-                .WithName("ResetSemanticCache");
 
             app.MapPut("/offerdata", async ([FromBody] JsonElement document) =>
                     await _chatService.AddDocument("OfferData", document))

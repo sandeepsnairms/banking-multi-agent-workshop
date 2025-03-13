@@ -16,7 +16,6 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services;
 public class ChatService : IChatService
 {
     private readonly ICosmosDBService _cosmosDBService;
-    private readonly ISemanticKernelService _skService;
     private readonly ILogger _logger;
 
     
@@ -24,11 +23,9 @@ public class ChatService : IChatService
         IOptions<CosmosDBSettings> cosmosOptions,
         IOptions<SemanticKernelServiceSettings> skOptions,
         ICosmosDBService cosmosDBService,
-        ISemanticKernelService ragService,
         ILoggerFactory loggerFactory)
     {
-        _cosmosDBService = cosmosDBService;
-        _skService = ragService;        
+        _cosmosDBService = cosmosDBService;    
         _logger = loggerFactory.CreateLogger<ChatService>();
     }
 
@@ -89,14 +86,9 @@ public class ChatService : IChatService
             
 
             // Add both prompt and completion to cache, then persist in Cosmos DB
-            var userMessage = new Message(tenantId,userId,sessionId, "User","User", userPrompt);
-
-            // Generate the completion to return to the user
-            var result = await _skService.GetResponse(userMessage, new List<Message>(), tenantId,userId);
-
-            
-
-            return result.Item1;
+            var userMessage = new Message(tenantId,userId,sessionId, "User","User", "## Replaying user message ## " + userPrompt);
+                      
+            return new List<Message> { userMessage };
         }
         catch (Exception ex)
         {
@@ -112,24 +104,7 @@ public class ChatService : IChatService
     /// </summary>
     public async Task<string> SummarizeChatSessionNameAsync(string tenantId, string userId,string? sessionId, string prompt)
     {
-        try
-        {
-            ArgumentNullException.ThrowIfNull(sessionId);
-
-            var summary = await _skService.Summarize(sessionId, prompt);
-
-            var session = await RenameChatSessionAsync(tenantId, userId,sessionId, summary);
-
-            return session.Name;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, $"Error getting a summary in session {sessionId} for user prompt [{prompt}].");
-#pragma warning disable CS8603 // Possible null reference return.
-            return null;
-#pragma warning restore CS8603 // Possible null reference return.
-        }
-
+        return "Not implemented";
     }
 
 
@@ -177,9 +152,5 @@ public class ChatService : IChatService
         }
     }
 
-
-
-    public async Task ResetSemanticCache(string tenantId, string userId) =>
-        await _skService.ResetSemanticCache();
 }
 

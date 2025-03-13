@@ -46,7 +46,5 @@ public interface IChatService
 
     Task<DebugLog> GetChatCompletionDebugLogAsync(string tenantId, string userId,string sessionId, string debugLogId);
 
-    Task ResetSemanticCache(string tenantId, string userId);
-
     Task<bool> AddDocument(string containerName, JsonElement document);
 }
