@@ -6,8 +6,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.ApplicationInsights.AspNetCore.Extensions;
 using Microsoft.ApplicationInsights.Extensibility;
 using MultiAgentCopilot.ChatInfrastructure.Factories;
-using BankingServices.Interfaces;
-using BankingServices.Services;
 using Azure.Identity;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;

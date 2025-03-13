@@ -1,4 +1,4 @@
-﻿using MultiAgentCopilot.Common.Models.Banking;
+﻿
 using MultiAgentCopilot.Common.Models.Chat;
 using MultiAgentCopilot.Common.Models.Debug;
 using Newtonsoft.Json.Linq;

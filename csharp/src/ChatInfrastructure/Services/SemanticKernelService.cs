@@ -14,7 +14,6 @@ using MultiAgentCopilot.ChatInfrastructure.Factories;
 using Newtonsoft.Json;
 using System.Data;
 using MultiAgentCopilot.Common.Models.Debug;
-using BankingServices.Interfaces;
 using Microsoft.SemanticKernel.Embeddings;
 using System.Runtime;
 using Microsoft.SemanticKernel.Agents;
@@ -101,14 +100,14 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
     }
 
      ChatHistory chatHistory = [];
-    public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, IBankDataService bankService, string tenantId, string userId)
+    public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory,  string tenantId, string userId)
     {
 
         try
         {
             ChatFactory agentChatGeneratorService = new ChatFactory();
 
-            var agent = agentChatGeneratorService.BuildAgent(_semanticKernel, _loggerFactory,  bankService, tenantId, userId);
+            var agent = agentChatGeneratorService.BuildAgent(_semanticKernel, _loggerFactory,  tenantId, userId);
 
             ChatHistory chatHistory = [];
 

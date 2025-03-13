@@ -17,7 +17,7 @@ using OpenAI.Chat;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using MultiAgentCopilot.ChatInfrastructure.Logs;
-using BankingServices.Interfaces;
+
 using System.Reflection.Metadata;
 
 
@@ -27,7 +27,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Factories
     {
         public delegate void LogCallback(string key, string value);
 
-        public ChatCompletionAgent BuildAgent(Kernel kernel, ILoggerFactory loggerFactory, IBankDataService bankService, string tenantId, string userId)
+        public ChatCompletionAgent BuildAgent(Kernel kernel, ILoggerFactory loggerFactory, string tenantId, string userId)
         {
             ChatCompletionAgent agent = new ChatCompletionAgent
             {

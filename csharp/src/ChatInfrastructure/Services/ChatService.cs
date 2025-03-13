@@ -4,8 +4,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel.ChatCompletion;
 using MultiAgentCopilot.Common.Models.Debug;
 using System.Collections.Generic;
-using BankingServices.Interfaces;
-using BankingServices.Services;
 using Microsoft.Extensions.Options;
 using MultiAgentCopilot.Common.Models.Configuration;
 using Newtonsoft.Json.Linq;
@@ -18,7 +16,6 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services;
 public class ChatService : IChatService
 {
     private readonly ICosmosDBService _cosmosDBService;
-    private readonly IBankDataService _bankService;
     private readonly ISemanticKernelService _skService;
     private readonly ILogger _logger;
 
@@ -31,8 +28,7 @@ public class ChatService : IChatService
         ILoggerFactory loggerFactory)
     {
         _cosmosDBService = cosmosDBService;
-        _skService = ragService;
-        _bankService = new BankingDataService(cosmosOptions.Value, skOptions.Value, loggerFactory);
+        _skService = ragService;        
         _logger = loggerFactory.CreateLogger<ChatService>();
     }
 
@@ -98,7 +94,7 @@ public class ChatService : IChatService
             var userMessage = new Message(tenantId,userId,sessionId, "User","User", userPrompt);
 
             // Generate the completion to return to the user
-            var result = await _skService.GetResponse(userMessage, archivedMessages,_bankService,tenantId,userId);
+            var result = await _skService.GetResponse(userMessage, archivedMessages,tenantId,userId);
 
             await AddPromptCompletionMessagesAsync(tenantId, userId,sessionId, userMessage, result.Item1, result.Item2);
 
