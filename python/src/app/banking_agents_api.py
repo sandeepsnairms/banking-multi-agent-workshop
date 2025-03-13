@@ -223,7 +223,7 @@ def _fetch_messages_for_session(sessionId: str, tenantId: str, userId: str) -> L
             tenantId=tenantId,
             userId=userId,
             timeStamp=msg.response_metadata.get("timestamp", "") if hasattr(msg, "response_metadata") else "",
-            sender="User" if isinstance(msg, HumanMessage) else "Cordinator",
+            sender="User" if isinstance(msg, HumanMessage) else "Coordinator",
             senderRole="User" if isinstance(msg, HumanMessage) else "Assistant",
             text=msg.content if hasattr(msg, "content") else msg.get("content", ""),
             debugLogId=str(uuid.uuid4()),
@@ -385,8 +385,18 @@ def create_chat_session(tenantId: str, userId: str):
 
 def extract_relevant_messages(debug_lod_id, last_active_agent, response_data, tenantId, userId, sessionId):
 
+    # Mapping for last_active_agent values
+    agent_mapping = {
+        "coordinator_agent": "Coordinator",
+        "customer_support_agent": "CustomerSupport",
+        "transactions_agent": "Transactions",
+        "sales_agent": "Sales"
+    }
+
+    # Convert last_active_agent to its mapped value
+    last_active_agent = agent_mapping.get(last_active_agent, last_active_agent)
+
     debug_lod_id = debug_lod_id
-    last_active_agent = last_active_agent
     if not response_data:
         return []
 
@@ -440,6 +450,7 @@ def extract_relevant_messages(debug_lod_id, last_active_agent, response_data, te
         for msg in filtered_messages
         if msg.content
     ]
+
 
 @app.post("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/completion", tags=[endpointTitle],
           response_model=List[MessageModel])
