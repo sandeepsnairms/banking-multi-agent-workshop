@@ -1,42 +1,72 @@
+param name string
+param tags object = {}
 param containerAppName string
 param location string = resourceGroup().location
 param environmentId string
 param imageName string
+param containerImageTag string = 'latest'
 param registryServer string
-param uamiId string
-param containerPort int = 80
+param identityName string
+param containerPort int = 8088
+param chatAPIUrl string
 
-resource containerApp 'Microsoft.App/containerApps@2022-01-01-preview' = {
-  name: containerAppName
+
+// Get the principal ID of the user assigned managed identity user
+resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' existing = {
+  name: identityName
+}
+
+
+module fetchLatestImage '../modules/fetch-container-image.bicep' = {
+  name: '${name}-fetch-image'
+  params: {
+    name: name
+	exists:false
+  }
+}
+
+resource frontend 'Microsoft.App/containerApps@2023-05-01' = {
+  name: name
   location: location
+  tags: union(tags, {'azd-service-name': 'FrontendApp' })
   identity: {
     type: 'UserAssigned'
-    userAssignedIdentities: {
-      '${uamiId}': {}
-    }
+     userAssignedIdentities: { '${identity.id}': {} }
   }
   properties: {
     managedEnvironmentId: environmentId
     configuration: {
-      registries: [
+      ingress:  {
+        external: true
+        targetPort: 80
+        transport: 'auto'      
+        corsPolicy: {
+          allowedOrigins: [
+				'*'
+          ]
+        }
+	  }
+	  registries: [
         {
-          server: registryServer
-          identity: uamiId
+          server: '${registryServer}.azurecr.io'
+          identity: identity.id
         }
       ]
-      ingress: {
-        external: true
-        targetPort: containerPort
-        transport: 'auto'
-        allowInsecure: false
-      }
+	  activeRevisionsMode: 'Single' // Ensures only one active revision at a time
+      
     }
     template: {
       containers: [
         {
           name: containerAppName
-          image: imageName
-          resources: {
+          image: fetchLatestImage.outputs.?containers[?0].image ?? 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
+          env: [              
+			  {
+                name: 'apiUrl'
+                value: chatAPIUrl
+              }
+		  ]
+		  resources: {
             cpu: json('1.0')
             memory: '2.0Gi'
           }  
@@ -46,4 +76,4 @@ resource containerApp 'Microsoft.App/containerApps@2022-01-01-preview' = {
   }
 }
 
-output uri string = 'https://${containerApp.properties.configuration.ingress.fqdn}'
+output uri string = 'https://${frontend.properties.configuration.ingress.fqdn}'

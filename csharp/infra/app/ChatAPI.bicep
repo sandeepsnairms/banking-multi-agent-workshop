@@ -1,98 +1,26 @@
 param name string
-param location string = resourceGroup().location
 param tags object = {}
-param cosmosDbAccountName string
+param containerAppName string
+param location string = resourceGroup().location
+param environmentId string
+param imageName string
+param containerImageTag string = 'latest'
+param registryServer string
 param identityName string
-param openAIName string
-param containerRegistryName string
-param containerAppsEnvironmentId string
+param containerPort int = 8080
 param applicationInsightsName string
-@description('Id of the user principals to assign database and application roles.')    
-param userPrincipalId string = '' 
 param envSettings array = []
 
-
-
 // Get the principal ID of the user assigned managed identity user
-resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' existing = {
   name: identityName
-  location: location
 }
 
-resource containerRegistry 'Microsoft.ContainerRegistry/registries@2022-02-01-preview' existing = {
-  name: containerRegistryName
-}
 
 resource applicationInsights 'Microsoft.Insights/components@2020-02-02' existing = {
   name: applicationInsightsName
 }
-resource acrPullRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  scope: containerRegistry
-  name: guid(subscription().id, resourceGroup().id, identity.id, 'acrPullRole')
-  properties: {
-    roleDefinitionId:  subscriptionResourceId(
-      'Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')
-    principalType: 'ServicePrincipal'
-    principalId: identity.properties.principalId
-  }
-}
 
-
-resource openAi 'Microsoft.CognitiveServices/accounts@2024-10-01' existing = {
-  name: openAIName
-}
-
-// Role Assignment for Cognitive Services User to UAMI
-resource cognitiveServicesRoleAssignmentUAMI 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(identity.id, openAi.id, 'cognitive-services-user')  // Unique GUID for role assignment
-  scope: openAi
-  dependsOn: [ identity, openAi ]  // Ensure resources exist before assigning the role
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a97b65f3-24c7-4388-baec-2e87135dc908')  // Cognitive Services User Role ID
-    principalId: identity.properties.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// Role Assignment for Cognitive Services User to Current User
-resource cognitiveServicesRoleAssignmentCU 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(userPrincipalId, openAi.id, 'cognitive-services-user')  // Unique GUID for role assignment
-  scope: openAi
-  dependsOn: [openAi]  // Ensure resources exist before assigning the role
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a97b65f3-24c7-4388-baec-2e87135dc908')  // Cognitive Services User Role ID
-    principalId: userPrincipalId
-    principalType: 'User'
-  }
-}
-
-resource cosmosDb 'Microsoft.DocumentDB/databaseAccounts@2023-11-15' existing = {
-  name: cosmosDbAccountName
-}
-
-
-// Role Assignment for Cosmos DB role to UAMI
-resource cosmosAccessRoleUAMI 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2023-11-15' = {
-  name: guid('00000000-0000-0000-0000-000000000002', identity.id, cosmosDb.id)
-  parent: cosmosDb
-  properties: {
-    principalId: identity.properties.principalId
-    roleDefinitionId: resourceId('Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions', cosmosDb.name, '00000000-0000-0000-0000-000000000002')
-    scope: cosmosDb.id
-  }
-}
-
-
-// Role Assignment for Cosmos DB role to current user
-resource cosmosAccessRoleCU 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2023-11-15' = {
-  name: guid('00000000-0000-0000-0000-000000000002', userPrincipalId, cosmosDb.id)
-  parent: cosmosDb
-  properties: {
-    principalId: userPrincipalId
-    roleDefinitionId: resourceId('Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions', cosmosDb.name, '00000000-0000-0000-0000-000000000002')
-    scope: cosmosDb.id
-  }
-}
 
 module fetchLatestImage '../modules/fetch-container-image.bicep' = {
   name: '${name}-fetch-image'
@@ -102,18 +30,16 @@ module fetchLatestImage '../modules/fetch-container-image.bicep' = {
   }
 }
 
-
-resource app 'Microsoft.App/containerApps@2024-02-02-preview' = {
+resource chatservicewebapi 'Microsoft.App/containerApps@2024-02-02-preview' = {
   name: name
   location: location
   tags: union(tags, {'azd-service-name': 'ChatServiceWebApi' })
-  dependsOn: [acrPullRole]
   identity: {
     type: 'UserAssigned'
     userAssignedIdentities: { '${identity.id}': {} }
   }
   properties: {
-    managedEnvironmentId: containerAppsEnvironmentId
+    managedEnvironmentId: environmentId
     configuration: {
       ingress:  {
         external: true
@@ -127,7 +53,7 @@ resource app 'Microsoft.App/containerApps@2024-02-02-preview' = {
 	  }
       registries: [
         {
-          server: '${containerRegistryName}.azurecr.io'
+          server: '${registryServer}.azurecr.io'
           identity: identity.id
         }
       ]
@@ -136,18 +62,18 @@ resource app 'Microsoft.App/containerApps@2024-02-02-preview' = {
     template: {
       containers: [
         {
+          name: containerAppName
           image: fetchLatestImage.outputs.?containers[?0].image ?? 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
-          name: 'main'
           env: union(
-            [              
+            [             
 			  {
-                name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-                value: applicationInsights.properties.ConnectionString
-              }
-              {
-                name: 'PORT'
-                value: '8080'
-              }
+				name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+				value: applicationInsights.properties.ConnectionString
+			  }
+			  {
+				name: 'PORT'
+				value: '8080'
+			  }
 			  {
 				name: 'SemanticKernelServiceSettings__AzureOpenAISettings__UserAssignedIdentityClientID'
 				value: identity.properties.clientId
@@ -177,7 +103,7 @@ resource app 'Microsoft.App/containerApps@2024-02-02-preview' = {
   }
 }
 
-output name string = app.name
-output uri string = 'https://${app.properties.configuration.ingress.fqdn}'
-output id string = app.id
-output identity string = identity.properties.principalId
+output name string = chatservicewebapi.name
+output uri string = 'https://${chatservicewebapi.properties.configuration.ingress.fqdn}'
+output id string = chatservicewebapi.id
+
