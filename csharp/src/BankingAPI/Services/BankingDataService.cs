@@ -174,9 +174,9 @@ namespace BankingServices.Services
             {
                 var partitionKey = PartitionManager.GetAccountsDataFullPK(tenantId, accountId);
 
-                return await _userData.ReadItemAsync<BankAccount>(
+                return await _accountData.ReadItemAsync<BankAccount>(
                        id: accountId,
-                       partitionKey: new PartitionKey(tenantId));
+                       partitionKey: partitionKey);
             }
             catch (CosmosException ex)
             {
