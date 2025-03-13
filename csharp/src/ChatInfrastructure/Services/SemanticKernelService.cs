@@ -10,7 +10,6 @@ using MultiAgentCopilot.ChatInfrastructure.Helper;
 using Microsoft.SemanticKernel.ChatCompletion;
 
 using Azure.Identity;
-using MultiAgentCopilot.ChatInfrastructure.Factories;
 using Newtonsoft.Json;
 using System.Data;
 using MultiAgentCopilot.Common.Models.Debug;
@@ -105,24 +104,15 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
 
         try
         {
-            ChatFactory agentChatGeneratorService = new ChatFactory();
-
-            var agent = agentChatGeneratorService.BuildAgent(_semanticKernel, _loggerFactory,  tenantId, userId);
+            
+            ChatCompletionAgent agent = new ChatCompletionAgent
+            {
+                Name = "BasicAgent",
+                Instructions = "Greet the user and translate the resuest into French",
+                Kernel = _semanticKernel.Clone()
+            };
 
             ChatHistory chatHistory = [];
-
-            // Load history
-            foreach (var chatMessage in messageHistory)
-            {                
-                if(chatMessage.SenderRole == "User")
-                {
-                    chatHistory.AddUserMessage(chatMessage.Text);
-                }
-                else
-                {
-                    chatHistory.AddAssistantMessage(chatMessage.Text);
-                }
-            }
 
             chatHistory.AddUserMessage(userMessage.Text);
 
@@ -130,9 +120,6 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
 
             List<Message> completionMessages = new();
             List<DebugLog> completionMessagesLogs = new();
-
-            //string messageId = Guid.NewGuid().ToString();
-            //completionMessages.Add(new Message(userMessage.TenantId, userMessage.UserId, userMessage.SessionId, userMessage.Sender, userMessage.SenderRole, userMessage.Text ?? string.Empty, messageId));
 
             ChatMessageContent message = new(AuthorRole.User, userMessage.Text);
             chatHistory.Add(message);

@@ -76,7 +76,7 @@ public interface ICosmosDBService
     /// Batch create or update chat messages and session.
     /// </summary>
     /// <param name="messages">Chat message and session items to create or replace.</param>
-    Task UpsertSessionBatchAsync(List<Message> messages, List<DebugLog> debugLogs, Session session);
+    //Task UpsertSessionBatchAsync(List<Message> messages, List<DebugLog> debugLogs, Session session);
 
     /// <summary>
     /// Batch deletes an existing chat session and all related messages.

@@ -161,7 +161,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
                 _logger.LogError(ex.ToString());
                 throw;
             }
-}
+        }
 
         public async Task<Session> InsertSessionAsync(Session session)
         {
@@ -289,48 +289,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
 
 
 
-        public async Task UpsertSessionBatchAsync(List<Message> messages, List<DebugLog>debugLogs, Session session)
-        {
-            try
-            { 
-                if (messages.Select(m => m.SessionId).Distinct().Count() > 1 || session.SessionId != messages.Select(m => m.SessionId).FirstOrDefault())
-                {
-                    throw new ArgumentException("All items must have the same partition key.");
-                }
-
-                if (debugLogs.Count>0 && (debugLogs.Select(m => m.SessionId).Distinct().Count() > 1 || session.SessionId != debugLogs.Select(m => m.SessionId).FirstOrDefault()))
-                {
-                    throw new ArgumentException("All items must have the same partition key as message.");
-                }
-
-                PartitionKey partitionKey = PartitionManager.GetChatDataFullPK(session.TenantId, session.UserId, session.SessionId);
-                var batch = _chatData.CreateTransactionalBatch(partitionKey);
-                foreach (var message in messages)
-                {
-                    batch.UpsertItem(
-                        item: message
-                    );
-                }
-
-                foreach (var log in debugLogs)
-                {
-                    batch.UpsertItem(
-                        item: log
-                    );
-                }
-
-                batch.UpsertItem(
-                    item: session
-                );
-
-                await batch.ExecuteAsync();
-            }
-            catch (CosmosException ex)
-            {
-                _logger.LogError(ex.ToString());
-                throw;
-            }
-        }
+        
 
         public async Task DeleteSessionAndMessagesAsync(string tenantId, string userId,string sessionId)
         {
