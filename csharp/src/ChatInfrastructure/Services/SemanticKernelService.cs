@@ -20,7 +20,7 @@ using System.Runtime;
 using Microsoft.SemanticKernel.Agents;
 using Message = MultiAgentCopilot.Common.Models.Chat.Message;
 using System;
-
+using MultiAgentCopilot.ChatInfrastructure.Models;
 
 namespace MultiAgentCopilot.ChatInfrastructure.Services;
 
@@ -108,7 +108,7 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
         {
             ChatFactory agentChatGeneratorService = new ChatFactory();
 
-            var agent = agentChatGeneratorService.BuildAgent(_semanticKernel, _loggerFactory,  bankService, tenantId, userId);
+            var agent = agentChatGeneratorService.BuildAgent(_semanticKernel,AgentType.CustomerSupport, _loggerFactory,  bankService, tenantId, userId);
 
             ChatHistory chatHistory = [];
 
