@@ -85,7 +85,7 @@ public class ChatService : IChatService
             
 
             // Add both prompt and completion to cache, then persist in Cosmos DB
-            var userMessage = new Message(tenantId,userId,sessionId, "User","User", "## Repeating user message ## " + userPrompt);
+            var userMessage = new Message(tenantId,userId,sessionId, "User","User", "## Replay user message ## " + userPrompt);
                       
             return new List<Message> { userMessage };
         }
