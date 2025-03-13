@@ -33,8 +33,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Factories
             {
                 Name = SystemPromptFactory.GetAgentName(),
                 Instructions = $"""{SystemPromptFactory.GetAgentPrompts()}""",
-                Kernel = PluginFactory.GetAgentKernel(kernel, loggerFactory, bankService, tenantId, userId),
-                Arguments = new KernelArguments(new AzureOpenAIPromptExecutionSettings() { FunctionChoiceBehavior = FunctionChoiceBehavior.Auto() })
+                Kernel = kernel.Clone()
             };
 
             return agent;

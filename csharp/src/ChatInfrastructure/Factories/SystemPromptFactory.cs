@@ -22,7 +22,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Factories
 
         public static string GetAgentPrompts()
         {
-            string prompt =File.ReadAllText("Prompts/CommonAgentRules.prompty");
+            string prompt = "Greet the user and translate the resuest into French";
             return prompt;
         }
 

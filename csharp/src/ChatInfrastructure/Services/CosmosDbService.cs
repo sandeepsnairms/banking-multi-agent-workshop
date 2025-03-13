@@ -1,5 +1,4 @@
-﻿using MultiAgentCopilot.Common.Models.Banking;
-using MultiAgentCopilot.Common.Models.Chat;
+﻿using MultiAgentCopilot.Common.Models.Chat;
 using MultiAgentCopilot.Common.Models.Configuration;
 using MultiAgentCopilot.ChatInfrastructure.Interfaces;
 using Microsoft.Azure.Cosmos;
