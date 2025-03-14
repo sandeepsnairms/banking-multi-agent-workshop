@@ -17,31 +17,35 @@ using MultiAgentCopilot.Common.Models.Debug;
 using BankingServices.Interfaces;
 using Microsoft.SemanticKernel.Embeddings;
 using System.Runtime;
-using Microsoft.SemanticKernel.Agents;
-using Message = MultiAgentCopilot.Common.Models.Chat.Message;
+using Microsoft.Azure.Cosmos;
+using Microsoft.Extensions.VectorData;
+using Microsoft.SemanticKernel.Connectors.AzureCosmosDBNoSQL;
+using MultiAgentCopilot.Common.Models.Banking;
+
 
 namespace MultiAgentCopilot.ChatInfrastructure.Services;
 
 public class SemanticKernelService : ISemanticKernelService, IDisposable
 {
-    readonly SemanticKernelServiceSettings _settings;
+    readonly SemanticKernelServiceSettings _skSettings;
     readonly ILoggerFactory _loggerFactory;
     readonly ILogger<SemanticKernelService> _logger;
     readonly Kernel _semanticKernel;
+
 
     bool _serviceInitialized = false;
     string _prompt = string.Empty;
     string _contextSelectorPrompt = string.Empty;
 
-    List<LogProperty> _promptDebugProperties;  
+    List<LogProperty> _promptDebugProperties;
 
     public bool IsInitialized => _serviceInitialized;
 
     public SemanticKernelService(
-        IOptions<SemanticKernelServiceSettings> options,
+        IOptions<SemanticKernelServiceSettings> skOptions,
         ILoggerFactory loggerFactory)
     {
-        _settings = options.Value;
+        _skSettings = skOptions.Value;
         _loggerFactory = loggerFactory;
         _logger = _loggerFactory.CreateLogger<SemanticKernelService>();
         _promptDebugProperties = new List<LogProperty>();
@@ -53,7 +57,7 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
         builder.Services.AddSingleton<ILoggerFactory>(loggerFactory);
 
         DefaultAzureCredential credential;
-        if (string.IsNullOrEmpty(_settings.AzureOpenAISettings.UserAssignedIdentityClientID))
+        if (string.IsNullOrEmpty(_skSettings.AzureOpenAISettings.UserAssignedIdentityClientID))
         {
             credential = new DefaultAzureCredential();
         }
@@ -61,17 +65,17 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
         {
             credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
             {
-                ManagedIdentityClientId = _settings.AzureOpenAISettings.UserAssignedIdentityClientID
+                ManagedIdentityClientId = _skSettings.AzureOpenAISettings.UserAssignedIdentityClientID
             });
         }
         builder.AddAzureOpenAIChatCompletion(
-            _settings.AzureOpenAISettings.CompletionsDeployment,
-            _settings.AzureOpenAISettings.Endpoint,
+            _skSettings.AzureOpenAISettings.CompletionsDeployment,
+            _skSettings.AzureOpenAISettings.Endpoint,
             credential);
 
         builder.AddAzureOpenAITextEmbeddingGeneration(
-               _settings.AzureOpenAISettings.EmbeddingsDeployment,
-               _settings.AzureOpenAISettings.Endpoint,
+               _skSettings.AzureOpenAISettings.EmbeddingsDeployment,
+               _skSettings.AzureOpenAISettings.Endpoint,
                credential);
 
         _semanticKernel = builder.Build();
@@ -102,9 +106,9 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
     {
         try
         {
-            ChatFactory chatFactory = new ChatFactory();
+            ChatFactory multiAgentChatGeneratorService = new ChatFactory();
 
-            var agentGroupChat = chatFactory.BuildAgentGroupChat(_semanticKernel, _loggerFactory, LogMessage, bankService, tenantId, userId);
+            var agentGroupChat = multiAgentChatGeneratorService.BuildAgentGroupChat(_semanticKernel, _loggerFactory, LogMessage, bankService, tenantId, userId);
 
             // Load history
             foreach (var chatMessage in messageHistory)
@@ -181,7 +185,7 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
 
 
 
-    public  async Task<float[]> GenerateEmbedding(string text)
+    public async Task<float[]> GenerateEmbedding(string text)
     {
         // Generate Embedding
 
@@ -190,8 +194,9 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
         var embedding = await embeddingModel.GenerateEmbeddingAsync(text);
 
         // Convert ReadOnlyMemory<float> to IList<float>
-       return embedding.ToArray();
+        return embedding.ToArray();
     }
+
 
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
     public async Task ResetSemanticCache()

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Extensions.VectorData;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,26 +9,30 @@ namespace MultiAgentCopilot.Common.Models.Banking
 {
     public class OfferTerm
     {
+        [VectorStoreRecordKey]
         public required string Id { get; set; }
+
+        [VectorStoreRecordData]
         public required string TenantId { get; set; }
+
+        [VectorStoreRecordData]
         public required string OfferId { get; set; }
+
+        [VectorStoreRecordData]
         public required string Name { get; set; }
+
+        [VectorStoreRecordData]
         public required string Text { get; set; }
+
+        [VectorStoreRecordData]
         public required string Type { get; set; }
+
+        [VectorStoreRecordData]
         public required string AccountType { get; set; }
-        public required float[] Vector { get; set; }
-        
+
+        [VectorStoreRecordVector(Dimensions: 1536, DistanceFunction: Microsoft.Extensions.VectorData.DistanceFunction.CosineSimilarity, IndexKind: Microsoft.Extensions.VectorData.IndexKind.QuantizedFlat)]
+        public ReadOnlyMemory<float>? Vector { get; set; }
+
     }
-
-
-    public class OfferTermBasic
-    {
-        public required string Id { get; set; }
-        public required string OfferId { get; set; }
-        public required string Name { get; set; }
-        public required string Text { get; set; }
-    }
-
-
 
 }
