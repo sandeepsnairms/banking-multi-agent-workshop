@@ -6,7 +6,7 @@ from langgraph_checkpoint_cosmosdb import CosmosDBSaver
 from src.app.services.azure_open_ai import model
 from src.app.services.azure_cosmos_db import DATABASE_NAME, CHECKPOINT_CONTAINER, session_container
 from src.app.tools.product import get_offer_information, get_branch_location
-from src.app.tools.banking import bank_balance, bank_transfer, calculate_monthly_payment, create_account
+from src.app.tools.banking import bank_balance, bank_transfer, calculate_monthly_payment, create_account, get_transaction_history
 from src.app.tools.agent_transfers import create_agent_transfer
 
 coordinator_agent_tools = [
@@ -41,7 +41,7 @@ customer_support_agent = create_react_agent(
         "If the wants information about a product or offer, ask whether they want Credit Card or Savings. "
         "If you have that information, call 'get_offer_information' tool with the user prompt, and the accountType ('CreditCard' or 'Savings'). "
         "If the user wants to open a new account or take our a bank loan, transfer to 'sales_agent'. "
-        "If the user wants to check their account balance or make a bank transfer, transfer to 'transactions_agent'. "
+        "If the user wants to check their account balance, make a bank transfer, or get transaction history, transfer to 'transactions_agent'. "
         "You MUST include human-readable response before transferring to another agent."
     ),
 )
@@ -49,6 +49,7 @@ customer_support_agent = create_react_agent(
 transactions_agent_tools = [
     bank_balance,
     bank_transfer,
+    get_transaction_history,
     create_agent_transfer(agent_name="customer_support_agent"),
 ]
 transactions_agent = create_react_agent(
@@ -56,6 +57,11 @@ transactions_agent = create_react_agent(
     transactions_agent_tools,
     state_modifier=(
         "You are a banking transactions agent that can handle account balance enquiries and bank transfers."
+        "If the user wants to make a deposit or withdrawal or transfer, ask for the amount and the account number which they want to transfer from and to. "
+        "Then call 'bank_transfer' tool with toAccount, fromAccount, and amount values. "
+        "Make sure you confirm the transaction details with the user before calling the 'bank_transfer' tool. "
+        "then call 'bank_transfer' tool with these values. "
+        "Ff the user wants to know transaction history, ask for the start and end date, and call 'get_transaction_history' tool with these values. "
         "If the user needs general help, transfer to 'customer_support' for help. "
         "You MUST respond with the repayment amounts before transferring to another agent."
     ),
@@ -74,7 +80,8 @@ sales_agent = create_react_agent(
     sales_agent_tools,
     state_modifier=(
         "You are a sales agent that can help users with creating a new account, or taking out bank loans. "
-        "If the user wants to create a new account, you must ask for the account holder's name and the initial balance. Call create_account tool with these values. "
+        "If the user wants to create a new account, you must ask for the account holder's name and the initial balance. "
+        "Call create_account tool with these values, and also pass the config. "
         "If user wants to ake out a loan, you must ask for the loan amount and the number of years for the loan. "
         "When user provides these, calculate the monthly payment using calculate_monthly_payment tool and provide the result as part of the response. "
         "Do not return the monthly payment tool call output directly to the user, include it with the rest of your response. "
@@ -123,7 +130,7 @@ def call_sales_agent(state: MessagesState, config) -> Command[Literal["sales_age
     thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
     # Get userId from state
     print(f"Calling sales agent with Thread ID: {thread_id}")
-    response = sales_agent.invoke(state)  # Invoke sales agent with state
+    response = sales_agent.invoke(state, config)  # Invoke sales agent with state
     return Command(update=response, goto="human")
 
 

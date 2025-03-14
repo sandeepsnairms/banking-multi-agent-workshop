@@ -1,4 +1,7 @@
 import os
+from datetime import datetime
+from typing import List, Dict
+
 from azure.cosmos import CosmosClient, PartitionKey
 from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
 
@@ -180,6 +183,23 @@ def patch_active_agent(tenantId, userId, sessionId, activeAgent):
     # deletes the user data from the container by tenantId, userId, sessionId
 
 
+def patch_account_record(account_id, balance):
+    try:
+        # Remove the "A" prefix from the account_id
+        numeric_account_id = account_id[1:] if account_id.startswith("A") else account_id
+        numeric_account_id = str(numeric_account_id)  # Ensure it's a string
+        print("[DEBUG] numeric_account_id: ", numeric_account_id)
+        print("balance: ", balance)
+        print("account_id: ", account_id)
+
+        operations = [{'op': 'replace', 'path': '/balance', 'value': balance}]
+        account_container.patch_item(item=numeric_account_id, partition_key=account_id, patch_operations=operations)
+        print(f"[DEBUG] Account record patched: {account_id}")
+    except Exception as e:
+        print(f"[ERROR] Error patching account record: {e}")
+        raise e
+
+
 def delete_userdata_item(tenantId, userId, sessionId):
     try:
         query = f"SELECT * FROM c WHERE c.tenantId = '{tenantId}' AND c.userId = '{userId}' AND c.sessionId = '{sessionId}'"
@@ -214,24 +234,86 @@ from azure.cosmos import exceptions
 
 def fetch_latest_account_number():
     try:
-        query = "SELECT VALUE MAX(c.accountId) FROM c"
+        query = "SELECT c.accountId FROM c WHERE c.type = 'BankAccount'"
         items = list(account_container.query_items(query=query, enable_cross_partition_query=True))
+
         print(f"[DEBUG] Fetched {len(items)} account numbers")
+
         if items:
-            latest_account_id = items[0]
-            if latest_account_id is None:
-                return 0
-            print(f"[DEBUG] Latest account ID: {latest_account_id}")
-            latest_account_number = int(latest_account_id[1:])  # Assuming accountId is in the format 'a<number>'
+            # Extract numeric parts and convert to integers
+            account_numbers = []
+            for item in items:
+                account_id = item.get("accountId", "")
+                if account_id.startswith("A") and account_id[1:].isdigit():
+                    account_numbers.append(int(account_id[1:]))
+
+            if not account_numbers:
+                return 0  # No valid account numbers found
+
+            latest_account_number = max(account_numbers)  # Get the highest account number
             print(f"[DEBUG] Latest account number: {latest_account_number}")
             return latest_account_number
 
-        else:
-            return None
+        return 0  # No accounts found
+
     except Exception as e:
         print(f"[ERROR] Error fetching latest account number: {e}")
         raise e
 
+
+def fetch_latest_transaction_number(account_number):
+    try:
+        query = f"SELECT c.id FROM c WHERE c.type = 'BankTransaction' AND c.accountId = '{account_number}' ORDER BY c._ts DESC"
+        items = list(account_container.query_items(query=query, enable_cross_partition_query=True))
+
+        if items:
+            latest_transaction_id = items[0]["id"]
+            latest_transaction_number = int(latest_transaction_id.split("-")[1])
+            return latest_transaction_number
+
+        return 0  # No transactions found
+
+    except Exception as e:
+        print(f"[ERROR] Error fetching latest transaction number: {e}")
+        raise e
+
+
+def fetch_account_by_number(account_number, tenantId, userId):
+    try:
+        query = f"SELECT * FROM c WHERE c.type = 'BankAccount' AND c.accountId = '{account_number}' AND c.tenantId = '{tenantId}' AND c.userId = '{userId}'"
+        items = list(account_container.query_items(query=query, enable_cross_partition_query=True))
+
+        if items:
+            return items[0]  # Return the first matching account
+
+        return None  # No matching account found
+
+    except Exception as e:
+        print(f"[ERROR] Error fetching account by number: {e}")
+        raise e
+
+def fetch_transactions_by_date_range(accountId: str, startDate: datetime, endDate: datetime) -> List[Dict]:
+    """
+    Retrieve the transaction history for a specific account between two dates.
+
+    :param accountId: The ID of the account to retrieve transactions for.
+    :param startDate: The start date for the transaction history.
+    :param endDate: The end date for the transaction history.
+    :return: A list of transactions within the specified date range.
+    """
+    query = """
+    SELECT * FROM c
+    WHERE c.accountId = @accountId AND c.transactionDateTime >= @startDate AND c.transactionDateTime <= @endDate
+    AND c.type = "BankTransaction"
+    ORDER BY c.transactionDateTime ASC
+    """
+    parameters = [
+        {"name": "@accountId", "value": accountId},
+        {"name": "@startDate", "value": startDate.isoformat() + "Z"},
+        {"name": "@endDate", "value": endDate.isoformat() + "Z"}
+    ]
+    transactions = list(account_container.query_items(query=query, parameters=parameters, enable_cross_partition_query=True))
+    return transactions
 
 # Function to create a transaction record
 def create_transaction_record(transaction_data):

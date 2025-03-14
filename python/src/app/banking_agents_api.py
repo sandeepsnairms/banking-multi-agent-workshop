@@ -467,6 +467,9 @@ def get_chat_completion(
 
     # Retrieve last checkpoint
     config = {"configurable": {"thread_id": sessionId, "checkpoint_ns": ""}}
+    #add userId and tenantId to the config
+    config["configurable"]["userId"] = userId
+    config["configurable"]["tenantId"] = tenantId
     checkpoints = list(checkpointer.list(config))
     last_active_agent = "coordinator_agent"  # Default fallback
     if not checkpoints:
