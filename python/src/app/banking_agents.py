@@ -5,9 +5,11 @@ from langgraph.types import Command, interrupt
 from langgraph_checkpoint_cosmosdb import CosmosDBSaver
 from src.app.services.azure_open_ai import model
 from src.app.services.azure_cosmos_db import DATABASE_NAME, CHECKPOINT_CONTAINER, session_container
-from src.app.tools.product import get_offer_information, get_branch_location
-from src.app.tools.banking import bank_balance, bank_transfer, calculate_monthly_payment, create_account, get_transaction_history
-from src.app.tools.agent_transfers import create_agent_transfer
+from src.app.tools.sales import get_offer_information, calculate_monthly_payment, create_account
+from src.app.tools.transactions import bank_balance, bank_transfer, get_transaction_history
+from src.app.tools.support import service_request, get_branch_location
+from src.app.tools.coordinator import create_agent_transfer
+
 
 coordinator_agent_tools = [
     create_agent_transfer(agent_name="customer_support_agent"),
@@ -28,8 +30,8 @@ coordinator_agent = create_react_agent(
 )
 
 customer_support_agent_tools = [
-    get_offer_information,
     get_branch_location,
+    service_request,
     create_agent_transfer(agent_name="sales_agent"),
     create_agent_transfer(agent_name="transactions_agent"),
 ]
@@ -38,10 +40,9 @@ customer_support_agent = create_react_agent(
     customer_support_agent_tools,
     state_modifier=(
         "You are a customer support agent that can give general advice on banking products and branch locations "
-        "If the wants information about a product or offer, ask whether they want Credit Card or Savings. "
-        "If you have that information, call 'get_offer_information' tool with the user prompt, and the accountType ('CreditCard' or 'Savings'). "
         "If the user wants to open a new account or take our a bank loan, transfer to 'sales_agent'. "
         "If the user wants to check their account balance, make a bank transfer, or get transaction history, transfer to 'transactions_agent'. "
+        "If the user wants to make a complaint or speak to someone, ask for the user's phone number and email address, and say you will get someone to call them back, call 'service_request' tool with these values and pass config along with a summary of what they said into the requestSummary parameter. "
         "You MUST include human-readable response before transferring to another agent."
     ),
 )
@@ -70,9 +71,11 @@ transactions_agent = create_react_agent(
 
 
 sales_agent_tools = [
+    get_offer_information,
     calculate_monthly_payment,
     create_account,
     create_agent_transfer(agent_name="customer_support_agent"),
+    create_agent_transfer(agent_name="transactions_agent"),
 ]
 
 sales_agent = create_react_agent(
@@ -80,11 +83,16 @@ sales_agent = create_react_agent(
     sales_agent_tools,
     state_modifier=(
         "You are a sales agent that can help users with creating a new account, or taking out bank loans. "
+        "If the user wants to check their account balance, make a bank transfer, or get transaction history, transfer to 'transactions_agent'. "
         "If the user wants to create a new account, you must ask for the account holder's name and the initial balance. "
-        "Call create_account tool with these values, and also pass the config. "
-        "If user wants to ake out a loan, you must ask for the loan amount and the number of years for the loan. "
+        "Call create_account tool with these values, and also pass the config. Be sure to tell the user their full new account number including A prefix. "
+        "If customer wants to open anything other than a banking account, advise that you can only open a banking account and if they want any other sort of account they will need to contact the branch."
+        "If user wants to take out a loan, you can offer a loan quote. You must ask for the loan amount and the number of years for the loan. "
         "When user provides these, calculate the monthly payment using calculate_monthly_payment tool and provide the result as part of the response. "
         "Do not return the monthly payment tool call output directly to the user, include it with the rest of your response. "
+        "If the user wants to move ahead with the loan, advise that they need to come into the branch to complete the application. "
+        "If the wants information about a product or offer, ask whether they want Credit Card or Savings. "
+        "If you have that information, call 'get_offer_information' tool with the user prompt, and the accountType ('CreditCard' or 'Savings'). "
         "You MUST respond with the repayment amounts before transferring to another agent."
     ),
 )
@@ -94,8 +102,13 @@ def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coo
     thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")  # Get thread_id from config
     print(f"Calling coordinator agent with Thread ID: {thread_id}")
 
+    userId = config["configurable"].get("userId", "UNKNOWN_USER_ID")
+    tenantId = config["configurable"].get("tenantId", "UNKNOWN_TENANT_ID")
+    lastActiveAgent = config["configurable"].get("activeAgent", "UNKNOWN_AGENT")
+    print(f"Last active agent: {lastActiveAgent}")
+    # Get the active agent from Cosmos DB
     activeAgent = session_container.query_items(
-        query=f"SELECT c.activeAgent FROM c WHERE c.id = '{thread_id}'",
+        query=f"SELECT c.activeAgent FROM c WHERE c.id = '{thread_id}' AND c.userId = '{userId}' AND c.tenantId = '{tenantId}'",
         enable_cross_partition_query=True
     )
     result = list(activeAgent)
@@ -120,6 +133,8 @@ def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coo
 
 def call_customer_support_agent(state: MessagesState, config) -> Command[Literal["customer_support_agent", "human"]]:
     thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
+    #set active agent in config
+    config["configurable"]["activeAgent"] = "customer_support_agent"
     print(f"Calling customer_support agent with Thread ID: {thread_id}")
 
     response = customer_support_agent.invoke(state)
@@ -130,6 +145,7 @@ def call_sales_agent(state: MessagesState, config) -> Command[Literal["sales_age
     thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
     # Get userId from state
     print(f"Calling sales agent with Thread ID: {thread_id}")
+    config["configurable"]["activeAgent"] = "customer_support_agent"
     response = sales_agent.invoke(state, config)  # Invoke sales agent with state
     return Command(update=response, goto="human")
 
@@ -137,7 +153,7 @@ def call_sales_agent(state: MessagesState, config) -> Command[Literal["sales_age
 def call_transactions_agent(state: MessagesState, config) -> Command[Literal["transactions_agent", "human"]]:
     thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
     print(f"Calling transactions agent with Thread ID: {thread_id}")
-
+    config["configurable"]["activeAgent"] = "transactions_agent"
     response = transactions_agent.invoke(state)
     return Command(update=response, goto="human")
 

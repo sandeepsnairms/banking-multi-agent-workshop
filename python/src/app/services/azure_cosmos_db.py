@@ -17,6 +17,7 @@ container = None
 # Define Cosmos DB container for user data
 SESSION_CONTAINER = "Chat"
 DEBUG_CONTAINER = "Debug"
+chat_history_container = "ChatHistory"
 users_container = None
 offers_container = None
 session_container = None
@@ -37,6 +38,10 @@ try:
     CHECKPOINT_CONTAINER = database.create_container_if_not_exists(
         id=CHECKPOINT_CONTAINER,
         partition_key=PartitionKey(path="/partition_key"),
+    )
+    chat_history_container = database.create_container_if_not_exists(
+        id=chat_history_container,
+        partition_key=PartitionKey(path="/sessionId"),
     )
     users_container = database.create_container_if_not_exists(
         id="Users",
@@ -229,6 +234,15 @@ def create_account_record(account_data):
         raise e
 
 
+def create_service_request_record(account_data):
+    try:
+        account_container.upsert_item(account_data)
+        print(f"[DEBUG] Account record created: {account_data}")
+    except Exception as e:
+        print(f"[ERROR] Error creating account record: {e}")
+        raise e
+
+
 from azure.cosmos import exceptions
 
 
@@ -292,6 +306,7 @@ def fetch_account_by_number(account_number, tenantId, userId):
         print(f"[ERROR] Error fetching account by number: {e}")
         raise e
 
+
 def fetch_transactions_by_date_range(accountId: str, startDate: datetime, endDate: datetime) -> List[Dict]:
     """
     Retrieve the transaction history for a specific account between two dates.
@@ -312,8 +327,67 @@ def fetch_transactions_by_date_range(accountId: str, startDate: datetime, endDat
         {"name": "@startDate", "value": startDate.isoformat() + "Z"},
         {"name": "@endDate", "value": endDate.isoformat() + "Z"}
     ]
-    transactions = list(account_container.query_items(query=query, parameters=parameters, enable_cross_partition_query=True))
+    transactions = list(
+        account_container.query_items(query=query, parameters=parameters, enable_cross_partition_query=True))
     return transactions
+
+
+def update_active_agent_in_latest_message(sessionId: str, new_active_agent: str):
+    try:
+        # Fetch the latest message from the ChatHistory container
+        query = f"SELECT * FROM c WHERE c.sessionId = '{sessionId}' ORDER BY c._ts DESC OFFSET 0 LIMIT 1"
+        items = list(chat_history_container.query_items(query=query, enable_cross_partition_query=True))
+
+        if not items:
+            print(f"[DEBUG] No chat history found for sessionId: {sessionId}")
+            return
+
+        latest_message = items[0]
+        latest_message['sender'] = new_active_agent
+
+        # Upsert the updated message back into the ChatHistory container
+        chat_history_container.upsert_item(latest_message)
+        print(f"[DEBUG] Updated activeAgent in the latest message for sessionId: {sessionId}")
+
+    except Exception as e:
+        print(f"[ERROR] Error updating activeAgent in the latest message for sessionId: {sessionId}: {e}")
+        raise e
+
+
+def store_chat_history(data):
+    try:
+        chat_history_container.upsert_item(data)
+        print(f"[DEBUG] Chat history saved to Cosmos DB: {data}")
+    except Exception as e:
+        print(f"[ERROR] Error saving chat history to Cosmos DB: {e}")
+        raise e
+
+
+def fetch_chat_history_by_session(sessionId):
+    try:
+        query = f"SELECT * FROM c WHERE c.sessionId = '{sessionId}'"
+        items = list(chat_history_container.query_items(query=query, enable_cross_partition_query=True))
+        print(f"[DEBUG] Fetched {len(items)} chat history for sessionId: {sessionId}")
+        return items
+    except Exception as e:
+        print(f"[ERROR] Error fetching chat history for sessionId: {sessionId}: {e}")
+        raise e
+
+
+def delete_chat_history_by_session(sessionId):
+    try:
+        query = f"SELECT * FROM c WHERE c.sessionId = '{sessionId}'"
+        items = list(chat_history_container.query_items(query=query, enable_cross_partition_query=True))
+        if len(items) == 0:
+            print(f"[DEBUG] No chat history found for sessionId: {sessionId}")
+            return
+        for item in items:
+            chat_history_container.delete_item(item, partition_key=[sessionId])
+            print(f"[DEBUG] Deleted chat history for sessionId: {sessionId}")
+    except Exception as e:
+        print(f"[ERROR] Error deleting chat history for sessionId: {sessionId}: {e}")
+        raise e
+
 
 # Function to create a transaction record
 def create_transaction_record(transaction_data):

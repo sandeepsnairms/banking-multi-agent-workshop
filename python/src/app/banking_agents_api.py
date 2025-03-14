@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from fastapi import BackgroundTasks
 
 from azure.cosmos.exceptions import CosmosHttpResponseError
 from fastapi import FastAPI, Depends, HTTPException, Body
@@ -11,8 +12,11 @@ from langgraph_checkpoint_cosmosdb import CosmosDBSaver
 from langgraph.graph.state import CompiledStateGraph
 from starlette.middleware.cors import CORSMiddleware
 from src.app.banking_agents import graph, checkpointer
-from src.app.services.azure_cosmos_db import update_session_container, patch_active_agent, fetch_session_container_by_tenant_and_user, \
-    fetch_session_container_by_session, delete_userdata_item, debug_container, update_users_container, update_account_container, update_offers_container
+from src.app.services.azure_cosmos_db import update_session_container, patch_active_agent, \
+    fetch_session_container_by_tenant_and_user, \
+    fetch_session_container_by_session, delete_userdata_item, debug_container, update_users_container, \
+    update_account_container, update_offers_container, store_chat_history, update_active_agent_in_latest_message, \
+    session_container, fetch_chat_history_by_session, delete_chat_history_by_session
 import logging
 
 # Setup logging
@@ -36,12 +40,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 class DebugLog(BaseModel):
     id: str
     sessionId: str
     tenantId: str
     userId: str
     details: str
+
 
 class Session(BaseModel):
     id: str
@@ -52,6 +58,7 @@ class Session(BaseModel):
     tokensUsed: int = 0
     name: str
     messages: List
+
 
 class MessageModel(BaseModel):
     id: str
@@ -67,6 +74,7 @@ class MessageModel(BaseModel):
     tokensUsed: int
     rating: bool
     completionPromptId: str
+
 
 class DebugLog(BaseModel):
     id: str
@@ -182,12 +190,13 @@ def create_thread(tenantId: str, userId: str):
                    address=address, activeAgent=activeAgent, ChatName=ChatName, messages=messages)
 
 
-@app.get("/status", tags=[endpointTitle], description="Gets the service status", operation_id="GetServiceStatus", response_description="Success",
+@app.get("/status", tags=[endpointTitle], description="Gets the service status", operation_id="GetServiceStatus",
+         response_description="Success",
          response_model=str)
 def get_service_status():
     return "CosmosDBService: initializing"
 
-
+# this is dead code, we no longer need to retrieve messages from the checkpointer store
 def _fetch_messages_for_session(sessionId: str, tenantId: str, userId: str) -> List[MessageModel]:
     messages = []
     config = {
@@ -241,12 +250,15 @@ def _fetch_messages_for_session(sessionId: str, tenantId: str, userId: str) -> L
          description="Retrieves sessions from the given tenantId and userId", tags=[endpointTitle],
          response_model=List[Session])
 def get_chat_sessions(tenantId: str, userId: str):
+    print(f"Fetching sessions for tenantId: {tenantId} and userId: {userId}")
     items = fetch_session_container_by_tenant_and_user(tenantId, userId)
     sessions = []
 
     for item in items:
         sessionId = item["sessionId"]
-        messages = _fetch_messages_for_session(sessionId, tenantId, userId)
+        #messages = _fetch_messages_for_session(sessionId, tenantId, userId)
+        messages = fetch_chat_history_by_session(sessionId)
+
 
         session = {
             "id": sessionId,
@@ -266,10 +278,13 @@ def get_chat_sessions(tenantId: str, userId: str):
 @app.get("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/messages",
          description="Retrieves messages from the sessionId", tags=[endpointTitle], response_model=List[MessageModel])
 def get_chat_session(tenantId: str, userId: str, sessionId: str):
-    return _fetch_messages_for_session(sessionId, tenantId, userId)
+    #return _fetch_messages_for_session(sessionId, tenantId, userId)
+    return fetch_chat_history_by_session(sessionId)
+
 
 # to be implemented
-@app.post("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/message/{messageId}/rate", description="Not yet implemented", tags=[endpointTitle],
+@app.post("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/message/{messageId}/rate",
+          description="Not yet implemented", tags=[endpointTitle],
           operation_id="RateMessage", response_description="Success", response_model=MessageModel)
 def rate_message(tenantId: str, userId: str, sessionId: str, messageId: str, rating: bool):
     return {
@@ -288,8 +303,6 @@ def rate_message(tenantId: str, userId: str, sessionId: str, messageId: str, rat
         "completionPromptId": ""
     }
 
-
-# to be implemented
 @app.get("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/completiondetails/{debuglogId}",
          description="Retrieves debug information for chat completions", tags=[endpointTitle],
          operation_id="GetChatCompletionDetails", response_model=DebugLog)
@@ -302,7 +315,8 @@ def get_chat_completion_details(tenantId: str, userId: str, sessionId: str, debu
 
 
 # create a post function that renames the ChatName in the user data container
-@app.post("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/rename", description="Renames the chat session", tags=[endpointTitle], response_model=Session)
+@app.post("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/rename", description="Renames the chat session",
+          tags=[endpointTitle], response_model=Session)
 def rename_chat_session(tenantId: str, userId: str, sessionId: str, newChatSessionName: str):
     items = fetch_session_container_by_session(tenantId, userId, sessionId)
     if not items:
@@ -363,7 +377,7 @@ def delete_all_thread_records(cosmos_saver: CosmosDBSaver, thread_id: str) -> No
 
 # deletes the session user data container and all messages in the checkpointer store
 @app.delete("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}", tags=[endpointTitle], )
-def delete_chat_session(tenantId: str, userId: str, sessionId: str):
+def delete_chat_session(tenantId: str, userId: str, sessionId: str, background_tasks: BackgroundTasks):
     delete_userdata_item(tenantId, userId, sessionId)
 
     # Delete all messages in the checkpointer store
@@ -374,6 +388,10 @@ def delete_chat_session(tenantId: str, userId: str, sessionId: str):
         }
     }
     delete_all_thread_records(checkpointer, sessionId)
+    delete_chat_history_by_session(sessionId)
+
+    # Schedule the delete_all_thread_records function as a background task
+    background_tasks.add_task(delete_all_thread_records, checkpointer, sessionId)
 
     return {"message": "Session deleted successfully"}
 
@@ -384,7 +402,6 @@ def create_chat_session(tenantId: str, userId: str):
 
 
 def extract_relevant_messages(debug_lod_id, last_active_agent, response_data, tenantId, userId, sessionId):
-
     # Mapping for last_active_agent values
     agent_mapping = {
         "coordinator_agent": "Coordinator",
@@ -408,7 +425,8 @@ def extract_relevant_messages(debug_lod_id, last_active_agent, response_data, te
                 last_agent_node = response_data[i - 1]
                 last_agent_name = list(last_agent_node.keys())[0]
             break
-
+    print(f"in extract relevant messages, last_agent_name: {last_agent_name}")
+    print(f"in extract relevant messages, last_active_agent: {last_active_agent}")
     patch_active_agent(tenantId, userId, sessionId, last_agent_name)
 
     if not last_agent_node:
@@ -470,6 +488,8 @@ def get_chat_completion(
     #add userId and tenantId to the config
     config["configurable"]["userId"] = userId
     config["configurable"]["tenantId"] = tenantId
+    configLastActiveAgent = config["configurable"].get("activeAgent", "UNKNOWN_AGENT")
+
     checkpoints = list(checkpointer.list(config))
     last_active_agent = "coordinator_agent"  # Default fallback
     if not checkpoints:
@@ -483,7 +503,6 @@ def get_chat_completion(
         # Resume from last checkpoint
         last_checkpoint = checkpoints[-1]
         last_state = last_checkpoint.checkpoint  # Extract last known state
-
 
         # Ensure messages exist
         if "messages" not in last_state:
@@ -514,8 +533,52 @@ def get_chat_completion(
         )
         print(f"response_data: {response_data}")
         debug_lod_id = store_debug_log(sessionId, tenantId, userId, response_data)
+    print(f"configLastActiveAgent: {configLastActiveAgent}")
+    print(f"last_active_agent: ", last_active_agent)
+    messages = extract_relevant_messages(debug_lod_id, last_active_agent, response_data, tenantId, userId, sessionId)
+    for message in messages:
+        item = {
+            "id": message.id,
+            "type": message.type,
+            "sessionId": message.sessionId,
+            "tenantId": message.tenantId,
+            "userId": message.userId,
+            "timeStamp": message.timeStamp,
+            "sender": message.sender,
+            "senderRole": message.senderRole,
+            "text": message.text,
+            "debugLogId": message.debugLogId,
+            "tokensUsed": message.tokensUsed,
+            "rating": message.rating,
+            "completionPromptId": message.completionPromptId
+        }
+        store_chat_history(item)
+    # Fetch activeAgent from session container
+    query_result = list(session_container.query_items(
+        query=f"SELECT c.activeAgent FROM c WHERE c.id = '{sessionId}' AND c.userId = '{userId}' AND c.tenantId = '{tenantId}'",
+        enable_cross_partition_query=True
+    ))
 
-    return extract_relevant_messages(debug_lod_id, last_active_agent, response_data, tenantId, userId, sessionId)
+    # Ensure the query returns at least one result
+    if query_result:
+        activeAgent = query_result[0]["activeAgent"]  # Extract the actual value
+    else:
+        activeAgent = "unknown"  # Fallback to a default value
+
+    # Map agent name
+    agent_mapping = {
+        "coordinator_agent": "Coordinator",
+        "customer_support_agent": "CustomerSupport",
+        "transactions_agent": "Transactions",
+        "sales_agent": "Sales"
+    }
+
+    # Convert activeAgent to mapped value
+    last_active_agent = agent_mapping.get(activeAgent, activeAgent)
+
+    # Update the active agent in the latest message
+    update_active_agent_in_latest_message(sessionId, last_active_agent)
+    return messages
 
 
 @app.post("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/summarize-name", tags=[endpointTitle],
@@ -542,9 +605,11 @@ def summarize_chat_session_name(tenantId: str, userId: str, sessionId: str,
 
 
 @app.post("/tenant/{tenantId}/user/{userId}/semanticcache/reset", tags=[endpointTitle],
-          operation_id="ResetSemanticCache", response_description="Success", description="Semantic cache reset - not yet implemented",)
+          operation_id="ResetSemanticCache", response_description="Success",
+          description="Semantic cache reset - not yet implemented", )
 def reset_semantic_cache(tenantId: str, userId: str):
     return {"message": "Semantic cache reset not yet implemented"}
+
 
 # PUT API for /userdata (single document)
 @app.put("/userdata", tags=[dataLoadTitle], description="Inserts or updates a single user data record in Cosmos DB")
@@ -555,14 +620,17 @@ async def put_userdata(data: Dict):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to insert user data: {str(e)}")
 
+
 # PUT API for /accountdata (single document)
-@app.put("/accountdata", tags=[dataLoadTitle], description="Inserts or updates a single account data record in Cosmos DB")
+@app.put("/accountdata", tags=[dataLoadTitle],
+         description="Inserts or updates a single account data record in Cosmos DB")
 async def put_accountdata(data: Dict):
     try:
         update_account_container(data)
         return {"message": "Inserted account record successfully", "id": data.get("id")}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to insert account data: {str(e)}")
+
 
 # PUT API for /offerdata (single document)
 @app.put("/offerdata", tags=[dataLoadTitle], description="Inserts or updates a single offer data record in Cosmos DB")
@@ -572,4 +640,3 @@ async def put_offerdata(data: Dict):
         return {"message": "Inserted offer record successfully", "id": data.get("id")}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to insert offer data: {str(e)}")
-
