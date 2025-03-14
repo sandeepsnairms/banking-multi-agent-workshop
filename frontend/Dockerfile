@@ -1,20 +1,13 @@
-# Use an official Node.js image as base
-FROM node:18-alpine
-
-# Set the working directory inside the container
+# Stage 1: Build the Angular App
+FROM node:18 AS builder
 WORKDIR /app
-
-# Copy package.json and package-lock.json first to leverage Docker caching
 COPY package*.json ./
+RUN npm install
+COPY . .  # Ensure all files are copied
+RUN npm run build --configuration=production
 
-# Install dependencies
-RUN npm install --production
-
-# Copy the rest of the application files
-COPY . .
-
-# Expose port (optional, if the app runs on a specific port)
-EXPOSE 3000
-
-# Set the command to run the application
-CMD ["npm", "start"]
+# Stage 2: Serve App with Nginx
+FROM nginx:alpine
+COPY --from=builder /app/dist/multi-agent-app /usr/share/nginx/html
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
