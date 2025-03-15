@@ -25,6 +25,14 @@ logging.basicConfig(level=logging.ERROR)
 endpointTitle = "ChatEndpoints"
 dataLoadTitle = "DataLoadEndpoints"
 
+# Mapping for agent function names to standardized names
+agent_mapping = {
+    "coordinator_agent": "Coordinator",
+    "customer_support_agent": "CustomerSupport",
+    "transactions_agent": "Transactions",
+    "sales_agent": "Sales"
+}
+
 
 def get_compiled_graph():
     return graph
@@ -164,11 +172,9 @@ def store_debug_log(sessionId, tenantId, userId, response_data):
     return debug_log_id
 
 
-# Note: storing activeAgent is actually redundant as we can get last agent from latest graph state in checkpoint
-# and route back to it using that (see get_chat_completion). However, left it implemented for belt and braces
 def create_thread(tenantId: str, userId: str):
     sessionId = str(uuid.uuid4())
-    name = "John Doe"
+    name = userId
     age = 30
     address = "123 Main St"
     activeAgent = "unknown"
@@ -196,7 +202,13 @@ def create_thread(tenantId: str, userId: str):
 def get_service_status():
     return "CosmosDBService: initializing"
 
-# this is dead code, we no longer need to retrieve messages from the checkpointer store
+
+# Note: cosmos db checkpointer store is used internally by LangGraph for "memory": to maintain end-to-end state of each
+# conversation thread as contextual input to the OpenAI model.
+# However, this function is dead code, as we no longer retrieve chat history from the cosmos db checkpointer store to return in the API.
+# Abandoned this approach as the checkpointer store does not natively keep a record of which agent responded to the last message.
+# Also, retrieving messages from the checkpointer store is not efficient as it requires scanning more records than necessary for chat history.
+# Instead, we are now storing chat history in a separate custom cosmos db session container. Keeping this code for reference.
 def _fetch_messages_for_session(sessionId: str, tenantId: str, userId: str) -> List[MessageModel]:
     messages = []
     config = {
@@ -256,9 +268,7 @@ def get_chat_sessions(tenantId: str, userId: str):
 
     for item in items:
         sessionId = item["sessionId"]
-        #messages = _fetch_messages_for_session(sessionId, tenantId, userId)
         messages = fetch_chat_history_by_session(sessionId)
-
 
         session = {
             "id": sessionId,
@@ -278,7 +288,6 @@ def get_chat_sessions(tenantId: str, userId: str):
 @app.get("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/messages",
          description="Retrieves messages from the sessionId", tags=[endpointTitle], response_model=List[MessageModel])
 def get_chat_session(tenantId: str, userId: str, sessionId: str):
-    #return _fetch_messages_for_session(sessionId, tenantId, userId)
     return fetch_chat_history_by_session(sessionId)
 
 
@@ -302,6 +311,7 @@ def rate_message(tenantId: str, userId: str, sessionId: str, messageId: str, rat
         "rating": rating,
         "completionPromptId": ""
     }
+
 
 @app.get("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/completiondetails/{debuglogId}",
          description="Retrieves debug information for chat completions", tags=[endpointTitle],
@@ -387,7 +397,6 @@ def delete_chat_session(tenantId: str, userId: str, sessionId: str, background_t
             "checkpoint_ns": ""  # Ensure this matches the stored data
         }
     }
-    delete_all_thread_records(checkpointer, sessionId)
     delete_chat_history_by_session(sessionId)
 
     # Schedule the delete_all_thread_records function as a background task
@@ -402,14 +411,6 @@ def create_chat_session(tenantId: str, userId: str):
 
 
 def extract_relevant_messages(debug_lod_id, last_active_agent, response_data, tenantId, userId, sessionId):
-    # Mapping for last_active_agent values
-    agent_mapping = {
-        "coordinator_agent": "Coordinator",
-        "customer_support_agent": "CustomerSupport",
-        "transactions_agent": "Transactions",
-        "sales_agent": "Sales"
-    }
-
     # Convert last_active_agent to its mapped value
     last_active_agent = agent_mapping.get(last_active_agent, last_active_agent)
 
@@ -425,8 +426,9 @@ def extract_relevant_messages(debug_lod_id, last_active_agent, response_data, te
                 last_agent_node = response_data[i - 1]
                 last_agent_name = list(last_agent_node.keys())[0]
             break
-    print(f"in extract relevant messages, last_agent_name: {last_agent_name}")
-    print(f"in extract relevant messages, last_active_agent: {last_active_agent}")
+
+    # storing the last active agent in the session container so that we can retrieve it later
+    # and deterministically route the incoming message directly to the agent that asked the question.
     patch_active_agent(tenantId, userId, sessionId, last_agent_name)
 
     if not last_agent_node:
@@ -470,72 +472,7 @@ def extract_relevant_messages(debug_lod_id, last_active_agent, response_data, te
     ]
 
 
-@app.post("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/completion", tags=[endpointTitle],
-          response_model=List[MessageModel])
-def get_chat_completion(
-        tenantId: str,
-        userId: str,
-        sessionId: str,
-        request_body: str = Body(..., media_type="application/json"),
-        workflow: CompiledStateGraph = Depends(get_compiled_graph)
-):
-    debug_lod_id = ""
-    if not request_body.strip():
-        raise HTTPException(status_code=400, detail="Request body cannot be empty")
-
-    # Retrieve last checkpoint
-    config = {"configurable": {"thread_id": sessionId, "checkpoint_ns": ""}}
-    #add userId and tenantId to the config
-    config["configurable"]["userId"] = userId
-    config["configurable"]["tenantId"] = tenantId
-    configLastActiveAgent = config["configurable"].get("activeAgent", "UNKNOWN_AGENT")
-
-    checkpoints = list(checkpointer.list(config))
-    last_active_agent = "coordinator_agent"  # Default fallback
-    if not checkpoints:
-        # No previous state, start fresh
-        new_state = {
-            "messages": [{"role": "user", "content": request_body}]
-        }
-        response_data = workflow.invoke(new_state, config, stream_mode="updates")
-        debug_lod_id = store_debug_log(sessionId, tenantId, userId, response_data)
-    else:
-        # Resume from last checkpoint
-        last_checkpoint = checkpoints[-1]
-        last_state = last_checkpoint.checkpoint  # Extract last known state
-
-        # Ensure messages exist
-        if "messages" not in last_state:
-            last_state["messages"] = []
-
-        # Append the new user message to the saved state
-        last_state["messages"].append({"role": "user", "content": request_body})
-
-        # Extract last active agent from the transition path in `channel_versions`
-        last_active_agent = "coordinator_agent"  # Default fallback
-        if "channel_versions" in last_state:
-            for key in reversed(last_state["channel_versions"].keys()):
-                if key.startswith("branch:") and "__self__:human" in key:
-                    # Extract the agent name from the transition path
-                    last_active_agent = key.split(":")[1]  # Gets `loan_agent`, `banking_agent`, etc.
-                    break
-
-        print(f"Resuming execution from last active agent: {last_active_agent}")
-
-        # Force execution to continue at last active agent
-        last_state["langgraph_triggers"] = [f"resume:{last_active_agent}"]
-
-        # Resume execution using the updated state
-        response_data = workflow.invoke(
-            last_state,
-            config,
-            stream_mode="updates"
-        )
-        print(f"response_data: {response_data}")
-        debug_lod_id = store_debug_log(sessionId, tenantId, userId, response_data)
-    print(f"configLastActiveAgent: {configLastActiveAgent}")
-    print(f"last_active_agent: ", last_active_agent)
-    messages = extract_relevant_messages(debug_lod_id, last_active_agent, response_data, tenantId, userId, sessionId)
+def process_messages(messages, userId, tenantId, sessionId):
     for message in messages:
         item = {
             "id": message.id,
@@ -553,31 +490,64 @@ def get_chat_completion(
             "completionPromptId": message.completionPromptId
         }
         store_chat_history(item)
-    # Fetch activeAgent from session container
-    query_result = list(session_container.query_items(
-        query=f"SELECT c.activeAgent FROM c WHERE c.id = '{sessionId}' AND c.userId = '{userId}' AND c.tenantId = '{tenantId}'",
-        enable_cross_partition_query=True
-    ))
 
-    # Ensure the query returns at least one result
-    if query_result:
-        activeAgent = query_result[0]["activeAgent"]  # Extract the actual value
-    else:
-        activeAgent = "unknown"  # Fallback to a default value
+    partition_key = [tenantId, userId, sessionId]
+    # Get the active agent from Cosmos DB with a point lookup
+    activeAgent = session_container.read_item(item=sessionId, partition_key=partition_key).get('activeAgent', 'unknown')
 
-    # Map agent name
-    agent_mapping = {
-        "coordinator_agent": "Coordinator",
-        "customer_support_agent": "CustomerSupport",
-        "transactions_agent": "Transactions",
-        "sales_agent": "Sales"
-    }
-
-    # Convert activeAgent to mapped value
     last_active_agent = agent_mapping.get(activeAgent, activeAgent)
-
-    # Update the active agent in the latest message
     update_active_agent_in_latest_message(sessionId, last_active_agent)
+
+
+@app.post("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/completion", tags=[endpointTitle],
+          response_model=List[MessageModel])
+async def get_chat_completion(
+        tenantId: str,
+        userId: str,
+        sessionId: str,
+        background_tasks: BackgroundTasks,
+        request_body: str = Body(..., media_type="application/json"),
+        workflow: CompiledStateGraph = Depends(get_compiled_graph),
+
+):
+    if not request_body.strip():
+        raise HTTPException(status_code=400, detail="Request body cannot be empty")
+
+    # Retrieve last checkpoint
+    config = {"configurable": {"thread_id": sessionId, "checkpoint_ns": "", "userId": userId, "tenantId": tenantId}}
+    checkpoints = list(checkpointer.list(config))
+    last_active_agent = "coordinator_agent"  # Default fallback
+
+    if not checkpoints:
+        # No previous state, start fresh
+        new_state = {"messages": [{"role": "user", "content": request_body}]}
+        response_data = workflow.invoke(new_state, config, stream_mode="updates")
+    else:
+        # Resume from last checkpoint
+        last_checkpoint = checkpoints[-1]
+        last_state = last_checkpoint.checkpoint
+
+        if "messages" not in last_state:
+            last_state["messages"] = []
+
+        last_state["messages"].append({"role": "user", "content": request_body})
+
+        if "channel_versions" in last_state:
+            for key in reversed(last_state["channel_versions"].keys()):
+                if "agent" in key:
+                    last_active_agent = key.split(":")[1]
+                    break
+
+        last_state["langgraph_triggers"] = [f"resume:{last_active_agent}"]
+        response_data = workflow.invoke(last_state, config, stream_mode="updates")
+
+    debug_log_id = store_debug_log(sessionId, tenantId, userId, response_data)
+    messages = extract_relevant_messages(debug_log_id, last_active_agent, response_data, tenantId, userId, sessionId)
+
+    # Schedule storing chat history and updating correct agent in last message as a background task
+    # to avoid blocking the API response as this is not needed unless retrieving the message history later.
+    background_tasks.add_task(process_messages, messages, userId, tenantId, sessionId)
+
     return messages
 
 
@@ -611,7 +581,6 @@ def reset_semantic_cache(tenantId: str, userId: str):
     return {"message": "Semantic cache reset not yet implemented"}
 
 
-# PUT API for /userdata (single document)
 @app.put("/userdata", tags=[dataLoadTitle], description="Inserts or updates a single user data record in Cosmos DB")
 async def put_userdata(data: Dict):
     try:
@@ -621,7 +590,6 @@ async def put_userdata(data: Dict):
         raise HTTPException(status_code=500, detail=f"Failed to insert user data: {str(e)}")
 
 
-# PUT API for /accountdata (single document)
 @app.put("/accountdata", tags=[dataLoadTitle],
          description="Inserts or updates a single account data record in Cosmos DB")
 async def put_accountdata(data: Dict):
@@ -632,7 +600,6 @@ async def put_accountdata(data: Dict):
         raise HTTPException(status_code=500, detail=f"Failed to insert account data: {str(e)}")
 
 
-# PUT API for /offerdata (single document)
 @app.put("/offerdata", tags=[dataLoadTitle], description="Inserts or updates a single offer data record in Cosmos DB")
 async def put_offerdata(data: Dict):
     try:

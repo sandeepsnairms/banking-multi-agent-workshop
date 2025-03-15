@@ -1,9 +1,12 @@
+import logging
 import os
 from datetime import datetime
 from typing import List, Dict
 
 from azure.cosmos import CosmosClient, PartitionKey
 from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
+
+logging.basicConfig(level=logging.ERROR)
 
 # Azure Cosmos DB configuration
 COSMOS_DB_URL = os.getenv("COSMOSDB_ENDPOINT")
@@ -106,7 +109,7 @@ def vector_search(vectors, accountType):
 def update_session_container(data):
     try:
         session_container.upsert_item(data)
-        print(f"[DEBUG] User data saved to Cosmos DB: {data}")
+        logging.debug(f"User data saved to Cosmos DB: {data}")
     except Exception as e:
         print(f"[ERROR] Error saving user data to Cosmos DB: {e}")
         raise e
@@ -168,8 +171,6 @@ def fetch_session_container_by_session(tenantId, userId, sessionId):
 # patch the active agent in the user data container using patch operation
 def patch_active_agent(tenantId, userId, sessionId, activeAgent):
     try:
-        #filter = "from c WHERE p.used = false"
-
         operations = [
             {'op': 'replace', 'path': '/activeAgent', 'value': activeAgent}
         ]
@@ -241,9 +242,6 @@ def create_service_request_record(account_data):
     except Exception as e:
         print(f"[ERROR] Error creating account record: {e}")
         raise e
-
-
-from azure.cosmos import exceptions
 
 
 def fetch_latest_account_number():

@@ -4,10 +4,9 @@ from typing import List, Dict
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 
-from src.app.services.azure_cosmos_db import fetch_latest_transaction_number, fetch_account_by_number, create_transaction_record, \
+from src.app.services.azure_cosmos_db import fetch_latest_transaction_number, fetch_account_by_number, \
+    create_transaction_record, \
     patch_account_record, fetch_transactions_by_date_range
-
-
 
 
 @tool
@@ -25,8 +24,9 @@ def bank_transfer(config: RunnableConfig, toAccount: str, fromAccount: str, amou
 
     return f"Successfully transferred ${amount} from account {fromAccount} to account {toAccount}"
 
+
 def bank_transaction(config: RunnableConfig, account_number: str, amount: float, credit_account: float,
-                  debit_account: float) -> str:
+                     debit_account: float) -> str:
     """Transfer to bank agent"""
     global new_balance
     tenantId = config["configurable"].get("tenantId", "UNKNOWN_TENANT_ID")
@@ -72,6 +72,7 @@ def bank_transaction(config: RunnableConfig, account_number: str, amount: float,
     patch_account_record(account["accountId"], new_balance)
     return f"Successfully transferred ${amount} to account number {account_number}"
 
+
 @tool
 def get_transaction_history(accountId: str, startDate: datetime, endDate: datetime) -> List[Dict]:
     """
@@ -89,6 +90,7 @@ def get_transaction_history(accountId: str, startDate: datetime, endDate: dateti
         logging.error(f"Error fetching transaction history for account {accountId}: {e}")
         return []
 
+
 @tool
 def bank_balance(config: RunnableConfig, account_number: str) -> str:
     """Retrieve the balance for a specific bank account."""
@@ -102,6 +104,3 @@ def bank_balance(config: RunnableConfig, account_number: str) -> str:
 
     balance = account.get("balance", 0)
     return f"The balance for account number {account_number} is ${balance}"
-
-
-

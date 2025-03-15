@@ -1,8 +1,13 @@
+from colorama import Fore, Style
 from langchain_core.tools import tool
 from typing import Annotated
 from langchain_core.tools.base import InjectedToolCallId
-from langgraph.prebuilt import create_react_agent, InjectedState
+from langgraph.prebuilt import InjectedState
 from langgraph.types import Command
+
+
+def transfer_to_agent_message(agent):
+    print(Fore.LIGHTMAGENTA_EX + f"transfer_to_{agent}..." + Style.RESET_ALL)
 
 
 def create_agent_transfer(*, agent_name: str):
@@ -21,6 +26,7 @@ def create_agent_transfer(*, agent_name: str):
             "name": tool_name,
             "tool_call_id": tool_call_id,
         }
+        transfer_to_agent_message(agent_name)
         return Command(
             goto=agent_name,
             graph=Command.PARENT,

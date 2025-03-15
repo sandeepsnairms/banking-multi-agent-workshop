@@ -20,6 +20,7 @@ def get_azure_ad_token():
         raise e
     return token.token
 
+
 def generate_embedding(text):
     response = aoai_client.embeddings.create(input=text, model=os.getenv("AZURE_OPENAI_EMBEDDINGDEPLOYMENTID"))
     json_response = response.model_dump_json(indent=2)

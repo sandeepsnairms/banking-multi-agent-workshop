@@ -69,4 +69,8 @@ This is a sample that exposes turn-by-turn conversation with a multi-agent banki
     ```bash
     python test/banking_agents_api_cli.py
     ```
+   Or run the banking_agents.py file directly:
+    ```bash
+    python -m src.app.banking_agents
+    ```
 ![Demo](./media/demo.gif)
