@@ -1,4 +1,9 @@
+import os
 import uuid
+from opencensus.ext.azure.log_exporter import AzureLogHandler
+from opencensus.ext.azure.trace_exporter import AzureExporter
+from opencensus.trace.tracer import Tracer
+from opencensus.trace.samplers import ProbabilitySampler
 from datetime import datetime
 from fastapi import BackgroundTasks
 
@@ -22,6 +27,8 @@ import logging
 # Setup logging
 logging.basicConfig(level=logging.ERROR)
 
+INSTRUMENTATION_KEY = os.getenv("ApplicationInsightsConnectionString", "<Your-App-Insights-Key>")
+
 endpointTitle = "ChatEndpoints"
 dataLoadTitle = "DataLoadEndpoints"
 
@@ -38,7 +45,24 @@ def get_compiled_graph():
     return graph
 
 
+# Configure logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+logger.addHandler(AzureLogHandler(connection_string=INSTRUMENTATION_KEY))
+
+# Initialize tracing
+tracer = Tracer(exporter=AzureExporter(connection_string=INSTRUMENTATION_KEY),
+                sampler=ProbabilitySampler(1.0))
+
 app = FastAPI(title="Cosmos DB Multi-Agent Banking API", openapi_url="/cosmos-multi-agent-api.json")
+
+
+@app.middleware("http")
+async def add_tracing_middleware(request, call_next):
+    with tracer.span(name=request.url.path):
+        response = await call_next(request)
+    return response
+
 
 app.add_middleware(
     CORSMiddleware,
