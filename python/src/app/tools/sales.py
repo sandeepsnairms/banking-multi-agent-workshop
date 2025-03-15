@@ -1,11 +1,9 @@
-from random import random
 from typing import Any
 
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 
-from src.app.services import azure_cosmos_db
-from src.app.services.azure_cosmos_db import DATABASE_NAME, offers_container, vector_search, create_account_record, \
+from src.app.services.azure_cosmos_db import vector_search, create_account_record, \
     fetch_latest_account_number
 from src.app.services.azure_open_ai import generate_embedding
 
@@ -30,12 +28,8 @@ def create_account(account_holder: str, balance: float, config: RunnableConfig) 
     """
     print(f"Creating account for {account_holder}")
     thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
-    print(f"In create_account tool, thread ID: {thread_id}")
     userId = config["configurable"].get("userId", "UNKNOWN_USER_ID")
     tenantId = config["configurable"].get("tenantId", "UNKNOWN_TENANT_ID")
-    print(f"In create_account tool, user ID: {userId}")
-    print(f"In create_account tool, tenant ID: {tenantId}")
-
     max_attempts = 10
     account_number = fetch_latest_account_number()
 
