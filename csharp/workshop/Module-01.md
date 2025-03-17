@@ -33,14 +33,136 @@ In this session ou will get a deeper introduction into the Semantic Kernel Agent
 
 In this hands-on exercise, you will learn how to initialize an agent framework and integrate it with a large langugage model.
 
+### Add SemanticKernelService
 
-### Add SK Service
+Add **ISemanticKernelService.cs** to **ChatInfrastructure\Interfaces\**
 
-### Add SKService Config
+Add **SemanticKernelService.cs** to **ChatInfrastructure\Services\**
+
+Study the constructor
+
+```C#
+
+public SemanticKernelService(
+        IOptions<SemanticKernelServiceSettings> options,
+        ILoggerFactory loggerFactory)
+    {
+        _settings = options.Value;
+        _loggerFactory = loggerFactory;
+        _logger = _loggerFactory.CreateLogger<SemanticKernelService>();
+        _promptDebugProperties = new List<LogProperty>();
+
+        _logger.LogInformation("Initializing the Semantic Kernel service...");
+
+        var builder = Kernel.CreateBuilder();
+
+        builder.Services.AddSingleton<ILoggerFactory>(loggerFactory);
+
+        DefaultAzureCredential credential;
+        if (string.IsNullOrEmpty(_settings.AzureOpenAISettings.UserAssignedIdentityClientID))
+        {
+            credential = new DefaultAzureCredential();
+        }
+        else
+        {
+            credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
+            {
+                ManagedIdentityClientId = _settings.AzureOpenAISettings.UserAssignedIdentityClientID
+            });
+        }
+        builder.AddAzureOpenAIChatCompletion(
+            _settings.AzureOpenAISettings.CompletionsDeployment,
+            _settings.AzureOpenAISettings.Endpoint,
+            credential);
+
+        builder.AddAzureOpenAITextEmbeddingGeneration(
+               _settings.AzureOpenAISettings.EmbeddingsDeployment,
+               _settings.AzureOpenAISettings.Endpoint,
+               credential);
+
+        _semanticKernel = builder.Build();
+
+        Task.Run(Initialize).ConfigureAwait(false);
+    }
+
+
+```
+
+Focus on the 2 below functions
+
+```csharp
+
+public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory,  string tenantId, string userId)
+    {
+
+        try
+        {
+            
+            ChatCompletionAgent agent = new ChatCompletionAgent
+            {
+                Name = "BasicAgent",
+                Instructions = "Greet the user and translate the request into French",
+                Kernel = _semanticKernel.Clone()
+            };
+
+            ChatHistory chatHistory = [];
+
+            chatHistory.AddUserMessage(userMessage.Text);
+
+            _promptDebugProperties = new List<LogProperty>();
+
+            List<Message> completionMessages = new();
+            List<DebugLog> completionMessagesLogs = new();
+
+            ChatMessageContent message = new(AuthorRole.User, userMessage.Text);
+            chatHistory.Add(message);
+
+            await foreach (ChatMessageContent response in agent.InvokeAsync(chatHistory))
+            {
+                string messageId = Guid.NewGuid().ToString();
+                completionMessages.Add(new Message(userMessage.TenantId, userMessage.UserId, userMessage.SessionId, response.AuthorName ?? string.Empty, response.Role.ToString(), response.Content ?? string.Empty, messageId));
+            }            
+            return new Tuple<List<Message>, List<DebugLog>>(completionMessages, completionMessagesLogs);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.ToString());
+            return new Tuple<List<Message>, List<DebugLog>>(new List<Message>(), new List<DebugLog>());
+        }
+    }
+
+
+    public async Task<string> Summarize(string sessionId, string userPrompt)
+    {
+        try
+        {
+            // Use an AI function to summarize the text in 2 words
+            var summarizeFunction = _semanticKernel.CreateFunctionFromPrompt(
+                "Summarize the following text into exactly two words:\n\n{{$input}}",
+                executionSettings: new OpenAIPromptExecutionSettings { MaxTokens = 10 }
+            );
+
+            // Invoke the function
+            var summary = await _semanticKernel.InvokeAsync(summarizeFunction, new() { ["input"] = userPrompt });
+
+            return summary.GetValue<string>() ?? "No summary generated";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.ToString());
+            return string.Empty;
+        }
+    }
+
+```
+
+### Add SemanticKernelServiceSettings Config
+
+Add **AzureOpenAISettings.cs** and **SemanticKernelServiceSettings.cs** to **Common\Models\Configuration\**
 
 ### Add SK Dependency
 
-Update ChatInfrastructure\Services\DependencyInjection.cs, add the following function to **DependencyInjection**
+Update **ChatInfrastructure\Services\DependencyInjection.cs**, add the following function to **DependencyInjection** class
 
 ```c#
         /// <summary>
@@ -56,18 +178,18 @@ Update ChatInfrastructure\Services\DependencyInjection.cs, add the following fun
 
 ```
 
-#### Add SkService to Chat Service
+#### Integrate SemanticKernelService to ChatService
 
 Update ChatInfrastructure\Services\ChatService.cs
 
-Add SK object
+Create ISemanticKernelService object
 
 ```csharp
 private readonly ISemanticKernelService _skService;
 
 ```
 
-Update constructor to add SK Config
+Update ChatService constructor to add SemanticKernelServiceSettings
 
 ```csharp
  public ChatService(
@@ -85,22 +207,82 @@ Update constructor to add SK Config
 ```
 
 
-**TBD - this needs langauge specific instructions**
-
-
 ## Activity 4: Create a Simple Customer Service Agent
 
 In this hands-on exercise, you will create a simple customer service agent that users interact with and generates completions using a large language model.
 
-**TBD - this needs langauge specific instructions**
+### Integrate SK to Chat Service
+
+Update GetChatCompletionAsync to
+
+```csharp
+ public async Task<List<Message>> GetChatCompletionAsync(string tenantId, string userId,string? sessionId, string userPrompt)
+    {
+        try
+        {
+            ArgumentNullException.ThrowIfNull(sessionId);
+            
+
+            // Add both prompt and completion to cache, then persist in Cosmos DB
+            var userMessage = new Message(tenantId,userId,sessionId, "User","User", userPrompt);
+
+            // Generate the completion to return to the user
+            var result = await _skService.GetResponse(userMessage, new List<Message>(), tenantId,userId);
+
+            
+
+            return result.Item1;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error getting completion in session {sessionId} for user prompt [{userPrompt}].");
+#pragma warning disable CS8603 // Possible null reference return.
+            return null;
+#pragma warning restore CS8603 // Possible null reference return.
+        }
+    }
+
+```
+
+Update SummarizeChatSessionNameAsync to
+
+```csharp
+public async Task<string> SummarizeChatSessionNameAsync(string tenantId, string userId,string? sessionId, string prompt)
+    {
+        try
+        {
+            ArgumentNullException.ThrowIfNull(sessionId);
+
+            var summary = await _skService.Summarize(sessionId, prompt);
+
+            var session = await RenameChatSessionAsync(tenantId, userId,sessionId, summary);
+
+            return session.Name;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error getting a summary in session {sessionId} for user prompt [{prompt}].");
+#pragma warning disable CS8603 // Possible null reference return.
+            return null;
+#pragma warning restore CS8603 // Possible null reference return.
+        }
+
+    }
+
+``
+
+
 
 
 ## Activity 5: Test your Work
 
 With the hands-on exercises complete it is time to test your work.
 
-**TBD - this needs langauge specific instructions**
-
+1. Start a Chat Session in the UI
+2. Send the message.
+3. Expected response is a greeting along with the message you sent translated  in French.
+4. Send a couple more messages.
+5. Your Chat Session name should be now updated with a two word summary based on session messages.
 
 ### Validation Checklist
 
