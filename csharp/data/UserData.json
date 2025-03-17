@@ -1,10 +1,10 @@
 [
     {
-        "id": "U1",
-        "tenantId": "T1",
-        "name": "John Doe",
+        "id": "Mark",
+        "tenantId": "Contoso",
+        "name": "Mark Brown",
         "type": "BankUser",
-        "email": "johndoe@example.com",
+        "email": "markbrown@contoso.com",
         "phoneNumber": "123-456-7890",
         "attributes": {
             "annualSalary": 85000,
@@ -19,11 +19,11 @@
         "_ts": 1739865906
     },
     {
-        "id": "U2",
-        "tenantId": "T1",
-        "name": "Jane Smith",
+        "id": "Sandeeep",
+        "tenantId": "Contoso",
+        "name": "Sandeep Nair",
         "type": "BankUser",
-        "email": "janesmith@example.com",
+        "email": "sandeepnair@contoso.com",
         "phoneNumber": "987-654-3210",
         "attributes": {
             "annualSalary": 95000,
@@ -38,10 +38,10 @@
         "_ts": 1739865926
     },
     {
-        "id": "U3",
-        "tenantId": "T1",
-        "name": "Alice Johnson",
-        "email": "alicej@example.com",
+        "id": "Theo",
+        "tenantId": "Contoso",
+        "name": "Theo van Kraay",
+        "email": "theo@contoso.com",
         "type": "BankUser",
         "phoneNumber": "555-123-6789",
         "attributes": {
@@ -57,10 +57,10 @@
         "_ts": 1739865932
     },
     {
-        "id": "U4",
-        "tenantId": "T2",
-        "name": "Bob Brown",
-        "email": "bobbrown@example.com",
+        "id": "Sajee",
+        "tenantId": "Fabrikan",
+        "name": "Sajeetharan Sinnathurai",
+        "email": "sajee@contoso.com",
         "type": "BankUser",
         "phoneNumber": "444-987-6543",
         "attributes": {
@@ -76,10 +76,10 @@
         "_ts": 1739865939
     },
     {
-        "id": "U5",
-        "tenantId": "T2",
-        "name": "Charlie Davis",
-        "email": "charlied@example.com",
+        "id": "Abhishek",
+        "tenantId": "Fabrikan",
+        "name": "Abhishek Gupta",
+        "email": "abhishek@fabrikan.com",
         "type": "BankUser",
         "phoneNumber": "222-888-7777",
         "attributes": {
@@ -95,10 +95,10 @@
         "_ts": 1739865944
     },
     {
-        "id": "U6",
-        "tenantId": "T2",
+        "id": "David",
+        "tenantId": "Fabrikan",
         "name": "David Wilson",
-        "email": "davidw@example.com",
+        "email": "davidw@contoso.com",
         "type": "BankUser",
         "phoneNumber": "666-777-8888",
         "attributes": {
@@ -112,24 +112,6 @@
         "_etag": "\"2d00d53e-0000-2200-0000-67b43f5d0000\"",
         "_attachments": "attachments/",
         "_ts": 1739865949
-    },
-    {
-        "id": "Mark",
-        "tenantId": "Contoso",
-        "name": "Mark Doe",
-        "type": "BankUser",
-        "email": "Markdoe@example.com",
-        "phoneNumber": "123-456-7890",
-        "attributes": {
-            "annualSalary": 85000,
-            "creditScore": 750,
-            "debtToIncomeRatio": 0.25,
-            "investmentPortfolioValue": 50000
-        },
-        "_rid": "NaEpAMBDdBQKAAAAAAAAAA==",
-        "_self": "dbs/NaEpAA==/colls/NaEpAMBDdBQ=/docs/NaEpAMBDdBQKAAAAAAAAAA==/",
-        "_etag": "\"2d00117a-0000-2200-0000-67b489130000\"",
-        "_attachments": "attachments/",
-        "_ts": 1739884819
     }
+    
 ]

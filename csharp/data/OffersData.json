@@ -1,14 +1,15 @@
 [
   {
-    "id": "offer1",
-    "tenantId": "T1",
+    "id": "Offer1",
+    "tenantId": "Contoso",
+    "type":"Offer",
     "name": "SmartSaver Plus",
     "description": "A high-interest savings account with no monthly fees. Enjoy free ATM withdrawals, easy access to your funds, and excellent customer support.",
     "accountType": "Savings",
     "eligibilityConditions": {
       "annualSalary": "Minimum $30,000",
-      "creditScore": "650\u002B",
-      "age": "18\u002B"
+      "creditScore": "650",
+      "age": "18"
     },
     "prerequsiteSubmissions": {
       "documents": "Proof of identity, Proof of address",
@@ -16,15 +17,16 @@
     }
   },
   {
-    "id": "offer2",
-    "tenantId": "T1",
+    "id": "Offer2",
+    "tenantId": "Contoso",
+    "type":"Offer",
     "name": "Credit Boost Card",
     "description": "A premium credit card offering cash back on all purchases. Enjoy exclusive rewards and up to 5% cash back on select categories.",
     "accountType": "CreditCard",
     "eligibilityConditions": {
       "annualSalary": "Minimum $40,000",
-      "creditScore": "700\u002B",
-      "age": "21\u002B"
+      "creditScore": "700",
+      "age": "21"
     },
     "prerequsiteSubmissions": {
       "documents": "Government-issued id, Proof of income",
@@ -32,15 +34,16 @@
     }
   },
   {
-    "id": "offer3",
-    "tenantId": "T1",
+    "id": "Offer3",
+    "tenantId": "Contoso",
+    "type":"Offer",
     "name": "LockerVault Secure",
     "description": "A safe and secure locker for storing valuable documents and items. Access 24/7 with security clearance.",
     "accountType": "Locker",
     "eligibilityConditions": {
       "annualSalary": "Minimum $20,000",
       "creditScore": "N/A",
-      "age": "25\u002B"
+      "age": "25"
     },
     "prerequsiteSubmissions": {
       "documents": "id proof, Address proof",
@@ -48,15 +51,16 @@
     }
   },
   {
-    "id": "offer4",
-    "tenantId": "T1",
+    "id": "Offer4",
+    "tenantId": "Contoso",
+    "type":"Offer",
     "name": "SuperSaver Account",
     "description": "Earn high interest on your savings with no monthly maintenance fees. ideal for long-term saving goals.",
     "accountType": "Savings",
     "eligibilityConditions": {
       "annualSalary": "Minimum $25,000",
-      "creditScore": "600\u002B",
-      "age": "18\u002B"
+      "creditScore": "600",
+      "age": "18"
     },
     "prerequsiteSubmissions": {
       "documents": "Passport or driving license, Proof of residence",
@@ -64,15 +68,16 @@
     }
   },
   {
-    "id": "offer5",
-    "tenantId": "T1",
+    "id": "Offer5",
+    "tenantId": "Contoso",
+    "type":"Offer",
     "name": "Elite Rewards Card",
     "description": "A credit card offering luxury benefits including airport lounge access, travel insurance, and concierge service.",
     "accountType": "CreditCard",
     "eligibilityConditions": {
       "annualSalary": "Minimum $50,000",
-      "creditScore": "750\u002B",
-      "age": "30\u002B"
+      "creditScore": "750",
+      "age": "30"
     },
     "prerequsiteSubmissions": {
       "documents": "Valid passport, Proof of income",
@@ -80,15 +85,16 @@
     }
   },
   {
-    "id": "offer6",
-    "tenantId": "T1",
+    "id": "Offer6",
+    "tenantId": "Contoso",
+    "type":"Offer",
     "name": "GoldSaver Account",
     "description": "A premium savings account with exclusive benefits for members. Enjoy personalized financial advice and higher interest rates.",
     "accountType": "Savings",
     "eligibilityConditions": {
       "annualSalary": "Minimum $35,000",
-      "creditScore": "700\u002B",
-      "age": "18\u002B"
+      "creditScore": "700",
+      "age": "18"
     },
     "prerequsiteSubmissions": {
       "documents": "Government id, Address proof",
@@ -96,15 +102,16 @@
     }
   },
   {
-    "id": "offer7",
-    "tenantId": "T1",
+    "id": "Offer7",
+    "tenantId": "Contoso",
+    "type":"Offer",
     "name": "SecureLock Vault",
     "description": "Rent a safe deposit box with enhanced security features. Store your valuables in a state-of-the-art facility.",
     "accountType": "Locker",
     "eligibilityConditions": {
       "annualSalary": "Minimum $20,000",
       "creditScore": "N/A",
-      "age": "25\u002B"
+      "age": "25"
     },
     "prerequsiteSubmissions": {
       "documents": "Passport, Utility bill",
@@ -112,15 +119,16 @@
     }
   },
   {
-    "id": "offer8",
-    "tenantId": "T1",
+    "id": "Offer8",
+    "tenantId": "Contoso",
+    "type":"Offer",
     "name": "Freedom Credit Card",
     "description": "A flexible credit card with low interest rates and no annual fee. Earn rewards on every purchase.",
     "accountType": "CreditCard",
     "eligibilityTags": {
       "annualSalary": "Minimum $30,000",
-      "creditScore": "650\u002B",
-      "age": "21\u002B"
+      "creditScore": "650",
+      "age": "21"
     },
     "prerequsiteSubmissions": {
       "documents": "id proof, Credit history",
@@ -128,15 +136,16 @@
     }
   },
   {
-    "id": "offer9",
-    "tenantId": "T1",
+    "id": "Offer9",
+    "tenantId": "Contoso",
+    "type":"Offer",
     "name": "SaverPlus High Yield",
     "description": "Save more with higher interest rates and flexible terms. ideal for customers who want to grow their savings faster.",
     "accountType": "Savings",
     "eligibilityConditions": {
       "annualSalary": "Minimum $40,000",
-      "creditScore": "700\u002B",
-      "age": "18\u002B"
+      "creditScore": "700",
+      "age": "18"
     },
     "prerequsiteSubmissions": {
       "documents": "Tax returns, Proof of address",
@@ -144,15 +153,16 @@
     }
   },
   {
-    "id": "offer10",
-    "tenantId": "T1",
+    "id": "Offer10",
+    "tenantId": "Contoso",
+    "type":"Offer",
     "name": "GoldGuard Credit Card",
     "description": "A credit card with exclusive offers, cashback, and access to global rewards programs.",
     "accountType": "CreditCard",
     "eligibilityConditions": {
       "annualSalary": "Minimum $45,000",
-      "creditScore": "700\u002B",
-      "age": "25\u002B"
+      "creditScore": "700",
+      "age": "25"
     },
     "prerequsiteSubmissions": {
       "documents": "Proof of income, id",
@@ -160,9 +170,9 @@
     }
   },
   {
-    "id": "t1",
-    "tenantId": "T1",
-    "offerId": "offer1",
+    "id": "OfferTerm1",
+    "tenantId": "Contoso",
+    "OfferId": "Offer1",
     "name": "SmartSaver Plus",
     "text": "With SmartSaver Plus, enjoy a savings account that has absolutely no monthly maintenance fees. You can deposit and withdraw money freely without worrying about hidden charges. This makes it an ideal choice for individuals looking to grow their savings efficiently while maintaining full control over their financial transactions.",
     "type": "Term",
@@ -1707,9 +1717,9 @@
     ]
   },
   {
-    "id": "t2",
-    "tenantId": "T1",
-    "offerId": "offer1",
+    "id": "OfferTerm2",
+    "tenantId": "Contoso",
+    "OfferId": "Offer1",
     "name": "SmartSaver Plus",
     "text": "SmartSaver Plus offers an attractive interest rate that helps your savings grow faster over time. With our competitive rates, your money works for you even when it\u0027s sitting in your account. Whether you are saving for short-term goals or long-term financial security, this account ensures you earn more effortlessly.",
     "type": "Term",
@@ -3254,9 +3264,9 @@
     ]
   },
   {
-    "id": "t3",
-    "tenantId": "T1",
-    "offerId": "offer1",
+    "id": "OfferTerm3",
+    "tenantId": "Contoso",
+    "OfferId": "Offer1",
     "name": "SmartSaver Plus",
     "text": "Enjoy unlimited free ATM withdrawals with SmartSaver Plus, giving you easy access to your funds whenever needed. Whether you\u0027re withdrawing cash locally or traveling, you won\u2019t have to worry about additional fees. This feature provides flexibility and convenience, ensuring that your hard-earned money remains fully available to you at all times.",
     "type": "Term",
@@ -4801,9 +4811,9 @@
     ]
   },
   {
-    "id": "t4",
-    "tenantId": "T1",
-    "offerId": "offer1",
+    "id": "OfferTerm4",
+    "tenantId": "Contoso",
+    "OfferId": "Offer1",
     "name": "SmartSaver Plus",
     "text": "To qualify for SmartSaver Plus, applicants must have a minimum annual salary of $30,000. This ensures that the account is best suited for individuals with a steady income, allowing them to take full advantage of the savings benefits and financial flexibility that come with maintaining a high-yield savings account.",
     "type": "Term",
@@ -6348,9 +6358,9 @@
     ]
   },
   {
-    "id": "t5",
-    "tenantId": "T1",
-    "offerId": "offer1",
+    "id": "OfferTerm5",
+    "tenantId": "Contoso",
+    "OfferId": "Offer1",
     "name": "SmartSaver Plus",
     "text": "A minimum credit score of 650 is required to open a SmartSaver Plus account. This helps ensure financial responsibility among account holders and allows us to offer premium benefits. By maintaining a good credit score, applicants demonstrate their ability to manage finances effectively, making them eligible for our best savings rates and offers.",
     "type": "Term",
@@ -7895,9 +7905,9 @@
     ]
   },
   {
-    "id": "t6",
-    "tenantId": "T1",
-    "offerId": "offer1",
+    "id": "OfferTerm6",
+    "tenantId": "Contoso",
+    "OfferId": "Offer1",
     "name": "SmartSaver Plus",
     "text": "Applicants must be at least 18 years old to open a SmartSaver Plus account. This ensures that all account holders are legally eligible to manage their finances independently. Whether you\u0027re a young professional or a seasoned saver, this account provides a solid foundation to start building a secure financial future.",
     "type": "Term",
@@ -9442,9 +9452,9 @@
     ]
   },
   {
-    "id": "t7",
-    "tenantId": "T1",
-    "offerId": "offer1",
+    "id": "OfferTerm7",
+    "tenantId": "Contoso",
+    "OfferId": "Offer1",
     "name": "SmartSaver Plus",
     "text": "To open a SmartSaver Plus account, applicants must provide a valid government-issued proof of identity, such as a passport or driver\u2019s license. This verification step ensures security and compliance with banking regulations, safeguarding your account from unauthorized access and providing a trusted banking experience with complete peace of mind.",
     "type": "Term",
@@ -10989,9 +10999,9 @@
     ]
   },
   {
-    "id": "t8",
-    "tenantId": "T1",
-    "offerId": "offer1",
+    "id": "OfferTerm8",
+    "tenantId": "Contoso",
+    "OfferId": "Offer1",
     "name": "SmartSaver Plus",
     "text": "Proof of address is required when applying for SmartSaver Plus. Accepted documents include utility bills, bank statements, or rental agreements issued within the last three months. This verification helps confirm your residency, ensuring compliance with banking policies while allowing us to provide secure and personalized financial services to all account holders.",
     "type": "Term",
@@ -12536,9 +12546,9 @@
     ]
   },
   {
-    "id": "t9",
-    "tenantId": "T1",
-    "offerId": "offer1",
+    "id": "OfferTerm9",
+    "tenantId": "Contoso",
+    "OfferId": "Offer1",
     "name": "SmartSaver Plus",
     "text": "A recent payslip or proof of income is necessary when applying for SmartSaver Plus. This document helps verify financial stability, ensuring that applicants meet the minimum salary requirement. Whether you\u0027re employed full-time, self-employed, or have alternative income sources, providing this information allows us to offer you the best savings solutions.",
     "type": "Term",
@@ -14083,9 +14093,9 @@
     ]
   },
   {
-    "id": "t10",
-    "tenantId": "T1",
-    "offerId": "offer1",
+    "id": "OfferTerm10",
+    "tenantId": "Contoso",
+    "OfferId": "Offer1",
     "name": "SmartSaver Plus",
     "text": "SmartSaver Plus comes with 24/7 customer support to assist you with any account-related inquiries or issues. Our dedicated team ensures that your banking experience is seamless, whether you need help with transactions, account features, or security concerns. We\u0027re always available to provide the guidance and assistance you need, anytime and anywhere.",
     "type": "Term",
@@ -15630,9 +15640,9 @@
     ]
   },
   {
-    "id": "t11",
-    "tenantId": "T1",
-    "offerId": "offer4",
+    "id": "OfferTerm11",
+    "tenantId": "Contoso",
+    "OfferId": "Offer4",
     "name": "SuperSaver Account",
     "text": "The SuperSaver Account allows you to earn high interest on your savings while enjoying zero monthly maintenance fees. Designed for individuals focused on long-term financial growth, this account ensures that your money works for you while providing easy access to funds whenever needed, making saving effortless and rewarding.",
     "type": "Term",
@@ -17177,9 +17187,9 @@
     ]
   },
   {
-    "id": "t12",
-    "tenantId": "T1",
-    "offerId": "offer4",
+    "id": "OfferTerm12",
+    "tenantId": "Contoso",
+    "OfferId": "Offer4",
     "name": "SuperSaver Account",
     "text": "Maximize your savings potential with SuperSaver Account\u2019s high interest rates. Whether you\u0027re saving for a major life goal or building an emergency fund, your balance grows steadily. Unlike regular savings accounts, this account provides competitive rates that help you achieve financial stability faster, ensuring you get the most out of your money.",
     "type": "Term",
@@ -18724,9 +18734,9 @@
     ]
   },
   {
-    "id": "t13",
-    "tenantId": "T1",
-    "offerId": "offer4",
+    "id": "OfferTerm13",
+    "tenantId": "Contoso",
+    "OfferId": "Offer4",
     "name": "SuperSaver Account",
     "text": "With the SuperSaver Account, you don\u2019t have to worry about monthly maintenance fees. Your savings remain intact without deductions, allowing you to grow your funds without unnecessary costs. This account is ideal for anyone who wants a hassle-free savings experience with full transparency and no hidden charges affecting their balance.",
     "type": "Term",
@@ -20271,9 +20281,9 @@
     ]
   },
   {
-    "id": "t14",
-    "tenantId": "T1",
-    "offerId": "offer4",
+    "id": "OfferTerm14",
+    "tenantId": "Contoso",
+    "OfferId": "Offer4",
     "name": "SuperSaver Account",
     "text": "To open a SuperSaver Account, applicants must have a minimum annual salary of $25,000. This eligibility requirement ensures that customers can maintain a stable financial position while benefiting from the account\u2019s high-interest rates. Whether employed or self-employed, meeting this criterion allows you to take full advantage of the account\u2019s benefits.",
     "type": "Term",
@@ -21818,9 +21828,9 @@
     ]
   },
   {
-    "id": "t15",
-    "tenantId": "T1",
-    "offerId": "offer4",
+    "id": "OfferTerm15",
+    "tenantId": "Contoso",
+    "OfferId": "Offer4",
     "name": "SuperSaver Account",
     "text": "Applicants must have a minimum credit score of 600 to qualify for the SuperSaver Account. A good credit score demonstrates financial responsibility and ensures access to the best banking products. By maintaining a healthy credit history, account holders can benefit from premium savings features and additional financial services when needed.",
     "type": "Term",
@@ -23365,9 +23375,9 @@
     ]
   },
   {
-    "id": "t16",
-    "tenantId": "T1",
-    "offerId": "offer4",
+    "id": "OfferTerm16",
+    "tenantId": "Contoso",
+    "OfferId": "Offer4",
     "name": "SuperSaver Account",
     "text": "Only individuals aged 18 years or older can open a SuperSaver Account. This ensures that account holders can legally manage their finances independently. Whether you are starting your first savings plan or expanding your investment portfolio, this account provides a secure and efficient way to build long-term financial security.",
     "type": "Term",
@@ -24912,9 +24922,9 @@
     ]
   },
   {
-    "id": "t17",
-    "tenantId": "T1",
-    "offerId": "offer4",
+    "id": "OfferTerm17",
+    "tenantId": "Contoso",
+    "OfferId": "Offer4",
     "name": "SuperSaver Account",
     "text": "To verify identity, applicants must provide a valid passport or driving license when applying for the SuperSaver Account. This requirement ensures security and compliance with financial regulations. A government-issued ID helps protect against fraud while allowing customers to access seamless and secure banking services without unnecessary delays.",
     "type": "Term",
@@ -26459,9 +26469,9 @@
     ]
   },
   {
-    "id": "t18",
-    "tenantId": "T1",
-    "offerId": "offer4",
+    "id": "OfferTerm18",
+    "tenantId": "Contoso",
+    "OfferId": "Offer4",
     "name": "SuperSaver Account",
     "text": "Proof of residence is required to open a SuperSaver Account. Applicants can provide a utility bill, rental agreement, or official government document as verification. This step ensures compliance with financial regulations and helps prevent fraudulent account creation, ensuring all customers receive secure and reliable banking services tailored to their needs.",
     "type": "Term",
@@ -28006,9 +28016,9 @@
     ]
   },
   {
-    "id": "t19",
-    "tenantId": "T1",
-    "offerId": "offer4",
+    "id": "OfferTerm19",
+    "tenantId": "Contoso",
+    "OfferId": "Offer4",
     "name": "SuperSaver Account",
     "text": "Applicants must submit a bank statement covering the last three months when applying for the SuperSaver Account. This document helps verify financial stability and ensures compliance with account eligibility criteria. It provides insight into the applicant\u2019s financial health, enabling the bank to offer the best possible services tailored to individual financial goals.",
     "type": "Term",
@@ -29553,9 +29563,9 @@
     ]
   },
   {
-    "id": "t20",
-    "tenantId": "T1",
-    "offerId": "offer4",
+    "id": "OfferTerm20",
+    "tenantId": "Contoso",
+    "OfferId": "Offer4",
     "name": "SuperSaver Account",
     "text": "The SuperSaver Account offers 24/7 customer support, ensuring that help is always available whenever you need assistance. Whether you have questions about transactions, account features, or security concerns, our dedicated support team is ready to provide guidance, making your banking experience smooth, efficient, and hassle-free at any time of the day.",
     "type": "Term",
@@ -31100,9 +31110,9 @@
     ]
   },
   {
-    "id": "t21",
-    "tenantId": "T1",
-    "offerId": "offer2",
+    "id": "OfferTerm21",
+    "tenantId": "Contoso",
+    "OfferId": "Offer2",
     "name": "Credit Boost Card",
     "text": "The Credit Boost Card is a premium credit card designed for individuals who want to maximize their spending power. Earn cash back on every purchase and enjoy exclusive rewards, making this the perfect card for those who want a seamless and rewarding credit experience without compromising on benefits and financial flexibility.",
     "type": "Term",
@@ -32647,9 +32657,9 @@
     ]
   },
   {
-    "id": "t22",
-    "tenantId": "T1",
-    "offerId": "offer2",
+    "id": "OfferTerm22",
+    "tenantId": "Contoso",
+    "OfferId": "Offer2",
     "name": "Credit Boost Card",
     "text": "Enjoy up to 5% cash back on select spending categories with the Credit Boost Card. Whether you\u0027re shopping for groceries, dining out, or traveling, this card ensures you get the most out of your purchases. With competitive cash-back rates, you save money while spending on the things that matter most.",
     "type": "Term",
@@ -34194,9 +34204,9 @@
     ]
   },
   {
-    "id": "t23",
-    "tenantId": "T1",
-    "offerId": "offer2",
+    "id": "OfferTerm23",
+    "tenantId": "Contoso",
+    "OfferId": "Offer2",
     "name": "Credit Boost Card",
     "text": "The Credit Boost Card offers exclusive rewards for frequent users, including travel perks, discounts, and special promotions. Whether you use your card for daily expenses or larger purchases, every transaction helps you earn more benefits. This makes it an excellent choice for those looking to maximize their credit card rewards.",
     "type": "Term",
@@ -35741,9 +35751,9 @@
     ]
   },
   {
-    "id": "t24",
-    "tenantId": "T1",
-    "offerId": "offer2",
+    "id": "OfferTerm24",
+    "tenantId": "Contoso",
+    "OfferId": "Offer2",
     "name": "Credit Boost Card",
     "text": "Applicants must have a minimum annual salary of $40,000 to qualify for the Credit Boost Card. This ensures that cardholders have the financial capacity to manage their credit responsibly while enjoying premium benefits. This requirement makes the card ideal for individuals with stable incomes looking to enhance their purchasing power.",
     "type": "Term",
@@ -37288,9 +37298,9 @@
     ]
   },
   {
-    "id": "t25",
-    "tenantId": "T1",
-    "offerId": "offer2",
+    "id": "OfferTerm25",
+    "tenantId": "Contoso",
+    "OfferId": "Offer2",
     "name": "Credit Boost Card",
     "text": "A minimum credit score of 700 is required to apply for the Credit Boost Card. This ensures that cardholders have a strong credit history, making them eligible for higher credit limits and premium benefits. A good credit score also increases approval chances and allows access to the best financial products available.",
     "type": "Term",
@@ -38835,9 +38845,9 @@
     ]
   },
   {
-    "id": "t26",
-    "tenantId": "T1",
-    "offerId": "offer2",
+    "id": "OfferTerm26",
+    "tenantId": "Contoso",
+    "OfferId": "Offer2",
     "name": "Credit Boost Card",
     "text": "Applicants must be at least 21 years old to apply for the Credit Boost Card. This age requirement ensures that cardholders have the necessary financial responsibility to manage their credit wisely. Whether you\u0027re a young professional or an experienced credit user, this card provides great rewards while helping build your credit history.",
     "type": "Term",
@@ -40382,9 +40392,9 @@
     ]
   },
   {
-    "id": "t27",
-    "tenantId": "T1",
-    "offerId": "offer2",
+    "id": "OfferTerm27",
+    "tenantId": "Contoso",
+    "OfferId": "Offer2",
     "name": "Credit Boost Card",
     "text": "To apply for the Credit Boost Card, applicants must submit a valid government-issued ID, such as a passport or driver\u2019s license. This verification step ensures security and compliance with banking regulations, preventing fraud and unauthorized access while providing customers with a safe and trustworthy credit experience.",
     "type": "Term",
@@ -41929,9 +41939,9 @@
     ]
   },
   {
-    "id": "t28",
-    "tenantId": "T1",
-    "offerId": "offer2",
+    "id": "OfferTerm28",
+    "tenantId": "Contoso",
+    "OfferId": "Offer2",
     "name": "Credit Boost Card",
     "text": "Proof of income is required when applying for the Credit Boost Card. Applicants must provide documents such as recent pay slips or tax returns to confirm financial stability. This requirement ensures responsible credit management while allowing us to offer competitive credit limits and benefits tailored to each cardholder\u2019s financial situation.",
     "type": "Term",
@@ -43476,9 +43486,9 @@
     ]
   },
   {
-    "id": "t29",
-    "tenantId": "T1",
-    "offerId": "offer2",
+    "id": "OfferTerm29",
+    "tenantId": "Contoso",
+    "OfferId": "Offer2",
     "name": "Credit Boost Card",
     "text": "A credit report submission is required when applying for the Credit Boost Card. This report helps assess the applicant\u2019s financial behavior, ensuring they meet the eligibility criteria. By reviewing past credit performance, we can offer personalized credit limits and rewards that match the applicant\u2019s spending habits and financial profile.",
     "type": "Term",
@@ -45023,9 +45033,9 @@
     ]
   },
   {
-    "id": "t30",
-    "tenantId": "T1",
-    "offerId": "offer2",
+    "id": "OfferTerm30",
+    "tenantId": "Contoso",
+    "OfferId": "Offer2",
     "name": "Credit Boost Card",
     "text": "The Credit Boost Card comes with 24/7 customer support to assist with any queries, lost cards, or fraudulent transactions. Our dedicated team is always available to help, ensuring a seamless credit card experience. Whether you need assistance with billing, rewards, or security concerns, we\u0027re here to provide prompt and reliable support.",
     "type": "Term",

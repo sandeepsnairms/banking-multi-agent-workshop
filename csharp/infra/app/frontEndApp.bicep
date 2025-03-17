@@ -7,18 +7,13 @@ param imageName string
 param containerImageTag string = 'latest'
 param registryServer string
 param identityName string
-param containerPort int = 8080
-param applicationInsightsName string
-param envSettings array = []
+param containerPort int = 8088
+param chatAPIUrl string
+
 
 // Get the principal ID of the user assigned managed identity user
 resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' existing = {
   name: identityName
-}
-
-
-resource applicationInsights 'Microsoft.Insights/components@2020-02-02' existing = {
-  name: applicationInsightsName
 }
 
 
@@ -30,20 +25,20 @@ module fetchLatestImage '../modules/fetch-container-image.bicep' = {
   }
 }
 
-resource chatservicewebapi 'Microsoft.App/containerApps@2024-02-02-preview' = {
+resource frontend 'Microsoft.App/containerApps@2023-05-01' = {
   name: name
   location: location
-  tags: union(tags, {'azd-service-name': 'ChatServiceWebApi' })
+  tags: union(tags, {'azd-service-name': 'FrontendApp' })
   identity: {
     type: 'UserAssigned'
-    userAssignedIdentities: { '${identity.id}': {} }
+     userAssignedIdentities: { '${identity.id}': {} }
   }
   properties: {
     managedEnvironmentId: environmentId
     configuration: {
       ingress:  {
         external: true
-        targetPort: 8080
+        targetPort: 80
         transport: 'auto'      
         corsPolicy: {
           allowedOrigins: [
@@ -51,59 +46,34 @@ resource chatservicewebapi 'Microsoft.App/containerApps@2024-02-02-preview' = {
           ]
         }
 	  }
-      registries: [
+	  registries: [
         {
           server: '${registryServer}.azurecr.io'
           identity: identity.id
         }
       ]
 	  activeRevisionsMode: 'Single' // Ensures only one active revision at a time
+      
     }
     template: {
       containers: [
         {
           name: containerAppName
           image: fetchLatestImage.outputs.?containers[?0].image ?? 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
-          env: union(
-            [             
+          env: [              
 			  {
-				name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-				value: applicationInsights.properties.ConnectionString
-			  }
-			  {
-				name: 'PORT'
-				value: '8080'
-			  }
-			  {
-				name: 'SemanticKernelServiceSettings__AzureOpenAISettings__UserAssignedIdentityClientID'
-				value: identity.properties.clientId
-			  }
-			  {
-				name: 'CosmosDBSettings__UserAssignedIdentityClientID'
-				value: identity.properties.clientId
-			  }
-			  {
-				name: 'BankingCosmosDBSettings__UserAssignedIdentityClientID'
-				value: identity.properties.clientId
-			  }
-            ],
-            envSettings
-          )
-          resources: {
+                name: 'apiUrl'
+                value: chatAPIUrl
+              }
+		  ]
+		  resources: {
             cpu: json('1.0')
             memory: '2.0Gi'
           }  
         }
       ]
-      scale: {
-        minReplicas: 1
-        maxReplicas: 10
-      }
     }
   }
 }
 
-output name string = chatservicewebapi.name
-output uri string = 'https://${chatservicewebapi.properties.configuration.ingress.fqdn}'
-output id string = chatservicewebapi.id
-
+output uri string = 'https://${frontend.properties.configuration.ingress.fqdn}'

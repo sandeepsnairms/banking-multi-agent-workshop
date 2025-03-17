@@ -122,41 +122,22 @@ module appsEnv './shared/apps-env.bicep' = {
   scope: rg
 }
 
-
-//Assign Roles to Managed Identities
-module AssignRoles './shared/assignroles.bicep' = {
-  name: 'AssignRoles'
-  params: {
-    name: 'assignroles-${resourceToken}'
-    location: location
-    tags: tags
-    cosmosDbAccountName: cosmos.outputs.name
-    identityName: '${abbrs.managedIdentityUserAssignedIdentities}chatservicew-${resourceToken}'
-	openAIName: openAi.outputs.name
-	userPrincipalId: !empty(principalId) ? principalId : null
-    containerRegistryName: registry.outputs.name
-  }
-  scope: rg
-  dependsOn: [cosmos, monitoring, openAi]
-}
-
 // Deploy ChatAPI Container App
 module ChatAPI './app/ChatAPI.bicep' = {
   name: 'ChatAPI'
   params: {
-    name: '${abbrs.appContainerApps}webapi-${resourceToken}'
-	containerAppName: 'chatservicewebapi'
+    name: '${abbrs.appContainerApps}chatservicew-${resourceToken}'
     location: location
     tags: tags
-    containerImageTag: 'latest'  // Change this if versioning is required
-    containerPort: 8080
-    identityName: AssignRoles.outputs.identityName
-	environmentId: appsEnv.outputs.id
-	imageName: 'chatservicewebapi'  // ACR repository name
-	registryServer:registry.outputs.name
+    cosmosDbAccountName: cosmos.outputs.name
+    identityName: '${abbrs.managedIdentityUserAssignedIdentities}chatservicew-${resourceToken}'
 	applicationInsightsName: monitoring.outputs.applicationInsightsName
-    envSettings: [     
-	  {
+	openAIName: openAi.outputs.name
+	userPrincipalId: !empty(principalId) ? principalId : null
+    containerAppsEnvironmentId: appsEnv.outputs.id
+    containerRegistryName: registry.outputs.name
+    envSettings: [      
+      {
         name: 'SemanticKernelServiceSettings__AzureOpenAISettings__Endpoint'
         value: openAi.outputs.endpoint
       }	  
@@ -224,14 +205,14 @@ module FrontendApp './app/FrontendApp.bicep' = {
   name: 'FrontendApp'
   params: {
     name: '${abbrs.appContainerApps}frontend-${resourceToken}'
-	tags: tags
-	containerAppName: 'frontend'
+    location: location
+    tags: tags
+    containerAppsEnvironmentId: appsEnv.outputs.id
+    containerRegistryServer: registry.outputs.loginServer
+    containerImageName: 'frontendapp'  // ACR repository name
     containerImageTag: 'latest'  // Change this if versioning is required
     containerPort: 80
-    identityName: AssignRoles.outputs.identityName
-	environmentId: appsEnv.outputs.id
-	imageName: 'frontendapp'  // ACR repository name
-	registryServer:registry.outputs.name
+    identityId: ChatAPI.outputs.identity
 	chatAPIUrl:ChatAPI.outputs.uri
   }
   scope: rg
