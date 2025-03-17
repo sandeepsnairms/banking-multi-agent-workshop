@@ -142,6 +142,11 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
         Task.Run(Initialize).ConfigureAwait(false);
     }
 
+     public void Dispose()
+     {
+         // Dispose resources if any
+     }
+
     private Task Initialize()
     {
         try
@@ -509,7 +514,7 @@ public async Task<string> SummarizeChatSessionNameAsync(string tenantId, string 
 
     }
 
-``
+```
 
 
 
