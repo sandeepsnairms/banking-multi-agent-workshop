@@ -344,27 +344,24 @@ namespace BankingServices.Services
 
 
         public async Task<List<OfferTerm>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription)
-        {
-            // Generate Embedding
+        {           
 
             try
             {
+                // Generate Embedding
                 var embeddingModel = _semanticKernel.Services.GetRequiredService<ITextEmbeddingGenerationService>();
 
                 var embedding = await embeddingModel.GenerateEmbeddingAsync(requirementDescription);
 
+
+                // perform vector search
                 var filter = new VectorSearchFilter()
                     .EqualTo("TenantId", tenantId)
                     .EqualTo("Type", "Term")
                     .EqualTo("AccountType", "Savings");
                 var options = new VectorSearchOptions { VectorPropertyName = "Vector", Filter = filter, Top = 10, IncludeVectors = false };
-
-                
+                                
                 var searchResults = await _offerDataVectorStore.VectorizedSearchAsync(embedding, options);
-
-                var searchResultItem = await searchResults.Results.FirstAsync();
-                Console.WriteLine(searchResultItem.Record.Name);
-
 
                 List<OfferTerm> offerTerms = new();
                 await foreach (var result in searchResults.Results)
