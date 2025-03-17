@@ -103,7 +103,23 @@ public class ChatService : IChatService
     /// </summary>
     public async Task<string> SummarizeChatSessionNameAsync(string tenantId, string userId,string? sessionId, string prompt)
     {
-        return "Not implemented";
+        try
+        {
+            ArgumentNullException.ThrowIfNull(sessionId);
+
+            var summary = "not implemented";
+
+            var session = await RenameChatSessionAsync(tenantId, userId, sessionId, summary);
+
+            return session.Name;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error getting a summary in session {sessionId} for user prompt [{prompt}].");
+#pragma warning disable CS8603 // Possible null reference return.
+            return null;
+#pragma warning restore CS8603 // Possible null reference return.
+        }
     }
 
 
