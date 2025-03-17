@@ -45,41 +45,13 @@ Update IBankDataService at BankingAPI\Interface to add more function definitions
 
         Task<bool> AddServiceRequestDescriptionAsync(string tenantId, string accountId, string requestId, string annotationToAdd);
 
-        Task<List<OfferTerm>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription);
-
-         Task<String> GetTeleBankerAvailabilityAsync();
+        Task<String> GetTeleBankerAvailabilityAsync();
 ```
 
 Update BankingDataService at Services\BankingDataService.cs to add function implementations
 
 ```csharp
 
-public async Task<List<BankAccount>> GetUserRegisteredAccountsAsync(string tenantId, string userId)
-        {
-            try
-            {
-                QueryDefinition query = new QueryDefinition("SELECT * FROM c WHERE c.type = @type and c.userId=@userId")
-                     .WithParameter("@type", nameof(BankAccount))
-                     .WithParameter("@userId", userId);
-
-                var partitionKey = PartitionManager.GetAccountsPartialPK(tenantId);
-                FeedIterator<BankAccount> response = _accountData.GetItemQueryIterator<BankAccount>(query, null, new QueryRequestOptions() { PartitionKey = partitionKey });
-
-                List<BankAccount> output = new();
-                while (response.HasMoreResults)
-                {
-                    FeedResponse<BankAccount> results = await response.ReadNextAsync();
-                    output.AddRange(results);
-                }
-
-                return output;
-            }
-            catch (CosmosException ex)
-            {
-                _logger.LogError(ex.ToString());
-                return null;
-            }
-        }
 
 public async Task<List<BankTransaction>> GetTransactionsAsync(string tenantId, string accountId, DateTime startDate, DateTime endDate)
         {
@@ -204,39 +176,7 @@ public async Task<List<BankTransaction>> GetTransactionsAsync(string tenantId, s
                 return false;
             }
         }
-        public async Task<List<OfferTerm>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription)
-        {           
-
-            try
-            {
-                // Generate Embedding
-                var embeddingModel = _semanticKernel.Services.GetRequiredService<ITextEmbeddingGenerationService>();
-
-                var embedding = await embeddingModel.GenerateEmbeddingAsync(requirementDescription);
-
-
-                // perform vector search
-                var filter = new VectorSearchFilter()
-                    .EqualTo("TenantId", tenantId)
-                    .EqualTo("Type", "Term")
-                    .EqualTo("AccountType", "Savings");
-                var options = new VectorSearchOptions { VectorPropertyName = "Vector", Filter = filter, Top = 10, IncludeVectors = false };
-                                
-                var searchResults = await _offerDataVectorStore.VectorizedSearchAsync(embedding, options);
-
-                List<OfferTerm> offerTerms = new();
-                await foreach (var result in searchResults.Results)
-                {
-                    offerTerms.Add(result.Record);
-                }
-                return offerTerms;
-            }
-            catch(Exception ex)
-            {
-                _logger.LogError(ex.ToString());
-                return new List<OfferTerm>();
-            }
-        }
+       
 
 ```
 
@@ -272,14 +212,6 @@ Update \ChatInfrastructure\AgentPlugins\CustomerSupportPlugin.cs with additional
    }
 
 
-   [KernelFunction]
-   [Description("Create new complaint")]
-   public async Task<ServiceRequest> CreateComplaint(string accountId, string requestAnnotation)
-   {
-      _logger.LogTrace($"Adding new service request for Tenant: {_tenantId} User: {_userId}, Account: {accountId}");
-
-      return await _bankService.CreateComplaintAsync(_tenantId, accountId, _userId, requestAnnotation);
-   }
 
    [KernelFunction]
    [Description("Updates an existing service request with additional details")]
@@ -362,6 +294,8 @@ Always follow these rules when choosing the next participant:
 
 ### Add Termination Strategy for Agent reponse
 
+Add TerminationStratergy.prompty at ChatAPI\Prompts\
+
 ```
 Determine if agent has requested user input or has responded to the user's query.
 Respond with the word NO (without explanation) if agent has requested user input.
@@ -372,71 +306,7 @@ Otherwise, respond with the word YES (without explanation) if any the following 
 ```
 
 
-### Add GetStratergyPrompts to ChatInfrastructure\Factories\SystemPromptFactory.cs 
-
-
-```csharp
-
-   public static string GetStratergyPrompts(ChatResponseStratergy stratergyType)
-   {
-      string prompt = string.Empty;
-      switch (stratergyType)
-      {
-            case ChatResponseStratergy.Continuation:
-               prompt = File.ReadAllText("Prompts/SelectionStratergy.prompty");
-               break;
-            case ChatResponseStratergy.Termination:
-               prompt = File.ReadAllText("Prompts/TerminationStratergy.prompty");
-               break;
-
-      }
-      return prompt;
-   }
-
-```
-
-### Add ContinuationInfo.cs  to ChatInfrastructure\Models\ChatInfoFormats
-
-```c#
-
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace MultiAgentCopilot.ChatInfrastructure.Models.ChatInfoFormats
-{
-    public class ContinuationInfo
-    {
-        public string AgentName { get; set; } = string.Empty;
-        public string Reason { get; set; } = string.Empty;
-    }
-}
-```
-
-### Add \TerminationInfo.cs  to ChatInfrastructure\Models\ChatInfoFormats
-
-```csharp
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace MultiAgentCopilot.ChatInfrastructure.Models.ChatInfoFormats
-{
-    internal class TerminationInfo
-    {
-        public bool ShouldContinue { get; set; }
-        public string Reason { get; set; } = string.Empty;
-    }
-}
-
-```
-
-
-### Add ChatResponseFormat.cs to ChatInfrastructure\StructuredFormats\
+### Add ChatResponseFormat.cs to ChatInfrastructure\StructuredFormats
 
 ```csharp
 using System;
@@ -450,18 +320,18 @@ namespace MultiAgentCopilot.ChatInfrastructure.StructuredFormats
 {
     internal static class ChatResponseFormatBuilder
     {
-        internal enum ChatResponseStratergy
+        internal enum ChatResponseStrategy
         {
             Continuation,
             Termination
 
         }
 
-        internal static string BuildFormat(ChatResponseStratergy stratergyType)
+        internal static string BuildFormat(ChatResponseStrategy strategyType)
         {
-            switch (stratergyType)
+            switch (strategyType)
             {
-                case ChatResponseStratergy.Continuation:
+                case ChatResponseStrategy.Continuation:
                     string jsonSchemaFormat_Continuation = """
                     {
 
@@ -477,7 +347,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.StructuredFormats
                     """;
 
                     return jsonSchemaFormat_Continuation;
-                case ChatResponseStratergy.Termination:
+                case ChatResponseStrategy.Termination:
                     string jsonSchemaFormat_termination = """
                     {
 
@@ -506,29 +376,148 @@ namespace MultiAgentCopilot.ChatInfrastructure.StructuredFormats
 
 ```
 
+Add reference to MultiAgentCopilot.ChatInfrastructure.StructuredFormats.ChatResponseFormatBuilder in ChatInfrastructure\Factories\SystemPromptFactory.cs 
+
+```csharp
+using static MultiAgentCopilot.ChatInfrastructure.StructuredFormats.ChatResponseFormatBuilder;
+
+```
+
+### Add GetStrategyPrompts to ChatInfrastructure\Factories\SystemPromptFactory.cs 
+
+```csharp
+
+   public static string GetStrategyPrompts(ChatResponseStrategy strategyType)
+   {
+      string prompt = string.Empty;
+      switch (strategyType)
+      {
+            case ChatResponseStrategy.Continuation:
+               prompt = File.ReadAllText("Prompts/SelectionStrategy.prompty");
+               break;
+            case ChatResponseStrategy.Termination:
+               prompt = File.ReadAllText("Prompts/TerminationStrategy.prompty");
+               break;
+
+      }
+      return prompt;
+   }
+
+```
+
+### Add ContinuationInfo.cs  to ChatInfrastructure\Models\ChatInfoFormats
+
+```c#
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace MultiAgentCopilot.ChatInfrastructure.Models.ChatInfoFormats
+{
+    public class ContinuationInfo
+    {
+        public string AgentName { get; set; } = string.Empty;
+        public string Reason { get; set; } = string.Empty;
+    }
+}
+```
+
+### Add TerminationInfo.cs  to ChatInfrastructure\Models\ChatInfoFormats
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace MultiAgentCopilot.ChatInfrastructure.Models.ChatInfoFormats
+{
+    internal class TerminationInfo
+    {
+        public bool ShouldContinue { get; set; }
+        public string Reason { get; set; } = string.Empty;
+    }
+}
+
+```
+
+### Add AutoFunctionInvocationLoggingFilter.cs in ChatInfrastructure\Logs
+
+```c#
+
+using Microsoft.Extensions.Logging;
+using Microsoft.SemanticKernel;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Text.Json;
+using System.Threading.Tasks;
+
+namespace MultiAgentCopilot.ChatInfrastructure.Logs
+{
+    public sealed class AutoFunctionInvocationLoggingFilter : IAutoFunctionInvocationFilter
+    {
+        private readonly ILogger<AutoFunctionInvocationLoggingFilter> _logger;
+
+        public AutoFunctionInvocationLoggingFilter(ILogger<AutoFunctionInvocationLoggingFilter> logger)
+        {
+            _logger = logger;
+
+        }
+
+        public async Task OnAutoFunctionInvocationAsync(AutoFunctionInvocationContext context, Func<AutoFunctionInvocationContext, Task> next)
+        {
+
+            var functionCalls = FunctionCallContent.GetFunctionCalls(context.ChatHistory.Last()).ToList();
+
+            if (_logger.IsEnabled(LogLevel.Trace))
+            {
+                functionCalls.ForEach(functionCall
+                    => _logger.LogTrace(
+                        "Function call requests: {PluginName}-{FunctionName}({Arguments})",
+                        functionCall.PluginName,
+                        functionCall.FunctionName,
+                        JsonSerializer.Serialize(functionCall.Arguments)));
+            }
+
+            await next(context);
+        }
+    }
+}
+
+
+````
+
 ### Update Chat Factory to replace Agent with AgentGroupChat
 
-Add the below references
+Add the below references in ChatFactory.cs
 
 ```csharp
 
 using MultiAgentCopilot.ChatInfrastructure.StructuredFormats;
 using MultiAgentCopilot.ChatInfrastructure.Models.ChatInfoFormats;
 using MultiAgentCopilot.ChatInfrastructure.Models;
+using MultiAgentCopilot.ChatInfrastructure.Logs;
+using MultiAgentCopilot.ChatInfrastructure.Helper;
 
 ```
 
 
-Update the functions
+Update the functions in ChatFactory.cs
 
 ```csharp
-        private OpenAIPromptExecutionSettings GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStratergy stratergyType)
+        private OpenAIPromptExecutionSettings GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStrategy strategyType)
         {
             ChatResponseFormat infoFormat;
             infoFormat = ChatResponseFormat.CreateJsonSchemaFormat(
-            jsonSchemaFormatName: $"agent_result_{stratergyType.ToString()}",
+            jsonSchemaFormatName: $"agent_result_{strategyType.ToString()}",
             jsonSchema: BinaryData.FromString($"""
-                {ChatResponseFormatBuilder.BuildFormat(stratergyType)}
+                {ChatResponseFormatBuilder.BuildFormat(strategyType)}
                 """));
             var executionSettings = new OpenAIPromptExecutionSettings
             {
@@ -538,13 +527,13 @@ Update the functions
             return executionSettings;
         }
 
-        private KernelFunction GetStratergyFunction(ChatResponseFormatBuilder.ChatResponseStratergy stratergyType)
+        private KernelFunction GetStratergyFunction(ChatResponseFormatBuilder.ChatResponseStrategy strategyType)
         {
 
             KernelFunction function =
                 AgentGroupChat.CreatePromptFunctionForStrategy(
                     $$$"""
-                    {{{SystemPromptFactory.GetStratergyPrompts(stratergyType)}}}
+                    {{{SystemPromptFactory.GetStrategyPrompts(strategyType)}}}
                     
                     RESPONSE:
                     {{$lastmessage}}
@@ -581,9 +570,9 @@ Update the functions
             AgentGroupChatSettings ExecutionSettings = new AgentGroupChatSettings
             {
                 SelectionStrategy =
-                    new KernelFunctionSelectionStrategy(GetStratergyFunction(ChatResponseFormatBuilder.ChatResponseStratergy.Continuation), kernel)
+                    new KernelFunctionSelectionStrategy(GetStratergyFunction(ChatResponseFormatBuilder.ChatResponseStrategy.Continuation), kernel)
                     {
-                        Arguments = new KernelArguments(GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStratergy.Continuation)),
+                        Arguments = new KernelArguments(GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStrategy.Continuation)),
                         // Always start with the editor agent.
                         //InitialAgent = CoordinatorAgent,//do not set else Coordinator initates after each stateless call.
                         // Save tokens by only including the final few responses
@@ -602,9 +591,9 @@ Update the functions
                         }
                     },
                 TerminationStrategy =
-                    new KernelFunctionTerminationStrategy(GetStratergyFunction(ChatResponseFormatBuilder.ChatResponseStratergy.Termination), kernel)
+                    new KernelFunctionTerminationStrategy(GetStratergyFunction(ChatResponseFormatBuilder.ChatResponseStrategy.Termination), kernel)
                     {
-                        Arguments = new KernelArguments(GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStratergy.Termination)),
+                        Arguments = new KernelArguments(GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStrategy.Termination)),
                         // Save tokens by only including the final response
                         HistoryReducer = historyReducer,
                         // The prompt variable name for the history argument.

@@ -69,16 +69,16 @@ namespace MultiAgentCopilot.ChatInfrastructure.Factories
             return prompt;
         }
 
-        public static string GetStratergyPrompts(ChatResponseStratergy stratergyType)
+        public static string GetStratergyPrompts(ChatResponseStrategy strategyType)
         {
             string prompt = string.Empty;
-            switch (stratergyType)
+            switch (strategyType)
             {
-                case ChatResponseStratergy.Continuation:
-                    prompt = File.ReadAllText("Prompts/SelectionStratergy.prompty");
+                case ChatResponseStrategy.Continuation:
+                    prompt = File.ReadAllText("Prompts/SelectionStrategy.prompty");
                     break;
-                case ChatResponseStratergy.Termination:
-                    prompt = File.ReadAllText("Prompts/TerminationStratergy.prompty");
+                case ChatResponseStrategy.Termination:
+                    prompt = File.ReadAllText("Prompts/TerminationStrategy.prompty");
                     break;
 
             }

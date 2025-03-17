@@ -9,18 +9,18 @@ namespace MultiAgentCopilot.ChatInfrastructure.StructuredFormats
 {
     internal static class ChatResponseFormatBuilder
     {
-        internal enum ChatResponseStratergy
+        internal enum ChatResponseStrategy
         {
             Continuation,
             Termination
 
         }
 
-        internal static string BuildFormat(ChatResponseStratergy stratergyType)
+        internal static string BuildFormat(ChatResponseStrategy strategyType)
         {
-            switch (stratergyType)
+            switch (strategyType)
             {
-                case ChatResponseStratergy.Continuation:
+                case ChatResponseStrategy.Continuation:
                     string jsonSchemaFormat_Continuation = """
                     {
 
@@ -36,7 +36,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.StructuredFormats
                     """;
 
                     return jsonSchemaFormat_Continuation;
-                case ChatResponseStratergy.Termination:
+                case ChatResponseStrategy.Termination:
                     string jsonSchemaFormat_termination = """
                     {
 

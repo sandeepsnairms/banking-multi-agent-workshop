@@ -35,6 +35,53 @@ In this hands-on exercise, you will learn how to initialize an agent framework a
 
 ### Add SemanticKernelService
 
+
+### Add SemanticKernelServiceSettings Config
+
+Add **AzureOpenAISettings.cs**  to **Common\Models\Configuration\**
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace MultiAgentCopilot.Common.Models.Configuration
+{
+    public record AzureOpenAISettings
+    {
+        public required string Endpoint { get; init; }
+
+        public  string? Key { get; init; }           
+
+        public required string CompletionsDeployment { get; init; }
+
+        public required string EmbeddingsDeployment { get; init; }
+        
+        public required string UserAssignedIdentityClientID { get; init; }
+    }
+}
+
+```
+
+
+Add **SemanticKernelServiceSettings.cs** to **Common\Models\Configuration\**
+```csharp
+
+namespace MultiAgentCopilot.Common.Models.Configuration
+{
+    public record SemanticKernelServiceSettings
+    {
+        public required AzureOpenAISettings AzureOpenAISettings { get; init; }
+        public required CosmosDBSettings CosmosDBVectorStoreSettings { get; init; }
+    }
+}
+
+```
+
+
+
 Add **ISemanticKernelService.cs** to **ChatInfrastructure\Interfaces\**
 
 ```csharp
@@ -56,7 +103,6 @@ namespace MultiAgentCopilot.ChatInfrastructure.Interfaces
 
 ```
 
-
 Add **SemanticKernelService.cs** to **ChatInfrastructure\Services\**
 
 ```csharp
@@ -69,7 +115,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
-using MultiAgentCopilot.ChatInfrastructure.Helper;
+using MultiAgentCopilot.Common.Models.Configuration;
 using Microsoft.SemanticKernel.ChatCompletion;
 
 using Azure.Identity;
@@ -365,48 +411,6 @@ public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message user
 
 ```
 
-### Add SemanticKernelServiceSettings Config
-
-Add **AzureOpenAISettings.cs**  to **Common\Models\Configuration\**
-
-```csharp
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace MultiAgentCopilot.Common.Models.Configuration
-{
-    public record AzureOpenAISettings
-    {
-        public required string Endpoint { get; init; }
-
-        public  string? Key { get; init; }           
-
-        public required string CompletionsDeployment { get; init; }
-
-        public required string EmbeddingsDeployment { get; init; }
-        
-        public required string UserAssignedIdentityClientID { get; init; }
-    }
-}
-
-```
-
-Add **SemanticKernelServiceSettings.cs** to **Common\Models\Configuration\**
-```csharp
-
-namespace MultiAgentCopilot.Common.Models.Configuration
-{
-    public record SemanticKernelServiceSettings
-    {
-        public required AzureOpenAISettings AzureOpenAISettings { get; init; }
-        public required CosmosDBSettings CosmosDBVectorStoreSettings { get; init; }
-    }
-}
-
-```
 
 ### Add SK Dependency
 
@@ -516,6 +520,15 @@ public async Task<string> SummarizeChatSessionNameAsync(string tenantId, string 
 
 ```
 
+Add  ISemanticKernelService interface  as Singleton to Program.cs 
+
+Search for builder.AddCosmosDBService(), paste the below line.
+
+```csharp
+
+builder.AddSemanticKernelService();
+
+~~~
 
 
 
@@ -526,8 +539,7 @@ With the hands-on exercises complete it is time to test your work.
 1. Start a Chat Session in the UI
 2. Send the message.
 3. Expected response is a greeting along with the message you sent translated  in French.
-4. Send a couple more messages.
-5. Your Chat Session name should be now updated with a two word summary based on session messages.
+
 
 ### Validation Checklist
 
