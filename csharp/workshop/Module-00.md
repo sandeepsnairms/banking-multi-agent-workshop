@@ -127,12 +127,20 @@ While the Azure Services are deploying we will have a presentation to cover on t
 
 When you deploy this solution it automatically injects endpoints and configuration values into the secrets.json file used by .NET applications and exports these to environment variables for Python.
 
-**TBD - this needs langauge specific instructions**
 
+### Update appsettings.json
+
+1. Update "CosmosUri": "https://[accountname].documents.azure.com:443/" by replacing account name with the Cosmos DB Account deployed via AZD.
+2. Update "Endpoint": "https://[accountname].openai.azure.com/" by replacing account name with the Azure Open AI Account deployed via AZD.
 
 ## Activity 5: Compile and Run
 
-**TBD - this needs langauge specific instructions on compiling and running the solution**
+1. Navigate to `src\ChatAPI`
+2. If you are running on Codespaces
+    1. Run `dotnet dev-certs https --trust` to to manually accept the certificate warning.
+    2. Run `dotnet run`.
+3. If you are running locally on Visual Studio or VS Code
+    1. Press F5 or Run.
 
 ### Deployment Validation
 
@@ -141,7 +149,7 @@ Use the steps below to validate that the solution was deployed successfully.
 - [ ] All Azure resources are deployed successfully
 - [ ] You can compile the solution in CodeSpaces or locally
 - [ ] You can start the project and it runs without errors
-
+- [ ] You are able to launch the Chat Frontend app , create a new chat session, and get a reply when you send a message.
 
 ### Common Issues and Troubleshooting
 
