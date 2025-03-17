@@ -24,6 +24,8 @@ using Microsoft.SemanticKernel.Connectors.AzureCosmosDBNoSQL;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Identity.Client.Platforms.Features.DesktopOs.Kerberos;
 using Microsoft.SemanticKernel.Embeddings;
+using System.Text.Json;
+using Microsoft.Extensions.VectorData;
 
 namespace BankingServices.Services
 {
@@ -33,6 +35,8 @@ namespace BankingServices.Services
         private readonly Container _userData;
         private readonly Container _requestData;
         private readonly Container _offerData;
+
+        private readonly AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm> _offerDataVectorStore;
 
         private readonly Database _database;
         private readonly CosmosDBSettings _settings;
@@ -118,8 +122,11 @@ namespace BankingServices.Services
 
             _semanticKernel = builder.Build();
 
+            var jsonSerializerOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+            var vectorStoreOptions = new AzureCosmosDBNoSQLVectorStoreRecordCollectionOptions<OfferTerm> { PartitionKeyPropertyName = "TenantId", JsonSerializerOptions = jsonSerializerOptions };
+            _offerDataVectorStore = new AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm>(_database, _settings.OfferDataContainer.Trim(), vectorStoreOptions);
 
-           _logger.LogInformation("Banking service initialized.");
+            _logger.LogInformation("Banking service initialized.");
         }
 
         public async Task<BankUser> GetUserAsync(string tenantId,string userId)
@@ -174,9 +181,9 @@ namespace BankingServices.Services
             {
                 var partitionKey = PartitionManager.GetAccountsDataFullPK(tenantId, accountId);
 
-                return await _userData.ReadItemAsync<BankAccount>(
+                return await _accountData.ReadItemAsync<BankAccount>(
                        id: accountId,
-                       partitionKey: new PartitionKey(tenantId));
+                       partitionKey: partitionKey);
             }
             catch (CosmosException ex)
             {
@@ -336,14 +343,39 @@ namespace BankingServices.Services
 
 
 
-        public async Task<List<OfferTermBasic>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription)
-        {
-            // Generate Embedding
+        public async Task<List<OfferTerm>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription)
+        {           
 
-            var embeddingModel = _semanticKernel.Services.GetRequiredService<ITextEmbeddingGenerationService>();
+            try
+            {
+                // Generate Embedding
+                var embeddingModel = _semanticKernel.Services.GetRequiredService<ITextEmbeddingGenerationService>();
 
-            var embedding = await embeddingModel.GenerateEmbeddingAsync(requirementDescription);
+                var embedding = await embeddingModel.GenerateEmbeddingAsync(requirementDescription);
 
+
+                // perform vector search
+                var filter = new VectorSearchFilter()
+                    .EqualTo("TenantId", tenantId)
+                    .EqualTo("Type", "Term")
+                    .EqualTo("AccountType", "Savings");
+                var options = new VectorSearchOptions { VectorPropertyName = "Vector", Filter = filter, Top = 10, IncludeVectors = false };
+                                
+                var searchResults = await _offerDataVectorStore.VectorizedSearchAsync(embedding, options);
+
+                List<OfferTerm> offerTerms = new();
+                await foreach (var result in searchResults.Results)
+                {
+                    offerTerms.Add(result.Record);
+                }
+                return offerTerms;
+            }
+            catch(Exception ex)
+            {
+                _logger.LogError(ex.ToString());
+                return new List<OfferTerm>();
+            }
+            /*
             // Convert ReadOnlyMemory<float> to IList<float>
             var embeddingList = embedding.ToArray();
 
@@ -377,7 +409,7 @@ namespace BankingServices.Services
                 _logger.LogError(ex.ToString());
                 return new List<OfferTermBasic>();
                 //}
-            }
+            }*/
         }
 
         public async Task<Offer> GetOfferDetailsAsync(string tenantId, string offerId)

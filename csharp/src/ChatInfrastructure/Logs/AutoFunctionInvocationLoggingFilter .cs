@@ -16,20 +16,11 @@ namespace MultiAgentCopilot.ChatInfrastructure.Logs
         public AutoFunctionInvocationLoggingFilter(ILogger<AutoFunctionInvocationLoggingFilter> logger)
         {
             _logger = logger;
-           
+
         }
-        
+
         public async Task OnAutoFunctionInvocationAsync(AutoFunctionInvocationContext context, Func<AutoFunctionInvocationContext, Task> next)
         {
-            //if (_logger.IsEnabled(LogLevel.Trace))
-            //{
-            //    _logger.LogTrace("ChatHistory: {ChatHistory}", JsonSerializer.Serialize(context.ChatHistory));
-            //}
-
-            //if (_logger.IsEnabled(LogLevel.Debug))
-            //{
-            //    _logger.LogDebug("Function count: {FunctionCount}", context.FunctionCount);
-            //}
 
             var functionCalls = FunctionCallContent.GetFunctionCalls(context.ChatHistory.Last()).ToList();
 
