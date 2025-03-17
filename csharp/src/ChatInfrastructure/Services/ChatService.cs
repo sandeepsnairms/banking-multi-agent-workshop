@@ -1,12 +1,9 @@
-﻿using MultiAgentCopilot.Common.Models.Banking;
-using MultiAgentCopilot.Common.Models.Chat;
+﻿using MultiAgentCopilot.Common.Models.Chat;
 using MultiAgentCopilot.ChatInfrastructure.Interfaces;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel.ChatCompletion;
 using MultiAgentCopilot.Common.Models.Debug;
 using System.Collections.Generic;
-using BankingServices.Interfaces;
-using BankingServices.Services;
 using Microsoft.Extensions.Options;
 using MultiAgentCopilot.Common.Models.Configuration;
 using Newtonsoft.Json.Linq;
@@ -19,21 +16,15 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services;
 public class ChatService : IChatService
 {
     private readonly ICosmosDBService _cosmosDBService;
-    private readonly IBankDataService _bankService;
-    private readonly ISemanticKernelService _skService;
     private readonly ILogger _logger;
 
     
     public ChatService(
         IOptions<CosmosDBSettings> cosmosOptions,
-        IOptions<SemanticKernelServiceSettings> skOptions,
         ICosmosDBService cosmosDBService,
-        ISemanticKernelService ragService,
         ILoggerFactory loggerFactory)
     {
-        _cosmosDBService = cosmosDBService;
-        _skService = ragService;
-        _bankService = new BankingDataService(cosmosOptions.Value, skOptions.Value, loggerFactory);
+        _cosmosDBService = cosmosDBService;    
         _logger = loggerFactory.CreateLogger<ChatService>();
     }
 
@@ -91,19 +82,12 @@ public class ChatService : IChatService
         try
         {
             ArgumentNullException.ThrowIfNull(sessionId);
-
-            // Retrieve conversation, including latest prompt.
-            var archivedMessages = await _cosmosDBService.GetSessionMessagesAsync(tenantId, userId, sessionId);
+            
 
             // Add both prompt and completion to cache, then persist in Cosmos DB
-            var userMessage = new Message(tenantId,userId,sessionId, "User","User", userPrompt);
-
-            // Generate the completion to return to the user
-            var result = await _skService.GetResponse(userMessage, archivedMessages,_bankService,tenantId,userId);
-
-            await AddPromptCompletionMessagesAsync(tenantId, userId,sessionId, userMessage, result.Item1, result.Item2);
-
-            return result.Item1;
+            var userMessage = new Message(tenantId,userId,sessionId, "User","User", "## Replay user message ## " + userPrompt);
+                      
+            return new List<Message> { userMessage };
         }
         catch (Exception ex)
         {
@@ -123,9 +107,9 @@ public class ChatService : IChatService
         {
             ArgumentNullException.ThrowIfNull(sessionId);
 
-            var summary = await _skService.Summarize(sessionId, prompt);
+            var summary = "not implemented";
 
-            var session = await RenameChatSessionAsync(tenantId, userId,sessionId, summary);
+            var session = await RenameChatSessionAsync(tenantId, userId, sessionId, summary);
 
             return session.Name;
         }
@@ -136,19 +120,8 @@ public class ChatService : IChatService
             return null;
 #pragma warning restore CS8603 // Possible null reference return.
         }
-
     }
 
-    /// <summary>
-    /// Add user prompt and AI assistance response to the chat session message list object and insert into the data service as a transaction.
-    /// </summary>
-    private async Task AddPromptCompletionMessagesAsync(string tenantId, string userId,string sessionId, Message promptMessage, List<Message> completionMessages, List<DebugLog> completionMessageLogs)
-    {
-        var session = await _cosmosDBService.GetSessionAsync(tenantId, userId,sessionId);
-
-        completionMessages.Insert(0, promptMessage);
-            await _cosmosDBService.UpsertSessionBatchAsync(completionMessages, completionMessageLogs, session);
-    }
 
     /// <summary>
     /// Rate an assistant message. This can be used to discover useful AI responses for training, discoverability, and other benefits down the road.
@@ -183,35 +156,9 @@ public class ChatService : IChatService
             {
                 throw new ArgumentException("Document must contain an 'id' property.");
             }
+           
+            return await _cosmosDBService.InsertDocumentAsync(containerName, docJObject);
 
-            switch (containerName)
-            {
-                case "OfferData":
-
-                    if (document.TryGetProperty("type", out JsonElement typeElement))
-                    {
-                        if(typeElement.GetString() == "Term")
-                        {
-                            // Deserialize into OfferTerm model
-                            var offerTerm = JsonConvert.DeserializeObject<OfferTerm>(json);
-
-                            // Generate vector and assign it
-                            offerTerm.Vector = await _skService.GenerateEmbedding(offerTerm.Text);
-
-
-                            return await _cosmosDBService.InsertDocumentAsync<OfferTerm>(containerName, offerTerm);
-                        }
-                    }
-                    else
-                    {
-                        return await _cosmosDBService.InsertDocumentAsync(containerName, docJObject);
-                    }
-                        break;
-                default:
-                    return await _cosmosDBService.InsertDocumentAsync(containerName, docJObject);
-            }
-
-            return false;
         }
         catch (Exception ex)
         {
@@ -220,9 +167,5 @@ public class ChatService : IChatService
         }
     }
 
-
-
-    public async Task ResetSemanticCache(string tenantId, string userId) =>
-        await _skService.ResetSemanticCache();
 }
 

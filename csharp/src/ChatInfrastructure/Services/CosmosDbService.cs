@@ -1,5 +1,4 @@
-﻿using MultiAgentCopilot.Common.Models.Banking;
-using MultiAgentCopilot.Common.Models.Chat;
+﻿using MultiAgentCopilot.Common.Models.Chat;
 using MultiAgentCopilot.Common.Models.Configuration;
 using MultiAgentCopilot.ChatInfrastructure.Interfaces;
 using Microsoft.Azure.Cosmos;
@@ -162,7 +161,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
                 _logger.LogError(ex.ToString());
                 throw;
             }
-}
+        }
 
         public async Task<Session> InsertSessionAsync(Session session)
         {
@@ -290,48 +289,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
 
 
 
-        public async Task UpsertSessionBatchAsync(List<Message> messages, List<DebugLog>debugLogs, Session session)
-        {
-            try
-            { 
-                if (messages.Select(m => m.SessionId).Distinct().Count() > 1 || session.SessionId != messages.Select(m => m.SessionId).FirstOrDefault())
-                {
-                    throw new ArgumentException("All items must have the same partition key.");
-                }
-
-                if (debugLogs.Select(m => m.SessionId).Distinct().Count() > 1 || session.SessionId != debugLogs.Select(m => m.SessionId).FirstOrDefault())
-                {
-                    throw new ArgumentException("All items must have the same partition key as message.");
-                }
-
-                PartitionKey partitionKey = PartitionManager.GetChatDataFullPK(session.TenantId, session.UserId, session.SessionId);
-                var batch = _chatData.CreateTransactionalBatch(partitionKey);
-                foreach (var message in messages)
-                {
-                    batch.UpsertItem(
-                        item: message
-                    );
-                }
-
-                foreach (var log in debugLogs)
-                {
-                    batch.UpsertItem(
-                        item: log
-                    );
-                }
-
-                batch.UpsertItem(
-                    item: session
-                );
-
-                await batch.ExecuteAsync();
-            }
-            catch (CosmosException ex)
-            {
-                _logger.LogError(ex.ToString());
-                throw;
-            }
-        }
+        
 
         public async Task DeleteSessionAndMessagesAsync(string tenantId, string userId,string sessionId)
         {
@@ -381,48 +339,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
                 throw;
             }
         }
-
-        public async Task<bool> InsertDocumentAsync<T>(string containerName, T document) where T : class
-        {
-            Container container = null;
-
-            switch (containerName)
-            {
-                case "OfferData":
-                    container = _offersData;
-                    break;
-                case "AccountData":
-                    container = _accountsData;
-                    break;
-                case "UserData":
-                    container = _userData;
-                    break;
-            }
-            try
-            {
-
-                // Insert cleaned document
-                await container.CreateItemAsync(document);
-
-
-                return true;
-            }
-            catch (CosmosException ex)
-            {
-                // Ignore conflict errors.
-                if (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
-                {
-                    _logger.LogInformation($"Duplicate document detected.");
-                }
-                else
-                {
-                    _logger.LogError(ex, "Error inserting document.");
-                    throw;
-                }
-                return false;
-            }
-        }
-
+        
 
         public async Task<bool> InsertDocumentAsync(string containerName, JObject document)
         {

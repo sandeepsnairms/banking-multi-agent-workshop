@@ -1,0 +1,61 @@
+.user-greating {
+  font-size: 2.8rem;
+  line-height: 1.2;
+  color: #c4c7c5;
+}
+
+.user-greating .greeting-name {
+  color: purple;
+}
+
+.user-greating p {
+  margin: 0;
+}
+.subject-container {
+  margin-top: 2rem;
+  display: flex;
+  flex-wrap: wrap;
+  margin-bottom: 2rem;
+}
+.subject-item {
+  padding: 1.1rem;
+  background-color: #f0f4f9;
+  height: 140px;
+  width: 140px;
+  margin-right: 3rem;
+  border-radius: 10px;
+  position: relative;
+}
+.icon-circle {
+  background-color: white;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  margin-bottom: 0.3rem;
+  margin-right: 0.3rem;
+}
+.bottom-right-icon {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+}
+.user-greating {
+  max-width: 70%;
+}
+.subject-item {
+  cursor: pointer;
+  user-select: none;
+}
+.selected-subject {
+  background-color: #cf9fff;
+}
+
+.subject-item:hover {
+  background-color: #cf9fff;
+}

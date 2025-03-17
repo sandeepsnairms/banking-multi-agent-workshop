@@ -1,4 +1,4 @@
-﻿using MultiAgentCopilot.Common.Models.Banking;
+﻿
 using MultiAgentCopilot.Common.Models.Chat;
 using MultiAgentCopilot.Common.Models.Debug;
 using Newtonsoft.Json.Linq;
@@ -45,8 +45,6 @@ public interface IChatService
     Task<Message> RateChatCompletionAsync(string tenantId, string userId,string id, string sessionId, bool? rating);
 
     Task<DebugLog> GetChatCompletionDebugLogAsync(string tenantId, string userId,string sessionId, string debugLogId);
-
-    Task ResetSemanticCache(string tenantId, string userId);
 
     Task<bool> AddDocument(string containerName, JsonElement document);
 }

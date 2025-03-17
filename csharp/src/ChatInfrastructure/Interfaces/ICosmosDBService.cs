@@ -1,5 +1,4 @@
-﻿using MultiAgentCopilot.Common.Models.Banking;
-using MultiAgentCopilot.Common.Models.Chat;
+﻿using MultiAgentCopilot.Common.Models.Chat;
 using MultiAgentCopilot.Common.Models.Debug;
 using Newtonsoft.Json.Linq;
 using System.Text.Json;
@@ -77,7 +76,7 @@ public interface ICosmosDBService
     /// Batch create or update chat messages and session.
     /// </summary>
     /// <param name="messages">Chat message and session items to create or replace.</param>
-    Task UpsertSessionBatchAsync(List<Message> messages, List<DebugLog> debugLogs, Session session);
+    //Task UpsertSessionBatchAsync(List<Message> messages, List<DebugLog> debugLogs, Session session);
 
     /// <summary>
     /// Batch deletes an existing chat session and all related messages.
@@ -89,7 +88,5 @@ public interface ICosmosDBService
     Task<DebugLog> GetChatCompletionDebugLogAsync(string tenantId, string userId,string sessionId, string debugLogId);
 
     Task<bool> InsertDocumentAsync(string containerName, JObject document);
-
-    Task<bool> InsertDocumentAsync<T>(string containerName, T document) where T : class;
 
 }
