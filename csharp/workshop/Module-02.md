@@ -16,8 +16,9 @@ In this Module you'll connect your agent to Azure Cosmos DB to provide memory fo
 ## Module Exercises
 
 1. [Activity 1: Session Memory Persistence in Agent Frameworks](#activity-1-session-memory-persistence-in-agent-frameworks)
-1. [Activity 2: Connecting Agent Frameworks to Azure Cosmos DB](#activity-2-connecting-agent-frameworks-to-azure-cosmos-db)
-1. [Activity 3: Test your Work](#activity-5-test-your-work)
+1. [Activity 2: Create a Simple Agent](#activity-2-create-a-simple-agent)
+1. [Activity 3: Connecting Agent Frameworks to Azure Cosmos DB](#activity-2-connecting-agent-frameworks-to-azure-cosmos-db)
+1. [Activity 4: Test your Work](#activity-5-test-your-work)
 
 
 ## Activity 1: Session Memory Persistence in Agent Frameworks
@@ -25,7 +26,7 @@ In this Module you'll connect your agent to Azure Cosmos DB to provide memory fo
 In this session you will get an overview of memory and how it works for Semantic Kernel Agents and LangGraph and learn the basics for how to configure and connect both to Azure Cosmos DB as a memory store for both chat history and/or state management.
 
 
-## Activity 2: Create a Simple Customer Service Agent
+## Activity 2: Create a Simple Agent
 In this hands-on exercise, you will learn how to create a simple agent using the same prompt we used in the previous module.
 
 ### Add SystemPromptFactory.cs in ChatInfrastructure\Factories
@@ -82,7 +83,6 @@ using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
 using OpenAI.Chat;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using MultiAgentCopilot.ChatInfrastructure.Logs;
 using System.Reflection.Metadata;
 
 namespace MultiAgentCopilot.ChatInfrastructure.Factories
@@ -181,7 +181,7 @@ Add UpsertSessionBatchAsync to ChatInfrastructure\Services\CosmosDbService.cs
 
 ```csharp
 
- public async Task UpsertSessionBatchAsync(List<Message> messages, List<DebugLog>debugLogs, Session session)
+        public async Task UpsertSessionBatchAsync(List<Message> messages, List<DebugLog>debugLogs, Session session)
         {
             try
             { 
@@ -245,7 +245,7 @@ Update GetChatCompletionAsync in ChatInfrastructure\Services\ChatService.cs
 
 ```csharp
 
-public async Task<List<Message>> GetChatCompletionAsync(string tenantId, string userId,string? sessionId, string userPrompt)
+    public async Task<List<Message>> GetChatCompletionAsync(string tenantId, string userId,string? sessionId, string userPrompt)
     {
         try
         {
@@ -278,9 +278,9 @@ public async Task<List<Message>> GetChatCompletionAsync(string tenantId, string 
 
 With the hands-on exercises complete it is time to test your work.
 
-1. Repeat the same test you did in  the previous module.
-2. Verify that now you see multiple chat messages
-3. Open the ChatData Container in  Cosmos DB and study the various documents that have been added.
+1. In a chat Session send multiple messages.
+2. Verify that now you see multiple chat messages and its responses.
+3. Open the ChatData Container in Cosmos DB and study the various documents that have been added.
 
 ### Validation Checklist
 

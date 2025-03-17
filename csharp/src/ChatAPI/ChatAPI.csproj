@@ -57,10 +57,10 @@
     <None Update="Prompts\Sales.prompty">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="Prompts\SelectionStratergy.prompty">
+    <None Update="Prompts\SelectionStrategy.prompty">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="Prompts\TerminationStratergy.prompty">
+    <None Update="Prompts\TerminationStrategy.prompty">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Prompts\Transactions.prompty">

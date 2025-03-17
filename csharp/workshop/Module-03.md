@@ -32,7 +32,7 @@ In this session we will dive into how to create Semantic Kernel Agent Framework 
 
 Add the  following models to Common\Models\Banking\
 
-AccountType Enum
+Add AccountType.cs for AccountType Enum
 
 ```c#
     public enum AccountType
@@ -44,7 +44,7 @@ AccountType Enum
 
 ```
 
-ServiceRequestType Enum
+Add ServiceRequestType.cs for ServiceRequestType Enum
 
 ```csharp
     public enum ServiceRequestType
@@ -56,7 +56,7 @@ ServiceRequestType Enum
     }
 ```
 
-BankAccount
+Add BankAccount.cs for BankAccount class
 
 ```csharp
     public class BankAccount
@@ -73,7 +73,7 @@ BankAccount
 
 ```
 
-BankTransaction
+Add BankTransaction.cs for BankTransaction class
 
 ```csharp
     public class BankTransaction
@@ -90,7 +90,7 @@ BankTransaction
 
 ```
 
-BankUser
+Add BankUser.cs for BankUser class
 
 ```csharp
     public class BankUser
@@ -106,10 +106,10 @@ BankUser
 
 ```
 
+Add Offer.cs for Offerclass
 ```csharp
 
-Offer
-public class Offer
+    public class Offer
     {
         public required string Id { get; set; }
         public required string TenantId { get; set; }
@@ -122,7 +122,7 @@ public class Offer
 
 ```
 
-OfferTerm
+Add OfferTerm.cs for OfferTerm class
 
 ```csharp
 
@@ -156,7 +156,7 @@ OfferTerm
 
 ```
 
-ServiceRequest
+Add ServiceRequest.cs for ServiceRequest class
 
 ```csharp
 
@@ -321,6 +321,40 @@ Tasks:
 
 ### Define the various Agent Types
 
+
+Add AgentTypes.cs in ChatInfrastructure\Models
+
+```csharp
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace MultiAgentCopilot.ChatInfrastructure.Models
+{
+    enum AgentType
+    {
+        Transactions = 0,
+        Sales = 1,
+        CustomerSupport = 2,
+        Coordinator = 3,
+    }
+}
+
+
+```
+
+
+Add Reference for MultiAgentCopilot.ChatInfrastructure.Models in ChatInfrastructure\Factories\SystemPromptFactory.cs
+
+```csharp
+using MultiAgentCopilot.ChatInfrastructure.Models;
+
+```
+
+
 Update ChatInfrastructure\Factories\SystemPromptFactory.cs
 
 ```csharp
@@ -389,6 +423,8 @@ Update ChatInfrastructure\Factories\SystemPromptFactory.cs
 ### Add Bank Domain Functions as Plugin
 
 Add **BankingServices.csproj** to the solution
+
+Add Project Reference for ankingServices.csproj in ChatAPI.csProj
 
 Add BasePlugin.cs in ChatInfrastructure\AgentPlugins
 
@@ -563,6 +599,59 @@ namespace MultiAgentCopilot.ChatInfrastructure.Plugins
 
 ```
 
+Add  CustomerSupportPlugin.cs in ChatInfrastructure\AgentPlugins
+
+```csharp
+using Microsoft.Extensions.Logging;
+using Microsoft.SemanticKernel;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using MultiAgentCopilot.Common.Models.Banking;
+using BankingServices.Interfaces;
+using Microsoft.Identity.Client;
+
+
+namespace MultiAgentCopilot.ChatInfrastructure.Plugins
+{
+    public class CustomerSupportPlugin: BasePlugin
+    {
+
+        public CustomerSupportPlugin(ILogger<BasePlugin> logger, IBankDataService bankService, string tenantId, string userId )
+          : base(logger, bankService, tenantId, userId)
+        {
+        }
+               
+
+        [KernelFunction("IsAccountRegisteredToUser")]
+        [Description("Check if account is registered to user")]
+        public async Task<bool> IsAccountRegisteredToUser(string accountId)
+        {
+            _logger.LogTrace($"Validating account for Tenant: {_tenantId} User ID: {_userId}- {accountId}");
+            var accountDetails = await _bankService.GetAccountDetailsAsync(_tenantId, _userId, accountId);
+            return accountDetails != null;
+        }
+
+
+        [KernelFunction]
+        [Description("Create new complaint")]
+        public async Task<ServiceRequest> CreateComplaint(string accountId, string requestAnnotation)
+        {
+            _logger.LogTrace($"Adding new service request for Tenant: {_tenantId} User: {_userId}, Account: {accountId}");
+
+            return await _bankService.CreateComplaintAsync(_tenantId, accountId, _userId, requestAnnotation);
+        }
+
+      
+    }
+}
+
+```
+
+
 ### Add  Plugin factory using the above classes. Add PluginFactory.cs in ChatInfrastructure\Factories
 
 ```csharp
@@ -670,8 +759,24 @@ Initialize  BankingDataService in ChatService constructor
 
 ```
 
-### Update SemanticKernelService to use BankingDataService. Update GetResponse in ChatInfrastructure\Services\SemanticKernelService.cs
+### Update SemanticKernelService to use BankingDataService
 
+Update GetResponse definition in ChatInfrastructure\Interfaces\ISemanticKernelService.cs
+
+
+```csharp
+Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, IBankDataService bankService, string tenantId, string userId);
+
+```
+
+
+Add reference for MultiAgentCopilot.ChatInfrastructure.Models in ChatInfrastructure\Services\SemanticKernelService.cs
+
+```csharp
+using MultiAgentCopilot.ChatInfrastructure.Models;
+``
+
+Update GetResponse in ChatInfrastructure\Services\SemanticKernelService.cs
 ```csharp
 
  public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, IBankDataService bankService, string tenantId, string userId)

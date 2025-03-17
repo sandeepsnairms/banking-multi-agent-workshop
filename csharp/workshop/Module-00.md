@@ -136,8 +136,11 @@ When you deploy this solution it automatically injects endpoints and configurati
 ## Activity 5: Compile and Run
 
 1. Navigate to `src\ChatAPI`
-2. If you are running on Codespaces, Run `dotnet dev-certs https --trust` to to manually accept the certificate warning.
-3. Run `dotnet run`.
+2. If you are running on Codespaces
+    1. Run `dotnet dev-certs https --trust` to to manually accept the certificate warning.
+    2. Run `dotnet run`.
+3. If you are running locally on Visual Studio or VS Code
+    1. Press F5 or Run.
 
 ### Deployment Validation
 

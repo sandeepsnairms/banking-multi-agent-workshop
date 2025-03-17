@@ -40,13 +40,13 @@ namespace MultiAgentCopilot.ChatInfrastructure.Factories
             return agent;
         }
 
-        private OpenAIPromptExecutionSettings GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStratergy stratergyType)
+        private OpenAIPromptExecutionSettings GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStrategy strategyType)
         {
             ChatResponseFormat infoFormat;
             infoFormat = ChatResponseFormat.CreateJsonSchemaFormat(
-            jsonSchemaFormatName: $"agent_result_{stratergyType.ToString()}",
+            jsonSchemaFormatName: $"agent_result_{strategyType.ToString()}",
             jsonSchema: BinaryData.FromString($"""
-                {ChatResponseFormatBuilder.BuildFormat(stratergyType)}
+                {ChatResponseFormatBuilder.BuildFormat(strategyType)}
                 """));
             var executionSettings = new OpenAIPromptExecutionSettings
             {
@@ -56,13 +56,13 @@ namespace MultiAgentCopilot.ChatInfrastructure.Factories
             return executionSettings;
         }
 
-        private KernelFunction GetStratergyFunction(ChatResponseFormatBuilder.ChatResponseStratergy stratergyType)
+        private KernelFunction GetStratergyFunction(ChatResponseFormatBuilder.ChatResponseStrategy strategyType)
         {
 
             KernelFunction function =
                 AgentGroupChat.CreatePromptFunctionForStrategy(
                     $$$"""
-                    {{{SystemPromptFactory.GetStratergyPrompts(stratergyType)}}}
+                    {{{SystemPromptFactory.GetStratergyPrompts(strategyType)}}}
                     
                     RESPONSE:
                     {{$lastmessage}}
@@ -99,9 +99,9 @@ namespace MultiAgentCopilot.ChatInfrastructure.Factories
             AgentGroupChatSettings ExecutionSettings = new AgentGroupChatSettings
             {
                 SelectionStrategy =
-                    new KernelFunctionSelectionStrategy(GetStratergyFunction(ChatResponseFormatBuilder.ChatResponseStratergy.Continuation), kernel)
+                    new KernelFunctionSelectionStrategy(GetStratergyFunction(ChatResponseFormatBuilder.ChatResponseStrategy.Continuation), kernel)
                     {
-                        Arguments = new KernelArguments(GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStratergy.Continuation)),
+                        Arguments = new KernelArguments(GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStrategy.Continuation)),
                         // Always start with the editor agent.
                         //InitialAgent = CoordinatorAgent,//do not set else Coordinator initates after each stateless call.
                         // Save tokens by only including the final few responses
@@ -120,9 +120,9 @@ namespace MultiAgentCopilot.ChatInfrastructure.Factories
                         }
                     },
                 TerminationStrategy =
-                    new KernelFunctionTerminationStrategy(GetStratergyFunction(ChatResponseFormatBuilder.ChatResponseStratergy.Termination), kernel)
+                    new KernelFunctionTerminationStrategy(GetStratergyFunction(ChatResponseFormatBuilder.ChatResponseStrategy.Termination), kernel)
                     {
-                        Arguments = new KernelArguments(GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStratergy.Termination)),
+                        Arguments = new KernelArguments(GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStrategy.Termination)),
                         // Save tokens by only including the final response
                         HistoryReducer = historyReducer,
                         // The prompt variable name for the history argument.
