@@ -33,6 +33,58 @@ In this session ou will get a deeper introduction into the Semantic Kernel Agent
 
 In this hands-on exercise, you will learn how to initialize an agent framework and integrate it with a large langugage model.
 
+
+### Add SK Service
+
+### Add SKService Config
+
+### Add SK Dependency
+
+Update ChatInfrastructure\Services\DependencyInjection.cs, add the following function to **DependencyInjection**
+
+```c#
+        /// <summary>
+        /// Registers the <see cref="ISemanticKernelService"/> implementation with the dependency injection container.
+        /// </summary>
+        /// <param name="builder">The hosted applications and services builder.</param>
+        public static void AddSemanticKernelService(this IHostApplicationBuilder builder)
+        {
+            builder.Services.AddOptions<SemanticKernelServiceSettings>()
+                .Bind(builder.Configuration.GetSection("SemanticKernelServiceSettings"));
+            builder.Services.AddSingleton<ISemanticKernelService, SemanticKernelService>();
+        }
+
+```
+
+#### Add SkService to Chat Service
+
+Update ChatInfrastructure\Services\ChatService.cs
+
+Add SK object
+
+```csharp
+private readonly ISemanticKernelService _skService;
+
+```
+
+Update constructor to add SK Config
+
+```csharp
+ public ChatService(
+        IOptions<CosmosDBSettings> cosmosOptions,
+        IOptions<SemanticKernelServiceSettings> skOptions,
+        ICosmosDBService cosmosDBService,
+        ISemanticKernelService ragService,
+        ILoggerFactory loggerFactory)
+    {
+        _cosmosDBService = cosmosDBService;
+        _skService = ragService;        
+        _logger = loggerFactory.CreateLogger<ChatService>();
+    }
+
+```
+
+
 **TBD - this needs langauge specific instructions**
 
 
