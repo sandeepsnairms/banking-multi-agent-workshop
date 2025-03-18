@@ -115,6 +115,15 @@ Now we have an agent that executes the instructions provided as prompts. Next le
 
 In this hands-on exercise, you will learn how to initialize Azure Cosmos DB and integrate with an agent framework to provide persistent memory for chat history and state management.
 
+Add  MultiAgentCopilot.ChatInfrastructure.Factories reference  in ChatInfrastructure\Services\SemanticKernelService.cs
+
+```csharp
+
+using MultiAgentCopilot.ChatInfrastructure.Factories;
+
+```
+
+
 ### Update GetResponse in ChatInfrastructure\Services\SemanticKernelService.cs
 
 ```csharp
@@ -271,6 +280,7 @@ Update GetChatCompletionAsync in ChatInfrastructure\Services\ChatService.cs
             return null;
 #pragma warning restore CS8603 // Possible null reference return.
         }
+    }
 
 ```
 
@@ -278,9 +288,19 @@ Update GetChatCompletionAsync in ChatInfrastructure\Services\ChatService.cs
 
 With the hands-on exercises complete it is time to test your work.
 
-1. In a chat Session send multiple messages.
-2. Verify that now you see multiple chat messages and its responses.
-3. Open the ChatData Container in Cosmos DB and study the various documents that have been added.
+1. Navigate to src\ChatAPI.
+    - If running on Codespaces:
+       1. Run dotnet dev-certs https --trust to manually accept the certificate warning.
+       2. Run dotnet run.
+    - If running locally on Visual Studio or VS Code:
+       1. Press F5 or select Run.
+2. Copy the launched URL and use it as the API endpoint in the next step.
+3. Follow the [instructions](../..//README.md) to run the Frontend app.
+4. Start a Chat Session in the UI
+5. Send multiple messages.
+6. Expected result each message response is a greeting along with the message you sent translated in French.
+7. Open CosmosDB Chats Data Container, multiple records are stored for a given session Id.
+8. Select ctrl+ C to stop the debugger.
 
 ### Validation Checklist
 

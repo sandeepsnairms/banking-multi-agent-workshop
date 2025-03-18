@@ -35,12 +35,15 @@ Add the  following models to Common\Models\Banking\
 Add AccountType.cs for AccountType Enum
 
 ```c#
-    public enum AccountType
+namespace MultiAgentCopilot.Common.Models.Banking
+{    
+public enum AccountType
     {
         Savings,
         CreditCard,
         Locker
     }
+}
 
 ```
 
@@ -59,6 +62,8 @@ Add ServiceRequestType.cs for ServiceRequestType Enum
 Add BankAccount.cs for BankAccount class
 
 ```csharp
+namespace MultiAgentCopilot.Common.Models.Banking
+{
     public class BankAccount
     {
         public required string Id { get; set; } = string.Empty;
@@ -70,12 +75,14 @@ Add BankAccount.cs for BankAccount class
         public required int InterestRate { get; set; }
         public required string ShortDescription { get; set; }
     }
-
+}
 ```
 
 Add BankTransaction.cs for BankTransaction class
 
 ```csharp
+namespace MultiAgentCopilot.Common.Models.Banking
+{
     public class BankTransaction
     {
         public required string Id { get; set; }
@@ -87,12 +94,14 @@ Add BankTransaction.cs for BankTransaction class
         public required string Details { get; set; }
         public required DateTime TransactionDateTime { get; set; }
     }
-
+}
 ```
 
 Add BankUser.cs for BankUser class
 
 ```csharp
+namespace MultiAgentCopilot.Common.Models.Banking
+{
     public class BankUser
     {
         public required string Id { get; set; } = string.Empty;
@@ -103,12 +112,13 @@ Add BankUser.cs for BankUser class
         public required List<BankAccount> Accounts { get; set; }
         public required Dictionary<string,string> Attributes { get; set; }
     }
-
+}
 ```
 
 Add Offer.cs for Offerclass
 ```csharp
-
+namespace MultiAgentCopilot.Common.Models.Banking
+{
     public class Offer
     {
         public required string Id { get; set; }
@@ -119,13 +129,16 @@ Add Offer.cs for Offerclass
         public required Dictionary<string, string> EligibilityConditions { get; set; }
         public required Dictionary<string, string> PrerequsiteSubmissions { get; set; }
     }
-
+}
 ```
 
 Add OfferTerm.cs for OfferTerm class
 
 ```csharp
 
+﻿using Microsoft.Extensions.VectorData;
+namespace MultiAgentCopilot.Common.Models.Banking
+{
     public class OfferTerm
     {
         [VectorStoreRecordKey]
@@ -153,13 +166,14 @@ Add OfferTerm.cs for OfferTerm class
         public ReadOnlyMemory<float>? Vector { get; set; }
 
     }
-
+}
 ```
 
 Add ServiceRequest.cs for ServiceRequest class
 
 ```csharp
-
+namespace MultiAgentCopilot.Common.Models.Banking
+{
     public class ServiceRequest
     {
         public string Id { get; set; }
@@ -196,7 +210,7 @@ Add ServiceRequest.cs for ServiceRequest class
             FulfilmentDetails = fulfilmentDetails ?? new Dictionary<string, string>();
         }
     }
-
+}
 ```
 
 
@@ -424,7 +438,16 @@ Update ChatInfrastructure\Factories\SystemPromptFactory.cs
 
 Add **BankingServices.csproj** to the solution
 
-Add Project Reference for ankingServices.csproj in ChatAPI.csProj
+Add Project Reference for BankingServices.csproj in ChChatInfrastructure.csProj
+
+```dotnetcli
+
+dotnet sln /workspaces/banking-multi-agent-workshop/csharp/src/MultiAgentCopilot.sln add /workspaces/banking-multi-agent-workshop/csharp/src/BankingAPI/BankingServices.csproj
+
+dotnet add /workspaces/banking-multi-agent-workshop/csharp/src/ChatInfrastructure/ChatInfrastructure.csproj reference /workspaces/banking-multi-agent-workshop/csharp/src/BankingAPI/BankingServices.csproj
+
+```
+
 
 Add BasePlugin.cs in ChatInfrastructure\AgentPlugins
 
@@ -547,7 +570,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Plugins
         
         [KernelFunction]
         [Description("Search offer terms of all available offers using vector search")]
-        public async Task<List<OfferTermBasic>> SearchOfferTerms(AccountType accountType, string requirementDescription)
+        public async Task<List<OfferTerm>> SearchOfferTerms(AccountType accountType, string requirementDescription)
         {
             _logger.LogTrace($"Searching terms of all available offers matching '{requirementDescription}'");
             return await _bankService.SearchOfferTermsAsync(_tenantId, accountType,requirementDescription);
@@ -770,10 +793,11 @@ Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List
 ```
 
 
-Add reference for MultiAgentCopilot.ChatInfrastructure.Models in ChatInfrastructure\Services\SemanticKernelService.cs
+Add reference for MultiAgentCopilot.ChatInfrastructure.Models and BankingServices.Interfaces  in ChatInfrastructure\Services\SemanticKernelService.cs
 
 ```csharp
 using MultiAgentCopilot.ChatInfrastructure.Models;
+using BankingServices.Interfaces;
 ``
 
 Update GetResponse in ChatInfrastructure\Services\SemanticKernelService.cs
