@@ -97,8 +97,7 @@ sales_agent = create_react_agent(
         "When user provides these, calculate the monthly payment using calculate_monthly_payment tool and provide the result as part of the response. "
         "Do not return the monthly payment tool call output directly to the user, include it with the rest of your response. "
         "If the user wants to move ahead with the loan, advise that they need to come into the branch to complete the application. "
-        "If the wants information about a product or offer, ask whether they want Credit Card or Savings. "
-        "If you have that information, call 'get_offer_information' tool with the user prompt, and the accountType ('CreditCard' or 'Savings'). "
+        "If the wants information about a product or offer, ask whether they want Credit Card or Savings, then call 'get_offer_information' tool with the user_prompt, and the accountType ('CreditCard' or 'Savings'). "
         "You MUST respond with the repayment amounts before transferring to another agent."
     ),
 )

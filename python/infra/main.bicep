@@ -8,17 +8,10 @@ param environmentName string
 @minLength(1)
 @description('Primary location for all resources')
 param location string
-param ChatAPIExists bool
-
 
 @description('Id of the user or app to assign application roles')
 param principalId string
 
-// Tags that should be applied to all resources.
-// 
-// Note that 'azd-service-name' tags should be applied separately to service host resources.
-// Example usage:
-//   tags: union(tags, { 'azd-service-name': <service name in azure.yaml> })
 var tags = {
   'azd-env-name': environmentName
 }
@@ -32,6 +25,7 @@ resource rg 'Microsoft.Resources/resourceGroups@2022-09-01' = {
   tags: tags
 }
 
+// Deploy AppInsights
 module monitoring './shared/monitoring.bicep' = {
   name: 'monitoring'
   params: {
@@ -43,13 +37,14 @@ module monitoring './shared/monitoring.bicep' = {
   scope: rg
 }
 
+// Deploy Azure Cosmos DB
 module cosmos './shared/cosmosdb.bicep' = {
   name: 'cosmos'
   params: {    
     databaseName: 'MultiAgentBanking'
 	chatsContainerName: 'Chat'
 	accountsContainerName: 'AccountsData'
-	offersContainerName:'Offers'
+	offersContainerName:'OffersData'
 	usersContainerName:'Users'
     location: location
     name: '${abbrs.documentDBDatabaseAccounts}${resourceToken}'
@@ -58,6 +53,8 @@ module cosmos './shared/cosmosdb.bicep' = {
   scope: rg
 }
 
+
+// Deploy Azure Container Registry (ACR)
 module registry './shared/registry.bicep' = {
   name: 'registry'
   params: {
@@ -68,6 +65,7 @@ module registry './shared/registry.bicep' = {
   scope: rg
 }
 
+// Deploy OpenAI
 module openAi './shared/openai.bicep' = {
   name: 'openai-account'
   params: {
@@ -79,8 +77,7 @@ module openAi './shared/openai.bicep' = {
   scope: rg
 }
 
-
-
+//Deploy OpenAI Deployments
 var deployments = [
   {
     name: 'gpt-4o'
@@ -115,35 +112,61 @@ module openAiModelDeployments './shared/modeldeployment.bicep' = [
   }
 ]
 
+// Deploy Container Apps Environment
 module appsEnv './shared/apps-env.bicep' = {
   name: 'apps-env'
   params: {
     name: '${abbrs.appManagedEnvironments}${resourceToken}'
     location: location
-    tags: tags
   }
   scope: rg
 }
 
 
-module ChatAPI './app/ChatAPI.bicep' = {
-  name: 'ChatAPI'
+//Assign Roles to Managed Identities
+module AssignRoles './shared/assignroles.bicep' = {
+  name: 'AssignRoles'
   params: {
-    name: '${abbrs.appContainerApps}chatservicew-${resourceToken}'
+    name: 'assignroles-${resourceToken}'
     location: location
     tags: tags
     cosmosDbAccountName: cosmos.outputs.name
     identityName: '${abbrs.managedIdentityUserAssignedIdentities}chatservicew-${resourceToken}'
-    applicationInsightsName: monitoring.outputs.applicationInsightsName
 	openAIName: openAi.outputs.name
 	userPrincipalId: !empty(principalId) ? principalId : null
-    containerAppsEnvironmentId: appsEnv.outputs.id
     containerRegistryName: registry.outputs.name
-    exists: ChatAPIExists
-    envSettings: [      
-      {
+  }
+  scope: rg
+  dependsOn: [cosmos, monitoring, openAi]
+}
+
+// Deploy ChatAPI Container App
+module ChatAPI './app/ChatAPI.bicep' = {
+  name: 'ChatAPI'
+  params: {
+    name: '${abbrs.appContainerApps}webapi-${resourceToken}'
+	containerAppName: 'chatservicewebapi'
+    location: location
+    tags: tags
+    containerImageTag: 'latest'  // Change this if versioning is required
+    containerPort: 8080
+    identityName: AssignRoles.outputs.identityName
+	environmentId: appsEnv.outputs.id
+	imageName: 'chatservicewebapi'  // ACR repository name
+	registryServer:registry.outputs.name
+	applicationInsightsName: monitoring.outputs.applicationInsightsName
+    envSettings: [     
+	  {
         name: 'AZURE_OPENAI_ENDPOINT'
         value: openAi.outputs.endpoint
+      }	  
+	  {
+        name: 'AZURE_OPENAI_COMPLETIONSDEPLOYMENTID'
+        value: openAiModelDeployments[0].outputs.name
+      }
+	  {
+        name: 'AZURE_OPENAI_EMBEDDINGDEPLOYMENTID'
+        value: openAiModelDeployments[1].outputs.name
       }
       {
         name: 'COSMOSDB_ENDPOINT'
@@ -155,7 +178,7 @@ module ChatAPI './app/ChatAPI.bicep' = {
       }
 	  {
         name: 'CosmosDBSettings__ChatDataContainer'
-        value: 'ChatsData'
+        value: 'Chat'
       }
 	  {
         name: 'CosmosDBSettings__UserDataContainer'
@@ -183,7 +206,7 @@ module ChatAPI './app/ChatAPI.bicep' = {
       }
 	  {
         name: 'BankingCosmosDBSettings__OfferDataContainer'
-        value: 'Offers'
+        value: 'OffersData'
       }
       {
         name: 'ApplicationInsightsConnectionString'
@@ -196,8 +219,31 @@ module ChatAPI './app/ChatAPI.bicep' = {
   dependsOn: [cosmos, monitoring, openAi]
 }
 
+// Deploy Frontend Container App
+module FrontendApp './app/FrontendApp.bicep' = {
+  name: 'FrontendApp'
+  params: {
+    name: '${abbrs.appContainerApps}frontend-${resourceToken}'
+	tags: tags
+	containerAppName: 'frontend'
+    containerImageTag: 'latest'  // Change this if versioning is required
+    containerPort: 80
+    identityName: AssignRoles.outputs.identityName
+	environmentId: appsEnv.outputs.id
+	imageName: 'frontendapp'  // ACR repository name
+	registryServer:registry.outputs.name
+	chatAPIUrl:ChatAPI.outputs.uri
+  }
+  scope: rg
+  dependsOn: [registry, appsEnv]
+}
 
+// Outputs
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = registry.outputs.loginServer
-output AZURE_COSMOS_DB_NAME string = cosmos.outputs.name
 output SERVICE_ChatAPI_ENDPOINT_URL string = ChatAPI.outputs.uri
+output FRONTENDPOINT_URL string = FrontendApp.outputs.uri
+output AZURE_OPENAI_ENDPOINT string = openAi.outputs.endpoint
+output AZURE_OPENAI_COMPLETIONSDEPLOYMENTID string = openAiModelDeployments[0].outputs.name
+output AZURE_OPENAI_EMBEDDINGDEPLOYMENTID string = openAiModelDeployments[1].outputs.name
+output COSMOSDB_ENDPOINT string = cosmos.outputs.endpoint
 

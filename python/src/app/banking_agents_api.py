@@ -1,14 +1,18 @@
 import os
 import uuid
-from opencensus.ext.azure.log_exporter import AzureLogHandler
-from opencensus.ext.azure.trace_exporter import AzureExporter
-from opencensus.trace.tracer import Tracer
-from opencensus.trace.samplers import ProbabilitySampler
+import fastapi
+
+from dotenv import load_dotenv
+
 from datetime import datetime
 from fastapi import BackgroundTasks
+from azure.monitor.opentelemetry import configure_azure_monitor
+
+configure_azure_monitor()
 
 from azure.cosmos.exceptions import CosmosHttpResponseError
-from fastapi import FastAPI, Depends, HTTPException, Body
+
+from fastapi import Depends, HTTPException, Body
 from langchain_core.messages import HumanMessage, ToolMessage
 from pydantic import BaseModel
 from typing import List, Dict
@@ -27,7 +31,11 @@ import logging
 # Setup logging
 logging.basicConfig(level=logging.ERROR)
 
-INSTRUMENTATION_KEY = os.getenv("ApplicationInsightsConnectionString", "<Your-App-Insights-Key>")
+load_dotenv(override=False)
+
+INSTRUMENTATION_KEY = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING", "<Your-App-Insights-Key>")
+
+print(f"Using Application Insights Key: {INSTRUMENTATION_KEY}")
 
 endpointTitle = "ChatEndpoints"
 dataLoadTitle = "DataLoadEndpoints"
@@ -45,24 +53,7 @@ def get_compiled_graph():
     return graph
 
 
-# Configure logging
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-logger.addHandler(AzureLogHandler(connection_string=INSTRUMENTATION_KEY))
-
-# Initialize tracing
-tracer = Tracer(exporter=AzureExporter(connection_string=INSTRUMENTATION_KEY),
-                sampler=ProbabilitySampler(1.0))
-
-app = FastAPI(title="Cosmos DB Multi-Agent Banking API", openapi_url="/cosmos-multi-agent-api.json")
-
-
-@app.middleware("http")
-async def add_tracing_middleware(request, call_next):
-    with tracer.span(name=request.url.path):
-        response = await call_next(request)
-    return response
-
+app = fastapi.FastAPI(title="Cosmos DB Multi-Agent Banking API", openapi_url="/cosmos-multi-agent-api.json")
 
 app.add_middleware(
     CORSMiddleware,
@@ -286,7 +277,6 @@ def _fetch_messages_for_session(sessionId: str, tenantId: str, userId: str) -> L
          description="Retrieves sessions from the given tenantId and userId", tags=[endpointTitle],
          response_model=List[Session])
 def get_chat_sessions(tenantId: str, userId: str):
-    print(f"Fetching sessions for tenantId: {tenantId} and userId: {userId}")
     items = fetch_session_container_by_tenant_and_user(tenantId, userId)
     sessions = []
 

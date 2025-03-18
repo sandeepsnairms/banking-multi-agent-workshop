@@ -73,9 +73,11 @@ resource cosmosContainerChats 'Microsoft.DocumentDB/databaseAccounts/sqlDatabase
         id: chatsContainerName
         partitionKey: {
           paths: [
-            '/partition_key'
+            '/tenantId'
+            '/userId'
+            '/sessionId'
           ]
-          kind: 'Hash'
+          kind: 'MultiHash'
           version: 2
         }
       }
@@ -107,10 +109,7 @@ resource cosmosContainerOffers 'Microsoft.DocumentDB/databaseAccounts/sqlDatabas
 					excludedPaths: [
 						{
 							path: '/"_etag"/?'
-						}
-						{
-							path: '/vector/*'
-						}
+						}						
 					]
 					vectorIndexes: [
 						{

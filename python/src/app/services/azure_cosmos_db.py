@@ -5,9 +5,11 @@ from typing import List, Dict
 
 from azure.cosmos import CosmosClient, PartitionKey
 from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
+from dotenv import load_dotenv
 
 logging.basicConfig(level=logging.ERROR)
 
+load_dotenv(override=False)
 # Azure Cosmos DB configuration
 COSMOS_DB_URL = os.getenv("COSMOSDB_ENDPOINT")
 DATABASE_NAME = "MultiAgentBanking"
@@ -52,7 +54,7 @@ try:
     )
 
     offers_container = database.create_container_if_not_exists(
-        id="Offers",
+        id="OffersData",
         partition_key=PartitionKey(path="/tenantId"),
     )
 
@@ -77,14 +79,17 @@ except Exception as e:
 
 
 def vector_search(vectors, accountType):
+    print("accountType: ", accountType)
+    print("vectors: ", vectors)
     # Execute the query
     results = offers_container.query_items(
         query='''
-        SELECT c.offerId, c.text, c.name
+        SELECT TOP 10 c.offerId, c.text, c.name
                         FROM c
                         WHERE c.type = 'Term'
                         AND c.accountType = @accountType
                         AND VectorDistance(c.vector, @referenceVector)> 0.075
+                        ORDER BY VectorDistance(c.vector, @referenceVector) 
         ''',
         parameters=[
             {"name": "@accountType", "value": accountType},
@@ -92,17 +97,17 @@ def vector_search(vectors, accountType):
         ],
         enable_cross_partition_query=True, populate_query_metrics=True)
     print("Executed vector search in Azure Cosmos DB... \n")
-    results = list(results)
+    print("Results: ", results)
+    try:
+        results = list(results)
+    except Exception as e:
+        print(f"[ERROR] Error fetching results from Cosmos DB: {e}")
+        raise e
+    print("length of results: ", len(results))
     # Extract the necessary information from the results
-    formatted_results = []
     for result in results:
-        score = result.pop('SimilarityScore')
-        formatted_result = {
-            'SimilarityScore': score,
-            'document': result
-        }
-        formatted_results.append(formatted_result)
-    return formatted_results
+        print("Result: ", result)
+    return results
 
 
 # update the user data container
