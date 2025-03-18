@@ -63,7 +63,7 @@ resource frontend 'Microsoft.App/containerApps@2023-05-01' = {
           env: [              
 			  {
                 name: 'apiUrl'
-                value: chatAPIUrl
+                value: '${chatAPIUrl}/'
               }
 		  ]
 		  resources: {

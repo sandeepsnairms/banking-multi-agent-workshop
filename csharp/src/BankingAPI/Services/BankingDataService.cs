@@ -139,6 +139,22 @@ namespace BankingServices.Services
             }
         }
 
+        public async Task<BankAccount> GetAccountDetailsAsync(string tenantId, string userId, string accountId)
+        {
+            try
+            {
+                var partitionKey = PartitionManager.GetAccountsDataFullPK(tenantId, accountId);
+
+                return await _accountData.ReadItemAsync<BankAccount>(
+                       id: accountId,
+                       partitionKey: partitionKey);
+            }
+            catch (CosmosException ex)
+            {
+                _logger.LogError(ex.ToString());
+                return null;
+            }
+        }
 
         public async Task<List<BankAccount>> GetUserRegisteredAccountsAsync(string tenantId, string userId)
         {
