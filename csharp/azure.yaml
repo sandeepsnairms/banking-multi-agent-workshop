@@ -1,5 +1,3 @@
-# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
-
 name: MultiAgentCopilot
 metadata:
     template: azd-init@1.5.1
@@ -8,11 +6,17 @@ hooks:
       shell: pwsh
       continueOnError: false
       interactive: true
-      run: ./azd-hooks/postdeploy.ps1
+      run: ./azd-hooks/postdeploy.ps1  # Adjust path since azure.yaml is inside /csharp
 services:
     ChatServiceWebApi:
-        project: ./src/ChatAPI
+        project: ./src/ChatAPI   # Relative to /csharp
         host: containerapp
         language: csharp
         docker:
-            path: ./ChatAPI/Dockerfile         # Dockerfile is inside ChatAPI
+            path: ./src/ChatAPI/Dockerfile   # Ensure correct Dockerfile path
+    FrontendApp:
+        project: ../frontend  # Move up one level to access frontend
+        host: containerapp
+        image: frontend  # Specify image name to avoid needing a language
+        docker:
+            path: ../frontend/Dockerfile  # Move up to correct Dockerfile path
