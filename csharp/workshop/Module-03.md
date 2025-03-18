@@ -16,19 +16,20 @@ In this Module you'll learn how to implement agent specialization by creating Se
 
 ## Module Exercises
 
-1. [Activity 1: Session on Agent Specialization and Integration](#activity-1-session-on-agent-specialization-and-integration)
-1. [Activity 2: Account Balances Agent](#activity-2-account-balances-agent)
-1. [Activity 3: Product Agent with Semantic Search](#activity-3-product-agent-with-semantic-search)
-1. [Activity 4: Service Request Agent that Takes Actions](#activity-4-service-request-agent-that-takes-actions)
-1. [Activity 5: Service Request Agent with Simple Lookup](#activity-5-service-request-agent-with-simple-lookup)
-1. [Activity 6: Test your Work](#activity-6-test-your-work)
+1. [Activity 1: Understanding Agent Specialization and Integration](#activity-1-understanding-agent-specialization-and-integration)  
+2. [Activity 2: Defining Bank Domain Data Models](#activity-2-defining-bank-domain-data-models)  
+3. [Activity 3: Creating Multiple Agents](#activity-3-creating-multiple-agents)  
+4. [Activity 4: Integrating Bank Domain Functions as Plugins](#activity-4-integrating-bank-domain-functions-as-plugins)  
+5. [Activity 5: Developing a Plugin Factory](#activity-5-developing-a-plugin-factory)  
+6. [Activity 6: Building an Agent Factory](#activity-6-building-an-agent-factory)  
+7. [Activity 7: Bringing It All Together – Bank Domain Models, Plugins, and Agents](#activity-7-bringing-it-all-together-bank-domain-models-plugins-and-agents)
+8. [Activity 8: Semantic Search](#activity-8-semantic-search)
 
-
-## Activity 1: Session on Agent Specialization and Integration
+## Activity 1: Understanding Agent Specialization and Integration
 
 In this session we will dive into how to create Semantic Kernel Agent Framework Functions or LangGraph Tools to connect agents to external APIs, databases and third-party tools to provide special functionality. Learn the basics for vector indexing and search in Azure Cosmos DB to provide semantic search functionality to your agents. Learn how to define tasks and communication protocols for seamless collaboration between agents.
 
-### Data Models
+## Activity 2: Defining Bank Domain Data Models
 
 Add the  following models to Common\Models\Banking\
 
@@ -50,6 +51,8 @@ public enum AccountType
 Add ServiceRequestType.cs for ServiceRequestType Enum
 
 ```csharp
+namespace MultiAgentCopilot.Common.Models.Banking
+{ 
     public enum ServiceRequestType
     {
         Complaint,
@@ -57,7 +60,7 @@ Add ServiceRequestType.cs for ServiceRequestType Enum
         Fulfilment,
         TeleBankerCallBack
     }
-```
+}
 
 Add BankAccount.cs for BankAccount class
 
@@ -213,7 +216,7 @@ namespace MultiAgentCopilot.Common.Models.Banking
 }
 ```
 
-
+## Activity 3: Creating Multiple Agents
 
 ### Upload prompts for each Agent
 
@@ -335,7 +338,6 @@ Tasks:
 
 ### Define the various Agent Types
 
-
 Add AgentTypes.cs in ChatInfrastructure\Models
 
 ```csharp
@@ -433,8 +435,8 @@ Update ChatInfrastructure\Factories\SystemPromptFactory.cs
 
 ```
 
+## Activity 4: Integrating Bank Domain Functions as Plugins
 
-### Add Bank Domain Functions as Plugin
 
 Add **BankingServices.csproj** to the solution
 
@@ -674,8 +676,9 @@ namespace MultiAgentCopilot.ChatInfrastructure.Plugins
 
 ```
 
+## Activity 5: Developing a Plugin Factory
 
-### Add  Plugin factory using the above classes. Add PluginFactory.cs in ChatInfrastructure\Factories
+Add PluginFactory.cs in ChatInfrastructure\Factories
 
 ```csharp
 
@@ -728,7 +731,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Factories
 
 ```
 
-### Modify the existing code to support multiple agents
+## Activity 6: Building an Agent Factory
 
 Update the ChatInfrastructure\Factories\ChatFactory.cs
 
@@ -782,7 +785,7 @@ Initialize  BankingDataService in ChatService constructor
 
 ```
 
-### Update SemanticKernelService to use BankingDataService
+## Activity 7: Bringing It All Together – Bank Domain Models, Plugins, and Agents
 
 Update GetResponse definition in ChatInfrastructure\Interfaces\ISemanticKernelService.cs
 
@@ -793,7 +796,7 @@ Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List
 ```
 
 
-Add reference for MultiAgentCopilot.ChatInfrastructure.Models and BankingServices.Interfaces  in ChatInfrastructure\Services\SemanticKernelService.cs
+Add reference for MultiAgentCopilot.ChatInfrastructure.Models and BankingServices.Interfaces in ChatInfrastructure\Services\SemanticKernelService.cs
 
 ```csharp
 using MultiAgentCopilot.ChatInfrastructure.Models;
@@ -884,50 +887,41 @@ Pass the BankingDataService object to SemanticKernel call. Update GetChatComplet
     }
 ```
 
+## Activity 8: Semantic Search
+
+In this hands-on exercise, you will learn how to configure vector indexing and search in Azure Cosmos DB and explore the container and vector indexing policies. Then learn how to implement vector search using for Semantic Kernel or LangGraph.
+
+
+
+## Activity 6: Test your Work
+
 Update AgentType within GetResponse in ChatInfrastructure\Services\SemanticKernelService.cs to see how different agents work.
 
 ```c#
  var agent = agentChatGeneratorService.BuildAgent(_semanticKernel,AgentType.CustomerSupport, _loggerFactory,  bankService, tenantId, userId);
 ```
 
-## Activity 2: Account Balances Agent
+Execute the below steps to check the behavior for each agent.
 
-In this hands-on exercise, you will learn how to do a simple account balance look up for a customer account.
-
-
-
-
-## Activity 3: Product Agent with Semantic Search
-
-In this hands-on exercise, you will learn how to configure vector indexing and search in Azure Cosmos DB and explore the container and vector indexing policies. Then learn how to implement vector search using for Semantic Kernel or LangGraph.
-
-**TBD - this needs langauge specific instructions**
-
-
-## Activity 4: Service Request Agent that Takes Actions
-
-In this hands-on exercise, you will learn how to design and implement an agent that takes an action on behalf of a user and inserts data into a database, Azure Cosmos DB.
-
-**TBD - this needs langauge specific instructions**
-
-## Activity 5: Service Request Agent with Simple Lookup
-
-In this hands-on exercise, you will learn how to do simple key-value reads of new data inserted on behalf of a user.
-
-**TBD - this needs langauge specific instructions**
-
-## Activity 6: Test your Work
-
-With the hands-on exercises complete it is time to test your work.
-
-**TBD - this needs langauge specific instructions**
+1. Navigate to src\ChatAPI.
+    - If running on Codespaces:
+       1. Run dotnet dev-certs https --trust to manually accept the certificate warning.
+       2. Run dotnet run.
+    - If running locally on Visual Studio or VS Code:
+       1. Press F5 or select Run.
+2. Copy the launched URL and use it as the API endpoint in the next step.
+3. Follow the [instructions](../..//README.md) to run the Frontend app.
+4. Start a Chat Session in the UI
+5. Send multiple messages.
+6. Expected result each message response is based on the agent you selected and plugins available with the agent.
+7. Open CosmosDB Chats Data Container, multiple records are stored for a given session Id.
+8. Select ctrl+ C to stop the debugger.
 
 ## Validation Checklist
 
-- [ ] Account Balance agent functions correctly
-- [ ] Semantic Search for Product Agent functions correctly
-- [ ] Service Request agent successfully creates a new service request on behalf of user
-- [ ] New Service request is correctly read by second service request agent
+- [ ] Each Agent  response is per the corresponding prompty file contents.
+- [ ] Semantic Search functions correctly
+
 
 ### Common Issues and Solutions
 
