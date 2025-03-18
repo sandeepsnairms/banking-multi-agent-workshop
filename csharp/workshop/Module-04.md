@@ -274,7 +274,7 @@ Update ChatInfrastructure\AgentPlugins\TransactionPlugin.cs with additional func
 
 ### Add Selection Strategy for Agent Selection
 
-Add SelectionStratergy.prompty at ChatAPI\Prompts\
+Add SelectionStrategy.prompty at ChatAPI\Prompts\
 ```
 Examine RESPONSE and choose the next participant.
 
@@ -294,7 +294,7 @@ Always follow these rules when choosing the next participant:
 
 ### Add Termination Strategy for Agent reponse
 
-Add TerminationStratergy.prompty at ChatAPI\Prompts\
+Add TerminationStrategy.prompty at ChatAPI\Prompts\
 
 ```
 Determine if agent has requested user input or has responded to the user's query.
@@ -495,7 +495,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Logs
 
 ### Update Chat Factory to replace Agent with AgentGroupChat
 
-Add the below references in ChatFactory.cs
+Add the below references in ChatInfrastructure/Factories/ChatFactory.cs
 
 ```csharp
 
@@ -503,12 +503,12 @@ using MultiAgentCopilot.ChatInfrastructure.StructuredFormats;
 using MultiAgentCopilot.ChatInfrastructure.Models.ChatInfoFormats;
 using MultiAgentCopilot.ChatInfrastructure.Models;
 using MultiAgentCopilot.ChatInfrastructure.Logs;
-using MultiAgentCopilot.ChatInfrastructure.Helper;
+
 
 ```
 
 
-Update the functions in ChatFactory.cs
+Add the functions in ChatFactory.cs
 
 ```csharp
         private OpenAIPromptExecutionSettings GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStrategy strategyType)
@@ -618,8 +618,53 @@ Update the functions in ChatFactory.cs
 
 ```
 
+### Add ChatInfrastructure/Helper/AuthorRoleHelper.cs
+
+```csharp
+﻿using Microsoft.SemanticKernel.ChatCompletion;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace MultiAgentCopilot.ChatInfrastructure.Helper
+{
+    internal static class AuthorRoleHelper
+    {
+        private static readonly Dictionary<string, AuthorRole> RoleMap =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            { "system", AuthorRole.System },
+            { "assistant", AuthorRole.Assistant },
+            { "user", AuthorRole.User },
+            { "tool", AuthorRole.Tool }
+        };
+
+        public static AuthorRole? FromString(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return null;
+            }
+
+            return RoleMap.TryGetValue(name, out var role) ? role : null;
+        }
+    }
+}
+
+```
+
 
 ### Replace Agent with AgentGroupChat in SemanticKernel
+
+Add the below references in ChatInfrastructure/Factories/ChatFactory.cs
+
+```csharp
+using MultiAgentCopilot.ChatInfrastructure.Helper;
+
+```
+
 
 
 Update GetResponse in ChatInfrastructure\Services\SemanticKernelService.cs
