@@ -294,123 +294,11 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
 
 ```
 
-Study the constructor
+Study and understand the following from the code above:
 
-```C#
-
-public SemanticKernelService(
-        IOptions<SemanticKernelServiceSettings> options,
-        ILoggerFactory loggerFactory)
-    {
-        _settings = options.Value;
-        _loggerFactory = loggerFactory;
-        _logger = _loggerFactory.CreateLogger<SemanticKernelService>();
-        _promptDebugProperties = new List<LogProperty>();
-
-        _logger.LogInformation("Initializing the Semantic Kernel service...");
-
-        var builder = Kernel.CreateBuilder();
-
-        builder.Services.AddSingleton<ILoggerFactory>(loggerFactory);
-
-        DefaultAzureCredential credential;
-        if (string.IsNullOrEmpty(_settings.AzureOpenAISettings.UserAssignedIdentityClientID))
-        {
-            credential = new DefaultAzureCredential();
-        }
-        else
-        {
-            credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
-            {
-                ManagedIdentityClientId = _settings.AzureOpenAISettings.UserAssignedIdentityClientID
-            });
-        }
-        builder.AddAzureOpenAIChatCompletion(
-            _settings.AzureOpenAISettings.CompletionsDeployment,
-            _settings.AzureOpenAISettings.Endpoint,
-            credential);
-
-        builder.AddAzureOpenAITextEmbeddingGeneration(
-               _settings.AzureOpenAISettings.EmbeddingsDeployment,
-               _settings.AzureOpenAISettings.Endpoint,
-               credential);
-
-        _semanticKernel = builder.Build();
-
-        Task.Run(Initialize).ConfigureAwait(false);
-    }
-
-
-```
-
-Focus on the 2 below functions
-
-```csharp
-
-public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory,  string tenantId, string userId)
-    {
-
-        try
-        {
-            
-            ChatCompletionAgent agent = new ChatCompletionAgent
-            {
-                Name = "BasicAgent",
-                Instructions = "Greet the user and translate the request into French",
-                Kernel = _semanticKernel.Clone()
-            };
-
-            ChatHistory chatHistory = [];
-
-            chatHistory.AddUserMessage(userMessage.Text);
-
-            _promptDebugProperties = new List<LogProperty>();
-
-            List<Message> completionMessages = new();
-            List<DebugLog> completionMessagesLogs = new();
-
-            ChatMessageContent message = new(AuthorRole.User, userMessage.Text);
-            chatHistory.Add(message);
-
-            await foreach (ChatMessageContent response in agent.InvokeAsync(chatHistory))
-            {
-                string messageId = Guid.NewGuid().ToString();
-                completionMessages.Add(new Message(userMessage.TenantId, userMessage.UserId, userMessage.SessionId, response.AuthorName ?? string.Empty, response.Role.ToString(), response.Content ?? string.Empty, messageId));
-            }            
-            return new Tuple<List<Message>, List<DebugLog>>(completionMessages, completionMessagesLogs);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.ToString());
-            return new Tuple<List<Message>, List<DebugLog>>(new List<Message>(), new List<DebugLog>());
-        }
-    }
-
-
-    public async Task<string> Summarize(string sessionId, string userPrompt)
-    {
-        try
-        {
-            // Use an AI function to summarize the text in 2 words
-            var summarizeFunction = _semanticKernel.CreateFunctionFromPrompt(
-                "Summarize the following text into exactly two words:\n\n{{$input}}",
-                executionSettings: new OpenAIPromptExecutionSettings { MaxTokens = 10 }
-            );
-
-            // Invoke the function
-            var summary = await _semanticKernel.InvokeAsync(summarizeFunction, new() { ["input"] = userPrompt });
-
-            return summary.GetValue<string>() ?? "No summary generated";
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.ToString());
-            return string.Empty;
-        }
-    }
-
-```
-
+- Constructor – Examine how the class is initialized and what dependencies or parameters it requires.
+- GetResponse function – Analyze its purpose, input parameters, processing logic, and return value.
+- Summarize function – Understand how it processes data, its algorithm, and the expected output.
 
 ### Add SK Dependency
 
@@ -520,7 +408,7 @@ public async Task<string> SummarizeChatSessionNameAsync(string tenantId, string 
 
 ```
 
-Add  ISemanticKernelService interface  as Singleton to Program.cs 
+Add  ISemanticKernelService interface  as Singleton to ChatAPI\Program.cs
 
 Search for builder.AddCosmosDBService(), paste the below line.
 
@@ -528,18 +416,25 @@ Search for builder.AddCosmosDBService(), paste the below line.
 
 builder.AddSemanticKernelService();
 
-~~~
-
+```
 
 
 ## Activity 5: Test your Work
 
 With the hands-on exercises complete it is time to test your work.
 
-1. Start a Chat Session in the UI
-2. Send the message.
-3. Expected response is a greeting along with the message you sent translated  in French.
-
+1. Navigate to src\ChatAPI.
+    - If running on Codespaces:
+       1. Run dotnet dev-certs https --trust to manually accept the certificate warning.
+       2. Run dotnet run.
+    - If running locally on Visual Studio or VS Code:
+       1. Press F5 or select Run.
+2. Copy the launched URL and use it as the API endpoint in the next step.
+3. Follow the [instructions](../..//README.md) to run the Frontend app.
+4. Start a Chat Session in the UI
+5. Send the message.
+6. Expected response is a greeting along with the message you sent translated  in French.
+7. Select ctrl+ C to stop the debugger.
 
 ### Validation Checklist
 
