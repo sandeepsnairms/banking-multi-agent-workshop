@@ -24,6 +24,7 @@ using Microsoft.SemanticKernel.Connectors.AzureCosmosDBNoSQL;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Identity.Client.Platforms.Features.DesktopOs.Kerberos;
 using Microsoft.SemanticKernel.Embeddings;
+using System.Text.Json;
 
 namespace BankingServices.Services
 {
@@ -89,8 +90,10 @@ namespace BankingServices.Services
 
             }
 
+            var jsonSerializerOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+
             CosmosClient client = new CosmosClientBuilder(_settings.CosmosUri, credential)
-                .WithSerializerOptions(options)
+                .WithSystemTextJsonSerializerOptions(jsonSerializerOptions)
                 .WithConnectionModeGateway()
             .Build();
 
@@ -109,12 +112,7 @@ namespace BankingServices.Services
             var builder = Kernel.CreateBuilder();
 
             builder.Services.AddSingleton<ILoggerFactory>(loggerFactory);
-
-
-            builder.AddAzureOpenAITextEmbeddingGeneration(
-                skSettings.AzureOpenAISettings.EmbeddingsDeployment,
-                skSettings.AzureOpenAISettings.Endpoint,
-                credential);
+                      
 
             _semanticKernel = builder.Build();
 
@@ -205,48 +203,11 @@ namespace BankingServices.Services
         }
 
 
-        public async Task<List<OfferTermBasic>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription)
-        {
-            // Generate Embedding
-
-            var embeddingModel = _semanticKernel.Services.GetRequiredService<ITextEmbeddingGenerationService>();
-
-            var embedding = await embeddingModel.GenerateEmbeddingAsync(requirementDescription);
-
-            // Convert ReadOnlyMemory<float> to IList<float>
-            var embeddingList = embedding.ToArray();
-
-            // Perform Vector Search in Cosmos DB
-            try
-            {
-                var queryDefinition = new QueryDefinition(@"
-                       SELECT c.offerId, c.text, c.name
-                        FROM c
-                        WHERE c.type = 'Term'
-                        AND c.accountType = @accountType
-                        AND VectorDistance(c.vector, @referenceVector)> 0.075
-                        ")
-                    .WithParameter("@accountType", accountType.ToString())
-                    .WithParameter("@referenceVector", embeddingList);
-
-                List<OfferTermBasic> offerTerms = new List<OfferTermBasic>();
-                using (FeedIterator<OfferTermBasic> feedIterator = _offerData.GetItemQueryIterator<OfferTermBasic>(queryDefinition, requestOptions: new QueryRequestOptions { PartitionKey = new PartitionKey(tenantId) }))
-                {
-                    while (feedIterator.HasMoreResults)
-                    {
-                        FeedResponse<OfferTermBasic> response = await feedIterator.ReadNextAsync();
-                        offerTerms.AddRange(response);
-                    }
-                }
-
-                return offerTerms;
-            }
-            catch (CosmosException ex)
-            {
-                _logger.LogError(ex.ToString());
-                return new List<OfferTermBasic>();
-                //}
-            }
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
+        public async Task<List<OfferTerm>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription)
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        { 
+            return new List<OfferTerm>();             
         }
 
         public async Task<Offer> GetOfferDetailsAsync(string tenantId, string offerId)
