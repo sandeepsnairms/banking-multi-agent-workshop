@@ -46,6 +46,28 @@ namespace BankingServices.Services
 
         readonly Kernel _semanticKernel;
 
+        public class ConsoleLogRequestHandler : RequestHandler
+        {
+            public override Task<ResponseMessage> SendAsync(RequestMessage request, CancellationToken cancellationToken)
+            {
+                if (request.Content != null)
+                {
+                    Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(
+                        System.Text.Json.JsonSerializer.Deserialize<dynamic>(request.Content),
+                        new JsonSerializerOptions
+                        {
+                            WriteIndented = true
+                        }
+                    ));
+                }
+
+                return base.SendAsync(request, cancellationToken);
+            }
+        }
+
+        
+
+
         public BankingDataService(
             CosmosDBSettings settings,
             SemanticKernelServiceSettings skSettings,
@@ -93,11 +115,15 @@ namespace BankingServices.Services
 
             }
 
+            var jsonSerializerOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+
             CosmosClient client = new CosmosClientBuilder(_settings.CosmosUri, credential)
-                .WithSerializerOptions(options)
-                .WithConnectionModeGateway()
+                .WithSystemTextJsonSerializerOptions(jsonSerializerOptions)
+                .AddCustomHandlers(new ConsoleLogRequestHandler())
+                //.WithConnectionModeGateway()
             .Build();
 
+  
             _database = client?.GetDatabase(_settings.Database) ??
                         throw new ArgumentException("Unable to connect to existing Azure Cosmos DB database.");
 
@@ -122,7 +148,7 @@ namespace BankingServices.Services
 
             _semanticKernel = builder.Build();
 
-            var jsonSerializerOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+
             var vectorStoreOptions = new AzureCosmosDBNoSQLVectorStoreRecordCollectionOptions<OfferTerm> { PartitionKeyPropertyName = "TenantId", JsonSerializerOptions = jsonSerializerOptions };
             _offerDataVectorStore = new AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm>(_database, _settings.OfferDataContainer.Trim(), vectorStoreOptions);
 
@@ -374,42 +400,7 @@ namespace BankingServices.Services
             {
                 _logger.LogError(ex.ToString());
                 return new List<OfferTerm>();
-            }
-            /*
-            // Convert ReadOnlyMemory<float> to IList<float>
-            var embeddingList = embedding.ToArray();
-
-            // Perform Vector Search in Cosmos DB
-            try
-            {
-                var queryDefinition = new QueryDefinition(@"
-                       SELECT c.offerId, c.text, c.name
-                        FROM c
-                        WHERE c.type = 'Term'
-                        AND c.accountType = @accountType
-                        AND VectorDistance(c.vector, @referenceVector)> 0.075
-                        ")
-                    .WithParameter("@accountType", accountType.ToString())
-                    .WithParameter("@referenceVector", embeddingList);
-
-                List<OfferTermBasic> offerTerms = new List<OfferTermBasic>();
-                using (FeedIterator<OfferTermBasic> feedIterator = _offerData.GetItemQueryIterator<OfferTermBasic>(queryDefinition, requestOptions: new QueryRequestOptions { PartitionKey = new PartitionKey(tenantId) }))
-                {
-                    while (feedIterator.HasMoreResults)
-                    {
-                        FeedResponse<OfferTermBasic> response = await feedIterator.ReadNextAsync();
-                        offerTerms.AddRange(response);
-                    }
-                }
-
-                return offerTerms;
-            }
-            catch (CosmosException ex)
-            {
-                _logger.LogError(ex.ToString());
-                return new List<OfferTermBasic>();
-                //}
-            }*/
+            }           
         }
 
         public async Task<Offer> GetOfferDetailsAsync(string tenantId, string offerId)
