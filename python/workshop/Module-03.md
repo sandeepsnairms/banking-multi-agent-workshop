@@ -16,42 +16,20 @@ In this Module you'll learn how to implement agent specialization by creating Se
 
 ## Module Exercises
 
-1. [Activity 1: Session on Agent Specialization and Integration](#activity-1-session-on-agent-specialization-and-integration)
-1. [Activity 2: Account Balances Agent](#activity-2-account-balances-agent)
-1. [Activity 3: Product Agent with Semantic Search](#activity-3-product-agent-with-semantic-search)
-1. [Activity 4: Service Request Agent that Takes Actions](#activity-4-service-request-agent-that-takes-actions)
-1. [Activity 5: Service Request Agent with Simple Lookup](#activity-5-service-request-agent-with-simple-lookup)
-1. [Activity 6: Test your Work](#activity-6-test-your-work)
+1. [Activity 1: Understanding Agent Specialization and Integration](#activity-1-understanding-agent-specialization-and-integration)  
+2. [Activity 2: Defining Bank Domain Data Models](#activity-2-defining-bank-domain-data-models)  
+3. [Activity 3: Creating Multiple Agents](#activity-3-creating-multiple-agents)  
+4. [Activity 4: Integrating Bank Domain Functions as Plugins](#activity-4-integrating-bank-domain-functions-as-plugins)  
+5. [Activity 5: Developing a Plugin Factory](#activity-5-developing-a-plugin-factory)  
+6. [Activity 6: Building an Agent Factory](#activity-6-building-an-agent-factory)  
+7. [Activity 7: Bringing It All Together – Bank Domain Models, Plugins, and Agents](#activity-7-bringing-it-all-together-bank-domain-models-plugins-and-agents)
+8. [Activity 8: Semantic Search](#activity-8-semantic-search)
 
 
 ## Activity 1: Session on Agent Specialization and Integration
 
 In this session we will dive into how to create Semantic Kernel Agent Framework Functions or LangGraph Tools to connect agents to external APIs, databases and third-party tools to provide special functionality. Learn the basics for vector indexing and search in Azure Cosmos DB to provide semantic search functionality to your agents. Learn how to define tasks and communication protocols for seamless collaboration between agents.
 
-## Activity 2: Account Balances Agent
-
-In this hands-on exercise, you will learn how to do a simple account balance look up for a customer account.
-
-**TBD - this needs langauge specific instructions**
-
-## Activity 3: Product Agent with Semantic Search
-
-In this hands-on exercise, you will learn how to configure vector indexing and search in Azure Cosmos DB and explore the container and vector indexing policies. Then learn how to implement vector search using for Semantic Kernel or LangGraph.
-
-**TBD - this needs langauge specific instructions**
-
-
-## Activity 4: Service Request Agent that Takes Actions
-
-In this hands-on exercise, you will learn how to design and implement an agent that takes an action on behalf of a user and inserts data into a database, Azure Cosmos DB.
-
-**TBD - this needs langauge specific instructions**
-
-## Activity 5: Service Request Agent with Simple Lookup
-
-In this hands-on exercise, you will learn how to do simple key-value reads of new data inserted on behalf of a user.
-
-**TBD - this needs langauge specific instructions**
 
 ## Activity 6: Test your Work
 
