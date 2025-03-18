@@ -46,26 +46,7 @@ namespace BankingServices.Services
 
         readonly Kernel _semanticKernel;
 
-        public class ConsoleLogRequestHandler : RequestHandler
-        {
-            public override Task<ResponseMessage> SendAsync(RequestMessage request, CancellationToken cancellationToken)
-            {
-                if (request.Content != null)
-                {
-                    Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(
-                        System.Text.Json.JsonSerializer.Deserialize<dynamic>(request.Content),
-                        new JsonSerializerOptions
-                        {
-                            WriteIndented = true
-                        }
-                    ));
-                }
-
-                return base.SendAsync(request, cancellationToken);
-            }
-        }
-
-        
+              
 
 
         public BankingDataService(
@@ -119,7 +100,6 @@ namespace BankingServices.Services
 
             CosmosClient client = new CosmosClientBuilder(_settings.CosmosUri, credential)
                 .WithSystemTextJsonSerializerOptions(jsonSerializerOptions)
-                .AddCustomHandlers(new ConsoleLogRequestHandler())
                 //.WithConnectionModeGateway()
             .Build();
 
