@@ -1,22 +1,27 @@
 {
-    "name": "C# Development Container",
-    "image": "mcr.microsoft.com/devcontainers/dotnet:8.0",
-    "features": {
-        "ghcr.io/devcontainers/features/azure-cli:1": {
-            "version": "latest",
-            "installBicep": true
-        },
-        "ghcr.io/azure/azure-dev/azd:latest": {}
+  "name": "C# Development Container",
+  "image": "mcr.microsoft.com/devcontainers/dotnet:8.0",
+  "features": {
+    "ghcr.io/devcontainers/features/azure-cli:1": {
+      "version": "latest",
+      "installBicep": true
     },
-    "customizations": {
-        "vscode": {
-            "extensions": [
-                "ms-dotnettools.csharp",
-                "ms-dotnettools.csdevkit",
-                "ms-azuretools.vscode-cosmosdb",
-                "esbenp.prettier-vscode"
-            ]
-        }
-    },
-    "remoteUser": "vscode"
+    "ghcr.io/azure/azure-dev/azd:latest": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:latest": {},
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "20"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csharp",
+        "ms-dotnettools.csdevkit",
+        "ms-azuretools.vscode-cosmosdb",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  },
+  "postCreateCommand": "npm install -g @angular/cli",
+  "remoteUser": "vscode"
 }
