@@ -17,10 +17,8 @@ namespace BankingServices.Interfaces
         Task<BankAccount> GetAccountDetailsAsync(string tenantId, string userId, string accountId);
 
         Task<ServiceRequest> CreateComplaintAsync(string tenantId, string accountId, string userId, string requestAnnotation);
-                
-        Task<List<OfferTerm>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription);
 
-        Task<Offer> GetOfferDetailsAsync(string tenantId, string offerId);
+        Task<Offer> GetOfferDetailsByNameAsync(string tenantId, string offerName);
 
     }
 }

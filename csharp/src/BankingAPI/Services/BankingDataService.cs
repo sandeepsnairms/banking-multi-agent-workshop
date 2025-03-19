@@ -202,23 +202,24 @@ namespace BankingServices.Services
             }
         }
 
-
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        public async Task<List<OfferTerm>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
-        { 
-            return new List<OfferTerm>();             
-        }
-
-        public async Task<Offer> GetOfferDetailsAsync(string tenantId, string offerId)
+        public async Task<Offer> GetOfferDetailsByNameAsync(string tenantId, string offerName)
         {
             try
             {
-                var partitionKey = new PartitionKey(tenantId);
+                QueryDefinition query = new QueryDefinition("SELECT * FROM c WHERE c.name = @offerName and c.type='Offer'")
+                     .WithParameter("@offerName", offerName);
 
-                return await _offerData.ReadItemAsync<Offer>(
-                       id: offerId,
-                       partitionKey: new PartitionKey(tenantId));
+                var partitionKey = new PartitionKey(tenantId);
+                FeedIterator<Offer> response = _offerData.GetItemQueryIterator<Offer>(query, null, new QueryRequestOptions() { PartitionKey = partitionKey });
+
+                await response.ReadNextAsync();
+
+                while (response.HasMoreResults)
+                {
+                    FeedResponse<Offer> results = await response.ReadNextAsync();
+                    return results.FirstOrDefault();
+                }
+                return null;
             }
             catch (CosmosException ex)
             {
@@ -226,5 +227,6 @@ namespace BankingServices.Services
                 return null;
             }
         }
+
     }
 }
