@@ -21,11 +21,11 @@ from langgraph_checkpoint_cosmosdb import CosmosDBSaver
 from langgraph.graph.state import CompiledStateGraph
 from starlette.middleware.cors import CORSMiddleware
 from src.app.banking_agents import graph, checkpointer
-from src.app.services.azure_cosmos_db import update_session_container, patch_active_agent, \
-    fetch_session_container_by_tenant_and_user, \
-    fetch_session_container_by_session, delete_userdata_item, debug_container, update_users_container, \
+from src.app.services.azure_cosmos_db import update_chat_container, patch_active_agent, \
+    fetch_chat_container_by_tenant_and_user, \
+    fetch_chat_container_by_session, delete_userdata_item, debug_container, update_users_container, \
     update_account_container, update_offers_container, store_chat_history, update_active_agent_in_latest_message, \
-    session_container, fetch_chat_history_by_session, delete_chat_history_by_session
+    chat_container, fetch_chat_history_by_session, delete_chat_history_by_session
 import logging
 
 # Setup logging
@@ -195,7 +195,7 @@ def create_thread(tenantId: str, userId: str):
     activeAgent = "unknown"
     ChatName = "New Chat"
     messages = []
-    update_session_container({
+    update_chat_container({
         "id": sessionId,
         "tenantId": tenantId,
         "userId": userId,
@@ -277,7 +277,7 @@ def _fetch_messages_for_session(sessionId: str, tenantId: str, userId: str) -> L
          description="Retrieves sessions from the given tenantId and userId", tags=[endpointTitle],
          response_model=List[Session])
 def get_chat_sessions(tenantId: str, userId: str):
-    items = fetch_session_container_by_tenant_and_user(tenantId, userId)
+    items = fetch_chat_container_by_tenant_and_user(tenantId, userId)
     sessions = []
 
     for item in items:
@@ -342,13 +342,13 @@ def get_chat_completion_details(tenantId: str, userId: str, sessionId: str, debu
 @app.post("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/rename", description="Renames the chat session",
           tags=[endpointTitle], response_model=Session)
 def rename_chat_session(tenantId: str, userId: str, sessionId: str, newChatSessionName: str):
-    items = fetch_session_container_by_session(tenantId, userId, sessionId)
+    items = fetch_chat_container_by_session(tenantId, userId, sessionId)
     if not items:
         raise HTTPException(status_code=404, detail="Session not found")
 
     item = items[0]
     item["ChatName"] = newChatSessionName
-    update_session_container(item)
+    update_chat_container(item)
 
     return Session(id=item["sessionId"], sessionId=item["sessionId"], tenantId=item["tenantId"], userId=item["userId"],
                    name=item["ChatName"], age=item["age"],
@@ -507,7 +507,7 @@ def process_messages(messages, userId, tenantId, sessionId):
 
     partition_key = [tenantId, userId, sessionId]
     # Get the active agent from Cosmos DB with a point lookup
-    activeAgent = session_container.read_item(item=sessionId, partition_key=partition_key).get('activeAgent', 'unknown')
+    activeAgent = chat_container.read_item(item=sessionId, partition_key=partition_key).get('activeAgent', 'unknown')
 
     last_active_agent = agent_mapping.get(activeAgent, activeAgent)
     update_active_agent_in_latest_message(sessionId, last_active_agent)
