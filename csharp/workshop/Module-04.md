@@ -23,11 +23,11 @@ In this Module you'll learn how to implement the multi-agent orchestration to ti
 
 ## Activity 1: Session on Multi-Agent Architectures
 
-In this session you will learn how this all comes together and get insights into how the multi-agent orchestration works and coordindates across all of the defined agents for your system.
+In this session you will learn how this all comes together and get insights into how the multi-agent orchestration works and coordinates across all of the defined agents for your system.
 
 ## Activity 2: Define Agents and Roles
 
-In this hands-on exercise, you will learn how to write prompts for agents and define agent routing.
+Lets add some banking domain functions that wil be used by the various agents.
 
 Update IBankDataService at BankingAPI\Interface to add more function definitions
 
@@ -274,7 +274,10 @@ Update ChatInfrastructure\AgentPlugins\TransactionPlugin.cs with additional func
 
 ### Add Selection Strategy for Agent Selection
 
+When dealing with multiple agents, deciding which agent should respond is critical. We don't all agents to respond to all user prompts. SelectionStrategy is  the mechanism in SemanticKernel to decide the next participant. The SelectionStrategy is defined in natural language.
+
 Add SelectionStrategy.prompty at ChatAPI\Prompts\
+
 ```
 Examine RESPONSE and choose the next participant.
 
@@ -294,6 +297,8 @@ Always follow these rules when choosing the next participant:
 
 ### Add Termination Strategy for Agent reponse
 
+Similar to SelectionStrategy deciding when the agents should stop responding to a user prompt is important, else you may see multiple unwanted agent responses to a user prompt. TerminationStrategy is  the mechanism in SemanticKernel to decide when to stop. The TerminationStrategy is defined in natural language. We want the LLM to return YES if more agent participation is required, else it should be NO.
+
 Add TerminationStrategy.prompty at ChatAPI\Prompts\
 
 ```
@@ -305,8 +310,55 @@ Otherwise, respond with the word YES (without explanation) if any the following 
 - The information requested by the user was not provided by the current agent.
 ```
 
+### ChatResponseFormat
 
-### Add ChatResponseFormat.cs to ChatInfrastructure\StructuredFormats
+By default  the LLM responds to a user response in natural language. However, we can force the LLM to  use a structure format in its response. A structure format helps us parse the response and use it our code for decision making.
+
+Lets define the models for the response
+
+### Add ContinuationInfo.cs  to ChatInfrastructure\Models\ChatInfoFormats
+
+```c#
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace MultiAgentCopilot.ChatInfrastructure.Models.ChatInfoFormats
+{
+    public class ContinuationInfo
+    {
+        public string AgentName { get; set; } = string.Empty;
+        public string Reason { get; set; } = string.Empty;
+    }
+}
+```
+
+### Add TerminationInfo.cs  to ChatInfrastructure\Models\ChatInfoFormats
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace MultiAgentCopilot.ChatInfrastructure.Models.ChatInfoFormats
+{
+    internal class TerminationInfo
+    {
+        public bool ShouldContinue { get; set; }
+        public string Reason { get; set; } = string.Empty;
+    }
+}
+
+```
+
+Prompts to make the LLM output the Continuation and Termination models as responses
+
+Add ChatResponseFormat.cs to ChatInfrastructure\StructuredFormats
 
 ```csharp
 using System;
@@ -383,7 +435,11 @@ using static MultiAgentCopilot.ChatInfrastructure.StructuredFormats.ChatResponse
 
 ```
 
-### Add GetStrategyPrompts to ChatInfrastructure\Factories\SystemPromptFactory.cs 
+### StrategyPrompts
+
+Dynamically load the prompts based on strategyType
+
+Add GetStrategyPrompts to ChatInfrastructure\Factories\SystemPromptFactory.cs 
 
 ```csharp
 
@@ -405,47 +461,11 @@ using static MultiAgentCopilot.ChatInfrastructure.StructuredFormats.ChatResponse
 
 ```
 
-### Add ContinuationInfo.cs  to ChatInfrastructure\Models\ChatInfoFormats
+### AutoFunctionInvocationLoggingFilter.cs
 
-```c#
+Helper function to log the kernel function selection in the plugin. This is only required to log and debug.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace MultiAgentCopilot.ChatInfrastructure.Models.ChatInfoFormats
-{
-    public class ContinuationInfo
-    {
-        public string AgentName { get; set; } = string.Empty;
-        public string Reason { get; set; } = string.Empty;
-    }
-}
-```
-
-### Add TerminationInfo.cs  to ChatInfrastructure\Models\ChatInfoFormats
-
-```csharp
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace MultiAgentCopilot.ChatInfrastructure.Models.ChatInfoFormats
-{
-    internal class TerminationInfo
-    {
-        public bool ShouldContinue { get; set; }
-        public string Reason { get; set; } = string.Empty;
-    }
-}
-
-```
-
-### Add AutoFunctionInvocationLoggingFilter.cs in ChatInfrastructure\Logs
+Add AutoFunctionInvocationLoggingFilter.cs in ChatInfrastructure\Logs
 
 ```c#
 
@@ -508,7 +528,7 @@ using MultiAgentCopilot.ChatInfrastructure.Logs;
 ```
 
 
-Add the functions in ChatFactory.cs
+Add the functions in ChatInfrastructure\Factories\ChatFactory.cs
 
 ```csharp
         private OpenAIPromptExecutionSettings GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStrategy strategyType)
@@ -527,7 +547,7 @@ Add the functions in ChatFactory.cs
             return executionSettings;
         }
 
-        private KernelFunction GetStratergyFunction(ChatResponseFormatBuilder.ChatResponseStrategy strategyType)
+        private KernelFunction GetStrategyFunction(ChatResponseFormatBuilder.ChatResponseStrategy strategyType)
         {
 
             KernelFunction function =
@@ -556,25 +576,23 @@ Add the functions in ChatFactory.cs
                 agentGroupChat.AddAgent(BuildAgent(kernel, agentType, loggerFactory, bankService, tenantId, userId));
             }
 
-            agentGroupChat.ExecutionSettings = GetExecutionSettings(kernel, logCallback);
+            agentGroupChat.ExecutionSettings = GetAgentGroupChatSettings(kernel, logCallback);
 
 
             return agentGroupChat;
         }
 
 
-        private AgentGroupChatSettings GetExecutionSettings(Kernel kernel, LogCallback logCallback)
+        private AgentGroupChatSettings GetAgentGroupChatSettings(Kernel kernel, LogCallback logCallback)
         {
             ChatHistoryTruncationReducer historyReducer = new(5);
 
             AgentGroupChatSettings ExecutionSettings = new AgentGroupChatSettings
             {
                 SelectionStrategy =
-                    new KernelFunctionSelectionStrategy(GetStratergyFunction(ChatResponseFormatBuilder.ChatResponseStrategy.Continuation), kernel)
+                    new KernelFunctionSelectionStrategy(GetStrategyFunction(ChatResponseFormatBuilder.ChatResponseStrategy.Continuation), kernel)
                     {
                         Arguments = new KernelArguments(GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStrategy.Continuation)),
-                        // Always start with the editor agent.
-                        //InitialAgent = CoordinatorAgent,//do not set else Coordinator initates after each stateless call.
                         // Save tokens by only including the final few responses
                         HistoryReducer = historyReducer,
                         // The prompt variable name for the history argument.
@@ -585,13 +603,12 @@ Add the functions in ChatFactory.cs
 #pragma warning disable CS8604 // Possible null reference argument.
                             var ContinuationInfo = JsonSerializer.Deserialize<ContinuationInfo>(result.GetValue<string>());
 #pragma warning restore CS8604 // Possible null reference argument.
-                            logCallback("SELECTION - Agent",ContinuationInfo.AgentName); // provides visibility (can use logger)
-                            logCallback("SELECTION - Reason",ContinuationInfo.Reason); // provides visibility (can use logger)                            
+                         
                             return ContinuationInfo.AgentName;
                         }
                     },
                 TerminationStrategy =
-                    new KernelFunctionTerminationStrategy(GetStratergyFunction(ChatResponseFormatBuilder.ChatResponseStrategy.Termination), kernel)
+                    new KernelFunctionTerminationStrategy(GetStrategyFunction(ChatResponseFormatBuilder.ChatResponseStrategy.Termination), kernel)
                     {
                         Arguments = new KernelArguments(GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStrategy.Termination)),
                         // Save tokens by only including the final response
@@ -606,8 +623,7 @@ Add the functions in ChatFactory.cs
 #pragma warning disable CS8604 // Possible null reference argument.
                             var terminationInfo = JsonSerializer.Deserialize<TerminationInfo>(result.GetValue<string>());
 #pragma warning restore CS8604 // Possible null reference argument.
-                            logCallback("TERMINATION - Continue",terminationInfo.ShouldContinue.ToString()); // provides visibility (can use logger)
-                            logCallback("TERMINATION - Reason",terminationInfo.Reason); // provides visibility (can use logger)
+
                             return !terminationInfo.ShouldContinue;
                         }
                     },
@@ -619,6 +635,8 @@ Add the functions in ChatFactory.cs
 ```
 
 ### Add ChatInfrastructure/Helper/AuthorRoleHelper.cs
+
+ This code helps reverse look up the Agent's role when building the agent chat from history stored in Cosmos DB.
 
 ```csharp
 ﻿using Microsoft.SemanticKernel.ChatCompletion;
@@ -658,6 +676,8 @@ namespace MultiAgentCopilot.ChatInfrastructure.Helper
 
 ### Replace Agent with AgentGroupChat in SemanticKernel
 
+Till now the responses we received were from a single agent, lets us use AgentGroupChat to orchestrate a chat were multiple agents participate.
+
 Add the below references in ChatInfrastructure/Factories/ChatFactory.cs
 
 ```csharp
@@ -665,7 +685,133 @@ using MultiAgentCopilot.ChatInfrastructure.Helper;
 
 ```
 
+Update GetResponse in ChatInfrastructure\Services\SemanticKernelService.cs
 
+```csharp
+
+ public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, IBankDataService bankService, string tenantId, string userId)
+    {
+        try
+        {
+            ChatFactory multiAgentChatGeneratorService = new ChatFactory();
+
+            var agentGroupChat = multiAgentChatGeneratorService.BuildAgentGroupChat(_semanticKernel, _loggerFactory, LogMessage, bankService, tenantId, userId);
+
+            // Load history
+            foreach (var chatMessage in messageHistory)
+            {
+                AuthorRole? role = AuthorRoleHelper.FromString(chatMessage.SenderRole);
+                var chatMessageContent = new ChatMessageContent
+                {
+                    Role = role ?? AuthorRole.User,
+                    Content = chatMessage.Text
+                };
+                agentGroupChat.AddChatMessage(chatMessageContent);
+            }
+
+            _promptDebugProperties = new List<LogProperty>();
+
+            List<Message> completionMessages = new();
+            List<DebugLog> completionMessagesLogs = new();
+            do
+            {
+                var userResponse = new ChatMessageContent(AuthorRole.User, userMessage.Text);
+                agentGroupChat.AddChatMessage(userResponse);
+
+                agentGroupChat.IsComplete = false;
+
+                await foreach (ChatMessageContent response in agentGroupChat.InvokeAsync())
+                {
+                    string messageId = Guid.NewGuid().ToString();
+
+                    completionMessages.Add(new Message(userMessage.TenantId, userMessage.UserId, userMessage.SessionId, response.AuthorName ?? string.Empty, response.Role.ToString(), response.Content ?? string.Empty, messageId));
+
+                }
+            }
+            while (!agentGroupChat.IsComplete);
+
+
+            return new Tuple<List<Message>, List<DebugLog>>(completionMessages, completionMessagesLogs);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.ToString());
+            return new Tuple<List<Message>, List<DebugLog>>(new List<Message>(), new List<DebugLog>());
+        }
+    }
+
+```
+
+## Activity 3: Session on Testing and Monitoring
+
+In this session you will learn about how to architect the service layer for a multi-agent system and how to configure and conduct testing and debugging and monitoring for these systems.
+
+## Activity 4: Implement Agent Tracing and Monitoring
+
+In this hands-on exercise, you will learn how to define an API service layer for a multi-agent backend and learn how to configure tracing and monitoring to enable testing and debugging for agents.
+
+Before executing the below steps, try chatting with the agents. Note that  you are unable to see what what the LLM select an agent. Now lets add some code to bring visibility to behind the scene decision making process.
+
+### Log the KernelFunctionSelectionStrategy and KernelFunctionTerminationStrategy
+
+Update GetAgentGroupChatSettings in ChatInfrastructure\Factories\ChatFactory.cs
+
+```csharp
+
+private AgentGroupChatSettings GetAgentGroupChatSettings(Kernel kernel, LogCallback logCallback)
+        {
+            ChatHistoryTruncationReducer historyReducer = new(5);
+
+            AgentGroupChatSettings ExecutionSettings = new AgentGroupChatSettings
+            {
+                SelectionStrategy =
+                    new KernelFunctionSelectionStrategy(GetStrategyFunction(ChatResponseFormatBuilder.ChatResponseStrategy.Continuation), kernel)
+                    {
+                        Arguments = new KernelArguments(GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStrategy.Continuation)),
+                        // Save tokens by only including the final few responses
+                        HistoryReducer = historyReducer,
+                        // The prompt variable name for the history argument.
+                        HistoryVariableName = "lastmessage",
+                        // Returns the entire result value as a string.
+                        ResultParser = (result) =>
+                        {
+#pragma warning disable CS8604 // Possible null reference argument.
+                            var ContinuationInfo = JsonSerializer.Deserialize<ContinuationInfo>(result.GetValue<string>());
+#pragma warning restore CS8604 // Possible null reference argument.
+                            logCallback("SELECTION - Agent",ContinuationInfo.AgentName); // provides visibility (can use logger)
+                            logCallback("SELECTION - Reason",ContinuationInfo.Reason); // provides visibility (can use logger)                            
+                            return ContinuationInfo.AgentName;
+                        }
+                    },
+                TerminationStrategy =
+                    new KernelFunctionTerminationStrategy(GetStrategyFunction(ChatResponseFormatBuilder.ChatResponseStrategy.Termination), kernel)
+                    {
+                        Arguments = new KernelArguments(GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStrategy.Termination)),
+                        // Save tokens by only including the final response
+                        HistoryReducer = historyReducer,
+                        // The prompt variable name for the history argument.
+                        HistoryVariableName = "lastmessage",
+                        // Limit total number of turns
+                        MaximumIterations = 8,
+                        // user result parser to determine if the response is "yes"
+                        ResultParser = (result) =>
+                        {
+#pragma warning disable CS8604 // Possible null reference argument.
+                            var terminationInfo = JsonSerializer.Deserialize<TerminationInfo>(result.GetValue<string>());
+#pragma warning restore CS8604 // Possible null reference argument.
+                            logCallback("TERMINATION - Continue",terminationInfo.ShouldContinue.ToString()); // provides visibility (can use logger)
+                            logCallback("TERMINATION - Reason",terminationInfo.Reason); // provides visibility (can use logger)
+                            return !terminationInfo.ShouldContinue;
+                        }
+                    },
+            };
+
+            return ExecutionSettings;
+        }
+
+```
+
+### Store the log information along with the chat response.
 
 Update GetResponse in ChatInfrastructure\Services\SemanticKernelService.cs
 
@@ -731,22 +877,26 @@ Update GetResponse in ChatInfrastructure\Services\SemanticKernelService.cs
 
 ```
 
-
-## Activity 3: Session on Testing and Monitoring
-
-In this session you will learn about how to architect the service layer for a multi-agent system and how to configure and coduct testing and debugging and monitoring for these systems.
-
-## Activity 4: Implement Agent Tracing and Monitoring
-
-In this hands-on exercise, you will learn how to define an API service layer for a multi-agent backend and learn how to configure tracing and monitoring to enable testing and debugging for agents.
-
-**TBD - this needs langauge specific instructions**
-
 ## Activity 5: Test your Work
 
 With the hands-on exercises complete it is time to test your work.
 
-**TBD - this needs langauge specific instructions**
+1. Navigate to src\ChatAPI.
+    - If running on Codespaces:
+       1. Run dotnet dev-certs https --trust to manually accept the certificate warning.
+       2. Run dotnet run.
+    - If running locally on Visual Studio or VS Code:
+       1. Press F5 or select Run.
+2. Copy the launched URL and use it as the API endpoint in the next step.
+3. Follow the [instructions](../..//README.md) to run the Frontend app.
+4. Start a Chat Session in the UI
+5. Try the below messages and respond according to the AI response.
+    1. Transfer $50 to my friend.
+    1. Looking for a Savings account with high interest rate.
+    1. File a complaint about theft from my account.
+    1. How much did I spend on grocery?
+    1. Provide me a statement of my account.
+1. Expected result each message response is based on the agent you selected and plugins available with the agent.
 
 ### Validation Checklist
 
