@@ -23,7 +23,7 @@ In this Module you'll learn how to implement the multi-agent orchestration to ti
 
 ## Activity 1: Session on Multi-Agent Architectures
 
-In this session you will learn how this all comes together and get insights into how the multi-agent orchestration works and coordindates across all of the defined agents for your system.
+In this session you will learn how this all comes together and get insights into how the multi-agent orchestration works and coordinates across all of the defined agents for your system.
 
 ## Activity 2: Define Agents and Roles
 
@@ -528,7 +528,7 @@ using MultiAgentCopilot.ChatInfrastructure.Logs;
 ```
 
 
-Add the functions in ChatFactory.cs
+Add the functions in ChatInfrastructure\Factories\ChatFactory.cs
 
 ```csharp
         private OpenAIPromptExecutionSettings GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStrategy strategyType)
@@ -593,8 +593,181 @@ Add the functions in ChatFactory.cs
                     new KernelFunctionSelectionStrategy(GetStrategyFunction(ChatResponseFormatBuilder.ChatResponseStrategy.Continuation), kernel)
                     {
                         Arguments = new KernelArguments(GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStrategy.Continuation)),
-                        // Always start with the editor agent.
-                        //InitialAgent = CoordinatorAgent,//do not set else Coordinator initiates after each stateless call.
+                        // Save tokens by only including the final few responses
+                        HistoryReducer = historyReducer,
+                        // The prompt variable name for the history argument.
+                        HistoryVariableName = "lastmessage",
+                        // Returns the entire result value as a string.
+                        ResultParser = (result) =>
+                        {
+#pragma warning disable CS8604 // Possible null reference argument.
+                            var ContinuationInfo = JsonSerializer.Deserialize<ContinuationInfo>(result.GetValue<string>());
+#pragma warning restore CS8604 // Possible null reference argument.
+                         
+                            return ContinuationInfo.AgentName;
+                        }
+                    },
+                TerminationStrategy =
+                    new KernelFunctionTerminationStrategy(GetStrategyFunction(ChatResponseFormatBuilder.ChatResponseStrategy.Termination), kernel)
+                    {
+                        Arguments = new KernelArguments(GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStrategy.Termination)),
+                        // Save tokens by only including the final response
+                        HistoryReducer = historyReducer,
+                        // The prompt variable name for the history argument.
+                        HistoryVariableName = "lastmessage",
+                        // Limit total number of turns
+                        MaximumIterations = 8,
+                        // user result parser to determine if the response is "yes"
+                        ResultParser = (result) =>
+                        {
+#pragma warning disable CS8604 // Possible null reference argument.
+                            var terminationInfo = JsonSerializer.Deserialize<TerminationInfo>(result.GetValue<string>());
+#pragma warning restore CS8604 // Possible null reference argument.
+
+                            return !terminationInfo.ShouldContinue;
+                        }
+                    },
+            };
+
+            return ExecutionSettings;
+        }
+
+```
+
+### Add ChatInfrastructure/Helper/AuthorRoleHelper.cs
+
+ This code helps reverse look up the Agent's role when building the agent chat from history stored in Cosmos DB.
+
+```csharp
+﻿using Microsoft.SemanticKernel.ChatCompletion;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace MultiAgentCopilot.ChatInfrastructure.Helper
+{
+    internal static class AuthorRoleHelper
+    {
+        private static readonly Dictionary<string, AuthorRole> RoleMap =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            { "system", AuthorRole.System },
+            { "assistant", AuthorRole.Assistant },
+            { "user", AuthorRole.User },
+            { "tool", AuthorRole.Tool }
+        };
+
+        public static AuthorRole? FromString(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return null;
+            }
+
+            return RoleMap.TryGetValue(name, out var role) ? role : null;
+        }
+    }
+}
+
+```
+
+
+### Replace Agent with AgentGroupChat in SemanticKernel
+
+Till now the responses we received were from a single agent, lets us use AgentGroupChat to orchestrate a chat were multiple agents participate.
+
+Add the below references in ChatInfrastructure/Factories/ChatFactory.cs
+
+```csharp
+using MultiAgentCopilot.ChatInfrastructure.Helper;
+
+```
+
+Update GetResponse in ChatInfrastructure\Services\SemanticKernelService.cs
+
+```csharp
+
+ public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, IBankDataService bankService, string tenantId, string userId)
+    {
+        try
+        {
+            ChatFactory multiAgentChatGeneratorService = new ChatFactory();
+
+            var agentGroupChat = multiAgentChatGeneratorService.BuildAgentGroupChat(_semanticKernel, _loggerFactory, LogMessage, bankService, tenantId, userId);
+
+            // Load history
+            foreach (var chatMessage in messageHistory)
+            {
+                AuthorRole? role = AuthorRoleHelper.FromString(chatMessage.SenderRole);
+                var chatMessageContent = new ChatMessageContent
+                {
+                    Role = role ?? AuthorRole.User,
+                    Content = chatMessage.Text
+                };
+                agentGroupChat.AddChatMessage(chatMessageContent);
+            }
+
+            _promptDebugProperties = new List<LogProperty>();
+
+            List<Message> completionMessages = new();
+            List<DebugLog> completionMessagesLogs = new();
+            do
+            {
+                var userResponse = new ChatMessageContent(AuthorRole.User, userMessage.Text);
+                agentGroupChat.AddChatMessage(userResponse);
+
+                agentGroupChat.IsComplete = false;
+
+                await foreach (ChatMessageContent response in agentGroupChat.InvokeAsync())
+                {
+                    string messageId = Guid.NewGuid().ToString();
+
+                    completionMessages.Add(new Message(userMessage.TenantId, userMessage.UserId, userMessage.SessionId, response.AuthorName ?? string.Empty, response.Role.ToString(), response.Content ?? string.Empty, messageId));
+
+                }
+            }
+            while (!agentGroupChat.IsComplete);
+
+
+            return new Tuple<List<Message>, List<DebugLog>>(completionMessages, completionMessagesLogs);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.ToString());
+            return new Tuple<List<Message>, List<DebugLog>>(new List<Message>(), new List<DebugLog>());
+        }
+    }
+
+```
+
+## Activity 3: Session on Testing and Monitoring
+
+In this session you will learn about how to architect the service layer for a multi-agent system and how to configure and conduct testing and debugging and monitoring for these systems.
+
+## Activity 4: Implement Agent Tracing and Monitoring
+
+In this hands-on exercise, you will learn how to define an API service layer for a multi-agent backend and learn how to configure tracing and monitoring to enable testing and debugging for agents.
+
+Before executing the below steps, try chatting with the agents. Note that  you are unable to see what what the LLM select an agent. Now lets add some code to bring visibility to behind the scene decision making process.
+
+### Log the KernelFunctionSelectionStrategy and KernelFunctionTerminationStrategy
+
+Update GetAgentGroupChatSettings in ChatInfrastructure\Factories\ChatFactory.cs
+
+```csharp
+
+private AgentGroupChatSettings GetAgentGroupChatSettings(Kernel kernel, LogCallback logCallback)
+        {
+            ChatHistoryTruncationReducer historyReducer = new(5);
+
+            AgentGroupChatSettings ExecutionSettings = new AgentGroupChatSettings
+            {
+                SelectionStrategy =
+                    new KernelFunctionSelectionStrategy(GetStrategyFunction(ChatResponseFormatBuilder.ChatResponseStrategy.Continuation), kernel)
+                    {
+                        Arguments = new KernelArguments(GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStrategy.Continuation)),
                         // Save tokens by only including the final few responses
                         HistoryReducer = historyReducer,
                         // The prompt variable name for the history argument.
@@ -638,54 +811,7 @@ Add the functions in ChatFactory.cs
 
 ```
 
-### Add ChatInfrastructure/Helper/AuthorRoleHelper.cs
-
-```csharp
-﻿using Microsoft.SemanticKernel.ChatCompletion;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace MultiAgentCopilot.ChatInfrastructure.Helper
-{
-    internal static class AuthorRoleHelper
-    {
-        private static readonly Dictionary<string, AuthorRole> RoleMap =
-        new(StringComparer.OrdinalIgnoreCase)
-        {
-            { "system", AuthorRole.System },
-            { "assistant", AuthorRole.Assistant },
-            { "user", AuthorRole.User },
-            { "tool", AuthorRole.Tool }
-        };
-
-        public static AuthorRole? FromString(string name)
-        {
-            if (string.IsNullOrWhiteSpace(name))
-            {
-                return null;
-            }
-
-            return RoleMap.TryGetValue(name, out var role) ? role : null;
-        }
-    }
-}
-
-```
-
-
-### Replace Agent with AgentGroupChat in SemanticKernel
-
-Add the below references in ChatInfrastructure/Factories/ChatFactory.cs
-
-```csharp
-using MultiAgentCopilot.ChatInfrastructure.Helper;
-
-```
-
-
+### Store the log information along with the chat response.
 
 Update GetResponse in ChatInfrastructure\Services\SemanticKernelService.cs
 
@@ -751,22 +877,26 @@ Update GetResponse in ChatInfrastructure\Services\SemanticKernelService.cs
 
 ```
 
-
-## Activity 3: Session on Testing and Monitoring
-
-In this session you will learn about how to architect the service layer for a multi-agent system and how to configure and coduct testing and debugging and monitoring for these systems.
-
-## Activity 4: Implement Agent Tracing and Monitoring
-
-In this hands-on exercise, you will learn how to define an API service layer for a multi-agent backend and learn how to configure tracing and monitoring to enable testing and debugging for agents.
-
-**TBD - this needs langauge specific instructions**
-
 ## Activity 5: Test your Work
 
 With the hands-on exercises complete it is time to test your work.
 
-**TBD - this needs langauge specific instructions**
+1. Navigate to src\ChatAPI.
+    - If running on Codespaces:
+       1. Run dotnet dev-certs https --trust to manually accept the certificate warning.
+       2. Run dotnet run.
+    - If running locally on Visual Studio or VS Code:
+       1. Press F5 or select Run.
+2. Copy the launched URL and use it as the API endpoint in the next step.
+3. Follow the [instructions](../..//README.md) to run the Frontend app.
+4. Start a Chat Session in the UI
+5. Try the below messages and respond according to the AI response.
+    1. Transfer $50 to my friend.
+    1. Looking for a Savings account with high interest rate.
+    1. File a complaint about theft from my account.
+    1. How much did I spend on grocery?
+    1. Provide me a statement of my account.
+1. Expected result each message response is based on the agent you selected and plugins available with the agent.
 
 ### Validation Checklist
 

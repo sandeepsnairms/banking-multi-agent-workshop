@@ -571,22 +571,15 @@ namespace MultiAgentCopilot.ChatInfrastructure.Plugins
         {
         }
         
-        [KernelFunction]
-        [Description("Search offer terms of all available offers using vector search")]
-        public async Task<List<OfferTerm>> SearchOfferTerms(AccountType accountType, string requirementDescription)
-        {
-            _logger.LogTrace($"Searching terms of all available offers matching '{requirementDescription}'");
-            return await _bankService.SearchOfferTermsAsync(_tenantId, accountType,requirementDescription);
-        }
-
 
         [KernelFunction]
-        [Description("Get detail for an offers")]
-        public async Task<Offer> GetOfferDetails(string offerId)
+        [Description("Search an offer by name")]
+        public async Task<Offer> GetOfferDetailsByName(string offerName)
         {
-            _logger.LogTrace($"Fetching Offer");
-            return await _bankService.GetOfferDetailsAsync(_tenantId, offerId);
-        }
+            _logger.LogTrace($"Fetching Offer by name");
+            return await _bankService.GetOfferDetailsByNameAsync(_tenantId, offerName);
+    }
+            
 
 
     }
@@ -618,7 +611,15 @@ namespace MultiAgentCopilot.ChatInfrastructure.Plugins
          : base(logger, bankService, tenantId, userId)
         {
         }
-
+        
+        [KernelFunction]
+        [Description("Get the transactions history between 2 dates")]
+        public async Task<List<BankTransaction>> GetTransactionHistory(string accountId, DateTime startDate, DateTime endDate)
+        {
+            _logger.LogTrace("Fetching AccountTransaction history for Account: {AccountId}, From: {StartDate} To: {EndDate}", accountId, startDate, endDate);
+            return await _bankService.GetTransactionsAsync(_tenantId, accountId, startDate, endDate);
+        
+        }
 
     }
 }
@@ -978,14 +979,16 @@ Execute the below steps to check the behavior for each agent.
 2. Copy the launched URL and use it as the API endpoint in the next step.
 3. Follow the [instructions](../..//README.md) to run the Frontend app.
 4. Start a Chat Session in the UI
-5. Send multiple messages.
-6. Expected result each message response is based on the agent you selected and plugins available with the agent.
-7. Open CosmosDB Chats Data Container, multiple records are stored for a given session Id.
-8. Select ctrl+ C to stop the debugger.
+5. Try the below messages based on the current agent type.
+    1. CustomerSupport: File a complaint on theft.
+    1. Sales: Looking for an account with name 'SmartSaver Plus'
+    1. Transactions: How much did I spend on grocery?
+    1. Coordinator: List my accounts.
+1. Select ctrl+ C to stop the debugger.
 
 ## Validation Checklist
 
-- [ ] Each Agent  response is per the corresponding prompty file contents.
+- [ ] Each Agent  response is per the corresponding prompty file contents and the plugin functions.
 - [ ] Semantic Search functions correctly
 
 
