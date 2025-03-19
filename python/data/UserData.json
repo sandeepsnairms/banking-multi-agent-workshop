@@ -1,0 +1,135 @@
+[
+    {
+        "id": "U1",
+        "tenantId": "T1",
+        "name": "John Doe",
+        "type": "BankUser",
+        "email": "johndoe@example.com",
+        "phoneNumber": "123-456-7890",
+        "attributes": {
+            "annualSalary": 85000,
+            "creditScore": 750,
+            "debtToIncomeRatio": 0.25,
+            "investmentPortfolioValue": 50000
+        },
+        "_rid": "NaEpAMBDdBQBAAAAAAAAAA==",
+        "_self": "dbs/NaEpAA==/colls/NaEpAMBDdBQ=/docs/NaEpAMBDdBQBAAAAAAAAAA==/",
+        "_etag": "\"2d00ad3e-0000-2200-0000-67b43f320000\"",
+        "_attachments": "attachments/",
+        "_ts": 1739865906
+    },
+    {
+        "id": "U2",
+        "tenantId": "T1",
+        "name": "Jane Smith",
+        "type": "BankUser",
+        "email": "janesmith@example.com",
+        "phoneNumber": "987-654-3210",
+        "attributes": {
+            "annualSalary": 95000,
+            "creditScore": 780,
+            "debtToIncomeRatio": 0.2,
+            "investmentPortfolioValue": 120000
+        },
+        "_rid": "NaEpAMBDdBQCAAAAAAAAAA==",
+        "_self": "dbs/NaEpAA==/colls/NaEpAMBDdBQ=/docs/NaEpAMBDdBQCAAAAAAAAAA==/",
+        "_etag": "\"2d00ba3e-0000-2200-0000-67b43f460000\"",
+        "_attachments": "attachments/",
+        "_ts": 1739865926
+    },
+    {
+        "id": "U3",
+        "tenantId": "T1",
+        "name": "Alice Johnson",
+        "email": "alicej@example.com",
+        "type": "BankUser",
+        "phoneNumber": "555-123-6789",
+        "attributes": {
+            "annualSalary": 65000,
+            "creditScore": 690,
+            "debtToIncomeRatio": 0.35,
+            "investmentPortfolioValue": 30000
+        },
+        "_rid": "NaEpAMBDdBQDAAAAAAAAAA==",
+        "_self": "dbs/NaEpAA==/colls/NaEpAMBDdBQ=/docs/NaEpAMBDdBQDAAAAAAAAAA==/",
+        "_etag": "\"2d00bf3e-0000-2200-0000-67b43f4c0000\"",
+        "_attachments": "attachments/",
+        "_ts": 1739865932
+    },
+    {
+        "id": "U4",
+        "tenantId": "T2",
+        "name": "Bob Brown",
+        "email": "bobbrown@example.com",
+        "type": "BankUser",
+        "phoneNumber": "444-987-6543",
+        "attributes": {
+            "annualSalary": 120000,
+            "creditScore": 800,
+            "debtToIncomeRatio": 0.18,
+            "investmentPortfolioValue": 200000
+        },
+        "_rid": "NaEpAMBDdBQEAAAAAAAAAA==",
+        "_self": "dbs/NaEpAA==/colls/NaEpAMBDdBQ=/docs/NaEpAMBDdBQEAAAAAAAAAA==/",
+        "_etag": "\"2d00c73e-0000-2200-0000-67b43f530000\"",
+        "_attachments": "attachments/",
+        "_ts": 1739865939
+    },
+    {
+        "id": "U5",
+        "tenantId": "T2",
+        "name": "Charlie Davis",
+        "email": "charlied@example.com",
+        "type": "BankUser",
+        "phoneNumber": "222-888-7777",
+        "attributes": {
+            "annualSalary": 72000,
+            "creditScore": 710,
+            "debtToIncomeRatio": 0.28,
+            "investmentPortfolioValue": 40000
+        },
+        "_rid": "NaEpAMBDdBQFAAAAAAAAAA==",
+        "_self": "dbs/NaEpAA==/colls/NaEpAMBDdBQ=/docs/NaEpAMBDdBQFAAAAAAAAAA==/",
+        "_etag": "\"2d00cb3e-0000-2200-0000-67b43f580000\"",
+        "_attachments": "attachments/",
+        "_ts": 1739865944
+    },
+    {
+        "id": "U6",
+        "tenantId": "T2",
+        "name": "David Wilson",
+        "email": "davidw@example.com",
+        "type": "BankUser",
+        "phoneNumber": "666-777-8888",
+        "attributes": {
+            "annualSalary": 110000,
+            "creditScore": 770,
+            "debtToIncomeRatio": 0.22,
+            "investmentPortfolioValue": 150000
+        },
+        "_rid": "NaEpAMBDdBQGAAAAAAAAAA==",
+        "_self": "dbs/NaEpAA==/colls/NaEpAMBDdBQ=/docs/NaEpAMBDdBQGAAAAAAAAAA==/",
+        "_etag": "\"2d00d53e-0000-2200-0000-67b43f5d0000\"",
+        "_attachments": "attachments/",
+        "_ts": 1739865949
+    },
+    {
+        "id": "Mark",
+        "tenantId": "Contoso",
+        "name": "Mark Doe",
+        "type": "BankUser",
+        "email": "Markdoe@example.com",
+        "phoneNumber": "123-456-7890",
+        "attributes": {
+            "annualSalary": 85000,
+            "creditScore": 750,
+            "debtToIncomeRatio": 0.25,
+            "investmentPortfolioValue": 50000
+        },
+        "_rid": "NaEpAMBDdBQKAAAAAAAAAA==",
+        "_self": "dbs/NaEpAA==/colls/NaEpAMBDdBQ=/docs/NaEpAMBDdBQKAAAAAAAAAA==/",
+        "_etag": "\"2d00117a-0000-2200-0000-67b489130000\"",
+        "_attachments": "attachments/",
+        "_ts": 1739884819
+    }
+]
