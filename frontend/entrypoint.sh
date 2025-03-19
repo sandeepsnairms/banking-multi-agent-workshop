@@ -1,5 +1,3 @@
-#!/bin/sh
-
 set -e  # Exit on error
 
 # Log the environment variable
