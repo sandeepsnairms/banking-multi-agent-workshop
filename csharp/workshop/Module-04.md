@@ -547,7 +547,7 @@ Add the functions in ChatFactory.cs
             return executionSettings;
         }
 
-        private KernelFunction GetStratergyFunction(ChatResponseFormatBuilder.ChatResponseStrategy strategyType)
+        private KernelFunction GetStrategyFunction(ChatResponseFormatBuilder.ChatResponseStrategy strategyType)
         {
 
             KernelFunction function =
@@ -590,11 +590,11 @@ Add the functions in ChatFactory.cs
             AgentGroupChatSettings ExecutionSettings = new AgentGroupChatSettings
             {
                 SelectionStrategy =
-                    new KernelFunctionSelectionStrategy(GetStratergyFunction(ChatResponseFormatBuilder.ChatResponseStrategy.Continuation), kernel)
+                    new KernelFunctionSelectionStrategy(GetStrategyFunction(ChatResponseFormatBuilder.ChatResponseStrategy.Continuation), kernel)
                     {
                         Arguments = new KernelArguments(GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStrategy.Continuation)),
                         // Always start with the editor agent.
-                        //InitialAgent = CoordinatorAgent,//do not set else Coordinator initates after each stateless call.
+                        //InitialAgent = CoordinatorAgent,//do not set else Coordinator initiates after each stateless call.
                         // Save tokens by only including the final few responses
                         HistoryReducer = historyReducer,
                         // The prompt variable name for the history argument.
@@ -611,7 +611,7 @@ Add the functions in ChatFactory.cs
                         }
                     },
                 TerminationStrategy =
-                    new KernelFunctionTerminationStrategy(GetStratergyFunction(ChatResponseFormatBuilder.ChatResponseStrategy.Termination), kernel)
+                    new KernelFunctionTerminationStrategy(GetStrategyFunction(ChatResponseFormatBuilder.ChatResponseStrategy.Termination), kernel)
                     {
                         Arguments = new KernelArguments(GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStrategy.Termination)),
                         // Save tokens by only including the final response
