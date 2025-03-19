@@ -1,3 +1,4 @@
+# Ensure this file is always saved with LF line endings
 set -e  # Exit on error
 
 # Log the environment variable
