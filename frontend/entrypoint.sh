@@ -1,3 +1,5 @@
+#Ensure this file always uses LD linendings
+
 set -e  # Exit on error
 
 # Log the environment variable
