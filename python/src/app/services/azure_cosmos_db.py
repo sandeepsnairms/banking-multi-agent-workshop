@@ -4,28 +4,27 @@ from datetime import datetime
 from typing import List, Dict
 
 from azure.cosmos import CosmosClient, PartitionKey
-from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
+from azure.identity import DefaultAzureCredential
+from dotenv import load_dotenv
 
 logging.basicConfig(level=logging.ERROR)
 
+load_dotenv(override=False)
 # Azure Cosmos DB configuration
 COSMOS_DB_URL = os.getenv("COSMOSDB_ENDPOINT")
 DATABASE_NAME = "MultiAgentBanking"
-CHECKPOINT_CONTAINER = "Checkpoints"
 
 cosmos_client = None
 database = None
 container = None
 
-# Define Cosmos DB container for user data
-SESSION_CONTAINER = "Chat"
-DEBUG_CONTAINER = "Debug"
-chat_history_container = "ChatHistory"
+# Define Cosmos DB containers
+chat_container = None
+debug_container = None
+chat_history_container = None
 users_container = None
 offers_container = None
-session_container = None
 account_container = None
-debug_container = None
 
 try:
     credential = DefaultAzureCredential()
@@ -38,12 +37,18 @@ except Exception as dac_error:
 # Initialize Cosmos DB client
 try:
     database = cosmos_client.get_database_client(DATABASE_NAME)
-    CHECKPOINT_CONTAINER = database.create_container_if_not_exists(
-        id=CHECKPOINT_CONTAINER,
+    print(f"[DEBUG] Connected to Cosmos DB: {DATABASE_NAME}")
+
+    chat_container = database.create_container_if_not_exists(
+        # Create a Cosmos DB container with hierarchical partition key
+        id='Chat', partition_key=PartitionKey(path=["/tenantId", "/userId", "/sessionId"], kind="MultiHash")
+    )
+    checkpoint_container = database.create_container_if_not_exists(
+        id='Checkpoints',
         partition_key=PartitionKey(path="/partition_key"),
     )
     chat_history_container = database.create_container_if_not_exists(
-        id=chat_history_container,
+        id='ChatHistory',
         partition_key=PartitionKey(path="/sessionId"),
     )
     users_container = database.create_container_if_not_exists(
@@ -52,7 +57,7 @@ try:
     )
 
     offers_container = database.create_container_if_not_exists(
-        id="Offers",
+        id="OffersData",
         partition_key=PartitionKey(path="/tenantId"),
     )
 
@@ -61,30 +66,28 @@ try:
         partition_key=PartitionKey(path="/accountId"),
     )
     debug_container = database.create_container_if_not_exists(
-        id=DEBUG_CONTAINER,
+        id='Debug',
         partition_key=PartitionKey(path="/sessionId"),
     )
-    print(f"[DEBUG] Connected to Cosmos DB: {DATABASE_NAME}")
 
-    database = cosmos_client.get_database_client(DATABASE_NAME)
-    session_container = database.create_container_if_not_exists(
-        # Create a Cosmos DB container with hierarchical partition key
-        id=SESSION_CONTAINER, partition_key=PartitionKey(path=["/tenantId", "/userId", "/sessionId"], kind="MultiHash")
-    )
+
 except Exception as e:
-    print(f"[ERROR] Error initializing Cosmos DB: {e}")
+    print(f"[ERROR] Error initializing Cosmos DB Container: {e}")
     raise e
 
 
 def vector_search(vectors, accountType):
+    print("accountType: ", accountType)
+    print("vectors: ", vectors)
     # Execute the query
     results = offers_container.query_items(
         query='''
-        SELECT c.offerId, c.text, c.name
+        SELECT TOP 10 c.offerId, c.text, c.name
                         FROM c
                         WHERE c.type = 'Term'
                         AND c.accountType = @accountType
                         AND VectorDistance(c.vector, @referenceVector)> 0.075
+                        ORDER BY VectorDistance(c.vector, @referenceVector) 
         ''',
         parameters=[
             {"name": "@accountType", "value": accountType},
@@ -92,23 +95,23 @@ def vector_search(vectors, accountType):
         ],
         enable_cross_partition_query=True, populate_query_metrics=True)
     print("Executed vector search in Azure Cosmos DB... \n")
-    results = list(results)
+    print("Results: ", results)
+    try:
+        results = list(results)
+    except Exception as e:
+        print(f"[ERROR] Error fetching results from Cosmos DB: {e}")
+        raise e
+    print("length of results: ", len(results))
     # Extract the necessary information from the results
-    formatted_results = []
     for result in results:
-        score = result.pop('SimilarityScore')
-        formatted_result = {
-            'SimilarityScore': score,
-            'document': result
-        }
-        formatted_results.append(formatted_result)
-    return formatted_results
+        print("Result: ", result)
+    return results
 
 
 # update the user data container
-def update_session_container(data):
+def update_chat_container(data):
     try:
-        session_container.upsert_item(data)
+        chat_container.upsert_item(data)
         logging.debug(f"User data saved to Cosmos DB: {data}")
     except Exception as e:
         print(f"[ERROR] Error saving user data to Cosmos DB: {e}")
@@ -143,10 +146,10 @@ def update_users_container(data):
 
 
 # fetch the user data from the container by tenantId, userId
-def fetch_session_container_by_tenant_and_user(tenantId, userId):
+def fetch_chat_container_by_tenant_and_user(tenantId, userId):
     try:
         query = f"SELECT * FROM c WHERE c.tenantId = '{tenantId}' AND c.userId = '{userId}'"
-        items = list(session_container.query_items(query=query, enable_cross_partition_query=True))
+        items = list(chat_container.query_items(query=query, enable_cross_partition_query=True))
         print(f"[DEBUG] Fetched {len(items)} user data for tenantId: {tenantId}, userId: {userId}")
         return items
     except Exception as e:
@@ -155,10 +158,10 @@ def fetch_session_container_by_tenant_and_user(tenantId, userId):
 
 
 # fetch the user data from the container by tenantId, userId, sessionId
-def fetch_session_container_by_session(tenantId, userId, sessionId):
+def fetch_chat_container_by_session(tenantId, userId, sessionId):
     try:
         query = f"SELECT * FROM c WHERE c.tenantId = '{tenantId}' AND c.userId = '{userId}' AND c.sessionId = '{sessionId}'"
-        items = list(session_container.query_items(query=query, enable_cross_partition_query=True))
+        items = list(chat_container.query_items(query=query, enable_cross_partition_query=True))
         print(
             f"[DEBUG] Fetched {len(items)} user data for tenantId: {tenantId}, userId: {userId}, sessionId: {sessionId}")
         return items
@@ -177,7 +180,7 @@ def patch_active_agent(tenantId, userId, sessionId, activeAgent):
 
         try:
             pk = [tenantId, userId, sessionId]
-            session_container.patch_item(item=sessionId, partition_key=pk,
+            chat_container.patch_item(item=sessionId, partition_key=pk,
                                          patch_operations=operations)
         except Exception as e:
             print('\nError occurred. {0}'.format(e.message))
@@ -209,12 +212,12 @@ def patch_account_record(account_id, balance):
 def delete_userdata_item(tenantId, userId, sessionId):
     try:
         query = f"SELECT * FROM c WHERE c.tenantId = '{tenantId}' AND c.userId = '{userId}' AND c.sessionId = '{sessionId}'"
-        items = list(session_container.query_items(query=query, enable_cross_partition_query=True))
+        items = list(chat_container.query_items(query=query, enable_cross_partition_query=True))
         if len(items) == 0:
             print(f"[DEBUG] No user data found for tenantId: {tenantId}, userId: {userId}, sessionId: {sessionId}")
             return
         for item in items:
-            session_container.delete_item(item, partition_key=[tenantId, userId, sessionId])
+            chat_container.delete_item(item, partition_key=[tenantId, userId, sessionId])
             print(f"[DEBUG] Deleted user data for tenantId: {tenantId}, userId: {userId}, sessionId: {sessionId}")
     except Exception as e:
         print(

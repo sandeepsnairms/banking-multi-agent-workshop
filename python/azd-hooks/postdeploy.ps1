@@ -1,5 +1,5 @@
 
-# run the following commands to install powershell on ubuntu
+# run the following commands to install powershell if running on ubuntu
 #
 # sudo apt update
 # sudo apt install -y wget apt-transport-https software-properties-common
@@ -7,7 +7,6 @@
 # sudo dpkg -i packages-microsoft-prod.deb
 # sudo apt update
 # sudo apt install -y powershell
-
 
 Param(
     [parameter(Mandatory=$false)][string]$apiUrl=$env:SERVICE_ChatAPI_ENDPOINT_URL
@@ -42,7 +41,20 @@ function Send-Data($jsonFilePath, $endpoint) {
     }
 }
 
-# Send data
-Send-Data "./data/UserData.json" "userdata"
-Send-Data "./data/AccountsData.json" "accountdata"
-Send-Data "./data/OffersData.json" "offerdata"
+# Ask user if they want to add dummy data
+$dummyDataResponse = Read-Host "Do you want to add some dummy data for testing? (yes/no)"
+if ($dummyDataResponse -match "^(yes|y)$") {
+    Write-Host "Adding dummy data..."
+    # Load dummy data
+	Send-Data "./data/UserData.json" "userdata"
+	Send-Data "./data/AccountsData.json" "accountdata"
+	Send-Data "./data/OffersData.json" "offerdata"
+	
+	Write-Host "Data load completed."
+} else {
+    Write-Host "Skipping dummy data addition."
+}
+
+Start-Sleep -Milliseconds 2000  # Sleeps for 2 seconds
+
+

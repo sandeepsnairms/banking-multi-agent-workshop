@@ -7,8 +7,8 @@ from langgraph.prebuilt import create_react_agent
 from langgraph.types import Command, interrupt
 from langgraph_checkpoint_cosmosdb import CosmosDBSaver
 from src.app.services.azure_open_ai import model
-from src.app.services.azure_cosmos_db import DATABASE_NAME, CHECKPOINT_CONTAINER, session_container, \
-    update_session_container, patch_active_agent
+from src.app.services.azure_cosmos_db import DATABASE_NAME, checkpoint_container, chat_container, \
+    update_chat_container, patch_active_agent
 from src.app.tools.sales import get_offer_information, calculate_monthly_payment, create_account
 from src.app.tools.transactions import bank_balance, bank_transfer, get_transaction_history
 from src.app.tools.support import service_request, get_branch_location
@@ -97,8 +97,7 @@ sales_agent = create_react_agent(
         "When user provides these, calculate the monthly payment using calculate_monthly_payment tool and provide the result as part of the response. "
         "Do not return the monthly payment tool call output directly to the user, include it with the rest of your response. "
         "If the user wants to move ahead with the loan, advise that they need to come into the branch to complete the application. "
-        "If the wants information about a product or offer, ask whether they want Credit Card or Savings. "
-        "If you have that information, call 'get_offer_information' tool with the user prompt, and the accountType ('CreditCard' or 'Savings'). "
+        "If the wants information about a product or offer, ask whether they want Credit Card or Savings, then call 'get_offer_information' tool with the user_prompt, and the accountType ('CreditCard' or 'Savings'). "
         "You MUST respond with the repayment amounts before transferring to another agent."
     ),
 )
@@ -115,14 +114,14 @@ def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coo
     partition_key = [tenantId, userId, thread_id]
     activeAgent = None
     try:
-        activeAgent = session_container.read_item(item=thread_id, partition_key=partition_key).get('activeAgent',
+        activeAgent = chat_container.read_item(item=thread_id, partition_key=partition_key).get('activeAgent',
                                                                                                    'unknown')
     except Exception as e:
         logging.debug(f"No active agent found: {e}")
 
     if activeAgent is None:
         if local_interactive_mode:
-            update_session_container({
+            update_chat_container({
                 "id": thread_id,
                 "tenantId": "cli-test",
                 "userId": "cli-test",
@@ -190,7 +189,7 @@ builder.add_node("human", human_node)
 
 builder.add_edge(START, "coordinator_agent")
 
-checkpointer = CosmosDBSaver(database_name=DATABASE_NAME, container_name=CHECKPOINT_CONTAINER)
+checkpointer = CosmosDBSaver(database_name=DATABASE_NAME, container_name=checkpoint_container)
 graph = builder.compile(checkpointer=checkpointer)
 
 

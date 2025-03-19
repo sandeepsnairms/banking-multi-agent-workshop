@@ -1,14 +1,18 @@
 import os
 import uuid
-from opencensus.ext.azure.log_exporter import AzureLogHandler
-from opencensus.ext.azure.trace_exporter import AzureExporter
-from opencensus.trace.tracer import Tracer
-from opencensus.trace.samplers import ProbabilitySampler
+import fastapi
+
+from dotenv import load_dotenv
+
 from datetime import datetime
 from fastapi import BackgroundTasks
+from azure.monitor.opentelemetry import configure_azure_monitor
+
+configure_azure_monitor()
 
 from azure.cosmos.exceptions import CosmosHttpResponseError
-from fastapi import FastAPI, Depends, HTTPException, Body
+
+from fastapi import Depends, HTTPException, Body
 from langchain_core.messages import HumanMessage, ToolMessage
 from pydantic import BaseModel
 from typing import List, Dict
@@ -17,17 +21,21 @@ from langgraph_checkpoint_cosmosdb import CosmosDBSaver
 from langgraph.graph.state import CompiledStateGraph
 from starlette.middleware.cors import CORSMiddleware
 from src.app.banking_agents import graph, checkpointer
-from src.app.services.azure_cosmos_db import update_session_container, patch_active_agent, \
-    fetch_session_container_by_tenant_and_user, \
-    fetch_session_container_by_session, delete_userdata_item, debug_container, update_users_container, \
+from src.app.services.azure_cosmos_db import update_chat_container, patch_active_agent, \
+    fetch_chat_container_by_tenant_and_user, \
+    fetch_chat_container_by_session, delete_userdata_item, debug_container, update_users_container, \
     update_account_container, update_offers_container, store_chat_history, update_active_agent_in_latest_message, \
-    session_container, fetch_chat_history_by_session, delete_chat_history_by_session
+    chat_container, fetch_chat_history_by_session, delete_chat_history_by_session
 import logging
 
 # Setup logging
 logging.basicConfig(level=logging.ERROR)
 
-INSTRUMENTATION_KEY = os.getenv("ApplicationInsightsConnectionString", "<Your-App-Insights-Key>")
+load_dotenv(override=False)
+
+INSTRUMENTATION_KEY = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING", "<Your-App-Insights-Key>")
+
+print(f"Using Application Insights Key: {INSTRUMENTATION_KEY}")
 
 endpointTitle = "ChatEndpoints"
 dataLoadTitle = "DataLoadEndpoints"
@@ -45,24 +53,7 @@ def get_compiled_graph():
     return graph
 
 
-# Configure logging
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-logger.addHandler(AzureLogHandler(connection_string=INSTRUMENTATION_KEY))
-
-# Initialize tracing
-tracer = Tracer(exporter=AzureExporter(connection_string=INSTRUMENTATION_KEY),
-                sampler=ProbabilitySampler(1.0))
-
-app = FastAPI(title="Cosmos DB Multi-Agent Banking API", openapi_url="/cosmos-multi-agent-api.json")
-
-
-@app.middleware("http")
-async def add_tracing_middleware(request, call_next):
-    with tracer.span(name=request.url.path):
-        response = await call_next(request)
-    return response
-
+app = fastapi.FastAPI(title="Cosmos DB Multi-Agent Banking API", openapi_url="/cosmos-multi-agent-api.json")
 
 app.add_middleware(
     CORSMiddleware,
@@ -204,7 +195,7 @@ def create_thread(tenantId: str, userId: str):
     activeAgent = "unknown"
     ChatName = "New Chat"
     messages = []
-    update_session_container({
+    update_chat_container({
         "id": sessionId,
         "tenantId": tenantId,
         "userId": userId,
@@ -286,8 +277,7 @@ def _fetch_messages_for_session(sessionId: str, tenantId: str, userId: str) -> L
          description="Retrieves sessions from the given tenantId and userId", tags=[endpointTitle],
          response_model=List[Session])
 def get_chat_sessions(tenantId: str, userId: str):
-    print(f"Fetching sessions for tenantId: {tenantId} and userId: {userId}")
-    items = fetch_session_container_by_tenant_and_user(tenantId, userId)
+    items = fetch_chat_container_by_tenant_and_user(tenantId, userId)
     sessions = []
 
     for item in items:
@@ -352,13 +342,13 @@ def get_chat_completion_details(tenantId: str, userId: str, sessionId: str, debu
 @app.post("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/rename", description="Renames the chat session",
           tags=[endpointTitle], response_model=Session)
 def rename_chat_session(tenantId: str, userId: str, sessionId: str, newChatSessionName: str):
-    items = fetch_session_container_by_session(tenantId, userId, sessionId)
+    items = fetch_chat_container_by_session(tenantId, userId, sessionId)
     if not items:
         raise HTTPException(status_code=404, detail="Session not found")
 
     item = items[0]
     item["ChatName"] = newChatSessionName
-    update_session_container(item)
+    update_chat_container(item)
 
     return Session(id=item["sessionId"], sessionId=item["sessionId"], tenantId=item["tenantId"], userId=item["userId"],
                    name=item["ChatName"], age=item["age"],
@@ -517,7 +507,7 @@ def process_messages(messages, userId, tenantId, sessionId):
 
     partition_key = [tenantId, userId, sessionId]
     # Get the active agent from Cosmos DB with a point lookup
-    activeAgent = session_container.read_item(item=sessionId, partition_key=partition_key).get('activeAgent', 'unknown')
+    activeAgent = chat_container.read_item(item=sessionId, partition_key=partition_key).get('activeAgent', 'unknown')
 
     last_active_agent = agent_mapping.get(activeAgent, activeAgent)
     update_active_agent_in_latest_message(sessionId, last_active_agent)
