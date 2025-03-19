@@ -20,7 +20,6 @@ from src.app.services.azure_open_ai import model
 from langgraph_checkpoint_cosmosdb import CosmosDBSaver
 from langgraph.graph.state import CompiledStateGraph
 from starlette.middleware.cors import CORSMiddleware
-from src.app.banking_agents import graph, checkpointer
 from src.app.services.azure_cosmos_db import update_chat_container, patch_active_agent, \
     fetch_chat_container_by_tenant_and_user, \
     fetch_chat_container_by_session, delete_userdata_item, debug_container, update_users_container, \
@@ -47,11 +46,6 @@ agent_mapping = {
     "transactions_agent": "Transactions",
     "sales_agent": "Sales"
 }
-
-
-def get_compiled_graph():
-    return graph
-
 
 app = fastapi.FastAPI(title="Cosmos DB Multi-Agent Banking API", openapi_url="/cosmos-multi-agent-api.json")
 
@@ -218,61 +212,6 @@ def get_service_status():
     return "CosmosDBService: initializing"
 
 
-# Note: cosmos db checkpointer store is used internally by LangGraph for "memory": to maintain end-to-end state of each
-# conversation thread as contextual input to the OpenAI model.
-# However, this function is dead code, as we no longer retrieve chat history from the cosmos db checkpointer store to return in the API.
-# Abandoned this approach as the checkpointer store does not natively keep a record of which agent responded to the last message.
-# Also, retrieving messages from the checkpointer store is not efficient as it requires scanning more records than necessary for chat history.
-# Instead, we are now storing chat history in a separate custom cosmos db session container. Keeping this code for reference.
-def _fetch_messages_for_session(sessionId: str, tenantId: str, userId: str) -> List[MessageModel]:
-    messages = []
-    config = {
-        "configurable": {
-            "thread_id": sessionId,
-            "checkpoint_ns": ""
-        }
-    }
-
-    logging.debug(f"Fetching messages for sessionId: {sessionId} with config: {config}")
-    checkpoints = list(checkpointer.list(config))
-    logging.debug(f"Number of checkpoints retrieved: {len(checkpoints)}")
-
-    if checkpoints:
-        last_checkpoint = checkpoints[-1]
-        for key, value in last_checkpoint.checkpoint.items():
-            if key == "channel_values" and "messages" in value:
-                messages.extend(value["messages"])
-
-    selected_human_index = None
-    for i in range(len(messages) - 1):
-        if isinstance(messages[i], HumanMessage) and not isinstance(messages[i + 1], HumanMessage):
-            selected_human_index = i
-            break
-
-    messages = messages[selected_human_index:] if selected_human_index is not None else []
-
-    return [
-        MessageModel(
-            id=str(uuid.uuid4()),
-            type="ai_response",
-            sessionId=sessionId,
-            tenantId=tenantId,
-            userId=userId,
-            timeStamp=msg.response_metadata.get("timestamp", "") if hasattr(msg, "response_metadata") else "",
-            sender="User" if isinstance(msg, HumanMessage) else "Coordinator",
-            senderRole="User" if isinstance(msg, HumanMessage) else "Assistant",
-            text=msg.content if hasattr(msg, "content") else msg.get("content", ""),
-            debugLogId=str(uuid.uuid4()),
-            tokensUsed=msg.response_metadata.get("token_usage", {}).get("total_tokens", 0) if hasattr(msg,
-                                                                                                      "response_metadata") else 0,
-            rating=True,
-            completionPromptId=""
-        )
-        for msg in messages
-        if msg.content
-    ]
-
-
 @app.get("/tenant/{tenantId}/user/{userId}/sessions",
          description="Retrieves sessions from the given tenantId and userId", tags=[endpointTitle],
          response_model=List[Session])
@@ -413,9 +352,6 @@ def delete_chat_session(tenantId: str, userId: str, sessionId: str, background_t
     }
     delete_chat_history_by_session(sessionId)
 
-    # Schedule the delete_all_thread_records function as a background task
-    background_tasks.add_task(delete_all_thread_records, checkpointer, sessionId)
-
     return {"message": "Session deleted successfully"}
 
 
@@ -521,48 +457,25 @@ async def get_chat_completion(
         sessionId: str,
         background_tasks: BackgroundTasks,
         request_body: str = Body(..., media_type="application/json"),
-        workflow: CompiledStateGraph = Depends(get_compiled_graph),
 
 ):
-    if not request_body.strip():
-        raise HTTPException(status_code=400, detail="Request body cannot be empty")
-
-    # Retrieve last checkpoint
-    config = {"configurable": {"thread_id": sessionId, "checkpoint_ns": "", "userId": userId, "tenantId": tenantId}}
-    checkpoints = list(checkpointer.list(config))
-    last_active_agent = "coordinator_agent"  # Default fallback
-
-    if not checkpoints:
-        # No previous state, start fresh
-        new_state = {"messages": [{"role": "user", "content": request_body}]}
-        response_data = workflow.invoke(new_state, config, stream_mode="updates")
-    else:
-        # Resume from last checkpoint
-        last_checkpoint = checkpoints[-1]
-        last_state = last_checkpoint.checkpoint
-
-        if "messages" not in last_state:
-            last_state["messages"] = []
-
-        last_state["messages"].append({"role": "user", "content": request_body})
-
-        if "channel_versions" in last_state:
-            for key in reversed(last_state["channel_versions"].keys()):
-                if "agent" in key:
-                    last_active_agent = key.split(":")[1]
-                    break
-
-        last_state["langgraph_triggers"] = [f"resume:{last_active_agent}"]
-        response_data = workflow.invoke(last_state, config, stream_mode="updates")
-
-    debug_log_id = store_debug_log(sessionId, tenantId, userId, response_data)
-    messages = extract_relevant_messages(debug_log_id, last_active_agent, response_data, tenantId, userId, sessionId)
-
-    # Schedule storing chat history and updating correct agent in last message as a background task
-    # to avoid blocking the API response as this is not needed unless retrieving the message history later.
-    background_tasks.add_task(process_messages, messages, userId, tenantId, sessionId)
-
-    return messages
+    return [
+        {
+            "id": "string",
+            "type": "string",
+            "sessionId": "string",
+            "tenantId": "string",
+            "userId": "string",
+            "timeStamp": "string",
+            "sender": "string",
+            "senderRole": "string",
+            "text": "Hello, I am not yet implemented",
+            "debugLogId": "string",
+            "tokensUsed": 0,
+            "rating": "true",
+            "completionPromptId": "string"
+        }
+    ]
 
 
 @app.post("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/summarize-name", tags=[endpointTitle],
