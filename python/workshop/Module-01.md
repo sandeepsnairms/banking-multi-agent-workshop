@@ -91,7 +91,6 @@ builder.add_node("human", human_node)
 builder.add_edge(START, "coordinator_agent")
 
 checkpointer = MemorySaver()
-
 graph = builder.compile(checkpointer=checkpointer)
 ```
 
@@ -426,7 +425,6 @@ builder.add_node("human", human_node)
 builder.add_edge(START, "coordinator_agent")
 
 checkpointer = MemorySaver()
-
 graph = builder.compile(checkpointer=checkpointer)
 
 

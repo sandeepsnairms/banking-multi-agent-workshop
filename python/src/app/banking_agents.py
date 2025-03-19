@@ -1,12 +1,14 @@
 import logging
 import os
-import uuid
 from langchain.schema import AIMessage
 from typing import Literal
 from langgraph.graph import StateGraph, START, MessagesState
 from langgraph.prebuilt import create_react_agent
 from langgraph.types import Command, interrupt
-from langgraph.checkpoint.memory import MemorySaver
+from langgraph_checkpoint_cosmosdb import CosmosDBSaver
+
+from src.app.services.azure_cosmos_db import DATABASE_NAME, checkpoint_container, chat_container, update_chat_container, \
+    patch_active_agent
 from src.app.services.azure_open_ai import model
 from src.app.tools.coordinator import create_agent_transfer
 
@@ -46,11 +48,54 @@ customer_support_agent = create_react_agent(
     state_modifier=load_prompt("customer_support_agent"),
 )
 
+
 def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coordinator_agent", "human"]]:
-    response = coordinator_agent.invoke(state)
-    return Command(update=response, goto="human")
+    thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
+    userId = config["configurable"].get("userId", "UNKNOWN_USER_ID")
+    tenantId = config["configurable"].get("tenantId", "UNKNOWN_TENANT_ID")
+
+    logging.debug(f"Calling coordinator agent with Thread ID: {thread_id}")
+
+    # Get the active agent from Cosmos DB with a point lookup
+    partition_key = [tenantId, userId, thread_id]
+    activeAgent = None
+    try:
+        activeAgent = chat_container.read_item(item=thread_id, partition_key=partition_key).get('activeAgent',
+                                                                                                'unknown')
+    except Exception as e:
+        logging.debug(f"No active agent found: {e}")
+
+    if activeAgent is None:
+        if local_interactive_mode:
+            update_chat_container({
+                "id": thread_id,
+                "tenantId": "cli-test",
+                "userId": "cli-test",
+                "sessionId": thread_id,
+                "name": "cli-test",
+                "age": "cli-test",
+                "address": "cli-test",
+                "activeAgent": "unknown",
+                "ChatName": "cli-test",
+                "messages": []
+            })
+
+    logging.debug(f"Active agent from point lookup: {activeAgent}")
+
+    # If active agent is something other than unknown or coordinator_agent, transfer directly to that agent
+    if activeAgent is not None and activeAgent not in ["unknown", "coordinator_agent"]:
+        logging.debug(f"Routing straight to last active agent: {activeAgent}")
+        return Command(update=state, goto=activeAgent)
+    else:
+        response = coordinator_agent.invoke(state)
+        return Command(update=response, goto="human")
+
 
 def call_customer_support_agent(state: MessagesState, config) -> Command[Literal["customer_support_agent", "human"]]:
+    thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
+    if local_interactive_mode:
+        patch_active_agent(tenantId="cli-test", userId="cli-test", sessionId=thread_id,
+                           activeAgent="customer_support_agent")
     response = customer_support_agent.invoke(state)
     return Command(update=response, goto="human")
 
@@ -70,13 +115,14 @@ builder.add_node("human", human_node)
 
 builder.add_edge(START, "coordinator_agent")
 
-checkpointer = MemorySaver()
-
+checkpointer = CosmosDBSaver(database_name=DATABASE_NAME, container_name=checkpoint_container)
 graph = builder.compile(checkpointer=checkpointer)
+
+hardcoded_thread_id = "hardcoded-thread-id-01"
 
 
 def interactive_chat():
-    thread_config = {"configurable": {"thread_id": str(uuid.uuid4()), "userId": "cli-test", "tenantId": "cli-test"}}
+    thread_config = {"configurable": {"thread_id": hardcoded_thread_id, "userId": "cli-test", "tenantId": "cli-test"}}
     global local_interactive_mode
     local_interactive_mode = True
     print("Welcome to the single-agent banking assistant.")
