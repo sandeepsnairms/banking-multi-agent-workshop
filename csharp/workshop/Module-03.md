@@ -36,7 +36,8 @@ Add the  following models to Common\Models\Banking\
 
 Add AccountType.cs for AccountType Enum
 
-```c#
+```csharp
+
 namespace MultiAgentCopilot.Common.Models.Banking
 {    
 public enum AccountType
@@ -62,6 +63,7 @@ namespace MultiAgentCopilot.Common.Models.Banking
         TeleBankerCallBack
     }
 }
+```
 
 Add BankAccount.cs for BankAccount class
 
@@ -120,7 +122,9 @@ namespace MultiAgentCopilot.Common.Models.Banking
 ```
 
 Add Offer.cs for Offerclass
+
 ```csharp
+
 namespace MultiAgentCopilot.Common.Models.Banking
 {
     public class Offer
@@ -171,11 +175,13 @@ namespace MultiAgentCopilot.Common.Models.Banking
 
     }
 }
+
 ```
 
 Add ServiceRequest.cs for ServiceRequest class
 
 ```csharp
+
 namespace MultiAgentCopilot.Common.Models.Banking
 {
     public class ServiceRequest
@@ -215,6 +221,7 @@ namespace MultiAgentCopilot.Common.Models.Banking
         }
     }
 }
+
 ```
 
 ## Activity 3: Creating Multiple Agents
@@ -224,6 +231,7 @@ namespace MultiAgentCopilot.Common.Models.Banking
 Add the following prompty files to ChatAPI\Prompts
 
 CommonAgentRules.prompty
+
 ```
 
 Important:
@@ -244,6 +252,7 @@ Important:
 ```
 
 Coordinator.prompty
+
 ```
 You are a Chat Initiator and Request Router in a bank. 
 Your primary responsibilities include welcoming users, identifying customers based on their login, routing requests to the appropriate agent.
@@ -261,6 +270,7 @@ RULES:
 ```
 
 CustomerSupport.prompty
+
 ```
 Your sole responsibility is to:
 1. Helping customers lodge service request.
@@ -285,6 +295,7 @@ Guidelines:
 ```
 
 Sales.prompty
+
 ```
 Your sole responsibility is to:                        
     - Suggest suitable accounts based on the user profile.
@@ -309,6 +320,7 @@ Your sole responsibility is to:
 ```
 
 Transactions.prompty
+
 ```
 Your sole responsibility is to:
 
@@ -438,16 +450,15 @@ Update ChatInfrastructure\Factories\SystemPromptFactory.cs
 
 ## Activity 4: Integrating Bank Domain Functions as Plugins
 
-
 Add **BankingServices.csproj** to the solution
 
 Add Project Reference for BankingServices.csproj in ChChatInfrastructure.csProj
 
 ```dotnetcli
 
-dotnet sln /workspaces/banking-multi-agent-workshop/csharp/src/MultiAgentCopilot.sln add /workspaces/banking-multi-agent-workshop/csharp/src/BankingAPI/BankingServices.csproj
-
-dotnet add /workspaces/banking-multi-agent-workshop/csharp/src/ChatInfrastructure/ChatInfrastructure.csproj reference /workspaces/banking-multi-agent-workshop/csharp/src/BankingAPI/BankingServices.csproj
+    dotnet sln /workspaces/banking-multi-agent-workshop/csharp/src/MultiAgentCopilot.sln add /workspaces/banking-multi-agent-workshop/csharp/src/BankingAPI/BankingServices.csproj
+    
+    dotnet add /workspaces/banking-multi-agent-workshop/csharp/src/ChatInfrastructure/ChatInfrastructure.csproj reference /workspaces/banking-multi-agent-workshop/csharp/src/BankingAPI/BankingServices.csproj
 
 ```
 
@@ -455,6 +466,7 @@ dotnet add /workspaces/banking-multi-agent-workshop/csharp/src/ChatInfrastructur
 Add BasePlugin.cs in ChatInfrastructure\AgentPlugins
 
 ```csharp
+
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
@@ -629,6 +641,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Plugins
 Add  CustomerSupportPlugin.cs in ChatInfrastructure\AgentPlugins
 
 ```csharp
+
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using System;
@@ -786,6 +799,7 @@ Initialize  BankingDataService in ChatService constructor
     }
 
 ```
+
 ## Activity 7: Semantic Search
 
 In this hands-on exercise, you will learn how to configure vector indexing and search in Azure Cosmos DB and explore the container and vector indexing policies. Then learn how to implement vector search using for Semantic Kernel or LangGraph.
@@ -804,7 +818,7 @@ Update Constructor in BankingAPI\Services\BankingDataService.cs to add AzureOpen
                 skSettings.AzureOpenAISettings.Endpoint,
                 credential);
 
-````
+```
 
 
 Update Constructor in BankingAPI\Services\BankingDataService.cs to initialize _offerDataVectorStore. Append after `_semanticKernel = builder.Build();`
@@ -815,7 +829,19 @@ Update Constructor in BankingAPI\Services\BankingDataService.cs to initialize _o
 
 ```
 
-Update  SearchOfferTermsAsync in BankingAPI\Services\BankingDataService.cs 
+### Update BankingDataService to include vector search
+
+Add in BankingAPI\Interface\IBankDataService.cs
+
+```csharp
+
+    Task<List<OfferTerm>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription);
+    
+    Task<Offer> GetOfferDetailsAsync(string tenantId, string offerId);
+
+```
+
+Add SearchOfferTermsAsync and GetOfferDetailsAsync to  in BankingAPI\Services\BankingDataService.cs
 
 ```csharp
         public async Task<List<OfferTerm>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription)
@@ -851,8 +877,45 @@ Update  SearchOfferTermsAsync in BankingAPI\Services\BankingDataService.cs
                 return new List<OfferTerm>();
             }           
         }
+
+        public async Task<Offer> GetOfferDetailsAsync(string tenantId, string offerId)
+        {
+            try
+            {
+                var partitionKey = new PartitionKey(tenantId);
+
+                return await _offerData.ReadItemAsync<Offer>(
+                       id: offerId,
+                       partitionKey: new PartitionKey(tenantId));
+            }
+            catch (CosmosException ex)
+            {
+                _logger.LogError(ex.ToString());
+                return null;
+            }
+        }
 ```
 
+Add vector search related function  to ChatInfrastructure\AgentPlugins\SalesPlugin.cs
+
+```csharp
+
+     [KernelFunction]
+     [Description("Search offer terms of all available offers using vector search")]
+     public async Task<List<OfferTerm>> SearchOfferTerms(AccountType accountType, string requirementDescription)
+     {
+         _logger.LogTrace($"Searching terms of all available offers matching '{requirementDescription}'");
+         return await _bankService.SearchOfferTermsAsync(_tenantId, accountType, requirementDescription);
+     }
+    
+    [KernelFunction]
+    [Description("Get detail for an offer")]
+    public async Task<Offer> GetOfferDetails(string offerId)
+    {
+        _logger.LogTrace($"Fetching Offer");
+        return await _bankService.GetOfferDetailsAsync(_tenantId, offerId);
+    }
+```
 
 ## Activity 8: Bringing It All Together – Bank Domain Models, Plugins, and Agents
 
@@ -860,7 +923,7 @@ Update GetResponse definition in ChatInfrastructure\Interfaces\ISemanticKernelSe
 
 
 ```csharp
-Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, IBankDataService bankService, string tenantId, string userId);
+    Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, IBankDataService bankService, string tenantId, string userId);
 
 ```
 
@@ -870,7 +933,8 @@ Add reference for MultiAgentCopilot.ChatInfrastructure.Models and BankingService
 ```csharp
 using MultiAgentCopilot.ChatInfrastructure.Models;
 using BankingServices.Interfaces;
-``
+
+```
 
 Update GetResponse in ChatInfrastructure\Services\SemanticKernelService.cs
 ```csharp
@@ -926,7 +990,6 @@ Update GetResponse in ChatInfrastructure\Services\SemanticKernelService.cs
 Pass the BankingDataService object to SemanticKernel call. Update GetChatCompletionAsync in ChatInfrastructure\Services\ChatService.cs
 
 ```csharp
-
      public async Task<List<Message>> GetChatCompletionAsync(string tenantId, string userId,string? sessionId, string userPrompt)
     {
         try
