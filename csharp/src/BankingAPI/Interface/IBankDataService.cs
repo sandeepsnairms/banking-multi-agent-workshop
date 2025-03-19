@@ -34,6 +34,8 @@ namespace BankingServices.Interfaces
 
         Task<Offer> GetOfferDetailsAsync(string tenantId, string offerId);
 
+        Task<Offer> GetOfferDetailsByNameAsync(string tenantId, string offerName);
+
         Task<String> GetTeleBankerAvailabilityAsync();
     }
 }

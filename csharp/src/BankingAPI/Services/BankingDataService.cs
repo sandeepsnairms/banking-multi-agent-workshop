@@ -398,5 +398,31 @@ namespace BankingServices.Services
                 return null;
             }
         }
+
+        public async Task<Offer> GetOfferDetailsByNameAsync(string tenantId, string offerName)
+        {       
+            try
+            {
+                QueryDefinition query = new QueryDefinition("SELECT * FROM c WHERE c.name = @offerName and c.type='Offer'")
+                     .WithParameter("@offerName", offerName);
+
+                var partitionKey = new PartitionKey(tenantId);
+                FeedIterator<Offer> response = _offerData.GetItemQueryIterator<Offer>(query, null, new QueryRequestOptions() { PartitionKey = partitionKey });
+
+                await response.ReadNextAsync();
+ 
+                while (response.HasMoreResults)
+                {
+                    FeedResponse<Offer> results = await response.ReadNextAsync();
+                    return results.FirstOrDefault();
+                }
+                return null;
+            }
+            catch (CosmosException ex)
+            {
+                _logger.LogError(ex.ToString());
+                return null;
+            }
+        }
     }
 }

@@ -56,7 +56,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Factories
             return executionSettings;
         }
 
-        private KernelFunction GetStratergyFunction(ChatResponseFormatBuilder.ChatResponseStrategy strategyType)
+        private KernelFunction GetStrategyFunction(ChatResponseFormatBuilder.ChatResponseStrategy strategyType)
         {
 
             KernelFunction function =
@@ -85,25 +85,23 @@ namespace MultiAgentCopilot.ChatInfrastructure.Factories
                 agentGroupChat.AddAgent(BuildAgent(kernel, agentType, loggerFactory, bankService, tenantId, userId));
             }
 
-            agentGroupChat.ExecutionSettings = GetExecutionSettings(kernel, logCallback);
+            agentGroupChat.ExecutionSettings = GetAgentGroupChatSettings(kernel, logCallback);
 
 
             return agentGroupChat;
         }
 
 
-        private AgentGroupChatSettings GetExecutionSettings(Kernel kernel, LogCallback logCallback)
+        private AgentGroupChatSettings GetAgentGroupChatSettings(Kernel kernel, LogCallback logCallback)
         {
             ChatHistoryTruncationReducer historyReducer = new(5);
 
             AgentGroupChatSettings ExecutionSettings = new AgentGroupChatSettings
             {
                 SelectionStrategy =
-                    new KernelFunctionSelectionStrategy(GetStratergyFunction(ChatResponseFormatBuilder.ChatResponseStrategy.Continuation), kernel)
+                    new KernelFunctionSelectionStrategy(GetStrategyFunction(ChatResponseFormatBuilder.ChatResponseStrategy.Continuation), kernel)
                     {
                         Arguments = new KernelArguments(GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStrategy.Continuation)),
-                        // Always start with the editor agent.
-                        //InitialAgent = CoordinatorAgent,//do not set else Coordinator initates after each stateless call.
                         // Save tokens by only including the final few responses
                         HistoryReducer = historyReducer,
                         // The prompt variable name for the history argument.
@@ -120,7 +118,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Factories
                         }
                     },
                 TerminationStrategy =
-                    new KernelFunctionTerminationStrategy(GetStratergyFunction(ChatResponseFormatBuilder.ChatResponseStrategy.Termination), kernel)
+                    new KernelFunctionTerminationStrategy(GetStrategyFunction(ChatResponseFormatBuilder.ChatResponseStrategy.Termination), kernel)
                     {
                         Arguments = new KernelArguments(GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStrategy.Termination)),
                         // Save tokens by only including the final response
