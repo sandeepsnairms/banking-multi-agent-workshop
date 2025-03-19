@@ -41,7 +41,7 @@ module monitoring './shared/monitoring.bicep' = {
 module cosmos './shared/cosmosdb.bicep' = {
   name: 'cosmos'
   params: {    
-    databaseName: 'vsai-database'
+    databaseName: 'MultAgentBanking'
 	chatsContainerName: 'ChatsData'
 	accountsContainerName: 'AccountsData'
 	offersContainerName:'OffersData'
