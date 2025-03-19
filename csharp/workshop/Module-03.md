@@ -21,9 +21,10 @@ In this Module you'll learn how to implement agent specialization by creating Se
 3. [Activity 3: Creating Multiple Agents](#activity-3-creating-multiple-agents)  
 4. [Activity 4: Integrating Bank Domain Functions as Plugins](#activity-4-integrating-bank-domain-functions-as-plugins)  
 5. [Activity 5: Developing a Plugin Factory](#activity-5-developing-a-plugin-factory)  
-6. [Activity 6: Building an Agent Factory](#activity-6-building-an-agent-factory)  
-7. [Activity 7: Bringing It All Together – Bank Domain Models, Plugins, and Agents](#activity-7-bringing-it-all-together-bank-domain-models-plugins-and-agents)
-8. [Activity 8: Semantic Search](#activity-8-semantic-search)
+6. [Activity 6: Building an Agent Factory](#activity-6-building-an-agent-factory)
+7. [Activity 7: Semantic Search](#activity-7-semantic-search)
+8. [Activity 8: Bringing It All Together – Bank Domain Models, Plugins, and Agents](#activity-8-bringing-it-all-together--bank-domain-models-plugins-and-agents)
+9. [Activity 9: Test your Work](#activity-9-test-your-work)
 
 ## Activity 1: Understanding Agent Specialization and Integration
 
@@ -784,8 +785,75 @@ Initialize  BankingDataService in ChatService constructor
     }
 
 ```
+## Activity 7: Semantic Search
 
-## Activity 7: Bringing It All Together – Bank Domain Models, Plugins, and Agents
+In this hands-on exercise, you will learn how to configure vector indexing and search in Azure Cosmos DB and explore the container and vector indexing policies. Then learn how to implement vector search using for Semantic Kernel or LangGraph.
+
+In BankingAPI\Services\BankingDataService.cs declare `_offerDataVectorStore` object
+
+```csharp
+     private readonly AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm> _offerDataVectorStore;
+```
+
+Update Constructor in BankingAPI\Services\BankingDataService.cs to add AzureOpenAITextEmbedding service. Append after `builder.Services.AddSingleton<ILoggerFactory>(loggerFactory);`
+
+```csharp
+            builder.AddAzureOpenAITextEmbeddingGeneration(
+                skSettings.AzureOpenAISettings.EmbeddingsDeployment,
+                skSettings.AzureOpenAISettings.Endpoint,
+                credential);
+
+````
+
+
+Update Constructor in BankingAPI\Services\BankingDataService.cs to initialize _offerDataVectorStore. Append after `_semanticKernel = builder.Build();`
+
+```csharp
+ var vectorStoreOptions = new AzureCosmosDBNoSQLVectorStoreRecordCollectionOptions<OfferTerm> { PartitionKeyPropertyName = "TenantId", JsonSerializerOptions = jsonSerializerOptions };
+ _offerDataVectorStore = new AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm>(_database, _settings.OfferDataContainer.Trim(), vectorStoreOptions);
+
+```
+
+Update  SearchOfferTermsAsync in BankingAPI\Services\BankingDataService.cs 
+
+```csharp
+        public async Task<List<OfferTerm>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription)
+        {           
+
+            try
+            {
+                // Generate Embedding
+                var embeddingModel = _semanticKernel.Services.GetRequiredService<ITextEmbeddingGenerationService>();
+
+                var embedding = await embeddingModel.GenerateEmbeddingAsync(requirementDescription);
+
+
+                // perform vector search
+                var filter = new VectorSearchFilter()
+                    .EqualTo("TenantId", tenantId)
+                    .EqualTo("Type", "Term")
+                    .EqualTo("AccountType", "Savings");
+                var options = new VectorSearchOptions { VectorPropertyName = "Vector", Filter = filter, Top = 10, IncludeVectors = false };
+                                
+                var searchResults = await _offerDataVectorStore.VectorizedSearchAsync(embedding, options);
+
+                List<OfferTerm> offerTerms = new();
+                await foreach (var result in searchResults.Results)
+                {
+                    offerTerms.Add(result.Record);
+                }
+                return offerTerms;
+            }
+            catch(Exception ex)
+            {
+                _logger.LogError(ex.ToString());
+                return new List<OfferTerm>();
+            }           
+        }
+```
+
+
+## Activity 8: Bringing It All Together – Bank Domain Models, Plugins, and Agents
 
 Update GetResponse definition in ChatInfrastructure\Interfaces\ISemanticKernelService.cs
 
@@ -887,13 +955,11 @@ Pass the BankingDataService object to SemanticKernel call. Update GetChatComplet
     }
 ```
 
-## Activity 8: Semantic Search
-
-In this hands-on exercise, you will learn how to configure vector indexing and search in Azure Cosmos DB and explore the container and vector indexing policies. Then learn how to implement vector search using for Semantic Kernel or LangGraph.
 
 
 
-## Activity 6: Test your Work
+
+## Activity 9: Test your Work
 
 Update AgentType within GetResponse in ChatInfrastructure\Services\SemanticKernelService.cs to see how different agents work.
 

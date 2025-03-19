@@ -33,7 +33,7 @@ function Send-Data($jsonFilePath, $endpoint) {
 
 # Ask user if they want to add dummy data
 $dummyDataResponse = Read-Host "Do you want to add some dummy data for testing? (yes/no)"
-if ($dummyDataResponse -eq "yes") {
+if ($dummyDataResponse -match "^(yes|y)$") {
     Write-Host "Adding dummy data..."
     # Load dummy data
 	Send-Data "./data/UserData.json" "userdata"
@@ -46,5 +46,3 @@ if ($dummyDataResponse -eq "yes") {
 }
 
 Start-Sleep -Milliseconds 2000  # Sleeps for 2 seconds
-
-
