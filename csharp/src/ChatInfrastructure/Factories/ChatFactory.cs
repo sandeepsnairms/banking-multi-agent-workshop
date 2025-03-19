@@ -85,14 +85,14 @@ namespace MultiAgentCopilot.ChatInfrastructure.Factories
                 agentGroupChat.AddAgent(BuildAgent(kernel, agentType, loggerFactory, bankService, tenantId, userId));
             }
 
-            agentGroupChat.ExecutionSettings = GetExecutionSettings(kernel, logCallback);
+            agentGroupChat.ExecutionSettings = GetAgentGroupChatSettings(kernel, logCallback);
 
 
             return agentGroupChat;
         }
 
 
-        private AgentGroupChatSettings GetExecutionSettings(Kernel kernel, LogCallback logCallback)
+        private AgentGroupChatSettings GetAgentGroupChatSettings(Kernel kernel, LogCallback logCallback)
         {
             ChatHistoryTruncationReducer historyReducer = new(5);
 

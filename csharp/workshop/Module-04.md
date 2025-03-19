@@ -27,7 +27,7 @@ In this session you will learn how this all comes together and get insights into
 
 ## Activity 2: Define Agents and Roles
 
-In this hands-on exercise, you will learn how to write prompts for agents and define agent routing.
+Lets add some banking domain functions that wil be used by the various agents.
 
 Update IBankDataService at BankingAPI\Interface to add more function definitions
 
@@ -274,7 +274,10 @@ Update ChatInfrastructure\AgentPlugins\TransactionPlugin.cs with additional func
 
 ### Add Selection Strategy for Agent Selection
 
+When dealing with multiple agents, deciding which agent should respond is critical. We don't all agents to respond to all user prompts. SelectionStrategy is  the mechanism in SemanticKernel to decide the next participant. The SelectionStrategy is defined in natural language.
+
 Add SelectionStrategy.prompty at ChatAPI\Prompts\
+
 ```
 Examine RESPONSE and choose the next participant.
 
@@ -294,6 +297,8 @@ Always follow these rules when choosing the next participant:
 
 ### Add Termination Strategy for Agent reponse
 
+Similar to SelectionStrategy deciding when the agents should stop responding to a user prompt is important, else you may see multiple unwanted agent responses to a user prompt. TerminationStrategy is  the mechanism in SemanticKernel to decide when to stop. The TerminationStrategy is defined in natural language. We want the LLM to return YES if more agent participation is required, else it should be NO.
+
 Add TerminationStrategy.prompty at ChatAPI\Prompts\
 
 ```
@@ -305,8 +310,55 @@ Otherwise, respond with the word YES (without explanation) if any the following 
 - The information requested by the user was not provided by the current agent.
 ```
 
+### ChatResponseFormat
 
-### Add ChatResponseFormat.cs to ChatInfrastructure\StructuredFormats
+By default  the LLM responds to a user response in natural language. However, we can force the LLM to  use a structure format in its response. A structure format helps us parse the response and use it our code for decision making.
+
+Lets define the models for the response
+
+### Add ContinuationInfo.cs  to ChatInfrastructure\Models\ChatInfoFormats
+
+```c#
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace MultiAgentCopilot.ChatInfrastructure.Models.ChatInfoFormats
+{
+    public class ContinuationInfo
+    {
+        public string AgentName { get; set; } = string.Empty;
+        public string Reason { get; set; } = string.Empty;
+    }
+}
+```
+
+### Add TerminationInfo.cs  to ChatInfrastructure\Models\ChatInfoFormats
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace MultiAgentCopilot.ChatInfrastructure.Models.ChatInfoFormats
+{
+    internal class TerminationInfo
+    {
+        public bool ShouldContinue { get; set; }
+        public string Reason { get; set; } = string.Empty;
+    }
+}
+
+```
+
+Prompts to make the LLM output the Continuation and Termination models as responses
+
+Add ChatResponseFormat.cs to ChatInfrastructure\StructuredFormats
 
 ```csharp
 using System;
@@ -383,7 +435,11 @@ using static MultiAgentCopilot.ChatInfrastructure.StructuredFormats.ChatResponse
 
 ```
 
-### Add GetStrategyPrompts to ChatInfrastructure\Factories\SystemPromptFactory.cs 
+### StrategyPrompts
+
+Dynamically load the prompts based on strategyType
+
+Add GetStrategyPrompts to ChatInfrastructure\Factories\SystemPromptFactory.cs 
 
 ```csharp
 
@@ -405,47 +461,11 @@ using static MultiAgentCopilot.ChatInfrastructure.StructuredFormats.ChatResponse
 
 ```
 
-### Add ContinuationInfo.cs  to ChatInfrastructure\Models\ChatInfoFormats
+### AutoFunctionInvocationLoggingFilter.cs
 
-```c#
+Helper function to log the kernel function selection in the plugin. This is only required to log and debug.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace MultiAgentCopilot.ChatInfrastructure.Models.ChatInfoFormats
-{
-    public class ContinuationInfo
-    {
-        public string AgentName { get; set; } = string.Empty;
-        public string Reason { get; set; } = string.Empty;
-    }
-}
-```
-
-### Add TerminationInfo.cs  to ChatInfrastructure\Models\ChatInfoFormats
-
-```csharp
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace MultiAgentCopilot.ChatInfrastructure.Models.ChatInfoFormats
-{
-    internal class TerminationInfo
-    {
-        public bool ShouldContinue { get; set; }
-        public string Reason { get; set; } = string.Empty;
-    }
-}
-
-```
-
-### Add AutoFunctionInvocationLoggingFilter.cs in ChatInfrastructure\Logs
+Add AutoFunctionInvocationLoggingFilter.cs in ChatInfrastructure\Logs
 
 ```c#
 
@@ -556,14 +576,14 @@ Add the functions in ChatFactory.cs
                 agentGroupChat.AddAgent(BuildAgent(kernel, agentType, loggerFactory, bankService, tenantId, userId));
             }
 
-            agentGroupChat.ExecutionSettings = GetExecutionSettings(kernel, logCallback);
+            agentGroupChat.ExecutionSettings = GetAgentGroupChatSettings(kernel, logCallback);
 
 
             return agentGroupChat;
         }
 
 
-        private AgentGroupChatSettings GetExecutionSettings(Kernel kernel, LogCallback logCallback)
+        private AgentGroupChatSettings GetAgentGroupChatSettings(Kernel kernel, LogCallback logCallback)
         {
             ChatHistoryTruncationReducer historyReducer = new(5);
 
