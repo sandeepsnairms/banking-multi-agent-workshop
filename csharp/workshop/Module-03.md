@@ -590,9 +590,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Plugins
         {
             _logger.LogTrace($"Fetching Offer by name");
             return await _bankService.GetOfferDetailsByNameAsync(_tenantId, offerName);
-    }
-            
-
+        }
 
     }
 }
