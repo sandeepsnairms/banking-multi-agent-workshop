@@ -1,4 +1,5 @@
 import logging
+import os
 import uuid
 from langchain.schema import AIMessage
 from typing import Literal
@@ -18,6 +19,18 @@ local_interactive_mode = False
 
 logging.basicConfig(level=logging.DEBUG)
 
+PROMPT_DIR = "prompts"
+def load_prompt(agent_name):
+    """Loads the prompt for a given agent from a file."""
+    file_path = os.path.join(PROMPT_DIR, f"{agent_name}.prompty")
+    print(f"Loading prompt for {agent_name} from {file_path}")
+    try:
+        with open(file_path, "r", encoding="utf-8") as file:
+            return file.read().strip()
+    except FileNotFoundError:
+        print(f"Prompt file not found for {agent_name}, using default placeholder.")
+        return "You are an AI banking assistant."  # Fallback default prompt
+
 coordinator_agent_tools = [
     create_agent_transfer(agent_name="customer_support_agent"),
     create_agent_transfer(agent_name="sales_agent"),
@@ -26,14 +39,7 @@ coordinator_agent_tools = [
 coordinator_agent = create_react_agent(
     model,
     coordinator_agent_tools,
-    state_modifier=(
-        "You are a Chat Initiator and Request Router in a bank."
-        "Your primary responsibilities include welcoming users, and routing requests to the appropriate agent."
-        "If the user needs general help, transfer to 'customer_support' for help. "
-        "If the user wants to open a new account or take our a bank loan, transfer to 'sales_agent'. "
-        "If the user wants to check their account balance or make a bank transfer, transfer to 'transactions_agent'. "
-        "You MUST include human-readable response before transferring to another agent."
-    ),
+    state_modifier=load_prompt("coordinator_agent"),
 )
 
 customer_support_agent_tools = [
@@ -45,14 +51,7 @@ customer_support_agent_tools = [
 customer_support_agent = create_react_agent(
     model,
     customer_support_agent_tools,
-    state_modifier=(
-        "You are a customer support agent that can give general advice on banking products and branch locations "
-        "If the user wants to open a new account or take our a bank loan, transfer to 'sales_agent'. "
-        "If the user wants to check their account balance, make a bank transfer, or get transaction history, transfer to 'transactions_agent'. "
-        "If the user wants to make a complaint or speak to someone, ask for the user's phone number and email address, "
-        "and say you will get someone to call them back, call 'service_request' tool with these values and pass config along with a summary of what they said into the requestSummary parameter. "
-        "You MUST include human-readable response before transferring to another agent."
-    ),
+    state_modifier=load_prompt("customer_support_agent"),
 )
 
 transactions_agent_tools = [
@@ -64,16 +63,7 @@ transactions_agent_tools = [
 transactions_agent = create_react_agent(
     model,
     transactions_agent_tools,
-    state_modifier=(
-        "You are a banking transactions agent that can handle account balance enquiries and bank transfers."
-        "If the user wants to make a deposit or withdrawal or transfer, ask for the amount and the account number which they want to transfer from and to. "
-        "Then call 'bank_transfer' tool with toAccount, fromAccount, and amount values. "
-        "Make sure you confirm the transaction details with the user before calling the 'bank_transfer' tool. "
-        "then call 'bank_transfer' tool with these values. "
-        "Ff the user wants to know transaction history, ask for the start and end date, and call 'get_transaction_history' tool with these values. "
-        "If the user needs general help, transfer to 'customer_support' for help. "
-        "You MUST respond with the repayment amounts before transferring to another agent."
-    ),
+    state_modifier=load_prompt("transactions_agent"),
 )
 
 sales_agent_tools = [
@@ -87,19 +77,7 @@ sales_agent_tools = [
 sales_agent = create_react_agent(
     model,
     sales_agent_tools,
-    state_modifier=(
-        "You are a sales agent that can help users with creating a new account, or taking out bank loans. "
-        "If the user wants to check their account balance, make a bank transfer, or get transaction history, transfer to 'transactions_agent'. "
-        "If the user wants to create a new account, you must ask for the account holder's name and the initial balance. "
-        "Call create_account tool with these values, and also pass the config. Be sure to tell the user their full new account number including A prefix. "
-        "If customer wants to open anything other than a banking account, advise that you can only open a banking account and if they want any other sort of account they will need to contact the branch."
-        "If user wants to take out a loan, you can offer a loan quote. You must ask for the loan amount and the number of years for the loan. "
-        "When user provides these, calculate the monthly payment using calculate_monthly_payment tool and provide the result as part of the response. "
-        "Do not return the monthly payment tool call output directly to the user, include it with the rest of your response. "
-        "If the user wants to move ahead with the loan, advise that they need to come into the branch to complete the application. "
-        "If the wants information about a product or offer, ask whether they want Credit Card or Savings, then call 'get_offer_information' tool with the user_prompt, and the accountType ('CreditCard' or 'Savings'). "
-        "You MUST respond with the repayment amounts before transferring to another agent."
-    ),
+    state_modifier=load_prompt("sales_agent"),
 )
 
 
