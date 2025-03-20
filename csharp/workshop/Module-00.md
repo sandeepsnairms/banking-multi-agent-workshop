@@ -130,23 +130,49 @@ When you deploy this solution it automatically injects endpoints and configurati
 
 ### Update src\ChatAPI\appsettings.json
 
-1. Update "CosmosUri": "https://[accountname].documents.azure.com:443/" by replacing account name with the Cosmos DB Account deployed via AZD.
-2. Update "Endpoint": "https://[accountname].openai.azure.com/" by replacing account name with the Azure Open AI Account deployed via AZD.
+1. Update "CosmosUri": "https://[accountname].documents.azure.com:443/" by replacing account name with the Cosmos DB Account deployed via azd.
+2. Update "Endpoint": "https://[accountname].openai.azure.com/" by replacing account name with the Azure Open AI Account deployed via azd.
 
 ## Activity 5: Compile and Run
 
-1. Navigate to src\ChatAPI.
-    - If running on Codespaces:
-       1. Run dotnet dev-certs https --trust to manually accept the certificate warning.
-       2. Run dotnet run.
-    - If running locally on Visual Studio or VS Code:
-       1. Press F5 or select Run.
-2. Copy the launched URL and use it as the API endpoint in the next step.
-3. Follow the [instructions](../..//README.md) to run the Frontend app.
-4. Start a Chat Session in the UI
-5. Send the message.
-6. Expected response is you message replayed back to you.
-7. Select ctrl+ C to stop the debugger.
+### Running the ChatAPI and Frontend App
+
+#### 1. Start the ChatAPI
+
+##### If running on Codespaces:
+1. Navigate to `src\ChatAPI`.
+2. Run the following command to trust the development certificate:
+   ```sh
+   dotnet dev-certs https --trust
+   ```
+3. Start the application:
+   ```sh
+   dotnet run
+   ```
+4. Copy the URL from the **Ports** tab.
+
+##### If running locally on Visual Studio or VS Code:
+1. Navigate to `src\ChatAPI`.
+2. Press **F5** or select **Run** to start the application.
+3. Copy the URL from the browser window that opens.
+
+#### 2. Run the Frontend App
+- Follow the [README instructions](../../README.md) to start the frontend application.  
+- Use the URL copied in the previous step as the API endpoint.
+
+#### 3. Start a Chat Session
+1. Open the frontend app.
+2. Start a new chat session.
+3. Send the message:  
+   ```
+   Hello, how are you?
+   ```
+4. Expected response: The message is echoed back to you.
+
+#### 4. Stop the Application
+- Press **Ctrl + C** to stop the debugger.
+
+
 
 ### Deployment Validation
 
