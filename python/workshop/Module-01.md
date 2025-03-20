@@ -244,7 +244,7 @@ builder.add_node("customer_support_agent", call_customer_support_agent)
 
 With the hands-on exercises complete it is time to test your work!
 
-First, paste the following code directly below all code you have added ain the above:
+First, paste the following code directly below all code you have added in the above:
 
 ```python
 def interactive_chat():
@@ -305,7 +305,7 @@ Type 'exit' to end the conversation.
 You: 
 ```
 
-Input some questions next to `You` try something like "I want some help". You should see your query being routed to the customer support agent and a response generated:
+Input some questions next to `You` - e.g. try something like "I want some help". You should see your query being routed to the customer support agent and a response generated:
 
 ```shell
 Welcome to the single-agent banking assistant.
