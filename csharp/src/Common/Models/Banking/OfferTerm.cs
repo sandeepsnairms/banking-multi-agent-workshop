@@ -29,8 +29,7 @@ namespace MultiAgentCopilot.Common.Models.Banking
         public required string Type { get; set; }
 
         [VectorStoreRecordData]
-        [JsonConverter(typeof(JsonStringEnumConverter))]
-        public required AccountType AccountType { get; set; }
+        public required string AccountType { get; set; }
 
         [VectorStoreRecordVector(Dimensions: 1536, DistanceFunction: Microsoft.Extensions.VectorData.DistanceFunction.CosineSimilarity, IndexKind: Microsoft.Extensions.VectorData.IndexKind.QuantizedFlat)]
         public ReadOnlyMemory<float>? Vector { get; set; }
