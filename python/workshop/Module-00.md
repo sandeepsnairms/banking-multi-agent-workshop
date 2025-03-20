@@ -94,7 +94,7 @@ You can run this sample app and workshop virtually by using GitHub Codespaces. T
 
 ### Deployment
 
-1. From the terminal, navigate to the `csharp` or `python` folder.
+1. From the terminal, navigate to the `python` folder.
 
 1. Navigate to the /infra folder.
 
@@ -110,7 +110,9 @@ You can run this sample app and workshop virtually by using GitHub Codespaces. T
    azd up
    ```
 
-This step will take approximately 10-15 minutes. If you encounter an error during step, first rerun `azd up`. This tends to correct most errors.
+This step will take approximately 10-15 minutes. If you encounter an error during step, first rerun `azd up`. This tends to correct most errors. 
+
+There will be an option at the end to pre-load some data into the Cosmos DB database. This is optional and can be skipped, but we recommend loading the data to have a more complete experience.
 
 > [!IMPORTANT]
 > If you encounter any errors during the deployment, rerun `azd up` to continue the deployment from where it left off. This will not create duplicate resources, and tends to resolve most issues.
@@ -125,14 +127,44 @@ While the Azure Services are deploying we will have a presentation to cover on t
 
 ### Setting up local debugging
 
-When you deploy this solution it automatically injects endpoints and configuration values into the secrets.json file used by .NET applications and exports these to environment variables for Python.
+When you deploy this solution it automatically injects endpoints and configuration values for the required resources into a .env file at root (python) folder.
 
-**TBD - this needs langauge specific instructions**
+But you will still need to install dependencies to run the solution locally.
+
+1. Navigate to the python folder of the project.
+2. Create and activate a virtual environment (Linux/Mac):
+
+    ```shell
+    python -m venv .venv
+    source .venv/bin/activate
+    ```
+3. Install the required dependencies for the project.
+
+    ```shell
+    pip install -r src/app/requirements.txt
+    ```
 
 
 ## Activity 5: Compile and Run
 
-**TBD - this needs langauge specific instructions on compiling and running the solution**
+### Running the solution
+
+1. Navigate to the python folder of the project.
+2. Start the fastapi server.
+
+    ```shell
+    uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 8000
+    ```
+   
+The API will be available at `http://localhost:8000/docs`. This has been pre-built with boilerplate code that will create chat sessions and store the chat history in Cosmos DB. 
+
+Lets try a couple of things:
+ 
+- Try out the API by creating a chat session and sending messages using the `/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/completion` via the docs page. This should return a response saying this has not been implemented yet.
+- Navigate to the Cosmos DB account in the Azure portal to view the containers. You should see an entry in the `Chat` container. If you selected "yes" to the option during `azd up`, there will also be some transactional data in the `OffersData`, `AccountsData`, and `Users` containers as well.
+- Take a look at the files in the `src/app/services` folder - these are the boilerplate code for interacting with the Cosmos DB and Azure OpenAI services.
+
+Next, we will start building the agents that will be served by the API layer and interact with Cosmos DB and Azure OpenAI using LangGraph!
 
 ### Deployment Validation
 

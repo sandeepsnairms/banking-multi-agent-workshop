@@ -192,7 +192,7 @@ def patch_active_agent(tenantId, userId, sessionId, activeAgent):
     # deletes the user data from the container by tenantId, userId, sessionId
 
 
-def patch_account_record(account_id, balance):
+def patch_account_record(tenantId, account_id, balance):
     try:
         # Remove the "A" prefix from the account_id
         numeric_account_id = account_id[1:] if account_id.startswith("A") else account_id
@@ -202,7 +202,8 @@ def patch_account_record(account_id, balance):
         print("account_id: ", account_id)
 
         operations = [{'op': 'replace', 'path': '/balance', 'value': balance}]
-        account_container.patch_item(item=numeric_account_id, partition_key=account_id, patch_operations=operations)
+        partition_key = [tenantId,account_id]
+        account_container.patch_item(item=numeric_account_id, partition_key=partition_key, patch_operations=operations)
         print(f"[DEBUG] Account record patched: {account_id}")
     except Exception as e:
         print(f"[ERROR] Error patching account record: {e}")
