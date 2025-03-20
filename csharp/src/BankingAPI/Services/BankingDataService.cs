@@ -26,6 +26,7 @@ using Microsoft.Identity.Client.Platforms.Features.DesktopOs.Kerberos;
 using Microsoft.SemanticKernel.Embeddings;
 using System.Text.Json;
 using Microsoft.Extensions.VectorData;
+using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
 
 namespace BankingServices.Services
 {
@@ -37,6 +38,7 @@ namespace BankingServices.Services
         private readonly Container _offerData;
 
         private readonly AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm> _offerDataVectorStore;
+        private readonly AzureOpenAITextEmbeddingGenerationService _textEmbeddingGenerationService;
 
         private readonly Database _database;
         private readonly CosmosDBSettings _settings;
@@ -121,12 +123,14 @@ namespace BankingServices.Services
             builder.Services.AddSingleton<ILoggerFactory>(loggerFactory);
 
 
-            builder.AddAzureOpenAITextEmbeddingGeneration(
-                skSettings.AzureOpenAISettings.EmbeddingsDeployment,
-                skSettings.AzureOpenAISettings.Endpoint,
-                credential);
 
             _semanticKernel = builder.Build();
+
+
+            _textEmbeddingGenerationService = new(
+                    deploymentName: skSettings.AzureOpenAISettings.EmbeddingsDeployment, // Name of deployment, e.g. "text-embedding-ada-002".
+                    endpoint: skSettings.AzureOpenAISettings.Endpoint,           // Name of Azure OpenAI service endpoint, e.g. https://myaiservice.openai.azure.com.
+                    credential: credential);                       
 
             var vectorStoreOptions = new AzureCosmosDBNoSQLVectorStoreRecordCollectionOptions<OfferTerm> { PartitionKeyPropertyName = "TenantId", JsonSerializerOptions = jsonSerializerOptions };
             _offerDataVectorStore = new AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm>(_database, _settings.OfferDataContainer.Trim(), vectorStoreOptions);
@@ -354,9 +358,9 @@ namespace BankingServices.Services
             try
             {
                 // Generate Embedding
-                var embeddingModel = _semanticKernel.Services.GetRequiredService<ITextEmbeddingGenerationService>();
-
-                var embedding = await embeddingModel.GenerateEmbeddingAsync(requirementDescription);
+                ReadOnlyMemory<float> embedding = (await _textEmbeddingGenerationService.GenerateEmbeddingsAsync(
+                       new[] { requirementDescription }
+                   )).FirstOrDefault();
 
 
                 // perform vector search
