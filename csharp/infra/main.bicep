@@ -41,7 +41,7 @@ module monitoring './shared/monitoring.bicep' = {
 module cosmos './shared/cosmosdb.bicep' = {
   name: 'cosmos'
   params: {    
-    databaseName: 'vsai-database'
+    databaseName: 'MultAgentBanking'
 	chatsContainerName: 'ChatsData'
 	accountsContainerName: 'AccountsData'
 	offersContainerName:'OffersData'
@@ -174,7 +174,7 @@ module ChatAPI './app/ChatAPI.bicep' = {
       }
 	  {
         name: 'CosmosDBSettings__Database'
-        value: 'vsai-database'
+        value: 'MultAgentBanking'
       }
 	  {
         name: 'CosmosDBSettings__ChatDataContainer'
@@ -190,7 +190,7 @@ module ChatAPI './app/ChatAPI.bicep' = {
       }	
       {
         name: 'BankingCosmosDBSettings__Database'
-        value: 'vsai-database'
+        value: 'MultAgentBanking'
       }
 	  {
         name: 'BankingCosmosDBSettings__AccountsContainer'
