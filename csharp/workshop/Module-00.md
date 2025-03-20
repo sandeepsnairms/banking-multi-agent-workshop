@@ -135,9 +135,6 @@ When you deploy this solution it automatically injects endpoints and configurati
 
 ## Activity 5: Compile and Run
 
-Here’s a refined version of your steps in Markdown:  
-
-```md
 ### Running the ChatAPI and Frontend App
 
 #### 1. Start the ChatAPI
@@ -174,7 +171,6 @@ Use the URL copied in the previous step as the API endpoint.
 
 #### 4. Stop the Application
 Press **Ctrl + C** to stop the debugger.
-```
 
 
 
