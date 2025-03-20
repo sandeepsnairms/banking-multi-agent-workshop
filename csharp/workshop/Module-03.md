@@ -42,11 +42,11 @@ Add AccountType.cs for AccountType Enum
 
 namespace MultiAgentCopilot.Common.Models.Banking
 {    
-    public enum AccountType
+public enum AccountType
     {
-        Savings=0,
-        CreditCard=1,
-        Locker=2
+        Savings,
+        CreditCard,
+        Locker
     }
 }
 
@@ -59,10 +59,10 @@ namespace MultiAgentCopilot.Common.Models.Banking
 { 
     public enum ServiceRequestType
     {
-        Complaint=0,
-        FundTransfer=1,
-        Fulfilment=2,
-        TeleBankerCallBack=3
+        Complaint,
+        FundTransfer,
+        Fulfilment,
+        TeleBankerCallBack
     }
 }
 ```
@@ -70,13 +70,6 @@ namespace MultiAgentCopilot.Common.Models.Banking
 Add BankAccount.cs for BankAccount class
 
 ```csharp
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.Json.Serialization;
-using System.Threading.Tasks;
-
 namespace MultiAgentCopilot.Common.Models.Banking
 {
     public class BankAccount
@@ -84,11 +77,10 @@ namespace MultiAgentCopilot.Common.Models.Banking
         public required string Id { get; set; } = string.Empty;
         public required string TenantId { get; set; } = string.Empty;
         public required string Name { get; set; } = string.Empty;
-        [JsonConverter(typeof(JsonStringEnumConverter))]
         public required AccountType AccountType { get; set; }
-        public long Balance { get; set; }
-        public long Limit { get; set; }
-        public int InterestRate { get; set; }
+        public required long Balance { get; set; }
+        public required long Limit { get; set; }
+        public required int InterestRate { get; set; }
         public required string ShortDescription { get; set; }
     }
 }
@@ -118,15 +110,16 @@ Add BankUser.cs for BankUser class
 ```csharp
 namespace MultiAgentCopilot.Common.Models.Banking
 {
-     public class BankUser
-     {
-         public required string Id { get; set; } = string.Empty;
-         public required string TenantId { get; set; } = string.Empty;
-         public required string Name { get; set; } = string.Empty;
-         public required string Email { get; set; }
-         public required string PhoneNumber { get; set; }
-         public required Dictionary<string,object> Attributes { get; set; }
-     }
+    public class BankUser
+    {
+        public required string Id { get; set; } = string.Empty;
+        public required string TenanatId { get; set; } = string.Empty;
+        public required string Name { get; set; } = string.Empty;
+        public required string Email { get; set; }
+        public required string PhoneNumber { get; set; }
+        public required List<BankAccount> Accounts { get; set; }
+        public required Dictionary<string,string> Attributes { get; set; }
+    }
 }
 ```
 
@@ -142,7 +135,6 @@ namespace MultiAgentCopilot.Common.Models.Banking
         public required string TenantId { get; set; }
         public required string Name { get; set; }
         public required string Description { get; set; }
-        [JsonConverter(typeof(JsonStringEnumConverter))]
         public required AccountType AccountType { get; set; }
         public required Dictionary<string, string> EligibilityConditions { get; set; }
         public required Dictionary<string, string> PrerequsiteSubmissions { get; set; }
@@ -180,8 +172,7 @@ namespace MultiAgentCopilot.Common.Models.Banking
         public required string Type { get; set; }
 
         [VectorStoreRecordData]
-        [JsonConverter(typeof(JsonStringEnumConverter))]
-        public required AccountType AccountType { get; set; }
+        public required string AccountType { get; set; }
 
         [VectorStoreRecordVector(Dimensions: 1536, DistanceFunction: Microsoft.Extensions.VectorData.DistanceFunction.CosineSimilarity, IndexKind: Microsoft.Extensions.VectorData.IndexKind.QuantizedFlat)]
         public ReadOnlyMemory<float>? Vector { get; set; }
@@ -1053,7 +1044,10 @@ Update GetChatCompletionAsync in ChatInfrastructure\Services\ChatService.cs
     }
 ```
 
+
 ## Activity 9: Test your Work
+
+
 
 Execute the below steps to check the behavior for each agent.
 
