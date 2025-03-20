@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace MultiAgentCopilot.Common.Models.Banking
@@ -28,7 +29,8 @@ namespace MultiAgentCopilot.Common.Models.Banking
         public required string Type { get; set; }
 
         [VectorStoreRecordData]
-        public required string AccountType { get; set; }
+        [JsonConverter(typeof(JsonStringEnumConverter))]
+        public required AccountType AccountType { get; set; }
 
         [VectorStoreRecordVector(Dimensions: 1536, DistanceFunction: Microsoft.Extensions.VectorData.DistanceFunction.CosineSimilarity, IndexKind: Microsoft.Extensions.VectorData.IndexKind.QuantizedFlat)]
         public ReadOnlyMemory<float>? Vector { get; set; }
