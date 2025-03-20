@@ -802,30 +802,6 @@ Initialize  BankingDataService in ChatService constructor
 
 In this hands-on exercise, you will learn how to configure vector indexing and search in Azure Cosmos DB and explore the container and vector indexing policies. Then learn how to implement vector search using for Semantic Kernel or LangGraph.
 
-In BankingAPI\Services\BankingDataService.cs declare `_offerDataVectorStore` object
-
-```csharp
-     private readonly AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm> _offerDataVectorStore;
-```
-
-Update Constructor in BankingAPI\Services\BankingDataService.cs to add AzureOpenAITextEmbedding service. Append after `builder.Services.AddSingleton<ILoggerFactory>(loggerFactory);`
-
-```csharp
-            builder.AddAzureOpenAITextEmbeddingGeneration(
-                skSettings.AzureOpenAISettings.EmbeddingsDeployment,
-                skSettings.AzureOpenAISettings.Endpoint,
-                credential);
-
-```
-
-
-Update Constructor in BankingAPI\Services\BankingDataService.cs to initialize _offerDataVectorStore. Append after `_semanticKernel = builder.Build();`
-
-```csharp
- var vectorStoreOptions = new AzureCosmosDBNoSQLVectorStoreRecordCollectionOptions<OfferTerm> { PartitionKeyPropertyName = "TenantId", JsonSerializerOptions = jsonSerializerOptions };
- _offerDataVectorStore = new AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm>(_database, _settings.OfferDataContainer.Trim(), vectorStoreOptions);
-
-```
 
 ### Update BankingDataService to include vector search
 
@@ -839,20 +815,42 @@ Add in BankingAPI\Interface\IBankDataService.cs
 
 ```
 
+In BankingAPI\Services\BankingDataService.cs declare `_offerDataVectorStore` and `_textEmbeddingGenerationService` objects
+
+```csharp
+        private readonly AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm> _offerDataVectorStore;
+        private readonly AzureOpenAITextEmbeddingGenerationService _textEmbeddingGenerationService;
+```
+
+
+Update Constructor in BankingAPI\Services\BankingDataService.cs to initialize _offerDataVectorStore. Append after `_semanticKernel = builder.Build();`
+
+```csharp
+        _textEmbeddingGenerationService = new(
+                deploymentName: skSettings.AzureOpenAISettings.EmbeddingsDeployment, // Name of deployment, e.g. "text-embedding-ada-002".
+                endpoint: skSettings.AzureOpenAISettings.Endpoint,           // Name of Azure OpenAI service endpoint, e.g. https://myaiservice.openai.azure.com.
+                credential: credential);                       
+
+        var vectorStoreOptions = new AzureCosmosDBNoSQLVectorStoreRecordCollectionOptions<OfferTerm> { PartitionKeyPropertyName = "TenantId", JsonSerializerOptions = jsonSerializerOptions };
+        _offerDataVectorStore = new AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm>(_database, _settings.OfferDataContainer.Trim(), vectorStoreOptions);
+
+```
+
+
 Add SearchOfferTermsAsync and GetOfferDetailsAsync to  in BankingAPI\Services\BankingDataService.cs
 
 ```csharp
         public async Task<List<OfferTerm>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription)
         {           
-
+        
             try
             {
                 // Generate Embedding
-                var embeddingModel = _semanticKernel.Services.GetRequiredService<ITextEmbeddingGenerationService>();
-
-                var embedding = await embeddingModel.GenerateEmbeddingAsync(requirementDescription);
-
-
+                ReadOnlyMemory<float> embedding = (await _textEmbeddingGenerationService.GenerateEmbeddingsAsync(
+                       new[] { requirementDescription }
+                   )).FirstOrDefault();
+        
+        
                 // perform vector search
                 var filter = new VectorSearchFilter()
                     .EqualTo("TenantId", tenantId)
@@ -861,7 +859,7 @@ Add SearchOfferTermsAsync and GetOfferDetailsAsync to  in BankingAPI\Services\Ba
                 var options = new VectorSearchOptions { VectorPropertyName = "Vector", Filter = filter, Top = 10, IncludeVectors = false };
                                 
                 var searchResults = await _offerDataVectorStore.VectorizedSearchAsync(embedding, options);
-
+        
                 List<OfferTerm> offerTerms = new();
                 await foreach (var result in searchResults.Results)
                 {
