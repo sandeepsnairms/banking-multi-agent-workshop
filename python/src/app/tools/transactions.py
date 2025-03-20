@@ -69,7 +69,7 @@ def bank_transaction(config: RunnableConfig, account_number: str, amount: float,
                 return f"Failed to create transaction record after {max_attempts} attempts: {e}"
 
     # Update the account balance
-    patch_account_record(account["accountId"], new_balance)
+    patch_account_record(tenantId, account["accountId"], new_balance)
     return f"Successfully transferred ${amount} to account number {account_number}"
 
 
