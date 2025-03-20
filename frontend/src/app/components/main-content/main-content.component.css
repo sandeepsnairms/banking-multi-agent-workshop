@@ -13,13 +13,13 @@ body {
 .main-content-container {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100%;
 }
 
 /* Fixed Toolbar */
 .fixed-toolbar {
-  position: sticky;
-  top: 0;
+  position: sticky; /* Ensures the toolbar sticks to the top when scrolling */
+  top: 0; /* Makes the toolbar stick to the top of the screen */
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -27,8 +27,8 @@ body {
   color: white;
   height: 64px;
   padding: 0 16px;
-  z-index: 1000;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  z-index: 1000; /* Keeps the toolbar above other elements */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); /* Optional: Adds a shadow to the toolbar */
 }
 
 .toolbar-title {
@@ -38,59 +38,50 @@ body {
 /* User Icon and Name Container */
 .custom-container {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  align-items: center;  /* Aligns the icon and name vertically in the center */
+  gap: 10px;  /* Adds space between the icon and the name */
 }
 
 .toolbar-spacer {
-  flex-grow: 1;
+  flex-grow: 1;  /* Pushes the user icon and name to the right */
 }
 
+/* User Icon - Circular Image */
 .custom-icon-button {
   width: 40px;
   height: 40px;
-  border-radius: 50%;
-  overflow: hidden;
+  border-radius: 50%; /* Ensures the container is a circle */
+  overflow: hidden; /* Ensures the image stays inside the circle */
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 0;
+  padding: 0; /* Remove any padding */
 }
 
 .custom-icon-button img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 50%;
+  width: 100%; /* Ensures image takes full width of the circle */
+  height: 100%; /* Ensures image takes full height of the circle */
+  object-fit: cover; /* Ensures the image fits perfectly inside the circle */
+  display: block; /* Ensures the image behaves properly within the circle */
+  border-radius: 50%; /* Enforces the circular shape on the image */
 }
 
+/* User Name */
 .custom-container h6 {
-  font-size: 14px;
-  color: white;
-  margin: 0;
+  font-size: 14px; /* Adjust the font size as needed */
+  color: white; /* Ensures the text color is white */
+  margin: 0; /* Removes any margin around the name */
 }
 
-/* Main Content */
-.main-content {
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-  overflow: hidden;
-  height: calc(100vh - 64px); /* Adjust height to exclude toolbar */
-}
-
-/* Messages Wrapper */
-.messages-wrapper {
-  flex-grow: 1;
-  overflow-y: auto; /* Add scrollbar here */
-}
-
-/* Conversations */
+/* Conversations Area */
 .conversations {
   display: flex;
   flex-direction: column;
   gap: 12px;
   padding: 10px;
+  overflow-x: hidden;
+  flex-grow: 1;
+  max-width: 100%;
   padding-left: 10%;
   padding-right: 10%;
 }
@@ -106,35 +97,56 @@ body {
 /* Message Content */
 .message-content {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  align-items: center; /* Keeps icon & text on the same row */
+  gap: 8px; /* Adds spacing between icon & text */
   padding: 12px;
   border-radius: 12px;
   word-wrap: break-word;
-  white-space: normal;
+  white-space: normal; /* Allow text to break naturally */
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   max-width: 80%;
-  position: relative;
+  position: relative; /* Ensure proper text alignment */
+}
+
+/* Center Conversation Text */
+.message-content p.user-text {
+  margin-top: 0;
+  text-align: left;
+  width: 100%;
 }
 
 /* User Messages */
 .message.user {
   justify-content: flex-end;
+  text-align: right;
   width: 100%;
 }
 
 .message.user .message-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   background-color: #e1f5fe;
+  border-radius: 12px;
+  padding: 12px;
+  flex-wrap: nowrap;  /* Ensures icon & text stay on the same line */
+  max-width: 80%;
 }
 
 /* Assistant Messages */
 .message.assistant {
   justify-content: flex-start;
+  text-align: left;
   width: 100%;
 }
 
 .message.assistant .message-content {
   background-color: #e6f0ff;
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap; /* Prevents wrapping of icon & text */
+  max-width: 80%;
 }
 
 /* Input Container */
@@ -144,16 +156,17 @@ body {
   left: 0;
   width: 100%;
   background-color: white;
+  padding: 12px 16px;
   box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.1);
   display: flex;
+  align-items: center;
   justify-content: center;
-  z-index: 1000;
 }
 
 .input-wrapper {
   display: flex;
   align-items: center;
-  width: 70%;
+  width: 70%; /* Same width as messages */
   gap: 10px;
   padding-left: 10%;
 }
@@ -165,7 +178,7 @@ body {
   border: 1px solid #ccc;
   font-size: 16px;
   outline: none;
-  transition: border-color 0.3s;
+  transition: border-color 0.3s ease;
 }
 
 .input-container input:focus {
@@ -187,12 +200,16 @@ body {
   border-radius: 20px;
   border: none;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: background-color 0.3s ease, transform 0.3s ease;
   margin-left: 10px;
 }
 
 .end-chat-btn:hover {
   background-color: #005a8d;
+}
+
+.end-chat-btn:focus {
+  outline: none;
 }
 
 /* Error Message */
@@ -202,51 +219,27 @@ body {
   text-align: center;
 }
 
-/* Center the reaction buttons */
+/* Center the reaction buttons on the same line */
 .reaction-buttons {
   display: flex;
-  gap: 10px;
+  gap: 10px; /* Add space between the icons */
   align-items: center;
-  visibility: hidden;
+  visibility: hidden; /* Hide buttons by default */
 }
 
+/* Show reaction buttons on hover */
 .message.assistant:hover .reaction-buttons {
   visibility: visible;
 }
 
+/* Style the reaction button */
 .reaction-btn {
-  border-radius: 50%;
-  padding: 5px;
-  background-color: transparent;
+  border-radius: 50%;  /* Make the button round */
+  padding: 5px;  /* Adjust padding */
+  background-color: transparent;  /* Keep the background transparent */
 }
 
+/* Style for the thumb icon */
 .thumb-icon {
-  color: black;
-}
-
-/* Top Menu Bar */
-.top-menu-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background-color: white;
-  color: #0078d4;
-  padding: 0 16px;
-  height: 64px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-}
-/* Scrollbar for Messages */
-.messages-wrapper {
-  overflow-y: auto;
-  max-height: calc(100vh - 130px); /* Adjusted to fit within the viewport */
-}
-
-/* Optional: Make scrollbar visible and styled */
-.messages-wrapper::-webkit-scrollbar {
-  width: 8px;
-}
-
-.messages-wrapper::-webkit-scrollbar-thumb {
-  background-color: #0078d4;
-  border-radius: 4px;
+  color: black;  /* Set the icon color to black */
 }

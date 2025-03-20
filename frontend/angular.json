@@ -16,7 +16,9 @@
             "outputPath": "dist/multi-agent-app",
             "index": "src/index.html",
             "browser": "src/main.ts",
-            "polyfills": ["zone.js"],
+            "polyfills": [
+              "zone.js"
+            ],
             "tsConfig": "tsconfig.app.json",
             "assets": [
               {
@@ -25,8 +27,8 @@
               }
             ],
             "styles": [
-              "node_modules/@fortawesome/fontawesome-free/css/all.min.css",
-              "node_modules/@angular/material/prebuilt-themes/indigo-pink.css",
+               "node_modules/@fortawesome/fontawesome-free/css/all.min.css",  
+               "node_modules/@angular/material/prebuilt-themes/indigo-pink.css",          
               "src/styles.css"
             ],
             "scripts": []
@@ -59,20 +61,16 @@
               "sourceMap": true
             }
           },
-          "defaultConfiguration": "development"
+          "defaultConfiguration": "production"
         },
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
-          "options": {
-            "proxyConfig": "proxy.conf.json"
-          },
           "configurations": {
             "production": {
               "buildTarget": "multi-agent-app:build:production"
             },
             "development": {
-              "buildTarget": "multi-agent-app:build:development",
-              "proxyConfig": "proxy.conf.json"
+              "buildTarget": "multi-agent-app:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -83,7 +81,10 @@
         "test": {
           "builder": "@angular-devkit/build-angular:karma",
           "options": {
-            "polyfills": ["zone.js", "zone.js/testing"],
+            "polyfills": [
+              "zone.js",
+              "zone.js/testing"
+            ],
             "tsConfig": "tsconfig.spec.json",
             "assets": [
               {
@@ -92,8 +93,8 @@
               }
             ],
             "styles": [
-              "node_modules/@fortawesome/fontawesome-free/css/all.min.css",
-              "node_modules/@angular/material/prebuilt-themes/indigo-pink.css",
+              "node_modules/@fortawesome/fontawesome-free/css/all.min.css",          
+              "node_modules/@angular/material/prebuilt-themes/indigo-pink.css",         
               "src/styles.css"
             ],
             "scripts": []
@@ -101,8 +102,5 @@
         }
       }
     }
-  },
-  "cli": {
-    "analytics": false
   }
 }

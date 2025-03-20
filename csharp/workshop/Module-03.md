@@ -32,7 +32,9 @@ In this session we will dive into how to create Semantic Kernel Agent Framework 
 
 ## Activity 2: Defining Bank Domain Data Models
 
-Add the  following models to Common\Models\Banking\
+To enable agents to operate on your data, we must define data models that the LLM can understand.
+
+Add the following models to Common\Models\Banking\
 
 Add AccountType.cs for AccountType Enum
 
@@ -142,6 +144,8 @@ namespace MultiAgentCopilot.Common.Models.Banking
 
 Add OfferTerm.cs for OfferTerm class
 
+OfferTerm is used for vector search in Semantic Kernel, so it has been enhanced with additional attributes.
+
 ```csharp
 
 ﻿using Microsoft.Extensions.VectorData;
@@ -225,6 +229,8 @@ namespace MultiAgentCopilot.Common.Models.Banking
 ```
 
 ## Activity 3: Creating Multiple Agents
+
+Let's define the agent's behavior by creating agent prompts as Prompty files.
 
 ### Upload prompts for each Agent
 
@@ -351,6 +357,8 @@ Tasks:
 
 ### Define the various Agent Types
 
+We are going to have four type of agents.
+
 Add AgentTypes.cs in ChatInfrastructure\Models
 
 ```csharp
@@ -385,6 +393,8 @@ using MultiAgentCopilot.ChatInfrastructure.Models;
 
 
 Update ChatInfrastructure\Factories\SystemPromptFactory.cs
+
+Modify GetAgentPrompts to return the system prompt based on the agent type.
 
 ```csharp
 
@@ -450,6 +460,8 @@ Update ChatInfrastructure\Factories\SystemPromptFactory.cs
 
 ## Activity 4: Integrating Bank Domain Functions as Plugins
 
+All banking domain code is encapsulated in a separate `BankingServices` project. Let's add it to the main solution to make it available to the agents.
+
 Add **BankingServices.csproj** to the solution
 
 Add Project Reference for BankingServices.csproj in ChChatInfrastructure.csProj
@@ -464,6 +476,8 @@ Add Project Reference for BankingServices.csproj in ChChatInfrastructure.csProj
 
 
 Add BasePlugin.cs in ChatInfrastructure\AgentPlugins
+
+The Base plugin, inherited by all plugins, contains common code. We will list the kernel functions available in the Base plugin. For simplicity in this workshop, all functions reference BankingServices. However, kernel functions can be any managed code that enables the LLM to interact with the outside world.
 
 ```csharp
 
@@ -530,6 +544,8 @@ namespace MultiAgentCopilot.ChatInfrastructure.Plugins
 
 Add CoordinatorPlugin.cs in ChatInfrastructure\AgentPlugins
 
+We will list the kernel functions available in the Coordinator plugin. For simplicity in this workshop, all functions reference BankingServices. However, kernel functions can be any managed code that enables the LLM to interact with the outside world.
+
 ```csharp
 
 using BankingServices.Interfaces;
@@ -560,6 +576,8 @@ namespace MultiAgentCopilot.ChatInfrastructure.Plugins
 ```
 
 Add SalesPlugin.cs in ChatInfrastructure\AgentPlugins
+
+We will list the kernel functions available in the Sales plugin. For simplicity in this workshop, all functions reference BankingServices. However, kernel functions can be any managed code that enables the LLM to interact with the outside world.
 
 ```csharp
 
@@ -600,6 +618,8 @@ namespace MultiAgentCopilot.ChatInfrastructure.Plugins
 
 Add TransactionPlugin.cs in ChatInfrastructure\AgentPlugins
 
+We will list the kernel functions available in the Transaction plugin. For simplicity in this workshop, all functions reference BankingServices. However, kernel functions can be any managed code that enables the LLM to interact with the outside world.
+
 ```csharp
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
@@ -637,6 +657,9 @@ namespace MultiAgentCopilot.ChatInfrastructure.Plugins
 ```
 
 Add  CustomerSupportPlugin.cs in ChatInfrastructure\AgentPlugins
+
+We will list the kernel functions available in the CustomerSupport plugin. For simplicity in this workshop, all functions reference BankingServices. However, kernel functions can be any managed code that enables the LLM to interact with the outside world.
+
 
 ```csharp
 
@@ -690,6 +713,8 @@ namespace MultiAgentCopilot.ChatInfrastructure.Plugins
 ```
 
 ## Activity 5: Developing a Plugin Factory
+
+The `PluginFactory` dynamically generates a plugin based on the agent type.
 
 Add PluginFactory.cs in ChatInfrastructure\Factories
 
@@ -746,6 +771,8 @@ namespace MultiAgentCopilot.ChatInfrastructure.Factories
 
 ## Activity 6: Building an Agent Factory
 
+Modify `BuildAgent` to dynamically add plugins to the agents.
+
 Update the ChatInfrastructure\Factories\ChatFactory.cs
 
 ```csharp
@@ -777,7 +804,6 @@ Add BankingDataService object in ChatService
     private readonly IBankDataService _bankService;
 ```
 
-
 Initialize  BankingDataService in ChatService constructor
 
 
@@ -802,30 +828,6 @@ Initialize  BankingDataService in ChatService constructor
 
 In this hands-on exercise, you will learn how to configure vector indexing and search in Azure Cosmos DB and explore the container and vector indexing policies. Then learn how to implement vector search using for Semantic Kernel or LangGraph.
 
-In BankingAPI\Services\BankingDataService.cs declare `_offerDataVectorStore` object
-
-```csharp
-     private readonly AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm> _offerDataVectorStore;
-```
-
-Update Constructor in BankingAPI\Services\BankingDataService.cs to add AzureOpenAITextEmbedding service. Append after `builder.Services.AddSingleton<ILoggerFactory>(loggerFactory);`
-
-```csharp
-            builder.AddAzureOpenAITextEmbeddingGeneration(
-                skSettings.AzureOpenAISettings.EmbeddingsDeployment,
-                skSettings.AzureOpenAISettings.Endpoint,
-                credential);
-
-```
-
-
-Update Constructor in BankingAPI\Services\BankingDataService.cs to initialize _offerDataVectorStore. Append after `_semanticKernel = builder.Build();`
-
-```csharp
- var vectorStoreOptions = new AzureCosmosDBNoSQLVectorStoreRecordCollectionOptions<OfferTerm> { PartitionKeyPropertyName = "TenantId", JsonSerializerOptions = jsonSerializerOptions };
- _offerDataVectorStore = new AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm>(_database, _settings.OfferDataContainer.Trim(), vectorStoreOptions);
-
-```
 
 ### Update BankingDataService to include vector search
 
@@ -839,20 +841,44 @@ Add in BankingAPI\Interface\IBankDataService.cs
 
 ```
 
-Add SearchOfferTermsAsync and GetOfferDetailsAsync to  in BankingAPI\Services\BankingDataService.cs
+In BankingAPI\Services\BankingDataService.cs declare `_offerDataVectorStore` and `_textEmbeddingGenerationService` objects
+
+```csharp
+        private readonly AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm> _offerDataVectorStore;
+        private readonly AzureOpenAITextEmbeddingGenerationService _textEmbeddingGenerationService;
+```
+
+
+Update the Constructor in BankingAPI\Services\BankingDataService.cs
+
+Append after `_semanticKernel = builder.Build();`
+
+```csharp
+        _textEmbeddingGenerationService = new(
+                deploymentName: skSettings.AzureOpenAISettings.EmbeddingsDeployment, // Name of deployment, e.g. "text-embedding-ada-002".
+                endpoint: skSettings.AzureOpenAISettings.Endpoint,           // Name of Azure OpenAI service endpoint, e.g. https://myaiservice.openai.azure.com.
+                credential: credential);                       
+
+        var vectorStoreOptions = new AzureCosmosDBNoSQLVectorStoreRecordCollectionOptions<OfferTerm> { PartitionKeyPropertyName = "TenantId", JsonSerializerOptions = jsonSerializerOptions };
+        _offerDataVectorStore = new AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm>(_database, _settings.OfferDataContainer.Trim(), vectorStoreOptions);
+
+```
+
+
+Add `SearchOfferTermsAsync` and `GetOfferDetailsAsync` to  in BankingAPI\Services\BankingDataService.cs
 
 ```csharp
         public async Task<List<OfferTerm>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription)
         {           
-
+        
             try
             {
                 // Generate Embedding
-                var embeddingModel = _semanticKernel.Services.GetRequiredService<ITextEmbeddingGenerationService>();
-
-                var embedding = await embeddingModel.GenerateEmbeddingAsync(requirementDescription);
-
-
+                ReadOnlyMemory<float> embedding = (await _textEmbeddingGenerationService.GenerateEmbeddingsAsync(
+                       new[] { requirementDescription }
+                   )).FirstOrDefault();
+        
+        
                 // perform vector search
                 var filter = new VectorSearchFilter()
                     .EqualTo("TenantId", tenantId)
@@ -861,7 +887,7 @@ Add SearchOfferTermsAsync and GetOfferDetailsAsync to  in BankingAPI\Services\Ba
                 var options = new VectorSearchOptions { VectorPropertyName = "Vector", Filter = filter, Top = 10, IncludeVectors = false };
                                 
                 var searchResults = await _offerDataVectorStore.VectorizedSearchAsync(embedding, options);
-
+        
                 List<OfferTerm> offerTerms = new();
                 await foreach (var result in searchResults.Results)
                 {
@@ -984,8 +1010,9 @@ Update GetResponse in ChatInfrastructure\Services\SemanticKernelService.cs
 
 ```
 
+Pass the BankingDataService object to SemanticKernelService call.
 
-Pass the BankingDataService object to SemanticKernel call. Update GetChatCompletionAsync in ChatInfrastructure\Services\ChatService.cs
+Update GetChatCompletionAsync in ChatInfrastructure\Services\ChatService.cs
 
 ```csharp
      public async Task<List<Message>> GetChatCompletionAsync(string tenantId, string userId,string? sessionId, string userPrompt)
@@ -1018,10 +1045,13 @@ Pass the BankingDataService object to SemanticKernel call. Update GetChatComplet
 ```
 
 
-
-
-
 ## Activity 9: Test your Work
+
+
+
+Execute the below steps to check the behavior for each agent.
+
+### Select the AgentType
 
 Update AgentType within GetResponse in ChatInfrastructure\Services\SemanticKernelService.cs to see how different agents work.
 
@@ -1029,23 +1059,39 @@ Update AgentType within GetResponse in ChatInfrastructure\Services\SemanticKerne
  var agent = agentChatGeneratorService.BuildAgent(_semanticKernel,AgentType.CustomerSupport, _loggerFactory,  bankService, tenantId, userId);
 ```
 
-Execute the below steps to check the behavior for each agent.
+Run the below steps for each Agent Type.
 
-1. Navigate to src\ChatAPI.
-    - If running on Codespaces:
-       1. Run dotnet dev-certs https --trust to manually accept the certificate warning.
-       2. Run dotnet run.
-    - If running locally on Visual Studio or VS Code:
-       1. Press F5 or select Run.
-2. Copy the launched URL and use it as the API endpoint in the next step.
-3. Follow the [instructions](../..//README.md) to run the Frontend app.
-4. Start a Chat Session in the UI
-5. Try the below messages based on the current agent type.
-    1. CustomerSupport: File a complaint on theft.
-    1. Sales: Looking for an account with name 'SmartSaver Plus'
-    1. Transactions: How much did I spend on grocery?
-    1. Coordinator: List my accounts.
-1. Select ctrl+ C to stop the debugger.
+#### 1. Start the ChatAPI
+
+##### If running on Codespaces:
+1. Navigate to `src\ChatAPI`.
+2. Run the following command to trust the development certificate:
+   ```sh
+   dotnet dev-certs https --trust
+   ```
+3. Start the application:
+   ```sh
+   dotnet run
+   ```
+4. Copy the URL from the **Ports** tab.
+
+##### If running locally on Visual Studio or VS Code:
+1. Navigate to `src\ChatAPI`.
+2. Press **F5** or select **Run** to start the application.
+3. Copy the URL from the browser window that opens.
+
+#### 2. Run the Frontend App
+- Follow the [README instructions](../../README.md) to start the frontend application.  
+- Use the URL copied in the previous step as the API endpoint.
+
+#### 3. Start a Chat Session
+1. Open the frontend app.
+2. Start a new chat session.
+3. Send a message based on the prompt of the current AgentType.
+4. Expected response: The response is inline with the Agent's prompts and plugins.
+
+### 4. Stop the Application
+- Press **Ctrl + C** to stop the debugger.
 
 ## Validation Checklist
 
