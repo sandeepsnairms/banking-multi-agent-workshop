@@ -10,7 +10,7 @@ In this Module you'll connect your agent to Azure Cosmos DB to provide memory fo
 ## Learning Objectives and Activities
 
 - Learn the basics for Azure Cosmos DB for storing state and chat history
-- Learn how to integrate agent framworks to Azure Cosmos DB
+- Learn how to integrate agent frameworks to Azure Cosmos DB
 - Test connectivity to Azure Cosmos DB works
 
 ## Module Exercises
@@ -27,9 +27,14 @@ In this session you will get an overview of memory and how it works for Semantic
 
 
 ## Activity 2: Create a Simple Agent
-In this hands-on exercise, you will learn how to create a simple agent using the same prompt we used in the previous module.
+
+In this hands-on exercise, you will learn how to create a agent using a simple prompt.
+
+Create `Factories` folder inside ChatInfrastructure.
 
 ### Add SystemPromptFactory.cs in ChatInfrastructure\Factories
+
+System prompts provide instructions to the LLM, shaping its responses accordingly. The `SystemPromptFactory` class enables the creation of system prompts for various scenarios.
 
 ```csharp
 
@@ -48,14 +53,14 @@ namespace MultiAgentCopilot.ChatInfrastructure.Factories
     {
         public static string GetAgentName()
         {
-            string name = "BasicAgent";
+            string name = "FrontDeskAgent";
             return name;
         }
 
 
         public static string GetAgentPrompts()
         {
-            string prompt = "Greet the user and translate the request into French";
+            string prompt = "You are a front desk agent in a bank. Respond to the user queries professionally. Provide professional and helpful responses to user queries.Use your knowledge of banking services and procedures to address user queries accurately.";
             return prompt;
         }
 
@@ -66,6 +71,8 @@ namespace MultiAgentCopilot.ChatInfrastructure.Factories
 ```
 
 ### Add ChatFactory.cs in \ChatInfrastructure\Factories
+
+Agents are autonomous systems that use LLMs to process inputs, make decisions, and generate responses based on predefined goals. They can integrate with external tools, retrieve information, and adapt dynamically to different tasks. The `ChatFactory` class enables the creation of agents for various scenarios. It uses the SystemPromptFactory to define the agent prompts.
 
 ```csharp
 
@@ -126,6 +133,8 @@ using MultiAgentCopilot.ChatInfrastructure.Factories;
 
 ### Update GetResponse in ChatInfrastructure\Services\SemanticKernelService.cs
 
+The `messageHistory` list stores historical messages from the chat session. The `chatHistory` object is used to construct this history and invoke the agent. The `completionMessages` list is used to store the response received from the agent into CosmosDB for next iteration.
+
 ```csharp
 
     public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory,  string tenantId, string userId)
@@ -176,7 +185,7 @@ using MultiAgentCopilot.ChatInfrastructure.Factories;
 
 ```
 
-### Store the message and responses into CosmosDB for easy retrieval of history later
+### Store the user message and responses into CosmosDB for easy retrieval of history later
 
 Add UpsertSessionBatchAsync to ChatInfrastructure\Interfaces\ICosmosDBService.cs
 
@@ -187,6 +196,8 @@ Task UpsertSessionBatchAsync(List<Message> messages, List<DebugLog> debugLogs, S
 ```
 
 Add UpsertSessionBatchAsync to ChatInfrastructure\Services\CosmosDbService.cs
+
+The user message and each response (can be multiple) is stored as a separate document in Cosmos DB, but they all share the same partition key.
 
 ```csharp
 
@@ -237,8 +248,10 @@ Add UpsertSessionBatchAsync to ChatInfrastructure\Services\CosmosDbService.cs
 
 Add AddPromptCompletionMessagesAsync to ChatInfrastructure\Services\ChatService.cs
 
+Update the chat Service to store the chat responses.
+
 ```csharp
- /// <summary>
+    /// <summary>
     /// Add user prompt and AI assistance response to the chat session message list object and insert into the data service as a transaction.
     /// </summary>
     private async Task AddPromptCompletionMessagesAsync(string tenantId, string userId,string sessionId, Message promptMessage, List<Message> completionMessages, List<DebugLog> completionMessageLogs)
@@ -288,19 +301,49 @@ Update GetChatCompletionAsync in ChatInfrastructure\Services\ChatService.cs
 
 With the hands-on exercises complete it is time to test your work.
 
-1. Navigate to src\ChatAPI.
-    - If running on Codespaces:
-       1. Run dotnet dev-certs https --trust to manually accept the certificate warning.
-       2. Run dotnet run.
-    - If running locally on Visual Studio or VS Code:
-       1. Press F5 or select Run.
-2. Copy the launched URL and use it as the API endpoint in the next step.
-3. Follow the [instructions](../..//README.md) to run the Frontend app.
-4. Start a Chat Session in the UI
-5. Send multiple messages.
-6. Expected result each message response is a greeting along with the message you sent translated in French.
-7. Open CosmosDB Chats Data Container, multiple records are stored for a given session Id.
-8. Select ctrl+ C to stop the debugger.
+
+### Running the ChatAPI and Frontend App
+
+#### 1. Start the ChatAPI
+
+##### If running on Codespaces:
+1. Navigate to `src\ChatAPI`.
+2. Run the following command to trust the development certificate:
+   ```sh
+   dotnet dev-certs https --trust
+   ```
+3. Start the application:
+   ```sh
+   dotnet run
+   ```
+4. Copy the URL from the **Ports** tab.
+
+##### If running locally on Visual Studio or VS Code:
+1. Navigate to `src\ChatAPI`.
+2. Press **F5** or select **Run** to start the application.
+3. Copy the URL from the browser window that opens.
+
+#### 2. Run the Frontend App
+- Follow the [README instructions](../../README.md) to start the frontend application.  
+- Use the URL copied in the previous step as the API endpoint.
+
+#### 3. Start a Chat Session
+1. Open the frontend app.
+2. Start a new chat session.
+3. Send the following message:  
+   ```
+   Can a senior citizen open a savings account?
+   ```
+4. Wait for the Agent response.
+5. Send another message:  
+   ```
+   Does the interest rate vary?
+   ```
+6. Expected response: The Agent's response is contextually correct for the  whole chat session.
+
+### 4. Stop the Application
+- Press **Ctrl + C** to stop the debugger.
+
 
 ### Validation Checklist
 
