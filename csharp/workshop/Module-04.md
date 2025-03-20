@@ -27,7 +27,7 @@ In this session you will learn how this all comes together and get insights into
 
 ## Activity 2: Define Agents and Roles
 
-Lets add some banking domain functions that wil be used by the various agents.
+Lets add some more banking domain functions that wil be used by the various agents.
 
 Update IBankDataService at BankingAPI\Interface to add more function definitions
 
