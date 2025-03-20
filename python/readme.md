@@ -61,7 +61,7 @@ This is a sample that exposes turn-by-turn conversation with a multi-agent banki
 
 5. Start the agent api server
     ```bash
-    uvicorn src.app.banking_agents_native_api:app --reload --host 0.0.0.0 --port 8000
+    uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 8000
     ```
    View and test out the swagger UI at http://localhost:8000/docs
 
