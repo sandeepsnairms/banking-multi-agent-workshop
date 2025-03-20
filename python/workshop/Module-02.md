@@ -86,8 +86,8 @@ def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coo
         if local_interactive_mode:
             update_chat_container({
                 "id": thread_id,
-                "tenantId": "cli-test",
-                "userId": "cli-test",
+                "tenantId": "T1",
+                "userId": "U1",
                 "sessionId": thread_id,
                 "name": "cli-test",
                 "age": "cli-test",
@@ -122,7 +122,7 @@ Replace it with the following code:
 def call_customer_support_agent(state: MessagesState, config) -> Command[Literal["customer_support_agent", "human"]]:
     thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
     if local_interactive_mode:
-        patch_active_agent(tenantId="cli-test", userId="cli-test", sessionId=thread_id,
+        patch_active_agent(tenantId="T1", userId="U1", sessionId=thread_id,
                            activeAgent="customer_support_agent")
     response = customer_support_agent.invoke(state)
     return Command(update=response, goto="human")
@@ -233,8 +233,7 @@ local_interactive_mode = False
 
 logging.basicConfig(level=logging.ERROR)
 
-PROMPT_DIR = "prompts"
-
+PROMPT_DIR = os.path.join(os.path.dirname(__file__), 'prompts')
 
 def load_prompt(agent_name):
     """Loads the prompt for a given agent from a file."""
@@ -286,8 +285,8 @@ def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coo
         if local_interactive_mode:
             update_chat_container({
                 "id": thread_id,
-                "tenantId": "cli-test",
-                "userId": "cli-test",
+                "tenantId": "T1",
+                "userId": "U1",
                 "sessionId": thread_id,
                 "name": "cli-test",
                 "age": "cli-test",
@@ -311,7 +310,7 @@ def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coo
 def call_customer_support_agent(state: MessagesState, config) -> Command[Literal["customer_support_agent", "human"]]:
     thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
     if local_interactive_mode:
-        patch_active_agent(tenantId="cli-test", userId="cli-test", sessionId=thread_id,
+        patch_active_agent(tenantId="T1", userId="U1", sessionId=thread_id,
                            activeAgent="customer_support_agent")
     response = customer_support_agent.invoke(state)
     return Command(update=response, goto="human")
@@ -339,7 +338,7 @@ hardcoded_thread_id = "hardcoded-thread-id-01"
 
 
 def interactive_chat():
-    thread_config = {"configurable": {"thread_id": hardcoded_thread_id, "userId": "cli-test", "tenantId": "cli-test"}}
+    thread_config = {"configurable": {"thread_id": hardcoded_thread_id, "userId": "U1", "tenantId": "T1"}}
     global local_interactive_mode
     local_interactive_mode = True
     print("Welcome to the single-agent banking assistant.")

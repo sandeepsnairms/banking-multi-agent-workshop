@@ -11,13 +11,16 @@ from src.app.services.azure_cosmos_db import DATABASE_NAME, checkpoint_container
     patch_active_agent
 from src.app.services.azure_open_ai import model
 from src.app.tools.coordinator import create_agent_transfer
+from src.app.tools.sales import calculate_monthly_payment, create_account, get_offer_information
+from src.app.tools.support import get_branch_location, service_request
+from src.app.tools.transactions import bank_balance, bank_transfer, get_transaction_history
 
 local_interactive_mode = False
 
-logging.basicConfig(level=logging.ERROR)
+logging.basicConfig(level=logging.DEBUG)
 
-PROMPT_DIR = "prompts"
 
+PROMPT_DIR = os.path.join(os.path.dirname(__file__), 'prompts')
 
 def load_prompt(agent_name):
     """Loads the prompt for a given agent from a file."""
@@ -33,6 +36,8 @@ def load_prompt(agent_name):
 
 coordinator_agent_tools = [
     create_agent_transfer(agent_name="customer_support_agent"),
+    create_agent_transfer(agent_name="transactions_agent"),
+    create_agent_transfer(agent_name="sales_agent"),
 ]
 
 coordinator_agent = create_react_agent(
@@ -41,11 +46,38 @@ coordinator_agent = create_react_agent(
     state_modifier=load_prompt("coordinator_agent"),
 )
 
-customer_support_agent_tools = []
+customer_support_agent_tools = [
+    get_branch_location,
+    service_request,
+
+]
 customer_support_agent = create_react_agent(
     model,
     customer_support_agent_tools,
     state_modifier=load_prompt("customer_support_agent"),
+)
+
+transactions_agent_tools = [
+    bank_balance,
+    bank_transfer,
+    get_transaction_history,
+]
+transactions_agent = create_react_agent(
+    model,
+    transactions_agent_tools,
+    state_modifier=load_prompt("transactions_agent"),
+)
+
+sales_agent_tools = [
+    calculate_monthly_payment,
+    create_account,
+    get_offer_information,
+]
+
+sales_agent = create_react_agent(
+    model,
+    sales_agent_tools,
+    state_modifier=load_prompt("sales_agent"),
 )
 
 
@@ -69,8 +101,8 @@ def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coo
         if local_interactive_mode:
             update_chat_container({
                 "id": thread_id,
-                "tenantId": "cli-test",
-                "userId": "cli-test",
+                "tenantId": "T1",
+                "userId": "U1",
                 "sessionId": thread_id,
                 "name": "cli-test",
                 "age": "cli-test",
@@ -94,9 +126,27 @@ def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coo
 def call_customer_support_agent(state: MessagesState, config) -> Command[Literal["customer_support_agent", "human"]]:
     thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
     if local_interactive_mode:
-        patch_active_agent(tenantId="cli-test", userId="cli-test", sessionId=thread_id,
+        patch_active_agent(tenantId="T1", userId="U1", sessionId=thread_id,
                            activeAgent="customer_support_agent")
     response = customer_support_agent.invoke(state)
+    return Command(update=response, goto="human")
+
+
+def call_sales_agent(state: MessagesState, config) -> Command[Literal["sales_agent", "human"]]:
+    thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
+    if local_interactive_mode:
+        patch_active_agent(tenantId="T1", userId="U1", sessionId=thread_id,
+                           activeAgent="sales_agent")
+    response = sales_agent.invoke(state, config)  # Invoke sales agent with state
+    return Command(update=response, goto="human")
+
+
+def call_transactions_agent(state: MessagesState, config) -> Command[Literal["transactions_agent", "human"]]:
+    thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
+    if local_interactive_mode:
+        patch_active_agent(tenantId="T1", userId="U1", sessionId=thread_id,
+                           activeAgent="transactions_agent")
+    response = transactions_agent.invoke(state)
     return Command(update=response, goto="human")
 
 
@@ -111,6 +161,8 @@ def human_node(state: MessagesState, config) -> None:
 builder = StateGraph(MessagesState)
 builder.add_node("coordinator_agent", call_coordinator_agent)
 builder.add_node("customer_support_agent", call_customer_support_agent)
+builder.add_node("transactions_agent", call_transactions_agent)
+builder.add_node("sales_agent", call_sales_agent)
 builder.add_node("human", human_node)
 
 builder.add_edge(START, "coordinator_agent")
@@ -118,11 +170,11 @@ builder.add_edge(START, "coordinator_agent")
 checkpointer = CosmosDBSaver(database_name=DATABASE_NAME, container_name=checkpoint_container)
 graph = builder.compile(checkpointer=checkpointer)
 
-hardcoded_thread_id = "hardcoded-thread-id-01"
+hardcoded_thread_id = "hardcoded-thread-id-04"
 
 
 def interactive_chat():
-    thread_config = {"configurable": {"thread_id": hardcoded_thread_id, "userId": "cli-test", "tenantId": "cli-test"}}
+    thread_config = {"configurable": {"thread_id": hardcoded_thread_id, "userId": "U1", "tenantId": "T1"}}
     global local_interactive_mode
     local_interactive_mode = True
     print("Welcome to the single-agent banking assistant.")

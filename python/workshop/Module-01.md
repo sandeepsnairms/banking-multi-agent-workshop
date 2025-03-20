@@ -122,7 +122,7 @@ In this hands-on exercise, you will create a simple customer service agent that 
 
 We've created a coordinator agent that can route requests to different agents. Now, let's create a simple customer service agent that can respond to user queries.
 
-We'll cover `tools` in more detail in the next module, but we'll need to add our first tool right here so that our coordinator agent can route requests to the customer service agent.
+We'll cover `tools` in more detail in the next module, but we'll need to add our first tool (or rather a function that dynamically creates a tool) right here so that our coordinator agent can route requests to the customer service agent.
 
 Copy the following code into the `coordinator.py` file in the `src/app/tools` folder of your project.
 
@@ -217,8 +217,6 @@ Now, lets add a prompt for the customer support agent. Locate the empty `custome
 
 ```
 You are a customer support agent that can give general advice on banking products and branch locations
-If the user wants to open a new account or take our a bank loan, say that you will transfer to 'sales_agent' when its built.
-If the user wants to check their account balance, make a bank transfer, or get transaction history, say that you will transfer to 'transactions_agent' when built.
 If the user wants to make a complaint or speak to someone, ask for the user's phone number and email address,
 and say you will get someone to call them back.
 You MUST include human-readable response.
@@ -291,7 +289,7 @@ if __name__ == "__main__":
 Try it out! Run the following command in your terminal:
 
 ```bash
-python src/app/banking_agents.py
+ python -m src.app.banking_agents
 ```
 
 You should see the following output like below:
@@ -368,8 +366,7 @@ local_interactive_mode = False
 
 logging.basicConfig(level=logging.ERROR)
 
-PROMPT_DIR = "prompts"
-
+PROMPT_DIR = os.path.join(os.path.dirname(__file__), 'prompts')
 
 def load_prompt(agent_name):
     """Loads the prompt for a given agent from a file."""
@@ -429,7 +426,7 @@ graph = builder.compile(checkpointer=checkpointer)
 
 
 def interactive_chat():
-    thread_config = {"configurable": {"thread_id": str(uuid.uuid4()), "userId": "cli-test", "tenantId": "cli-test"}}
+    thread_config = {"configurable": {"thread_id": str(uuid.uuid4()), "userId": "U1", "tenantId": "T1"}}
     global local_interactive_mode
     local_interactive_mode = True
     print("Welcome to the single-agent banking assistant.")
@@ -524,8 +521,6 @@ Your `src/app/prompts/customer_support_agent.prompty` file should look like this
 
 ```
 You are a customer support agent that can give general advice on banking products and branch locations
-If the user wants to open a new account or take our a bank loan, say that you will transfer to 'sales_agent' when its built.
-If the user wants to check their account balance, make a bank transfer, or get transaction history, say that you will transfer to 'transactions_agent' when built.
 If the user wants to make a complaint or speak to someone, ask for the user's phone number and email address,
 and say you will get someone to call them back.
 You MUST include human-readable response.
