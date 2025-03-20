@@ -157,8 +157,8 @@ When you deploy this solution it automatically injects endpoints and configurati
 3. Copy the URL from the browser window that opens.
 
 #### 2. Run the Frontend App
-Follow the [README instructions](../../README.md) to start the frontend application.  
-Use the URL copied in the previous step as the API endpoint.
+- Follow the [README instructions](../../README.md) to start the frontend application.  
+- Use the URL copied in the previous step as the API endpoint.
 
 #### 3. Start a Chat Session
 1. Open the frontend app.
@@ -170,7 +170,7 @@ Use the URL copied in the previous step as the API endpoint.
 4. Expected response: The message is echoed back to you.
 
 #### 4. Stop the Application
-Press **Ctrl + C** to stop the debugger.
+- Press **Ctrl + C** to stop the debugger.
 
 
 
