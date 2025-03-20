@@ -34,7 +34,7 @@ export class MainContentComponent implements OnInit, AfterViewChecked {
   sessionId!: string;
   imagePath: string = '';
   conversationContext : string = ''; 
-  summarisedName = "New Chat";
+  summarisedName = "";
   currentSession : Session = {} as Session;
   constructor(
     private chatOptionsService: ChatOptionsService,
@@ -100,7 +100,7 @@ export class MainContentComponent implements OnInit, AfterViewChecked {
     this.userInput = "";
     this.errorMessage = "";
 
-    if (this.conversationHistory.length > 2 && !this.summmaryDone) {
+    if (this.conversationHistory.length > 4 && !this.summmaryDone) {
       for (const entry of this.conversationHistory) {
            this.conversationContext += `User: ${entry.prompt}\nAI: ${entry.completion}\n\n`;
         
@@ -113,6 +113,7 @@ export class MainContentComponent implements OnInit, AfterViewChecked {
             if (data) {
                 this.currentSession = data.filter((t: Session) => t.sessionId === this.sessionId)[0];
                 data =  data.filter((t: Session) => t.sessionId === this.sessionId)[0].name = response;
+                console.log( "###sessionData after update", data);
             }
           } );
           

@@ -18,7 +18,7 @@ export class ChatOptionsComponent {
   loggedInUser: string;
   Subject = Subject;
   currentSession!: Session;
-  sessionHistory: Session[] = [];
+
   constructor(
     private chatOptionsService: ChatOptionsService,
     private sessionService: SessionService,
@@ -50,22 +50,9 @@ export class ChatOptionsComponent {
     this.loadingService.show();
     this.sessionService.createChatSession(this.dataService.loggedInTenant,this.dataService.loggedInUser, ).subscribe((response: any) => {
       this.currentSession = response;
-       this.getSessions() ;
       this.toastService.showMessage('Session created successfully!', 'success');
       this.router.navigate(['/chat', this.currentSession.sessionId]);
       this.loadingService.hide();
-    });
-  }
-
-  
-  getSessions() {
-    this.loadingService.show();
-    this.sessionService.getChatSessions(this.dataService.loggedInTenant, this.dataService.loggedInUser).subscribe((response: any) => {
-      this.sessionHistory = response;
-      const updatedSessionList = [...this.sessionHistory];  // Assuming you have the latest array of sessions
-      this.dataService.updateSession(updatedSessionList);
-      this.loadingService.hide();
-
     });
   }
 
