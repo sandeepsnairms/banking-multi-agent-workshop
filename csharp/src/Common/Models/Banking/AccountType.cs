@@ -8,8 +8,8 @@ namespace MultiAgentCopilot.Common.Models.Banking
 {
     public enum AccountType
     {
-        Savings,
-        CreditCard,
-        Locker
+        Savings=0,
+        CreditCard=1,
+        Locker=2
     }
 }

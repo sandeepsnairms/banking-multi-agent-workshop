@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace MultiAgentCopilot.Common.Models.Banking
@@ -15,6 +16,7 @@ namespace MultiAgentCopilot.Common.Models.Banking
         public DateTime RequestedOn { get; set; }
         public DateTime ScheduledDateTime { get; set; }
         public string AccountId { get; set; }
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public ServiceRequestType SRType { get; set; }
         public string? RecipientEmail { get; set; }
         public string? RecipientPhone { get; set; }
