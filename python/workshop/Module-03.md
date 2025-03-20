@@ -17,9 +17,9 @@ In this Module you'll learn how to implement agent specialization by creating Se
 ## Module Exercises
 
 1. [Activity 1: Understanding Agent Specialization and Integration](#activity-1-session-on-agent-specialization-and-integration)
-3. [Activity 2: Creating Multiple Agents](#activity-3-creating-multiple-agents)  
-4. [Activity 3: Adding Agent Tools](#activity-4-integrating-bank-domain-functions-as-plugins)
-8. [Activity 3: Semantic Search](#activity-8-semantic-search)
+2. [Activity 2: Creating Multiple Agents](#activity-2-creating-multiple-agents)
+3. [Activity 3: Adding Agent Tools](#activity-3-adding-agent-tools)
+4. [Activity 4: Semantic Search](#activity-4-semantic-search)
 
 
 ## Activity 1: Session on Agent Specialization and Integration
@@ -30,7 +30,7 @@ In this session we will dive into how to create Semantic Kernel Agent Framework 
 
 In this hands-on exercise, you will learn how to create multiple agents that specialize in different tasks. You will learn how to define the roles and responsibilities of each agent and how to define the communication protocols between them.
 
-In the earlier modules, you created a single customer service agent that specialized in a single set of task, and a coordinator agent that was responsible for transferring responsibility to that agent. In this module, you will broaden the scope of that agent, and create more agents that handle different tasks. You will define the roles and responsibilities of each agent and define the communication protocols between them.
+In the earlier modules, you created a single customer service agent that specialized in a single set of tasks, and a coordinator agent that was responsible for transferring responsibility to that agent. In this module, you will broaden the scope of that agent, and create more agents that handle different tasks. You will define the roles and responsibilities of each agent and define the communication protocols between them.
 
 First, lets add a new transactions agent and sales agent. Locate your `banking_agents.py` file and below the `customer_support_agent` definition, add the following code:
 
@@ -493,7 +493,7 @@ customer_support_agent_tools = [
 ]
 ```
 
-Update the `transactions_agent_tools = []` list as follows:
+Update the empty `transactions_agent_tools = []` list as follows:
 
 ```python
 transactions_agent_tools = [
@@ -601,7 +601,7 @@ Lets run the application and test the new functionality. Run the following comma
 python src/app/banking_agents.py
 ```
 
-Trying transferring money between accounts:
+Try transferring money between accounts:
 
 ```shell
 Welcome to the single-agent banking assistant.
@@ -622,7 +622,7 @@ You: yes
 
 When completed, check AccountsData container in Azure Cosmos DB to see if the transaction was successful.
 
-To start again, trying changing the hardcoded thread id (or delete the chat entry in the Chat container in Cosmos DB), and restart the program. Try asking about banking offers to invoke a vector search:
+To start again, try changing the hardcoded thread id (or delete the chat entry in the Chat container in Cosmos DB), and restart the program. Try asking about banking offers to invoke a vector search:
 
 ```shell
 Welcome to the single-agent banking assistant.
@@ -660,7 +660,7 @@ You: Savings
 ### Module Solution
 
 <details>
-  <summary>If you are encounting errors or issues with your code for this module, please refer to the following code.</summary>
+  <summary>If you are encountering errors or issues with your code for this module, please refer to the following code.</summary>
 
 <br>
 

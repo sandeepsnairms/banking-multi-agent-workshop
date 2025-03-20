@@ -209,7 +209,7 @@ Your implementation is successful if:
 ### Module Solution
 
 <details>
-  <summary>If you are encounting errors or issues with your code for this module, please refer to the following code.</summary>
+  <summary>If you are encountering errors or issues with your code for this module, please refer to the following code.</summary>
 
 <br>
 
