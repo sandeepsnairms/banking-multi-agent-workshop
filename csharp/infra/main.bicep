@@ -226,3 +226,7 @@ module FrontendApp './app/FrontendApp.bicep' = {
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = registry.outputs.loginServer
 output SERVICE_ChatAPI_ENDPOINT_URL string = ChatAPI.outputs.uri
 output FRONTENDPOINT_URL string = FrontendApp.outputs.uri
+
+output AZURE_COSMOSDB_ENDPOINT string = cosmos.outputs.endpoint
+output AZURE_OPENAI_ENDPOINT string = openAi.outputs.endpoint
+output APP_INSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString

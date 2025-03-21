@@ -40,7 +40,7 @@ Complete the following tasks in order to prepare your environment for this works
 
   #### Checking Azure OpenAI quota limits
 
-  For this sample to deploy successfully, there needs to be enough Azure OpenAI quota for the models used by this sample within your subscription. This sample deploys a new Azure OpenAI account with two models, **gpt-4o-mini with 10K tokens** per minute and **text-3-large with 5k tokens** per minute. For more information on how to check your model quota and change it, see [Manage Azure OpenAI Service Quota](https://learn.microsoft.com/azure/ai-services/openai/how-to/quota)
+  For this sample to deploy successfully, there needs to be enough Azure OpenAI quota for the models used by this sample within your subscription. This sample deploys a new Azure OpenAI account with two models, **gpt-4o-mini with 10K tokens** per minute and **text-3-embedding-small with 5k tokens** per minute. For more information on how to check your model quota and change it, see [Manage Azure OpenAI Service Quota](https://learn.microsoft.com/azure/ai-services/openai/how-to/quota)
 
   #### Azure Subscription Permission Requirements
 
@@ -110,7 +110,7 @@ You can run this sample app and workshop virtually by using GitHub Codespaces. T
    azd up
    ```
 
-This step will take approximately 10-15 minutes. If you encounter an error during step, first rerun `azd up`. This tends to correct most errors.
+This step will take approximately 10-15 minutes.
 
 > [!IMPORTANT]
 > If you encounter any errors during the deployment, rerun `azd up` to continue the deployment from where it left off. This will not create duplicate resources, and tends to resolve most issues.
@@ -125,13 +125,14 @@ While the Azure Services are deploying we will have a presentation to cover on t
 
 ### Setting up local debugging
 
-When you deploy this solution it automatically injects endpoints and configuration values into the secrets.json file used by .NET applications and exports these to environment variables for Python.
+When you deploy this solution it automatically injects endpoints and configuration values into the .env file stored in the .azure directory in a folder with the name of your resource group. Open the .env file.
 
 
 ### Update src\ChatAPI\appsettings.json
 
-1. Update "CosmosUri": "https://[accountname].documents.azure.com:443/" by replacing account name with the Cosmos DB Account deployed via azd.
-2. Update "Endpoint": "https://[accountname].openai.azure.com/" by replacing account name with the Azure Open AI Account deployed via azd.
+1. Update `"CosmosDBSettings:CosmosUri": "https://[accountname].documents.azure.com:443/"` with the AZURE_COSMOSDB_ENDPOINT value from the .env file.
+1. Update `"SemanticKernelServiceSettings:AzureOpenAISettings:Endpoint": "https://[accountname].openai.azure.com/"` with the AZURE_OPENAI_ENDPOINT value from the .env file.
+1. Update `"ApplicationInsights:ConnectionString": "[connectionstring]"` with the APP_INSIGHTS_CONNECTION_STRING value from the .env file.
 
 ## Activity 5: Compile and Run
 
@@ -157,8 +158,25 @@ When you deploy this solution it automatically injects endpoints and configurati
 3. Copy the URL from the browser window that opens.
 
 #### 2. Run the Frontend App
-- Follow the [README instructions](../../README.md) to start the frontend application.  
-- Use the URL copied in the previous step as the API endpoint.
+
+1. In your IDE, navigate to and open `frontend/src/environments/environment.ts`
+
+1. Edit the file to this.
+
+    ```javascript
+    export const environment = {
+        production: false,
+        apiUrl: 'https://localhost:63279/'
+      };
+    ```
+1. Save and close the file.
+1. Open a new terminal. Navigate to the `frontend` folder.
+1. Copy and run the following:
+    ```sh
+    npm i
+    ng serve
+    ```
+1. Open your browser and navigate to http://localhost:4200/.
 
 #### 3. Start a Chat Session
 1. Open the frontend app.
@@ -167,7 +185,7 @@ When you deploy this solution it automatically injects endpoints and configurati
    ```
    Hello, how are you?
    ```
-4. Expected response: The message is echoed back to you.
+4. Expected response: **## Replay user message ## Hello how are you?**
 
 #### 4. Stop the Application
 - Press **Ctrl + C** to stop the debugger.
@@ -191,9 +209,9 @@ Use the steps below to validate that the solution was deployed successfully.
 1. Azure OpenAI deployment issues:
   - Ensure your subscription has access to Azure OpenAI
   - Check regional availability
-1. Python environment issues:
-  - Ensure correct Python version
-  - Verify all dependencies are installed
+1. Frontend issues:
+  - If frontend doesn't fully start, navigate to `/frontend/src/environments/environment.ts` and update `apiUrl: 'https://localhost:63279/'`
+  - Rrontend will restart
 
 
 ## Success Criteria
@@ -215,11 +233,3 @@ Proceed to [Creating Your First Agent](./Module-01.md)
 - [LangGraph](https://langchain-ai.github.io/langgraph/concepts/)
 - [Azure OpenAI Service documentation](https://learn.microsoft.com/azure/cognitive-services/openai/)
 - [Azure Cosmos DB Vector Database](https://learn.microsoft.com/azure/cosmos-db/vector-database)
-
-
-<details>
-  <summary>If you prefer to run this locally on your machine, open this section and install these additional tools.</summary>
-
-<br>
-
-</details>

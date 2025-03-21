@@ -47,7 +47,7 @@ View the Exercises for the [Semantic Kernel Csharp Workshop](./csharp/workshop/E
 
   #### Checking Azure OpenAI quota limits
 
-  For this sample to deploy successfully, there needs to be enough Azure OpenAI quota for the models used by this sample within your subscription. This sample deploys a new Azure OpenAI account with two models, **gpt-4o with 10K tokens** per minute and **text-3-large with 5k tokens** per minute. For more information on how to check your model quota and change it, see [Manage Azure OpenAI Service Quota](https://learn.microsoft.com/azure/ai-services/openai/how-to/quota)
+  For this sample to deploy successfully, there needs to be enough Azure OpenAI quota for the models used by this sample within your subscription. This sample deploys a new Azure OpenAI account with two models, **gpt-4o with 10K tokens** per minute and **text-3-embedding-small with 5k tokens** per minute. For more information on how to check your model quota and change it, see [Manage Azure OpenAI Service Quota](https://learn.microsoft.com/azure/ai-services/openai/how-to/quota)
 
   #### Azure Subscription Permission Requirements
 
@@ -137,7 +137,7 @@ Locate the secrets.json file and open with a text editor.
 
 ### Region Availability
 
-This template uses gpt-4o and text-embedding-3-large models which may not be available in all Azure regions. Check for [up-to-date region availability](https://learn.microsoft.com/azure/ai-services/openai/concepts/models#standard-deployment-model-availability) and select a region during deployment accordingly
+This template uses gpt-4o and text-embedding-3-small models which may not be available in all Azure regions. Check for [up-to-date region availability](https://learn.microsoft.com/azure/ai-services/openai/concepts/models#standard-deployment-model-availability) and select a region during deployment accordingly
   * We recommend using `eastus2', 'eastus', 'japaneast', 'uksouth', 'northeurope', or 'westus3'
 
 ### Costs
@@ -146,11 +146,12 @@ You can estimate the cost of this project's architecture with [Azure's pricing c
 
 As an example in US dollars, here's how the sample is currently built:
 
-Average Daily Cost:
-* Azure Cosmos DB Serverless ($0.25 USD per 1M RU/s): $0.25
-* Azure App Service (B3 Plan): $1.20
-* Azure OpenAI (GPT-4o 1M input/output tokens): $20 (Sample uses 10K tokens)
-* Azure OpenAI (text-3-large): < $0.01 (Sample uses 5K tokens)
+Average Daily Cost is $1.50
+* Azure Cosmos DB Serverless ($0.25 USD per 1M RU/s): <$0.01
+* Azure Container Apps Service - 2 containers (1 CPU, 2 Gi memory): $0.54
+* Azure Container Registry Service (Standard Plan): $0.52
+* Azure OpenAI (GPT-4o): $0.10 (Sample uses 10K tokens)
+* Azure OpenAI (text-3-embedding-small): < $0.01 (Sample uses 5K tokens)
 
 ## Resources
 
