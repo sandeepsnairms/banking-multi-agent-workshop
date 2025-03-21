@@ -180,12 +180,15 @@ When you deploy this solution it automatically injects endpoints and configurati
 
 #### 3. Start a Chat Session
 1. Open the frontend app.
-2. Start a new chat session.
-3. Send the message:  
+1. Start a new chat session.
+1. Send the message:  
    ```
    Hello, how are you?
    ```
-4. Expected response: **## Replay user message ## Hello how are you?**
+1. You should see something like the output below.
+
+    ![Test output](./media/module-00/test-output.png)
+
 
 #### 4. Stop the Application
 - Press **Ctrl + C** to stop the debugger.
@@ -204,14 +207,26 @@ Use the steps below to validate that the solution was deployed successfully.
 ### Common Issues and Troubleshooting
 
 1. Errors during azd deployment:
-  - Service principal "not found" error.
-  - Rerun `azd up`
+    - Service principal "not found" error.
+    - Rerun `azd up`
 1. Azure OpenAI deployment issues:
-  - Ensure your subscription has access to Azure OpenAI
-  - Check regional availability
+    - Ensure your subscription has access to Azure OpenAI
+    - Check regional availability
 1. Frontend issues:
-  - If frontend doesn't fully start, navigate to `/frontend/src/environments/environment.ts` and update `apiUrl: 'https://localhost:63279/'`
-  - Rrontend will restart
+    - If frontend doesn't fully start, navigate to `/frontend/src/environments/environment.ts` and update `apiUrl: 'https://localhost:63279/'`
+    - Rrontend will restart
+1. Connecting to backend running CodeSpaces
+    - If you cannot get the front end to connect to the backend service when running in Codespaces try the following
+      - Navigate to the /src/ChatAPI folder in the Terminal
+      - Run the following command to trust the development certificate:
+        ```sh
+        dotnet dev-certs https --trust
+        ```
+      - Then start the application:
+        ```sh
+        dotnet run
+        ```
+    - Copy the URL from the **Ports** tab and use this for the environments.ts file
 
 
 ## Success Criteria
