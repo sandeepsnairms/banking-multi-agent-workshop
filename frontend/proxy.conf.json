@@ -1,0 +1,14 @@
+{
+    "/api": {
+      "target": "https://ca-webapi-ydh26xiu5zn72.agreeablebeach-b72b6a6e.eastus.azurecontainerapps.io/",
+      "secure": false,
+      "changeOrigin": true,
+      "logLevel": "debug",
+      "headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization"
+      }
+    }
+  }
+  
