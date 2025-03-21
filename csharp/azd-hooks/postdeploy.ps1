@@ -46,3 +46,5 @@ if ($dummyDataResponse -match "^(yes|y)$") {
 }
 
 Start-Sleep -Milliseconds 2000  # Sleeps for 2 seconds
+
+

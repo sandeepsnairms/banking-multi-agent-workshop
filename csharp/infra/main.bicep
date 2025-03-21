@@ -41,7 +41,7 @@ module monitoring './shared/monitoring.bicep' = {
 module cosmos './shared/cosmosdb.bicep' = {
   name: 'cosmos'
   params: {    
-    databaseName: 'MultAgentBanking'
+    databaseName: 'MultiAgentBanking'
 	chatsContainerName: 'ChatsData'
 	accountsContainerName: 'AccountsData'
 	offersContainerName:'OffersData'
@@ -174,7 +174,7 @@ module ChatAPI './app/ChatAPI.bicep' = {
       }
 	  {
         name: 'CosmosDBSettings__Database'
-        value: 'MultAgentBanking'
+        value: 'MultiAgentBanking'
       }
 	  {
         name: 'CosmosDBSettings__ChatDataContainer'
@@ -184,30 +184,14 @@ module ChatAPI './app/ChatAPI.bicep' = {
         name: 'CosmosDBSettings__UserDataContainer'
         value: 'Users'
       }
-      {
-        name: 'BankingCosmosDBSettings__CosmosUri'
-        value: cosmos.outputs.endpoint
-      }	
-      {
-        name: 'BankingCosmosDBSettings__Database'
-        value: 'MultAgentBanking'
-      }
 	  {
-        name: 'BankingCosmosDBSettings__AccountsContainer'
+        name: 'CosmosDBSettings__RequestDataContainer'
         value: 'AccountsData'
       }
 	  {
-        name: 'BankingCosmosDBSettings__UserDataContainer'
-        value: 'Users'
-      }
-	  {
-        name: 'BankingCosmosDBSettings__RequestDataContainer'
+        name: 'CosmosDBSettings__AccountsContainer'
         value: 'AccountsData'
-      }
-	  {
-        name: 'BankingCosmosDBSettings__OfferDataContainer'
-        value: 'OffersData'
-      }
+      }      
       {
         name: 'ApplicationInsightsConnectionString'
         value: monitoring.outputs.applicationInsightsConnectionString
