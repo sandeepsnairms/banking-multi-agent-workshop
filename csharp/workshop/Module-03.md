@@ -186,6 +186,13 @@ Add ServiceRequest.cs for ServiceRequest class
 
 ```csharp
 
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Text.Json.Serialization;
+using System.Threading.Tasks;
+
 namespace MultiAgentCopilot.Common.Models.Banking
 {
     public class ServiceRequest
@@ -197,6 +204,7 @@ namespace MultiAgentCopilot.Common.Models.Banking
         public DateTime RequestedOn { get; set; }
         public DateTime ScheduledDateTime { get; set; }
         public string AccountId { get; set; }
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public ServiceRequestType SRType { get; set; }
         public string? RecipientEmail { get; set; }
         public string? RecipientPhone { get; set; }
@@ -223,8 +231,45 @@ namespace MultiAgentCopilot.Common.Models.Banking
             IsComplete = false;
             FulfilmentDetails = fulfilmentDetails ?? new Dictionary<string, string>();
         }
+
+        [JsonConstructor]
+        public ServiceRequest(
+        string id,
+        string tenantId,
+        string userId,
+        string type,
+        DateTime requestedOn,
+        DateTime scheduledDateTime,
+        string accountId,
+        ServiceRequestType srType,
+        string? recipientEmail,
+        string? recipientPhone,
+        decimal? debitAmount,
+        bool isComplete,
+        List<string> requestAnnotations,
+        Dictionary<string, string> fulfilmentDetails)
+        {
+            Id = id;
+            TenantId = tenantId;
+            UserId = userId;
+            Type = type;
+            RequestedOn = requestedOn;
+            ScheduledDateTime = scheduledDateTime;
+            AccountId = accountId;
+            SRType = srType;
+            RecipientEmail = recipientEmail;
+            RecipientPhone = recipientPhone;
+            DebitAmount = debitAmount;
+            IsComplete = isComplete;
+            RequestAnnotations = requestAnnotations ?? new List<string>();
+            FulfilmentDetails = fulfilmentDetails ?? new Dictionary<string, string>();
+        }
     }
 }
+
+
+
+
 
 ```
 

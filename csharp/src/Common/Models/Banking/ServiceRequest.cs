@@ -43,6 +43,39 @@ namespace MultiAgentCopilot.Common.Models.Banking
             IsComplete = false;
             FulfilmentDetails = fulfilmentDetails ?? new Dictionary<string, string>();
         }
+
+        [JsonConstructor]
+        public ServiceRequest(
+        string id,
+        string tenantId,
+        string userId,
+        string type,
+        DateTime requestedOn,
+        DateTime scheduledDateTime,
+        string accountId,
+        ServiceRequestType srType,
+        string? recipientEmail,
+        string? recipientPhone,
+        decimal? debitAmount,
+        bool isComplete,
+        List<string> requestAnnotations,
+        Dictionary<string, string> fulfilmentDetails)
+        {
+            Id = id;
+            TenantId = tenantId;
+            UserId = userId;
+            Type = type;
+            RequestedOn = requestedOn;
+            ScheduledDateTime = scheduledDateTime;
+            AccountId = accountId;
+            SRType = srType;
+            RecipientEmail = recipientEmail;
+            RecipientPhone = recipientPhone;
+            DebitAmount = debitAmount;
+            IsComplete = isComplete;
+            RequestAnnotations = requestAnnotations ?? new List<string>();
+            FulfilmentDetails = fulfilmentDetails ?? new Dictionary<string, string>();
+        }
     }
 }
 
