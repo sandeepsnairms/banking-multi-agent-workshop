@@ -58,7 +58,7 @@ Complete the following tasks in order to prepare your environment for this works
 1. To run the workshop locally on your machine, install the following prerequisites:
 
     - Common pre-requisites:
-      - [Docker Desktop](https://docs.docker.com/desktop/)
+      - [Docker Desktop](https://docs.docker.com/desktop/) Note: ensure docker is running.
       - [Git](https://git-scm.com/downloads)
       - [Azure Developer CLI (azd)](https://aka.ms/install-azd)
   
@@ -70,6 +70,9 @@ Complete the following tasks in order to prepare your environment for this works
     - Semantic Kernel Agent Sample
       - [.NET 9](https://dotnet.microsoft.com/downloads/)
       - [Visual Studio](https://visualstudio.microsoft.com/downloads/) or [VS Code](https://code.visualstudio.com/Download) with [C# Dev Kit](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csdevkit)
+    - Frontend
+      - [Node.js](https://nodejs.org/en/download/)
+      - [Angular CLI](https://angular.io/guide/setup-local)
   
 1. Open a terminal session and navigate to the folder you want to copy the source code to.
 
@@ -96,7 +99,7 @@ You can run this sample app and workshop virtually by using GitHub Codespaces. T
 
 1. From the terminal, navigate to the `python` folder.
 
-1. Navigate to the /infra folder.
+1. Ensure you are in the /python folder.
 
 1. Log in to Azure using AZD.
 
@@ -112,7 +115,25 @@ You can run this sample app and workshop virtually by using GitHub Codespaces. T
 
 This step will take approximately 10-15 minutes. If you encounter an error during step, first rerun `azd up`. This tends to correct most errors. 
 
-There will be an option at the end to pre-load some data into the Cosmos DB database. This is optional and can be skipped, but we recommend loading the data to have a more complete experience.
+When the resources are finally deployed, you will see a message in the terminal like below:
+
+```bash
+Deploying services (azd deploy)
+
+  (✓) Done: Deploying service ChatServiceWebApi
+  - Endpoint: https://ca-webapi-6xbkqp3ybtbuw.whitemoss-86b36485.eastus2.azurecontainerapps.io/
+
+  (✓) Done: Deploying service FrontendApp
+  - Endpoint: https://ca-frontend-6xbkqp3ybtbuw.whitemoss-86b36485.eastus2.azurecontainerapps.io/
+
+Do you want to add some dummy data for testing? (yes/no): y
+```
+
+Adding dummy data is optional and can be skipped, but we recommend loading the data to have a more complete experience.
+
+You can click on the FrontendApp endpoint to see the deployed application, but if you try chatting to it, you will see that it is not yet implemented. This is because we have not yet built the agents that will be served by the API layer.
+
+
 
 > [!IMPORTANT]
 > If you encounter any errors during the deployment, rerun `azd up` to continue the deployment from where it left off. This will not create duplicate resources, and tends to resolve most issues.
@@ -127,7 +148,7 @@ While the Azure Services are deploying we will have a presentation to cover on t
 
 ### Setting up local debugging
 
-When you deploy this solution it automatically injects endpoints and configuration values for the required resources into a .env file at root (python) folder.
+When you deploy this solution it automatically injects endpoints and configuration values for the required resources into a `.env` file at root (python) folder.
 
 But you will still need to install dependencies to run the solution locally.
 
@@ -137,6 +158,12 @@ But you will still need to install dependencies to run the solution locally.
     ```shell
     python -m venv .venv
     source .venv/bin/activate
+    ```
+   
+    For Windows:
+
+    ```shell
+    . .\.venv\Scripts\Activate.ps1
     ```
 3. Install the required dependencies for the project.
 
@@ -148,7 +175,7 @@ But you will still need to install dependencies to run the solution locally.
 ## Activity 5: Compile and Run
 
 ### Running the solution
-
+ 
 1. Navigate to the python folder of the project.
 2. Start the fastapi server.
 
@@ -158,11 +185,24 @@ But you will still need to install dependencies to run the solution locally.
    
 The API will be available at `http://localhost:8000/docs`. This has been pre-built with boilerplate code that will create chat sessions and store the chat history in Cosmos DB. 
 
+To run the frontend
+- Navigate to the `frontend` folder
+- update the `apiUrl` values in `src/environments/environment.ts` file with the API endpoint (http://localhost:8000/)
+- In a separate terminal window from the one running FastAPI server, Run the following command (make sure you have Node.js and Angular CLI installed - see the prerequisites section above):
+
+```shell
+npm i
+ng serve
+```
+
+You can now navigate to `http://localhost:4200` to see the frontend application.
+
 Lets try a couple of things:
  
-- Try out the API by creating a chat session and sending messages using the `/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/completion` via the docs page. This should return a response saying this has not been implemented yet.
+- Try out the API by creating a chat session in the front end. This should return a response saying "Hello, I am not yet implemented".
 - Navigate to the Cosmos DB account in the Azure portal to view the containers. You should see an entry in the `Chat` container. If you selected "yes" to the option during `azd up`, there will also be some transactional data in the `OffersData`, `AccountsData`, and `Users` containers as well.
 - Take a look at the files in the `src/app/services` folder - these are the boilerplate code for interacting with the Cosmos DB and Azure OpenAI services.
+- You will also see an empty file `src/app/banking_agents.py` as well as empty files in the `src/app/tools` and `src/app/prompts` folder. This is where you will build your multi-agent system! 
 
 Next, we will start building the agents that will be served by the API layer and interact with Cosmos DB and Azure OpenAI using LangGraph!
 
@@ -179,13 +219,25 @@ Use the steps below to validate that the solution was deployed successfully.
 
 1. Errors during azd deployment:
   - Service principal "not found" error.
-  - Rerun `azd up`
+    - Rerun `azd up`
+  - If you are running on Windows with Powershell, you may get: 
+    - `"error executing step command 'deploy --all': getting target resource: resource not found: unable to find a resource tagged with 'azd-service-name: ChatServiceWebApi'"`
+    - This is likely because you have used Az CLI before, and have an old default resource group name cached that is different from the one specified during `azd up`.
+    - To resolve this:
+      - Delete `.azure` in the root folder and `.azd` folders in your home directory (`C:\Users\<user name>`).
+      - Start again, but first set resource group explicitly. Replace <environment name> in the below with the name you intend to set for your environment: 
+        - `azd env set AZURE_RESOURCE_GROUP rg-<environment name>`
+        - Then enter <environment name> when prompted:
+          -  `Enter a new environment name: <environment name>`
+        - Run `azd auth login` again
+        - Then run `azd up` again.
 1. Azure OpenAI deployment issues:
   - Ensure your subscription has access to Azure OpenAI
   - Check regional availability
 1. Python environment issues:
   - Ensure correct Python version
   - Verify all dependencies are installed
+1. 
 
 
 ## Success Criteria
