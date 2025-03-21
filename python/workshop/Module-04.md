@@ -31,7 +31,7 @@ In this hands-on exercise, you will complete the agent definitions by defining r
 
 Up until this point, you have created a number of agents that can perform specific tasks, but they are not talking to each other. This means if any agent is asked a question that it cannot answer, it will not know which other agent to ask. This is where agent routing comes in.
 
-Determine which agents you think should be able to talk to each other, and then wire them up! If you've forgotten how to do it, kook back through the modules.
+Determine which agents you think should be able to talk to each other, and then wire them up! If you've forgotten how to do it, look back through the modules.
 
 Hint: the coordinator agent is a good place to start!
 
@@ -213,6 +213,11 @@ ng serve
 
 Navigate to `http://localhost:4200` to view the UI. You should be able to create a chat session, send messages, and receive completions from the agents.
 
+If you want to deploy your updates to Azure:
+
+```shell   
+azd up
+```
 
 ### Validation Checklist
 
