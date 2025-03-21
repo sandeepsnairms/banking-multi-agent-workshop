@@ -1,6 +1,6 @@
 {
     "/api": {
-      "target": "",
+      "target": "https://ca-webapi-ydh26xiu5zn72.agreeablebeach-b72b6a6e.eastus.azurecontainerapps.io/",
       "secure": false,
       "changeOrigin": true,
       "logLevel": "debug",
