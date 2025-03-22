@@ -26,7 +26,7 @@ In this session you will get an overview of Semantic Kernel Agents and LangGraph
 
 ## Activity 2: Session on Semantic Kernel Agent Framework and LangGraph
 
-In this session ou will get a deeper introduction into the Semantic Kernel Agent Frameowkr and LangGraph with details on how to implement plug-in or tool integration with Azure Open AI.
+In this session, you will get a deeper introduction into the Semantic Kernel Agent Framework and LangGraph with details on how to implement plug-in or tool integration with Azure Open AI.
 
 
 ## Activity 3: Instantiate Agent Framework and Connect to Azure OpenAI

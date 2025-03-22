@@ -144,7 +144,7 @@ What we have done:
 
 With the hands-on exercises complete it is time to test your work!
 
-Before testing, lets make a small amendment to your `interactive_chat` function to hardcode the thread ID. The thread ID is the unique identifier for the conversation state. Until now we have not made use of it. We're hardcoding it here to demosntrate how the converation can be picked up later even when the application has stopped:
+Before testing, lets make a small amendment to your `interactive_chat` function to hardcode the thread ID. The thread ID is the unique identifier for the conversation state. Until now we have not made use of it. We're hardcoding it here to demonstrate how the converation can be picked up later even when the application has stopped:
 
 ```python
 hardcoded_thread_id = "hardcoded-thread-id-01"
