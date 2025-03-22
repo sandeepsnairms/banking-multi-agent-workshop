@@ -8,8 +8,6 @@ from datetime import datetime
 from fastapi import BackgroundTasks
 from azure.monitor.opentelemetry import configure_azure_monitor
 
-configure_azure_monitor()
-
 from azure.cosmos.exceptions import CosmosHttpResponseError
 
 from fastapi import Depends, HTTPException, Body
@@ -32,9 +30,7 @@ logging.basicConfig(level=logging.ERROR)
 
 load_dotenv(override=False)
 
-INSTRUMENTATION_KEY = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING", "<Your-App-Insights-Key>")
-
-print(f"Using Application Insights Key: {INSTRUMENTATION_KEY}")
+configure_azure_monitor()
 
 endpointTitle = "ChatEndpoints"
 dataLoadTitle = "DataLoadEndpoints"
