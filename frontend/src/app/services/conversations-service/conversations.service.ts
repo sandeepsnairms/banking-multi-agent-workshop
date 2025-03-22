@@ -62,7 +62,8 @@ postCompletion(userInput: string, tenantId: string, userId: string, sessionId: s
     const url = `${this.baseUrl}tenant/${encodeURIComponent(tenantId)}/user/${encodeURIComponent(userId)}/sessions/${encodeURIComponent(sessionId)}`;
   
       const headers = new HttpHeaders()
-      .set('Content-Type', 'application/json')
+      .set('Accept', 'application/json')
+       .set('Content-Type', 'application/json')
  
   
       return this.http.delete<any>(url, { headers });
@@ -82,12 +83,13 @@ postCompletion(userInput: string, tenantId: string, userId: string, sessionId: s
     const url = `${this.baseUrl}tenant/${encodeURIComponent(tenantId)}/user/${encodeURIComponent(userId)}/sessions/${encodeURIComponent(sessionId)}/summarize-name`;
   
       // Creating the request body and headers
-      const body =  JSON.stringify(conversationContext ) ;
+      const body =  conversationContext ;
       const headers = new HttpHeaders()
         .set('Accept', 'application/json')
-       .set('Content-Type', 'application/json');
+       .set('Content-Type', 'application/json')
+       .set('Response-Type', 'text');
   
-      return this.http.post<any>(url, body, { headers });
+       return this.http.post(url, body, { headers, responseType: 'text' }); 
   }
 
   getCompletionDetails(tenantId: string, userId: string, sessionId: string, debugId: string): Observable<any> {
