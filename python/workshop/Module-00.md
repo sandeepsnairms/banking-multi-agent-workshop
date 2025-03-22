@@ -40,7 +40,7 @@ Complete the following tasks in order to prepare your environment for this works
 
   #### Checking Azure OpenAI quota limits
 
-  For this sample to deploy successfully, there needs to be enough Azure OpenAI quota for the models used by this sample within your subscription. This sample deploys a new Azure OpenAI account with two models, **gpt-4o-mini with 10K tokens** per minute and **text-3-large with 5k tokens** per minute. For more information on how to check your model quota and change it, see [Manage Azure OpenAI Service Quota](https://learn.microsoft.com/azure/ai-services/openai/how-to/quota)
+  For this sample to deploy successfully, there needs to be enough Azure OpenAI quota for the models used by this sample within your subscription. This sample deploys a new Azure OpenAI account with two models, **gpt-4o-mini with 10K tokens** per minute and **text-3-embedding-small with 5k tokens** per minute. For more information on how to check your model quota and change it, see [Manage Azure OpenAI Service Quota](https://learn.microsoft.com/azure/ai-services/openai/how-to/quota)
 
   #### Azure Subscription Permission Requirements
 
@@ -61,15 +61,9 @@ Complete the following tasks in order to prepare your environment for this works
       - [Docker Desktop](https://docs.docker.com/desktop/) Note: ensure docker is running.
       - [Git](https://git-scm.com/downloads)
       - [Azure Developer CLI (azd)](https://aka.ms/install-azd)
-  
-    Then either of the following depending on which sample you want to explore
-
     - LangGraph Sample
       - [Python 3.12+](https://www.python.org/downloads/)
       - Your Python IDE or [VS Code](https://code.visualstudio.com/Download) with [Python Extension](https://marketplace.visualstudio.com/items?itemName=ms-python.python)
-    - Semantic Kernel Agent Sample
-      - [.NET 9](https://dotnet.microsoft.com/downloads/)
-      - [Visual Studio](https://visualstudio.microsoft.com/downloads/) or [VS Code](https://code.visualstudio.com/Download) with [C# Dev Kit](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csdevkit)
     - Frontend
       - [Node.js](https://nodejs.org/en/download/)
       - [Angular CLI](https://angular.io/guide/setup-local)
@@ -113,7 +107,10 @@ You can run this sample app and workshop virtually by using GitHub Codespaces. T
    azd up
    ```
 
-This step will take approximately 10-15 minutes. If you encounter an error during step, first rerun `azd up`. This tends to correct most errors. 
+This step will take approximately 10-15 minutes. 
+
+> [!IMPORTANT]
+> If you encounter any errors during the deployment, rerun `azd up` to continue the deployment from where it left off. This will not create duplicate resources, and tends to resolve most issues.
 
 When the resources are finally deployed, you will see a message in the terminal like below:
 
@@ -134,14 +131,9 @@ Adding dummy data is optional and can be skipped, but we recommend loading the d
 You can click on the FrontendApp endpoint to see the deployed application, but if you try chatting to it, you will see that it is not yet implemented. This is because we have not yet built the agents that will be served by the API layer.
 
 
-
-> [!IMPORTANT]
-> If you encounter any errors during the deployment, rerun `azd up` to continue the deployment from where it left off. This will not create duplicate resources, and tends to resolve most issues.
-
 ## Activity 3: Workshop Structure and Overview Session
 
 While the Azure Services are deploying we will have a presentation to cover on the structure for this workshop for today as well as provide an introduction and overview of multi-agent sytems.
-
 
 
 ## Activity 4: Configure Environment Variables
@@ -163,7 +155,8 @@ But you will still need to install dependencies to run the solution locally.
     For Windows:
 
     ```shell
-    . .\.venv\Scripts\Activate.ps1
+    python -m venv .venv
+    .venv\Scripts\Activate.ps1
     ```
 3. Install the required dependencies for the project.
 
