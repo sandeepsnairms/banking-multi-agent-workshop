@@ -27,8 +27,12 @@
         <hr>
 
         <div class="card-footer">
-          <button mat-button class="edit-btn" (click)="startEditing(session)">Edit</button>
-          <button mat-button class="delete-btn" (click)="removeSession(session)">Delete</button>
+          <button mat-icon-button class="edit-btn" (click)="startEditing(session)">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button mat-icon-button class="delete-btn" (click)="removeSession(session)">
+            <mat-icon>delete</mat-icon>
+          </button>
         </div>
       </div>
     </div>

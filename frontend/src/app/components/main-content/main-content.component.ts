@@ -22,7 +22,6 @@ export class MainContentComponent implements OnInit, AfterViewChecked {
   showToast = false;
   loggedInUser: string;
   completion: string = "";
-  summmaryDone = false;
   userInput: string = "";
   conversationHistory: Message[] = [];
   isResponding: boolean = true;
@@ -33,9 +32,10 @@ export class MainContentComponent implements OnInit, AfterViewChecked {
   isLoading: boolean = false;
   sessionId!: string;
   imagePath: string = '';
-  conversationContext : string = ''; 
+  conversationContext: string = '';
   summarisedName = "New Chat";
-  currentSession : Session = {} as Session;
+  currentSession: Session = {} as Session;
+  sessionRenamed = false;
   constructor(
     private chatOptionsService: ChatOptionsService,
     private dataService: DataService,
@@ -43,7 +43,7 @@ export class MainContentComponent implements OnInit, AfterViewChecked {
     private route: ActivatedRoute,
     private loadingService: LoadingService,
     private router: Router,
-    public dialog : MatDialog,
+    public dialog: MatDialog,
     private toastService: ToastService
   ) {
 
@@ -52,9 +52,7 @@ export class MainContentComponent implements OnInit, AfterViewChecked {
   }
 
   ngOnInit(): void {
-
     this.dataService.currentMessage.subscribe(message => this.sessionId = message);
-
     this.route.paramMap.subscribe(params => {
       this.sessionId = params.get('sessionId') || '';
       this.conversationHistory = [];
@@ -90,6 +88,7 @@ export class MainContentComponent implements OnInit, AfterViewChecked {
 
   initCompletion() {
     this.loadingService.show();
+
     if (this.userInput.length > this.maxInputLength || this.sessionId === '') {
       this.loadingService.hide();
       this.toastService.showMessage('Please create a new chat session', 'error');
@@ -100,22 +99,36 @@ export class MainContentComponent implements OnInit, AfterViewChecked {
     this.userInput = "";
     this.errorMessage = "";
 
-    if (this.conversationHistory.length > 2 && !this.summmaryDone) {
+    if (this.conversationHistory.length >= 2 && this.sessionRenamed== false) {
       for (const entry of this.conversationHistory) {
-           this.conversationContext += `User: ${entry.prompt}\nAI: ${entry.completion}\n\n`;
-        
+        this.conversationContext += `${entry.prompt}: ${entry.completion}\n\n`
       }
-      this.sessionService.summarizeName(this.dataService.loggedInTenant, this.dataService.loggedInUser, this.sessionId , this.truncateString(this.conversationContext)).subscribe((response: any) => {
-         this.summmaryDone = true;
-         this.summarisedName = response;
-         this.currentSession.name = response;
-         this.dataService.sessionData$.subscribe((data) => {
+      const summaryInput = this.convertToJSON(this.conversationContext);
+
+      this.sessionService.summarizeName(this.dataService.loggedInTenant, this.dataService.loggedInUser, this.sessionId, summaryInput).subscribe({
+        next: (response: any) => {
+          console.log("Summarize name method called", response)
+          this.summarisedName = response;
+          let sessionData: Session[] = [];
+          this.currentSession.name = response;
+          this.sessionRenamed = true;
+          this.dataService.sessionData$.subscribe((data) => {
             if (data) {
-                this.currentSession = data.filter((t: Session) => t.sessionId === this.sessionId)[0];
-                data =  data.filter((t: Session) => t.sessionId === this.sessionId)[0].name = response;
+              data = data.map((t: Session) => 
+                t.sessionId === this.sessionId ? { ...t, name: response } : t
+              );
+              sessionData = data;
             }
-          } );
-          
+          });         
+          this.dataService.updateSession(sessionData);
+        },
+        error: (err: any) => {
+          console.error('Error receiving data stream', err);
+          this.errorMessage = this.DEFAULT_ERROR_MESSAGE;
+        },
+        complete: () => {
+          this.errorMessage = this.conversationHistory.length === 0 ? this.DEFAULT_ERROR_MESSAGE : "";
+        }
       });
     }
     this.sessionService.postCompletion(question, this.dataService.loggedInTenant, this.dataService.loggedInUser, this.sessionId)
@@ -161,9 +174,14 @@ export class MainContentComponent implements OnInit, AfterViewChecked {
     setTimeout(() => this.scrollToBottom(), 0);
   }
 
-   truncateString(value: string, limit: number = 150, trail: string = '...'): string {
-    if (!value) return '';
-    return value.length > limit ? value.substring(0, limit) + trail : value;
+  convertToJSON(malformedString: string): any | null {
+    // Step 1: Collapse everything into a single line
+    const collapsedString = malformedString.replace(/\s+/g, ' ').trim();
+
+    // Step 2: Convert to a JSON-compatible string (escape quotes)
+    const jsonString = JSON.stringify(collapsedString);
+
+    return jsonString;
   }
 
   getLastConversation(): Message {
