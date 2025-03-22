@@ -423,7 +423,7 @@ Update the code within the function to this:
     }
 ```
 
-This next function gets called by the service to rename chat session to give it a meaningful name. It does this by calling the semantic kernel service which passes the prompt text to an LLM and asks it to summarize the next. It then calls a second function that renames the chat and stores the new name in Cosmos DB.
+This next function gets called by the service to rename conversation to give it a meaningful name. It does this by calling the semantic kernel service which passes the prompt text to an LLM and asks it to summarize the next. It then calls a second function that renames the chat and stores the new name in Cosmos DB.
 
 In the next function below, `SummarizeChatSessionNameAsync()` replace the existing code for that function with this below.
 
