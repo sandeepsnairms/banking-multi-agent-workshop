@@ -17,14 +17,14 @@ In this Module you'll learn how to implement agent specialization by creating Se
 ## Module Exercises
 
 1. [Activity 1: Understanding Agent Specialization and Integration](#activity-1-understanding-agent-specialization-and-integration)  
-2. [Activity 2: Defining Bank Domain Data Models](#activity-2-defining-bank-domain-data-models)  
-3. [Activity 3: Creating Multiple Agents](#activity-3-creating-multiple-agents)  
-4. [Activity 4: Integrating Bank Domain Functions as Plugins](#activity-4-integrating-bank-domain-functions-as-plugins)  
-5. [Activity 5: Developing a Plugin Factory](#activity-5-developing-a-plugin-factory)  
-6. [Activity 6: Building an Agent Factory](#activity-6-building-an-agent-factory)
-7. [Activity 7: Semantic Search](#activity-7-semantic-search)
-8. [Activity 8: Bringing It All Together – Bank Domain Models, Plugins, and Agents](#activity-8-bringing-it-all-together--bank-domain-models-plugins-and-agents)
-9. [Activity 9: Test your Work](#activity-9-test-your-work)
+1. [Activity 2: Defining Bank Domain Data Models](#activity-2-defining-bank-domain-data-models)  
+1. [Activity 3: Defining Agent Behavior](#activity-3-defining-agent-behavior)  
+1. [Activity 4: Integrating Bank Domain Functions as Plugins](#activity-4-integrating-bank-domain-functions-as-plugins)  
+1. [Activity 5: Developing a Plugin Factory](#activity-5-developing-a-plugin-factory)  
+1. [Activity 6: Building an Agent Factory](#activity-6-building-an-agent-factory)
+1. [Activity 7: Semantic Search](#activity-7-semantic-search)
+1. [Activity 8: Bringing It All Together – Bank Domain Models, Plugins, and Agents](#activity-8-bringing-it-all-together--bank-domain-models-plugins-and-agents)
+1. [Activity 9: Test your Work](#activity-9-test-your-work)
 
 ## Activity 1: Understanding Agent Specialization and Integration
 
@@ -32,27 +32,38 @@ In this session we will dive into how to create Semantic Kernel Agent Framework 
 
 ## Activity 2: Defining Bank Domain Data Models
 
-To enable agents to operate on your data, we must define data models that the LLM can understand.
+After the session in Activity 1, you should understand the need and importance for agent specialization and have a basic grasp of how to build and integrate them. For the remainder of this module we will do just that for our banking scenario.
 
-Add the following models to Common\Models\Banking\
+When working with any kidn of data we need to define data models that define its schema. So to enable agents to operate on your data, let's define data models that the LLM can understand.
 
-Add AccountType.cs for AccountType Enum
+To begin, navigate to the `Common` project and navigate to the `/Models' folder.
+
+The project and folder structure should look like the following:
+
+![Models folder](./media/module-03/solution-models-folder.png)
+
+In your IDE, create a new folder, `/Banking` in the `/Models` folder.
+
+Next create a new class, `AccountType.cs`.
+
+Replace the code with this code below for creating an enum for AccountType.
 
 ```csharp
-
 namespace MultiAgentCopilot.Common.Models.Banking
 {    
-public enum AccountType
+    public enum AccountType
     {
         Savings,
         CreditCard,
         Locker
     }
 }
-
 ```
 
-Add ServiceRequestType.cs for ServiceRequestType Enum
+Next create a new class, `ServiceRequestType.cs`.
+
+Replace the code with this code below for creating an enum for ServiceRequestType.
+
 
 ```csharp
 namespace MultiAgentCopilot.Common.Models.Banking
@@ -67,7 +78,9 @@ namespace MultiAgentCopilot.Common.Models.Banking
 }
 ```
 
-Add BankAccount.cs for BankAccount class
+Next create a new class, `BankAccount.cs` 
+
+Replace the code with this code below for creating a BankAccount class
 
 ```csharp
 namespace MultiAgentCopilot.Common.Models.Banking
@@ -86,7 +99,10 @@ namespace MultiAgentCopilot.Common.Models.Banking
 }
 ```
 
-Add BankTransaction.cs for BankTransaction class
+Next create a new class, `BankTransaction.cs` 
+
+Replace the code with this code below for creating a BankTransaction class
+
 
 ```csharp
 namespace MultiAgentCopilot.Common.Models.Banking
@@ -105,7 +121,10 @@ namespace MultiAgentCopilot.Common.Models.Banking
 }
 ```
 
-Add BankUser.cs for BankUser class
+Next create a new class, `BankUser.cs` 
+
+Replace the code with this code below for creating a BankUser class
+
 
 ```csharp
 namespace MultiAgentCopilot.Common.Models.Banking
@@ -123,10 +142,12 @@ namespace MultiAgentCopilot.Common.Models.Banking
 }
 ```
 
-Add Offer.cs for Offerclass
+Next create a new class, `Offer.cs` 
+
+Replace the code with this code below for creating an Offer class
+
 
 ```csharp
-
 namespace MultiAgentCopilot.Common.Models.Banking
 {
     public class Offer
@@ -142,13 +163,14 @@ namespace MultiAgentCopilot.Common.Models.Banking
 }
 ```
 
-Add OfferTerm.cs for OfferTerm class
+Next create a new class, `OfferTerm.cs` 
 
 OfferTerm is used for vector search in Semantic Kernel, so it has been enhanced with additional attributes.
 
-```csharp
+Replace the code with this code below for creating an OfferTerm class
 
-﻿using Microsoft.Extensions.VectorData;
+```csharp
+using Microsoft.Extensions.VectorData;
 namespace MultiAgentCopilot.Common.Models.Banking
 {
     public class OfferTerm
@@ -174,18 +196,17 @@ namespace MultiAgentCopilot.Common.Models.Banking
         [VectorStoreRecordData]
         public required string AccountType { get; set; }
 
-        [VectorStoreRecordVector(Dimensions: 1536, DistanceFunction: Microsoft.Extensions.VectorData.DistanceFunction.CosineSimilarity, IndexKind: Microsoft.Extensions.VectorData.IndexKind.QuantizedFlat)]
+        [VectorStoreRecordVector(Dimensions: 1536, DistanceFunction: DistanceFunction.CosineSimilarity, IndexKind: IndexKind.QuantizedFlat)]
         public ReadOnlyMemory<float>? Vector { get; set; }
-
     }
 }
-
 ```
 
-Add ServiceRequest.cs for ServiceRequest class
+Next create a new class, `ServiceRequest.cs` 
+
+Replace the code with this code below for creating a ServiceRequest class
 
 ```csharp
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -266,25 +287,38 @@ namespace MultiAgentCopilot.Common.Models.Banking
         }
     }
 }
-
-
-
-
-
 ```
 
-## Activity 3: Creating Multiple Agents
+### Quick check-in
 
-Let's define the agent's behavior by creating agent prompts as Prompty files.
+This was a lot of code copy and pasting for you. Let's make sure you got everything.
 
-### Upload prompts for each Agent
+Look in your IDE, it should have the following classes within the new `/Banking` folder we created at the start of Activity 2. If you're missing any, scroll back up and create it, then check in here before moving on to Activity 3.
 
-Add the following prompty files to ChatAPI\Prompts
+![Final Banking folder models](./media/module-03/solution-models-banking-folder.png)
 
-CommonAgentRules.prompty
+
+## Activity 3: Defining Agent Behavior
+
+Agents behavior is defined using prompts. These can be as simple as text in a string variable. However, it is often better to store these as external text files. In this solution we will use a format called, Prompty that provides an outline to defining agent behavior.
+
+In this activity we will create new Prompty files and add them to a new folder called, `/Prompts` in the `ChatAPI` project.
+
+### Define Agent behavior using Prompty
+
+To begin, in your IDE, navigate to the `ChatAPI` project. 
+
+Create a new folder called, `/Prompts`
+
+#### Common Agent Rules
+
+This isn't agent but provides a baseline for how agents are supposed to behave. Think of it like a set of global rules for agents. All agents import the text from this prompt to govern their responses.
+
+Create a new file called, `CommonAgentRules.prompty`
+
+Copy the following text into the file:
 
 ```
-
 Important:
 - Always use current datetime as datetime retrieved from the database.
 - Understand the user's query and respond only if it aligns with your responsibilities.
@@ -299,10 +333,15 @@ Important:
 - Maintain politeness and professionalism in all responses.
 - Do not respond with a welcome message if another welcome message already exists.
 - If user's response is pending, wait for the user to provide the necessary before proceeding.
-
 ```
 
-Coordinator.prompty
+#### Coordinator Agent
+
+This agent is the coordinator for the entire multi-agent system we are building. Its purpose is own the entire experience for users with the banking agent system. It starts by greeting new users when they initiate a new session, then routes user requests to the correct agent(s) to handle on their behalf. Finally it asks for feedback on how it did its job.
+
+Create a new file called, `Coordinator.prompty`
+
+Copy the following text into the file:
 
 ```
 You are a Chat Initiator and Request Router in a bank. 
@@ -320,7 +359,13 @@ RULES:
 - Use the available functions when needed.
 ```
 
-CustomerSupport.prompty
+#### Customer Support Agent
+
+This agent handles anything that appears to be a customer support request by a user. It can create, find and update services requests for users. It can also take certain action on behalf of users too.
+
+Create a new file called, `CustomerSupport.prompty`
+
+Copy the following text into the file:
 
 ```
 Your sole responsibility is to:
@@ -345,7 +390,13 @@ Guidelines:
     - Check tele banker availability and queue length before suggesting this option.
 ```
 
-Sales.prompty
+#### Sales Agent
+
+This agent is used when customers ask questions about what kinds of services a bank offers. The data on the products the bank has are stored in Cosmos DB. This agent performs a vector search in Cosmos DB to find the most suitable products for a customer's request.
+
+Create a new file called, `Sales.prompty`
+
+Copy the following text into the file:
 
 ```
 Your sole responsibility is to:                        
@@ -370,7 +421,13 @@ Your sole responsibility is to:
     - Inform the user of the results of the eligibility check and provide guidance on the next steps.
 ```
 
-Transactions.prompty
+#### Transaction Agent
+
+This agent handles any account-based transactions on behalf of the user including getting account balances, generating statements and doing fund transfers between accounts.
+
+Create a new file called, `Transactions.prompty`
+
+Copy the following text into the file:
 
 ```
 Your sole responsibility is to:
@@ -397,17 +454,33 @@ Tasks:
     - Filter transactions based on type (credit/debit), amount, or date range according to the user query.
 3. Provide Balance Information:
     - Offer the latest balance information for the user's accounts.
-
 ```
 
-### Define the various Agent Types
+### Quick check-in
 
-We are going to have four type of agents.
+This activity has a lot of new file creation. Let's make sure you got everything.
 
-Add AgentTypes.cs in ChatInfrastructure\Models
+Look in your IDE, within the `ChatAPI` project make sure you have a folder called, `/Prompts` with the prompty files as seen below. If you're missing any, scroll back up and create them, then check in here before moving on.
+
+![Prompty files](./media/module-03/solution-prompt-folder.png)
+
+
+### Retrieving the prompty text for Agents
+
+In our banking solution we have four agents: transactions agent, sales agent, customer support agent, and a coordinator agent to manage all of them. With the behavior of the agents defined in Prompty, we now need to implement the code that will allow the application to load the agent behavior for each of the agents.
+
+To begin we will create an enum for the four agents.
+
+In your IDE, navigate to the `ChatInfrastructure` project.
+
+Create a new folder called, `Models`.
+
+Create a new class, `AgentTypes.cs`.
+
+Replace the code with this code below for creating an enum for AgentType
+
 
 ```csharp
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -424,30 +497,37 @@ namespace MultiAgentCopilot.ChatInfrastructure.Models
         Coordinator = 3,
     }
 }
-
-
 ```
 
+### Implementing the System Prompt Factory
 
-Add Reference for MultiAgentCopilot.ChatInfrastructure.Models in ChatInfrastructure\Factories\SystemPromptFactory.cs
+We are now ready to complete the implementation for the **System Prompt Factory** we created in the previous Module. We will do that by first adding a reference to `MultiAgentCopilot.ChatInfrastructure.Models` in `ChatInfrastructure\Factories\SystemPromptFactory.cs`. This will allow it to consume the `AgentType` enum we created in the previous step.
+
+In the same `ChatInfrastructure` project, navigate to the `/Factories` folder.
+
+Open the `SystemPromptFactory.cs`
+
+Add this with the other using statements at the top of the file:
 
 ```csharp
 using MultiAgentCopilot.ChatInfrastructure.Models;
-
 ```
 
+Remain in this same class.
 
-Update ChatInfrastructure\Factories\SystemPromptFactory.cs
+Next we need to replace our original hard-coded implementation from Module 3 to use the AgentType enum for our newly defined banking agents. It is also worth noting that it is here where the contents of the `CommonAgentsRules.prompty` are included as part of the system prompts that define our agents.
 
-Modify GetAgentPrompts to return the system prompt based on the agent type.
+Within the `SystemPromptFactory.cs`
+
+Replace the code for both `GetAgentName()` and `GetAgentPrompts()` with the code below:
 
 ```csharp
 
     internal static class SystemPromptFactory
     {
+        //Replace from here
         public static string GetAgentName(AgentType agentType)
         {
-
             string name = string.Empty;
             switch (agentType)
             {
@@ -470,10 +550,8 @@ Modify GetAgentPrompts to return the system prompt based on the agent type.
             return name;//.ToUpper();
         }
 
-
         public static string GetAgentPrompts(AgentType agentType)
         {
-
             string promptFile = string.Empty;
             switch (agentType)
             {
@@ -497,19 +575,19 @@ Modify GetAgentPrompts to return the system prompt based on the agent type.
 
             return prompt;
         }
-
-
+        //end replace
     }
-
 ```
 
 ## Activity 4: Integrating Bank Domain Functions as Plugins
 
-All banking domain code is encapsulated in a separate `BankingServices` project. Let's add it to the main solution to make it available to the agents.
+All banking domain code is encapsulated in a separate `BankingServices` project. Let's add it to the main solution to make it available to the agents. In this step we will add a new project, then add a reference to it to the `ChatInfrastructure` project in this solution.
 
-Add **BankingServices.csproj** to the solution
+To begin open a new or existing terminal.
 
-Add Project Reference for BankingServices.csproj in ChChatInfrastructure.csProj
+Navigate to the `/csharp` folder.
+
+Execute the following dotnet cli commands:
 
 ```dotnetcli
 
@@ -1092,7 +1170,7 @@ Update GetChatCompletionAsync in ChatInfrastructure\Services\ChatService.cs
 
 ## Activity 9: Test your Work
 
-
+With the activities in this module complete, it is time to test your work.
 
 Execute the below steps to check the behavior for each agent.
 
@@ -1106,34 +1184,25 @@ Update AgentType within GetResponse in ChatInfrastructure\Services\SemanticKerne
 
 Run the below steps for each Agent Type.
 
+### Running the ChatAPI and Frontend App
+
 #### 1. Start the ChatAPI
 
-##### If running on Codespaces:
-1. Navigate to `src\ChatAPI`.
-2. Run the following command to trust the development certificate:
-   ```sh
-   dotnet dev-certs https --trust
-   ```
-3. Start the application:
-   ```sh
-   dotnet run
-   ```
-4. Copy the URL from the **Ports** tab.
-
-##### If running locally on Visual Studio or VS Code:
-1. Navigate to `src\ChatAPI`.
-2. Press **F5** or select **Run** to start the application.
-3. Copy the URL from the browser window that opens.
+- Codespaces open a terminal and type `dotnet run`
+- In your IDE press **F5** or select **Run** to start the application.
 
 #### 2. Run the Frontend App
-- Follow the [README instructions](../../README.md) to start the frontend application.  
-- Use the URL copied in the previous step as the API endpoint.
+- Open a new terminal or use an existing one that is open to the `/frontend` folder.
+    ```sh
+    ng serve
+    ```
+- Navigate to, http://localhost:4200 in your browser
 
 #### 3. Start a Chat Session
 1. Open the frontend app.
-2. Start a new chat session.
-3. Send a message based on the prompt of the current AgentType.
-4. Expected response: The response is inline with the Agent's prompts and plugins.
+1. Start a new chat session.
+1. Send a message based on the prompt of the current AgentType.
+1. Expected response: The response is inline with the Agent's prompts and plugins.
 
 ### 4. Stop the Application
 - Press **Ctrl + C** to stop the debugger.
@@ -1161,14 +1230,277 @@ Run the below steps for each Agent Type.
 ### Module Solution
 
 <details>
-  <summary>If you are encounting errors or issues with your code for this module, please refer to the following code.</summary>
+  <summary>Completed code for <strong>Common/Models/Banking/OfferTerm.cs</strong></summary>
 
 <br>
 
-Explanation for code and where it goes. Multiple sections of these if necessary.
-```python
-# Your code goes here
+```csharp
+using Microsoft.Extensions.VectorData;
+namespace MultiAgentCopilot.Common.Models.Banking
+{
+    public class OfferTerm
+    {
+        [VectorStoreRecordKey]
+        public required string Id { get; set; }
 
+        [VectorStoreRecordData]
+        public required string TenantId { get; set; }
+
+        [VectorStoreRecordData]
+        public required string OfferId { get; set; }
+
+        [VectorStoreRecordData]
+        public required string Name { get; set; }
+
+        [VectorStoreRecordData]
+        public required string Text { get; set; }
+
+        [VectorStoreRecordData]
+        public required string Type { get; set; }
+
+        [VectorStoreRecordData]
+        public required string AccountType { get; set; }
+
+        [VectorStoreRecordVector(Dimensions: 1536, DistanceFunction: DistanceFunction.CosineSimilarity, IndexKind: IndexKind.QuantizedFlat)]
+        public ReadOnlyMemory<float>? Vector { get; set; }
+    }
+}
+```
+</details>
+
+<details>
+  <summary>Completed code for <strong>ChatAP/Prompts/CommonAgentRules.prompty</strong></summary>
+
+<br>
+
+```
+Important:
+- Always use current datetime as datetime retrieved from the database.
+- Understand the user's query and respond only if it aligns with your responsibilities.
+- State why you think, you have a solution to the user's query.
+- Ensure responses are grounded to the following data sources.
+    - user provided data
+    - data fetched using functions
+- Provide specific information based query and data provided.          
+- Ensure every response adds value to the user's request or confirms the user's request.
+- Do not proceed with submitting a request without the necessary information from the user.
+- Do not respond with a message if the previous response conveys the same information.
+- Maintain politeness and professionalism in all responses.
+- Do not respond with a welcome message if another welcome message already exists.
+- If user's response is pending, wait for the user to provide the necessary before proceeding.
+```
+</details>
+
+<details>
+  <summary>Completed code for <strong>ChatAPI/Prompts/Coordinator.prompty</strong></summary>
+
+<br>
+
+```
+You are a Chat Initiator and Request Router in a bank. 
+Your primary responsibilities include welcoming users, identifying customers based on their login, routing requests to the appropriate agent.
+Start with identifying the currently logged-in user's information and use it to personalize the interaction.For example, "Thank you for logging in, [user Name]. How can I help you with your banking needs today?"
+
+RULES:
+- Determine the nature of the user's request and silently route it to the appropriate agent.
+- Avoid asking for unnecessary details to route the user's request. For example, "I see you have a question about your account balance. Let me connect you with the right agent who can assist you further."
+- Do not provide any information or assistance directly; always route the request to the appropriate agent silently.
+- Route requests to the appropriate agent without providing direct assistance.
+- If another agent has asked a question, wait for the user to respond before routing the request.
+- If the user has responded to another agent, let the same agent respond before routing or responding.
+- When the user's request is fulfilled, ask for feedback on the service provided before concluding the interaction. Gauge their overall satisfaction and sentiment as either happy or sad. For example, "Before we conclude, could you please provide your feedback on our service today? Were you satisfied with the assistance provided? Would you say your overall experience was happy or sad?"
+- Use the available functions when needed.
+```
+</details>
+
+<details>
+  <summary>Completed code for <strong>ChatAPI/Prompts/CustomerSupport.prompty</strong></summary>
+
+<br>
+
+```
+Your sole responsibility is to:
+1. Helping customers lodge service request.
+2. Searching existing service requests.
+2. Providing status updates on existing service request.
+3. Creating and updating service requests for user registered accounts.
+
+Guidelines:
+- If you don't have the users account Id, ask the user to provide it.                         - 
+- Check if the account Id is registered to user.
+- If account Id is registered to user, search user's pending service requests.
+    - If pending service request found:
+        - Inform the user of the status and estimated time of resolution.
+        - Ask if user wants to add any comments and update the existing record.
+    - If not found:
+        - Ask if user wants to create new service request.
+- If account Id is not registered
+    - Inform the user that you cannot proceed without the correct account Id. 
+- If no agent is able to assist the user, check if they would like to speak to a tele banker.
+    - Tele bankers are available Monday to Friday, 9 AM to 5 PM PST.
+    - Check tele banker availability and queue length before suggesting this option.
+```
+</details>
+
+<details>
+  <summary>Completed code for <strong>ChatAPI/Prompts/Sales.prompty</strong></summary>
+
+<br>
+
+```
+Your sole responsibility is to:                        
+    - Suggest suitable accounts based on the user profile.
+    - Use the user's profile information to recommend from the available account type.
+    - Ensure that the recommendations are personalized and relevant to the user's needs.
+
+1. Collecting details for New Account Registration:
+    - Get the list of available offers.
+    - Suggest the offers that match the user's profile.
+    - Based on the user selection, get the prerequisites for the selected offer. The prerequisites may vary for each offer.
+    - Ask the user to provide all prerequisites and ensure you have collected all necessary information from the user.
+    - Validate the collected details by showing a summary to the user. Once approved by user, submit a fulfillment service request.
+    - Confirm the submission of the service request to the user.
+
+2. Highlighting Promotions and Offers:
+    - Use the user's profile information to highlight relevant offers.
+    - Ensure that the information provided is accurate based on the available account types.
+
+3. Conducting Eligibility Checks:
+    - Conduct eligibility checks for various offers using the user's profile information.
+    - Inform the user of the results of the eligibility check and provide guidance on the next steps.
+```
+</details>
+
+<details>
+  <summary>Completed code for <strong>ChatAPI/Prompts/Transaction.prompty</strong></summary>
+
+<br>
+
+```
+Your sole responsibility is to:
+
+1. Handling transactions.
+2. Generating account statements.
+3. Providing balance inquiries.
+
+Guidelines:
+- Do not participate in new product registration discussion.
+- Based on the following message, determine the appropriate action and respond accordingly.
+- Ensure that you only provide information related to the current user's accounts.
+- To start the process, retrieve the current services registered to the user from the database.
+- Check if you have the user's account number. If any data is missing, politely inform the user and explain that you cannot proceed until the details are available in the bank’s database.
+Tasks:
+1. Process Transfers:
+    - Use the recipient's email or phone number to process transfers.
+    - Validate the recipient's phone number and email format before proceeding.
+    - Ensure the account has the necessary balance before accepting a request.
+    - Confirm all details with the user before proceeding.
+    - Inform the user that they will be notified of transaction completions via text message and email.
+2. Generate Account Statements:
+    - Respond to transaction queries for up to 6 months old.
+    - Filter transactions based on type (credit/debit), amount, or date range according to the user query.
+3. Provide Balance Information:
+    - Offer the latest balance information for the user's accounts.
+```
+</details>
+
+<details>
+  <summary>Completed code for <strong>ChatInfrastructure/Models/AgentTypes.cs</strong></summary>
+
+<br>
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace MultiAgentCopilot.ChatInfrastructure.Models
+{
+    enum AgentType
+    {
+        Transactions = 0,
+        Sales = 1,
+        CustomerSupport = 2,
+        Coordinator = 3,
+    }
+}
+```
+</details>
+
+<details>
+  <summary>Completed code for <strong>ChatInfrastructure/Factories/SystemPromptFactory.cs</strong></summary>
+
+<br>
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Microsoft.SemanticKernel;
+using MultiAgentCopilot.ChatInfrastructure.Services;
+using MultiAgentCopilot.ChatInfrastructure.Models;
+
+
+namespace MultiAgentCopilot.ChatInfrastructure.Factories
+{
+    internal static class SystemPromptFactory
+    {
+        public static string GetAgentName(AgentType agentType)
+        {
+
+            string name = string.Empty;
+            switch (agentType)
+            {
+                case AgentType.Sales:
+                    name = "Sales";
+                    break;
+                case AgentType.Transactions:
+                    name = "Transactions";
+                    break;
+                case AgentType.CustomerSupport:
+                    name = "CustomerSupport";
+                    break;
+                case AgentType.Coordinator:
+                    name = "Coordinator";
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(agentType), agentType, null);
+            }
+
+            return name;//.ToUpper();
+        }
+
+        public static string GetAgentPrompts(AgentType agentType)
+        {
+            string promptFile = string.Empty;
+            switch (agentType)
+            {
+                case AgentType.Sales:
+                    promptFile = "Sales.prompty";
+                    break;
+                case AgentType.Transactions:
+                    promptFile = "Transactions.prompty";
+                    break;
+                case AgentType.CustomerSupport:
+                    promptFile = "CustomerSupport.prompty";
+                    break;
+                case AgentType.Coordinator:
+                    promptFile = "Coordinator.prompty";
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(agentType), agentType, null);
+            }
+
+            string prompt = $"{File.ReadAllText("Prompts/" + promptFile)}{File.ReadAllText("Prompts/CommonAgentRules.prompty")}";
+
+            return prompt;
+        }
+    }
+}
 ```
 </details>
 
