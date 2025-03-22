@@ -17,12 +17,9 @@ namespace MultiAgentCopilot
     public static partial class DependencyInjection
     {
         /// <summary>
-        /// Registers the <see cref="IBankDataService"/> implementation with the dependency injection container."/>
+        /// Registers the <see cref="ICosmosDBService"/> implementation with the dependency injection container.
         /// </summary>
         /// <param name="builder">The hosted applications and services builder.</param>
-
-
-
         public static void AddCosmosDBService(this IHostApplicationBuilder builder)
         {
             builder.Services.AddOptions<CosmosDBSettings>()

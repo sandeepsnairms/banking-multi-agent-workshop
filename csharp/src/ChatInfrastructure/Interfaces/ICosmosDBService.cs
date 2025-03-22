@@ -73,12 +73,6 @@ public interface ICosmosDBService
     Task<Session> UpdateSessionNameAsync(string tenantId, string userId,string id, string name);
 
     /// <summary>
-    /// Batch create or update chat messages and session.
-    /// </summary>
-    /// <param name="messages">Chat message and session items to create or replace.</param>
-    //Task UpsertSessionBatchAsync(List<Message> messages, List<DebugLog> debugLogs, Session session);
-
-    /// <summary>
     /// Batch deletes an existing chat session and all related messages.
     /// </summary>
     /// <param name="sessionId">Chat session identifier used to flag messages and sessions for deletion.</param>

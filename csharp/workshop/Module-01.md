@@ -4,7 +4,7 @@
 
 ## Introduction
 
-In this Module, you'll implement your first agent as part of a multi-agent banking system implemented using either Semantic Kernel Agent Framwork. You will get an introduction to Semantic Kernel and their plug-in integration with OpenAI for generating completions.
+In this Module, you'll implement your first agent as part of a multi-agent banking system implemented using either Semantic Kernel Agent Framework. You will get an introduction to Semantic Kernel and their plug-in integration with OpenAI for generating completions.
 
 ## Learning Objectives and Activities
 
@@ -31,7 +31,7 @@ In this session ou will get a deeper introduction into the Semantic Kernel Agent
 
 ## Activity 3: Instantiate Agent Framework and Connect to Azure OpenAI
 
-In this hands-on exercise, you will learn how to initialize an agent framework and integrate it with a large langugage model.
+In this hands-on exercise, you will learn how to initialize an agent framework and integrate it with a large language model.
 
 The following steps are completed in your IDE.
 
@@ -50,7 +50,7 @@ Here is what the structure of this solution appears like in Visual Studio. Spend
 
 ### Add SemanticKernelServiceSettings Config
 
-The solution already has a configuration class for Cosmos DB runtime values. In this section we will do the same and get the runtime environment variables for the Azure OpenAI sevice that is consumed by the Semantic Kernel Agent Framework.
+The solution already has a configuration class for Cosmos DB runtime values. In this section we will do the same and get the runtime environment variables for the Azure OpenAI service that is consumed by the Semantic Kernel Agent Framework.
 
 In your IDE, navigate to `\Common\Models\Configuration\`
 
@@ -106,7 +106,7 @@ namespace MultiAgentCopilot.Common.Models.Configuration
 We are next going to define an interface and the service layer for the Semantic Kernel Agent Framework that is central to our workshop. This interface defines the main functionality for this multi-agent service. 
 
 - **GetResponse()** is the function that is entry point called by the front end to interact with the multi-agent service. Everything happens behind this function.
-- **Summarize()** is used to summarize the chat sessions users are having with the agent service.
+- **Summarize()** is used to summarize the conversations users are having with the agent service.
 - **GenerateEmbedding()** is used to generate embeddings that are used to do vector searches for product data stored in Cosmos DB.
 
 
@@ -423,7 +423,7 @@ Update the code within the function to this:
     }
 ```
 
-This next function gets called by the service to rename conversation to give it a meaningful name. It does this by calling the semantic kernel service which passes the prompt text to an LLM and asks it to summarize the next. It then calls a second function that renames the chat and stores the new name in Cosmos DB.
+This next function gets called by the service to rename chat session to give it a meaningful name. It does this by calling the semantic kernel service which passes the prompt text to an LLM and asks it to summarize the next. It then calls a second function that renames the chat and stores the new name in Cosmos DB.
 
 In the next function below, `SummarizeChatSessionNameAsync()` replace the existing code for that function with this below.
 
@@ -483,7 +483,7 @@ With the activities in this module complete, it is time to test your work.
 
 #### 3. Start a Chat Session
 1. Login to the frontend app.
-1. Start a new chat session.
+1. Start a new conversation.
 1. Send the message:  
    ```
    Hello, how are you?
