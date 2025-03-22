@@ -301,6 +301,10 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
 }
 ```
 
+## Activity 4: Create a Simple Customer Service Agent
+
+In this activity we are going to create a simple customer service agent.  *Please add more content here to introduce this topic and what this thing is going to do...*
+
 
 ### Implement GetResponse() function
 
