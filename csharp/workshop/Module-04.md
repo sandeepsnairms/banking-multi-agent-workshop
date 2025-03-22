@@ -889,7 +889,7 @@ With the hands-on exercises complete it is time to test your work.
        1. Press F5 or select Run.
 2. Copy the launched URL and use it as the API endpoint in the next step.
 3. Follow the [instructions](../..//README.md) to run the Frontend app.
-4. Start a Chat Session in the UI
+4. Start a conversation in the UI
 5. Try the below messages and respond according to the AI response.
     1. Transfer $50 to my friend.
     1. Looking for a Savings account with high interest rate.

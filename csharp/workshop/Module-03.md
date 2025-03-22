@@ -1200,7 +1200,7 @@ Run the below steps for each Agent Type.
 
 #### 3. Start a Chat Session
 1. Open the frontend app.
-1. Start a new chat session.
+1. Start a new conversation.
 1. Send a message based on the prompt of the current AgentType.
 1. Expected response: The response is inline with the Agent's prompts and plugins.
 

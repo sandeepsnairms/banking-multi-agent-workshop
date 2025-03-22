@@ -213,10 +213,10 @@ Replace all of the code within the `Try` block with the code below:
 The next few steps will walk you through how to persist our agent interactions in Cosmos DB. Cosmos DB is used extensively for capturing user and agent interactions in these types of applications. Its design as a NoSQL database that can scale out to support any number of users instantly makes it a great choice for this scenario.
 
 To accomplish this task we will do the following tasks:
-1. Update an interface for the Cosmos DB service to upsert new data
+1. Update the interface for Cosmos DB service to upsert new data
 1. Implement the new upsert feature
-1. Extend that to our asdf
-1. more stuff here
+1. Extend the upsert feature to our Chat Service
+
 
 #### Update Cosmos DB Interface
 To begin, navigate to the `/Interfaces` folder in the `ChatInfrastructure` project.
@@ -292,7 +292,7 @@ Scroll to the end of the file. Before the last curly brace copy and paste the co
 
 #### Update Chat Service
 
-With the implementation complete in the Cosmos DB service, we can now update our Chat Service to store the messages generated between users and agents. In step, we will add a new function that first calls the Cosmos DB service to get a Session object from our database. The Session object is part of an object hierarchy that defines the conversations between users and agents. A session has a name and also an array of messages for that conversation topic. You can view this hierarchy by navigating to its definition stored in `Common/Models/Chat/Session.cs`
+With the implementation complete in the Cosmos DB service, we can now update our Chat Service to store the messages generated between users and agents. In this step, we will add a new function that first calls the Cosmos DB service to get a Session object from our database. The Session object is part of an object hierarchy that defines the conversations between users and agents. A session has a name and also an array of messages for that conversation topic. You can view this hierarchy by navigating to its definition stored in `Common/Models/Chat/Session.cs`
 
 With a reference to the current session returned from the CosmosDBService, this function then calls our newly implemented function to update the messages within the session object with any new or updated messages. Typically, this would include a single user prompt, followed by one or more responses from the agents.
 
@@ -370,7 +370,7 @@ With the activities in this module complete, it is time to test your work.
 
 #### 3. Start a Chat Session
 1. Open the frontend app.
-1. Start a new chat session.
+1. Start a new conversation.
 1. Send the following message:  
    ```
    Can a senior citizen open a savings account?
