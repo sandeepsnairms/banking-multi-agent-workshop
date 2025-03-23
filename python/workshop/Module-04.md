@@ -19,7 +19,9 @@ In this Module you'll learn how to implement the multi-agent orchestration to ti
 1. [Activity 2: Define Agents and Roles](#activity-2-define-agents-and-roles)
 1. [Activity 3: Session on Testing and Monitoring](#activity-3-session-on-testing-and-monitoring)
 1. [Activity 4: Implement Agent Tracing and Monitoring](#activity-4-implement-agent-tracing-and-monitoring)
-1. [Activity 5: Test your Work](#activity-5-test-your-work)
+1. [Activity 5: Putting it all together](#activity-4-putting-it-all-together)
+1. [Activity 6: Test With Swagger](#activity-6-test-with-swagger)
+1. [Activity 7: Connect to our Frontend Application](#activity-7-connect-to-our-frontend-application)
 
 ## Activity 1: Session on Multi-Agent Architectures
 
@@ -39,36 +41,48 @@ Hint: the coordinator agent is a good place to start!
 
 In this session you will learn about how to architect the service layer for a multi-agent system and how to configure and coduct testing and debugging and monitoring for these systems.
 
-## Activity 4: Putting it all together
+## Activity 5: Putting It All Together
 
-In this hands-on exercise, you will wire the API layer for the multi-agent system, connect the UI to the backend, implement tracing, and deploy your changes!
+In this activity, you will wire the API layer for the multi-agent system, connect the UI to the backend, implement tracing, and deploy your changes!
 
 We're now going to wire up the API layer for the multi-agent system. The shell of this was pre-built for you, with operations like creating chat session entries and deleting them. But there was no implementation for chat completions and interacting with the agent graph (as we had not built that yet). We're going to add that now. 
 
 ### Wiring up the API Layer
 
-Locate the `src/app/banking_agents_api.py` file in the `api` folder. This is where you will be making your changes.
+In your IDE, navigate to the `src/app/banking_agents_api.py` file.
 
-First, we can import the graph and checkpoint from `banking_agents.py` that we've now created. Add the following to the top of the file:
+We will first import the graph and checkpoint from `banking_agents.py` that we've now created. 
+
+Paste the following with the imports at the top of the file:
 
 ```python
 from src.app.banking_agents import graph, checkpointer
 ```   
 
-Below the imports, provide a function to return the graph:
+Below the imports, paste the function below to return the graph that is :
 
 ```python
 def get_compiled_graph():
     return graph
 ```
 
-Now locate the `delete_chat_session` function in the file. Here we need to add a background task that will delete checkpoints in the graph, in addition to the chat entries. Add this line of code to the function, just above the return statement:
+Next, locate the `delete_chat_session` function in the file.
+
+This is fairly deep in this file. It may be easier to search for this line of code (e.g. `CTRL-F`).
+
+Here we need to add a background task that will delete checkpoints in the graph, in addition to the chat entries. 
+
+Locate the return statement for this function, `return {"message": "Session deleted successfully"}`
+
+Then add this line of code immediately above it:
     
 ```python
 background_tasks.add_task(delete_all_thread_records, checkpointer, sessionId)
 ```
 
-Now locate the most important function in the file, `get_chat_completion`. Currently it looks like this:
+Next, locate this function, `get_chat_completion`. 
+
+Currently it looks like this:
 
 ```python
 @app.post("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/completion", tags=[endpointTitle],
@@ -155,7 +169,7 @@ async def get_chat_completion(
     return messages
 ```
 
-This new function calls some functions that already existed in the file, namely `extract_relevant_messages` and `process_messages`. These functions coalesce the massage structure coming back from LangGraph into a format that fits our API design. 
+This new function calls some functions that already existed in the file, namely `extract_relevant_messages` and `process_messages`. These functions coalesce the message structure coming back from LangGraph into a format that fits our API design.
 
 We've already implemented tracing at these lines:
 
@@ -169,28 +183,109 @@ This will expect environment variable of `APPLICATIONINSIGHTS_CONNECTION_STRING`
 
 We should now be done wiring up the API layer.
 
-###
 
-## Activity 5: Test your Work
+## Activity 6: Test with Swagger
 
-With the hands-on exercises complete it is time to test your work.
+With the API layer ready, it is time to do our final testing and preparation for integration with our front-end app.
 
-Start the FastAPI server:
+First, start the FastAPI server:
+
+In your IDE, run the following command in your terminal:
 
 ```shell
 uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 8000
 ```
 
-You can view the swagger UI at `http://localhost:8000/docs`.
+Next, open a browser and navigate to `http://localhost:8000/docs` to view the swagger UI.
 
-If you want, you can test the API using the Swagger UI by:
+![Swagger UI](./media/module-04/swagger_ui.png)
 
-- calling `/tenant/{tenantId}/user/{userId}/sessions` with a tenantId and userId to create a chat session
-- calling `/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/completion` with a tenantId, userId, and the sessionId created above to send a message to the chat session
+This app comes with a few pre-created tenant and user ids that you can use to test with.
+
+| Tenant Id | User Id |
+|-|-|
+| T1 | U1 |
+| T1 | U2 |
+| T1 | U3 |
+| T2 | U4 |
+| T2 | U5 |
+| T2 | U6 |
+
+You can use these to test the API using the Swagger UI with these operations below.
+
+Create a new session with tenantId = `T1` and userId = `U1`
+
+![Create a new session](./media/module-04/post_create_session.png)
+
+Click Execute. 
+
+Capture the value of the new sessionId
+
+```json
+{
+  "id": "653cc488-e9d5-4af4-9175-9410e501acb9",
+  "type": "session",
+  "sessionId": "653cc488-e9d5-4af4-9175-9410e501acb9",
+  "tenantId": "T1",
+  "userId": "U1",
+  "tokensUsed": 0,
+  "name": "U1",
+  "messages": []
+}
+```
+
+Next use the tenantId, userId, and the sessionId created above to say "Hello there!" to our agents.
+
+![Create a new completion](./media/module-04/post_create_completion.png)
+
+Fill in the values and click execute.
+
+Here you can see the request from Swagger and the response from our agent.
+
+```json
+[
+  {
+    "id": "1a568dff-43fe-4477-977b-9c21c8bf61f3",
+    "type": "ai_response",
+    "sessionId": "653cc488-e9d5-4af4-9175-9410e501acb9",
+    "tenantId": "T1",
+    "userId": "U1",
+    "timeStamp": "",
+    "sender": "User",
+    "senderRole": "User",
+    "text": "Hello there!",
+    "debugLogId": "a7203518-51d3-4df8-aa43-7c041b553776",
+    "tokensUsed": 0,
+    "rating": true,
+    "completionPromptId": ""
+  },
+  {
+    "id": "10c6daa8-714d-41d8-b564-99a6c8ffdb5d",
+    "type": "ai_response",
+    "sessionId": "653cc488-e9d5-4af4-9175-9410e501acb9",
+    "tenantId": "T1",
+    "userId": "U1",
+    "timeStamp": "",
+    "sender": "Coordinator",
+    "senderRole": "Assistant",
+    "text": "Hi there! Welcome to our bank. How can I assist you today? Are you looking for help with general inquiries, opening a new account or loan, or managing transactions? Let me know!",
+    "debugLogId": "a7203518-51d3-4df8-aa43-7c041b553776",
+    "tokensUsed": 265,
+    "rating": true,
+    "completionPromptId": ""
+  }
+]
+```
+
+## Activity 7: Connect to our Frontend Application
 
 Finally, hook up the UI to the backend locally and test the entire system end-to-end.
 
-Navigate to the frontend folder and locate the src/app/environments/environment.ts file. Update the API_URL to point to your local FastAPI server:
+In your IDE, navigate to the `/frontend` folder.
+
+Next, locate the `src/app/environments/environment.ts` file. 
+
+Update the `API_URL` to point to your local FastAPI server:
 
 ```typescript
 export const environment = {
@@ -199,21 +294,28 @@ export const environment = {
   };
 ```
 
-Build the frontend:
+If you haven't already we need to install npm.
 
 ```shell 
 npm i
 ```
 
-Start the frontend:
+Then build and start the frontend:
+
 
 ```shell
 ng serve
 ```
 
-Navigate to `http://localhost:4200` to view the UI. You should be able to create a chat session, send messages, and receive completions from the agents.
+Open a browser and navigate to `http://localhost:4200` to view the UI. 
 
-If you want to deploy your updates to Azure:
+You should be able to create a chat session, send messages, and receive completions from the agents.
+
+**TBD this image needs to be updated. Cannot get front end to connect to python backend**
+
+![Final User Interface](./media/module-04/frontend.png)
+
+As a final last step, if you want, you can deploy your updates to Azure and then navigate to the final solution.
 
 ```shell   
 azd up
@@ -247,229 +349,12 @@ azd up
 
 ### Module Solution
 
+The following sections include the completed code for this Module. Copy and paste these into your project if you run into issues and cannot resolve.
+
 <details>
-  <summary>If you are encounting errors or issues with your code for this module, please refer to the following code.</summary>
+  <summary>Completed code for <strong>src/app/banking_agents_api.py</strong></summary>
 
 <br>
-
-Your completed `src/app/banking_agents.py` file should look something like this (though you may have decided on a different pattern for agent transfers - this was a task we left to you):
-
-```python
-import logging
-import os
-import uuid
-from langchain.schema import AIMessage
-from typing import Literal
-from langgraph.graph import StateGraph, START, MessagesState
-from langgraph.prebuilt import create_react_agent
-from langgraph.types import Command, interrupt
-from langgraph_checkpoint_cosmosdb import CosmosDBSaver
-from src.app.services.azure_open_ai import model
-from src.app.services.azure_cosmos_db import DATABASE_NAME, checkpoint_container, chat_container, \
-    update_chat_container, patch_active_agent
-from src.app.tools.sales import get_offer_information, calculate_monthly_payment, create_account
-from src.app.tools.transactions import bank_balance, bank_transfer, get_transaction_history
-from src.app.tools.support import service_request, get_branch_location
-from src.app.tools.coordinator import create_agent_transfer
-
-local_interactive_mode = False
-
-logging.basicConfig(level=logging.DEBUG)
-
-PROMPT_DIR = os.path.join(os.path.dirname(__file__), 'prompts')
-
-def load_prompt(agent_name):
-    """Loads the prompt for a given agent from a file."""
-    file_path = os.path.join(PROMPT_DIR, f"{agent_name}.prompty")
-    print(f"Loading prompt for {agent_name} from {file_path}")
-    try:
-        with open(file_path, "r", encoding="utf-8") as file:
-            return file.read().strip()
-    except FileNotFoundError:
-        print(f"Prompt file not found for {agent_name}, using default placeholder.")
-        return "You are an AI banking assistant."  # Fallback default prompt
-
-coordinator_agent_tools = [
-    create_agent_transfer(agent_name="customer_support_agent"),
-    create_agent_transfer(agent_name="sales_agent"),
-]
-
-coordinator_agent = create_react_agent(
-    model,
-    coordinator_agent_tools,
-    state_modifier=load_prompt("coordinator_agent"),
-)
-
-customer_support_agent_tools = [
-    get_branch_location,
-    service_request,
-    create_agent_transfer(agent_name="sales_agent"),
-    create_agent_transfer(agent_name="transactions_agent"),
-]
-customer_support_agent = create_react_agent(
-    model,
-    customer_support_agent_tools,
-    state_modifier=load_prompt("customer_support_agent"),
-)
-
-transactions_agent_tools = [
-    bank_balance,
-    bank_transfer,
-    get_transaction_history,
-    create_agent_transfer(agent_name="customer_support_agent"),
-]
-transactions_agent = create_react_agent(
-    model,
-    transactions_agent_tools,
-    state_modifier=load_prompt("transactions_agent"),
-)
-
-sales_agent_tools = [
-    get_offer_information,
-    calculate_monthly_payment,
-    create_account,
-    create_agent_transfer(agent_name="customer_support_agent"),
-    create_agent_transfer(agent_name="transactions_agent"),
-]
-
-sales_agent = create_react_agent(
-    model,
-    sales_agent_tools,
-    state_modifier=load_prompt("sales_agent"),
-)
-
-
-def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coordinator_agent", "human"]]:
-    thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
-    userId = config["configurable"].get("userId", "UNKNOWN_USER_ID")
-    tenantId = config["configurable"].get("tenantId", "UNKNOWN_TENANT_ID")
-
-    logging.debug(f"Calling coordinator agent with Thread ID: {thread_id}")
-
-    # Get the active agent from Cosmos DB with a point lookup
-    partition_key = [tenantId, userId, thread_id]
-    activeAgent = None
-    try:
-        activeAgent = chat_container.read_item(item=thread_id, partition_key=partition_key).get('activeAgent',
-                                                                                                   'unknown')
-    except Exception as e:
-        logging.debug(f"No active agent found: {e}")
-
-    if activeAgent is None:
-        if local_interactive_mode:
-            update_chat_container({
-                "id": thread_id,
-                "tenantId": "cli-test",
-                "userId": "cli-test",
-                "sessionId": thread_id,
-                "name": "cli-test",
-                "age": "cli-test",
-                "address": "cli-test",
-                "activeAgent": "unknown",
-                "ChatName": "cli-test",
-                "messages": []
-            })
-
-    logging.debug(f"Active agent from point lookup: {activeAgent}")
-
-    # If active agent is something other than unknown or coordinator_agent, transfer directly to that agent
-    if activeAgent is not None and activeAgent not in ["unknown", "coordinator_agent"]:
-        logging.debug(f"Routing straight to last active agent: {activeAgent}")
-        return Command(update=state, goto=activeAgent)
-    else:
-        response = coordinator_agent.invoke(state)
-        return Command(update=response, goto="human")
-
-
-def call_customer_support_agent(state: MessagesState, config) -> Command[Literal["customer_support_agent", "human"]]:
-    thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
-    if local_interactive_mode:
-        patch_active_agent(tenantId="cli-test", userId="cli-test", sessionId=thread_id,
-                           activeAgent="customer_support_agent")
-    response = customer_support_agent.invoke(state)
-    return Command(update=response, goto="human")
-
-
-def call_sales_agent(state: MessagesState, config) -> Command[Literal["sales_agent", "human"]]:
-    thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
-    if local_interactive_mode:
-        patch_active_agent(tenantId="cli-test", userId="cli-test", sessionId=thread_id,
-                           activeAgent="sales_agent")
-    response = sales_agent.invoke(state, config)  # Invoke sales agent with state
-    return Command(update=response, goto="human")
-
-
-def call_transactions_agent(state: MessagesState, config) -> Command[Literal["transactions_agent", "human"]]:
-    thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
-    if local_interactive_mode:
-        patch_active_agent(tenantId="cli-test", userId="cli-test", sessionId=thread_id,
-                           activeAgent="transactions_agent")
-    response = transactions_agent.invoke(state)
-    return Command(update=response, goto="human")
-
-
-# The human_node with interrupt function serves as a mechanism to stop
-# the graph and collect user input for multi-turn conversations.
-def human_node(state: MessagesState, config) -> None:
-    """A node for collecting user input."""
-    interrupt(value="Ready for user input.")
-    return None
-
-
-builder = StateGraph(MessagesState)
-builder.add_node("coordinator_agent", call_coordinator_agent)
-builder.add_node("customer_support_agent", call_customer_support_agent)
-builder.add_node("sales_agent", call_sales_agent)
-builder.add_node("transactions_agent", call_transactions_agent)
-builder.add_node("human", human_node)
-
-builder.add_edge(START, "coordinator_agent")
-
-checkpointer = CosmosDBSaver(database_name=DATABASE_NAME, container_name=checkpoint_container)
-graph = builder.compile(checkpointer=checkpointer)
-
-
-def interactive_chat():
-    thread_config = {"configurable": {"thread_id": str(uuid.uuid4()), "userId": "cli-test", "tenantId": "cli-test"}}
-    global local_interactive_mode
-    local_interactive_mode = True
-    print("Welcome to the interactive multi-agent shopping assistant.")
-    print("Type 'exit' to end the conversation.\n")
-
-    user_input = input("You: ")
-    conversation_turn = 1
-
-    while user_input.lower() != "exit":
-
-        input_message = {"messages": [{"role": "user", "content": user_input}]}
-
-        response_found = False  # Track if we received an AI response
-
-        for update in graph.stream(
-                input_message,
-                config=thread_config,
-                stream_mode="updates",
-        ):
-            for node_id, value in update.items():
-                if isinstance(value, dict) and value.get("messages"):
-                    last_message = value["messages"][-1]  # Get last message
-                    if isinstance(last_message, AIMessage):
-                        print(f"{node_id}: {last_message.content}\n")
-                        response_found = True
-
-        if not response_found:
-            print("DEBUG: No AI response received.")
-
-        # Get user input for the next round
-        user_input = input("You: ")
-        conversation_turn += 1
-
-
-if __name__ == "__main__":
-    interactive_chat()
-```
-
-Your `src/app/banking_agents_api.py` file should look like this:
 
 ```python
 import os
