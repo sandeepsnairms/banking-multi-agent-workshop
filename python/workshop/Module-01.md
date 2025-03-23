@@ -4,12 +4,12 @@
 
 ## Introduction
 
-In this Module, you'll implement your first agent as part of a multi-agent banking system implemented using either Semantic Kernel Agent Framwork or LangGraph. You will get an introduction to Semantic Kernel and LangChain frameworks and their plug-in/tool integration with OpenAI for generating completions.
+In this Module, you'll implement your first agent as part of a multi-agent banking system implemented using either Semantic Kernel Agent Framework or LangGraph. You will get an introduction to Semantic Kernel and LangChain frameworks and their plug-in/tool integration with OpenAI for generating completions.
 
 ## Learning Objectives and Activities
 
 - Learn the basics for Semantic Kernel Agent Framework and LangGraph
-- Learn how to integrate agent framworks to Azure OpenAI
+- Learn how to integrate agent frameworks to Azure OpenAI
 - Build a simple chat agent
 
 ## Module Exercises
@@ -126,7 +126,7 @@ def load_prompt(agent_name):
 
 ### Agents & Tools
 
-Agents are the heart of these applications. Below, we are going to create a **React Agent**. React, or *Re-act* stands for, *reason and act* and is a specific type of agent that is what you will most often use in a multi-agent scenario like this one. 
+Agents are the heart of these applications. Below, we are going to create a **ReAct Agent**. ReAct, or *Re-Act* stands for, *Reason and Act* and is a specific type of agent that is what you will most often use in a multi-agent scenario like this one. 
 
 In LangGraph there are different types of agents you can create, depending on your needs. These include:
 
@@ -378,7 +378,7 @@ In your IDE, navigate to the `src/app/prompts` folder.
 
 Locate the empty `customer_support_agent.prompty` file. 
 
-Copy and pste the following text into it:
+Copy and paste the following text into it:
 
 ```
 You are a customer support agent that can give general advice on banking products and branch locations
@@ -429,7 +429,7 @@ builder.add_node("customer_support_agent", call_customer_support_agent)
 
 With the activities in this module complete, it is time to test your work!
 
-To do this, we are going to add this code to our `banking_agents.py` file. 
+To do this, we are going to add this code to our `banking_agents.py` file.
 
 This code defines a new function, `interactive_chat()` that creates a message loop that invokes our StateGraph that we have defined in this file.
 
@@ -534,17 +534,12 @@ Your implementation is successful if:
 
 ### Common Issues and Troubleshooting
 
-1. Issue 1:
-    - TBD
-    - TBD
+1. Issue 1: Nothing happens when I run `banking_agents.py`.
+    - Confirm that all the code above has been accurately copy and pasted into the correct files.
 
-1. Issue 2:
-    - TBD
-    - TBD
-
-1. Issue 3:
-    - TBD
-    - TBD
+1. Issue 2: I get a `ModuleNotFoundError:` error when I run `banking_agents.py`.
+    - Make sure that your venv is started in the terminal before running any python code.
+    - Make sure that you installed all the python package requirements from [Module 00](./Module-00.md)
 
 
 ### Module Solution
