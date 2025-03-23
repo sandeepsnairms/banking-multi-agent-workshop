@@ -27,35 +27,61 @@ In this session you will get an overview of memory and how it works for Semantic
 
 ## Activity 2: Connecting Agent Frameworks to Azure Cosmos DB
 
-In this hands-on exercise, you will learn how to initialize Azure Cosmos DB and integrate with an agent framework to provide persistent memory for chat history and state management.
+In this module, you will learn how to initialize Azure Cosmos DB and integrate with LangGraph to provide persistent memory for chat history and state management.
 
-The problem with our agents so far is that state is only maintained in memory and is lost when the agent graph is restarted. To solve this problem, we will use Azure Cosmos DB to store the state of the agent. Azure Cosmos DB is a globally distributed, multi-model database service for any scale. It is designed to provide low latency, high availability, and consistency with comprehensive service level agreements (SLAs). We will also use Azure Cosmos DB to store chat history.
+The problem with our agents so far is that state is only maintained in memory and is lost when the agent graph is restarted. To solve this problem, we will use Azure Cosmos DB to store the state of the agent. Azure Cosmos DB is a distributed NoSQL database service in Azure. It is designed to for applications requiring low latency and high availability. It is especially adept at handling massive volumes of data with high-concurrency. And its schema-agnostic design makes it ideally suited for theset types of applications. We will also use Azure Cosmos DB to store chat history.
 
-Adding state management using Cosmos DB is easy with the checkpointer plugin. First, add the following imports to the top of the file:
+Adding state management using Cosmos DB is easy with the checkpointer plugin. 
+
+### Checkpointer Plugin
+
+The checkpointer plugin in LangGraph is a utility designed to facilitate the process of saving and restoring the state of an application at various points during its execution. This is particularly useful in multi-agent systems where maintaining consistent state across different agents and ensuring that progress can be resumed in case of failures or interruptions are critical.
+
+Key Features of the Checkpointer Plugin:
+
+- **State Management**: The checkpointer plugin allows developers to capture the current state of the agents and their interactions. This includes the data they are processing, their internal state, and any relevant context.
+- **Persistence**: It provides mechanisms to persist this state to a durable storage medium, such as a database or file system. This ensures that the state can be reloaded even after a system crash or restart.
+- **Restoration**: The plugin supports restoring the state to a previous checkpoint. This allows the system to resume operations from a known good state, reducing the need for reprocessing and minimizing downtime.
+- **Consistency**: It ensures consistency across different agents by coordinating the checkpointing process. This is crucial in distributed systems where agents might be operating on different nodes or environments.
+- **Configuration**: Developers can configure the frequency and conditions under which checkpoints are created. This flexibility allows for balancing between performance overhead and reliability.
+
+
+### Storing Agent State
+
+Let's add the Checkpointer Plugin to our application.
+
+To being, navigate to the `banking_Agents.py` file.
+
+Copy the code below to the top of the file with the other imports:
 
 ```python
 from langgraph_checkpoint_cosmosdb import CosmosDBSaver
 from src.app.services.azure_cosmos_db import DATABASE_NAME, checkpoint_container, chat_container, update_chat_container, \
-    patch_active_agent  
+    patch_active_agent
 ```
 
-Next, locate the following lines in the `banking_agents.py` file:
+In the same `banking_agents.py` file, scroll down to locate the following lines:
 
 ```python
 checkpointer = MemorySaver()
 graph = builder.compile(checkpointer=checkpointer)
 ```
 
-Replace with the below:
+Then replace those two lines with the code below:
 
 ```python
 checkpointer = CosmosDBSaver(database_name=DATABASE_NAME, container_name=checkpoint_container)
 graph = builder.compile(checkpointer=checkpointer)
 ```
 
-From this point on, the agent will save its state to Azure Cosmos DB. The `CosmosDBSaver` class will save the state of the agent to the `DATABASE_NAME` database and the `checkpoint_container` container.
+From this point on, the agent will save its state to Azure Cosmos DB. The `CosmosDBSaver` class will save the state of the agent to the database represented by the global variable, `DATABASE_NAME` in the `checkpoint_container` container.
 
-We're also going to make some changes to the coordinator agent's calling function to store chat history. Locate the following code in the `banking_agents.py` file:
+
+### Storing Agent Chat history
+
+Next, we are going to modify the coordinator agent to store chat history.
+
+Locate the following code in the `banking_agents.py` file:
 
 ```python
 def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coordinator_agent", "human"]]:
@@ -77,8 +103,10 @@ def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coo
     partition_key = [tenantId, userId, thread_id]
     activeAgent = None
     try:
-        activeAgent = chat_container.read_item(item=thread_id, partition_key=partition_key).get('activeAgent',
-                                                                                                   'unknown')
+        activeAgent = chat_container.read_item(
+            item=thread_id, 
+            partition_key=partition_key).get('activeAgent', 'unknown')
+
     except Exception as e:
         logging.debug(f"No active agent found: {e}")
 
@@ -108,7 +136,9 @@ def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coo
         return Command(update=response, goto="human")
 ```
 
-Finally locate the following code in the `banking_agents.py` file:
+Lastly, we will store chat history for the customer service agent as well.
+
+Locate the following code in the `banking_agents.py` file:
 
 ```python
 def call_customer_support_agent(state: MessagesState, config) -> Command[Literal["customer_support_agent", "human"]]:
@@ -122,42 +152,71 @@ Replace it with the following code:
 def call_customer_support_agent(state: MessagesState, config) -> Command[Literal["customer_support_agent", "human"]]:
     thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
     if local_interactive_mode:
-        patch_active_agent(tenantId="T1", userId="U1", sessionId=thread_id,
-                           activeAgent="customer_support_agent")
+        patch_active_agent(
+            tenantId="T1", 
+            userId="U1", 
+            sessionId=thread_id,
+            activeAgent="customer_support_agent")
+
     response = customer_support_agent.invoke(state)
     return Command(update=response, goto="human")
 ```
 
+**NOTE!: What is happening here with this `patch_active_agent()` call? need more explanation**
 
 
+### Let's review
 
-### What did we do?
+**Note: maybe could use a rephrasing of the text in this section to make more concise and clear**
 
-What we have done:
+In the activity above we completed the following:
 
-- Ensured that state and chat history is saved to Azure Cosmos DB so that it lasts beyond the lifetime of the application
-- Storing an "active agent" in Cosmos DB, adding a check to see if the active agent is known. If so, we are routing directly to that agent. 
+- Enabled storing an "active agent" in Cosmos DB, adding a check to see if the active agent is known. If so, we are routing directly to that agent. 
+- Enabled state and chat history is saved to Azure Cosmos DB so that it lasts beyond the lifetime of the application.
 - We are patching the active agent in the Chat container after transfer. This is important to ensure that turn-by-turn routing is deterministic when it is known which agent asked the last question.
   - Note: it is feasible to rely on the LLM to reason about which agent to route to, but its behavior is less reliable and may not be suitable for all use cases.
 
+
 ## Activity 3: Test your Work
 
-With the hands-on exercises complete it is time to test your work!
+With the activities in this module complete, it is time to test your work!
 
-Before testing, lets make a small amendment to your `interactive_chat` function to hardcode the thread ID. The thread ID is the unique identifier for the conversation state. Until now we have not made use of it. We're hardcoding it here to demonstrate how the converation can be picked up later even when the application has stopped:
+Before testing, lets make a small amendment to your `interactive_chat()` function in our `banking_agents.py` file to hardcode the thread ID. The thread ID is the unique identifier for the conversation state. Until now we have not made use of it. In the change below we are going to hard code it to demonstrate how the converation can be picked up later even when the application has stopped.
+
+Within the `banking_agents.py` file locate the `def interactive_chat()` function.
+
+Immediately above the function declaration add the following line of code:
 
 ```python
 hardcoded_thread_id = "hardcoded-thread-id-01"
-
-def interactive_chat():
-    thread_config = {"configurable": {"thread_id": hardcoded_thread_id, "userId": "cli-test", "tenantId": "cli-test"}}    
 ```
 
-Once that update is done, run the `banking_agents.py` file and test the agent. Try asking for help and wait for it to transfer to the support agent:
+Then replace the first line immediately within the function to this:
+
+```python
+def interactive_chat():
+    thread_config = {"configurable": {"thread_id": hardcoded_thread_id, "userId": "cli-test", "tenantId": "cli-test"}}
+```
+
+### Ready to test
+
+Let's test our agents!
+
+In your IDE, run the following command in your terminal:
 
 ```bash
-Type 'exit' to end the conversation.
+python -m src.app.banking_agents
+```
 
+Type the following text:
+
+```
+I want some help
+```
+
+You should see your query being routed to the customer support agent and a response generated:
+
+```bash
 You: I want some help
 transfer_to_customer_support_agent...
 customer_support_agent: Hi there! How can I assist you today? If you need help with opening a new account, taking out a loan, checking your account balance, making a transfer, or anything else, let me know!
@@ -165,9 +224,34 @@ customer_support_agent: Hi there! How can I assist you today? If you need help w
 You: 
 ```
 
-To prove that agent state is preserved, shut down the agent. Have a look at the Chat container in your Cosmos DB account. You should see the agent state and chat history stored there, with "customer_support_agent" as the active agent.
+To prove that agent state is preserved we will shut down the agent. 
 
-Now restart the application by running the `banking_agents.py` file again. Ask it for some help again. The coordinator agent should pick up the conversation where it left off and route straight to the customer support agent:
+In the terminal type *exit*.
+
+```
+You: exit
+
+```
+
+Next, open your browser and find the Cosmos DB account you deployed in Module 0. 
+
+Look for the Cosmos DB account in the resource group.
+
+Navigate to Data Explorer within the Cosmos DB blade then locate the Chat container.
+
+Open the Chat container. 
+
+You should see the agent state and chat history stored there, with "customer_support_agent" as the active agent.
+
+**Note: I DO NOT SEE anything in Chat History container. Only the Chat container and inside ChatContainer I don't see any messages from the chat session itself, only a single item with an empty messages array. Also why is there a ChatHistory container in this database? Does this get used?**
+
+Navigate back to your terminal and restart the application.
+
+```bash
+python -m src.app.banking_agents
+```
+
+Ask it for some help again. The coordinator agent should pick up the conversation where it left off and route straight to the customer support agent:
 
 ```bash
 Welcome to the single-agent banking assistant.
@@ -181,7 +265,7 @@ You:
 
 You may also want to look at the checkpoints container in your Cosmos DB account. You should see the agent state stored there. There is much more data stored in this container, as it is not only maintaining the chat history, but also the state of the agent, and any other agent, including computations in between transfers. This allows for a richer conversational experience as the full agent state is remembered and checkpointed regularly. 
 
-**TBD - this needs langauge specific instructions**
+
 
 ### Validation Checklist
 
@@ -208,12 +292,13 @@ Your implementation is successful if:
 
 ### Module Solution
 
+The following sections include the completed code for this Module. Copy and paste these into your project if you run into issues and cannot resolve.
+
 <details>
-  <summary>If you are encountering errors or issues with your code for this module, please refer to the following code.</summary>
+  <summary>Completed code for <strong>src/app/banking_agents.py</strong></summary>
 
 <br>
 
-Your `banking_agents.py` file should now look like this:
 ```python
 import logging
 import os
@@ -222,12 +307,13 @@ from typing import Literal
 from langgraph.graph import StateGraph, START, MessagesState
 from langgraph.prebuilt import create_react_agent
 from langgraph.types import Command, interrupt
-from langgraph_checkpoint_cosmosdb import CosmosDBSaver
-
-from src.app.services.azure_cosmos_db import DATABASE_NAME, checkpoint_container, chat_container, update_chat_container, \
-    patch_active_agent
 from src.app.services.azure_open_ai import model
 from src.app.tools.coordinator import create_agent_transfer
+
+from langgraph_checkpoint_cosmosdb import CosmosDBSaver
+from src.app.services.azure_cosmos_db import DATABASE_NAME, checkpoint_container, chat_container, update_chat_container, \
+    patch_active_agent  
+
 
 local_interactive_mode = False
 
@@ -246,7 +332,6 @@ def load_prompt(agent_name):
         print(f"Prompt file not found for {agent_name}, using default placeholder.")
         return "You are an AI banking assistant."  # Fallback default prompt
 
-
 coordinator_agent_tools = [
     create_agent_transfer(agent_name="customer_support_agent"),
 ]
@@ -256,6 +341,7 @@ coordinator_agent = create_react_agent(
     tools=coordinator_agent_tools,
     state_modifier=load_prompt("coordinator_agent"),
 )
+
 
 customer_support_agent_tools = []
 customer_support_agent = create_react_agent(
@@ -276,8 +362,10 @@ def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coo
     partition_key = [tenantId, userId, thread_id]
     activeAgent = None
     try:
-        activeAgent = chat_container.read_item(item=thread_id, partition_key=partition_key).get('activeAgent',
-                                                                                                'unknown')
+        activeAgent = chat_container.read_item(
+            item=thread_id, 
+            partition_key=partition_key).get('activeAgent','unknown')
+        
     except Exception as e:
         logging.debug(f"No active agent found: {e}")
 
@@ -310,8 +398,12 @@ def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coo
 def call_customer_support_agent(state: MessagesState, config) -> Command[Literal["customer_support_agent", "human"]]:
     thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
     if local_interactive_mode:
-        patch_active_agent(tenantId="T1", userId="U1", sessionId=thread_id,
-                           activeAgent="customer_support_agent")
+        patch_active_agent(
+            tenantId="T1", 
+            userId="U1", 
+            sessionId=thread_id,
+            activeAgent="customer_support_agent")
+
     response = customer_support_agent.invoke(state)
     return Command(update=response, goto="human")
 
@@ -335,10 +427,8 @@ checkpointer = CosmosDBSaver(database_name=DATABASE_NAME, container_name=checkpo
 graph = builder.compile(checkpointer=checkpointer)
 
 hardcoded_thread_id = "hardcoded-thread-id-01"
-
-
 def interactive_chat():
-    thread_config = {"configurable": {"thread_id": hardcoded_thread_id, "userId": "U1", "tenantId": "T1"}}
+    thread_config = {"configurable": {"thread_id": hardcoded_thread_id, "userId": "cli-test", "tenantId": "cli-test"}}
     global local_interactive_mode
     local_interactive_mode = True
     print("Welcome to the single-agent banking assistant.")
@@ -384,7 +474,6 @@ Proceed to [Agent Specialization](./Module-03.md)
 
 ## Resources
 
-- [Semantic Kernel Agent Framework](https://learn.microsoft.com/semantic-kernel/frameworks/agent)
 - [LangGraph](https://langchain-ai.github.io/langgraph/concepts/)
 - [Azure OpenAI Service documentation](https://learn.microsoft.com/azure/cognitive-services/openai/)
 - [Azure Cosmos DB Vector Database](https://learn.microsoft.com/azure/cosmos-db/vector-database)
