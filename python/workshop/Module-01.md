@@ -378,7 +378,7 @@ In your IDE, navigate to the `src/app/prompts` folder.
 
 Locate the empty `customer_support_agent.prompty` file. 
 
-Copy and pste the following text into it:
+Copy and paste the following text into it:
 
 ```
 You are a customer support agent that can give general advice on banking products and branch locations
