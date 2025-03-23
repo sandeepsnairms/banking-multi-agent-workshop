@@ -93,7 +93,7 @@ PROMPT_DIR = os.path.join(os.path.dirname(__file__), 'prompts')
 
 # define agents & tools
 
-# define nodes
+# define functions
 
 # define workflow
 
@@ -154,12 +154,12 @@ coordinator_agent = create_react_agent(
 )
 ```
 
-### Nodes
+### Functions
 
 Since LangGraph is a graph, the agents, which are comprised of prompts, tools, and functions are the implemented as nodes. But humans are also a part of the workflow here so we need to define them as a node too. In our simple sample we have two nodes, one for the coordinator agent and one for the human.
 
 
-In the `banking_agents.py` file, navigate to the `# define nodes` comment.
+In the `banking_agents.py` file, navigate to the `# define functions` comment.
 
 Replace the comment with the following:
 

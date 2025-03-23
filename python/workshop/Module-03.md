@@ -32,7 +32,15 @@ In this hands-on exercise, you will learn how to create multiple agents that spe
 
 In the earlier modules, you created a single customer service agent that specialized in a single set of tasks, and a coordinator agent that was responsible for transferring responsibility to that agent. In this module, you will broaden the scope of that agent, and create more agents that handle different tasks. You will define the roles and responsibilities of each agent and define the communication protocols between them.
 
-First, lets add a new transactions agent and sales agent. Locate your `banking_agents.py` file and below the `customer_support_agent` definition, add the following code:
+First, let's add a new transactions agent and sales agent.
+
+### Define the New Agents
+
+To begin, open the `banking_agents.py` file.
+
+Locate the lines that define the `customer_support_agent_tools` and the `customer_support_agent` 
+
+Paste the following code below:
 
 ```python
 transactions_agent_tools = []
@@ -43,7 +51,6 @@ transactions_agent = create_react_agent(
 )
 
 sales_agent_tools = []
-
 sales_agent = create_react_agent(
     model,
     sales_agent_tools,
@@ -51,16 +58,19 @@ sales_agent = create_react_agent(
 )
 ```
 
-Lets also update the coordinator agent tool definition so that it can transfer to both the customer support agent and the transactions agent. Locate the `coordinator_agent_tools` definition and update it as follows:
+### Update the Coordinator Agent
 
-Locate the below code:
+Lets also update the coordinator agent tool definition so that it can transfer to both the customer support agent and the transactions agent. 
+
+Locate the `coordinator_agent_tools` definition
 
 ```python
 coordinator_agent_tools = [
     create_agent_transfer(agent_name="customer_support_agent"),
 ]   
 ```
-Update it to:
+
+Replace this code with the following:
 
 ```python
 coordinator_agent_tools = [
@@ -70,14 +80,23 @@ coordinator_agent_tools = [
 ]
 ```
 
-We also need to add calling functions for the two new agents. Add these below the existing calling function `call_customer_support_agent`:
+### Define the New Functions
+
+We also need to add calling functions for the two new agents. 
+
+Locate the line which defines this function, `def call_customer_support_agent`.
+
+Below this function, paste two new functions: 
 
 ```python
 def call_sales_agent(state: MessagesState, config) -> Command[Literal["sales_agent", "human"]]:
     thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
     if local_interactive_mode:
-        patch_active_agent(tenantId="T1", userId="U1", sessionId=thread_id,
-                           activeAgent="sales_agent")
+        patch_active_agent(
+            tenantId="T1", 
+            userId="U1", 
+            sessionId=thread_id,
+            activeAgent="sales_agent")
     response = sales_agent.invoke(state, config)  # Invoke sales agent with state
     return Command(update=response, goto="human")
 
@@ -85,33 +104,51 @@ def call_sales_agent(state: MessagesState, config) -> Command[Literal["sales_age
 def call_transactions_agent(state: MessagesState, config) -> Command[Literal["transactions_agent", "human"]]:
     thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
     if local_interactive_mode:
-        patch_active_agent(tenantId="T1", userId="U1", sessionId=thread_id,
-                           activeAgent="transactions_agent")
+        patch_active_agent(
+            tenantId="T1", 
+            userId="U1", 
+            sessionId=thread_id,
+            activeAgent="transactions_agent")
     response = transactions_agent.invoke(state)
     return Command(update=response, goto="human")
 ```
 
-Finally, we need to add these agents as nodes in the graph with their calling functions. Add these two lines to the `StateGraph` builder:
+### Update Workflow
+
+Finally, we need to add these agents as nodes in the graph with their calling functions. 
+
+
+Locate the `StateGraph` builder further below in the file.
+
+Add these two lines to the `StateGraph` builder:
     
 ```python
 builder.add_node("transactions_agent", call_transactions_agent)
 builder.add_node("sales_agent", call_sales_agent)
 ```
+
 We've now added two new agents, and adjusted the coordinator agent so it can transfer to all three agents.
+
 
 ## Activity 3: Adding Agent Tools
 
-In this hands-on exercise, you will learn how to add tools to your agents. You will learn how to define the API contracts for these plugins and how to test and debug them.
+In this activity, you will learn how to add tools to your agents. You will also learn how to define the API contracts for these plugins and how to test and debug them.
+
 
 ### What are tools?
 
 By "tools" we mean functions or discreet actions that each agent can perform. A tool will typically have input parameters (though it can also have none) and the agent will be responsible for extracting the input values from the conversational context and calling the tool when appropriate.
 
-### Adding More Tools
-
 We already added a type of tool to the coordinator agent in the previous module, but that tool only allowed agents to hand off to each-other. In this module, we will add more functional tools to each agent that will allow them to perform other actions, including transactions against the database.
 
-First, locate the file `src/app/tools/sales.py` and add the following code:
+
+### Defining New Tools
+
+We are going to define a series of tools that allow the customer agents to perform specific actions for users including creating new accounts, balance inquiries, and varios other banking transactions.
+
+To being, In your IDE, locate the file `src/app/tools/sales.py` 
+
+In the empty file, add the following code:
 
 ```python
 from typing import Any
@@ -188,7 +225,9 @@ def calculate_monthly_payment(loan_amount: float, years: int) -> float:
     return round(monthly_payment, 2)  # Rounded to 2 decimal places
 ```
 
-Next, locate the file `src/app/tools/transactions.py` and add the following code:
+Next, locate the file `src/app/tools/transactions.py` 
+
+In the empty file, add the following code:
 
 ```python
 import logging
@@ -300,7 +339,9 @@ def bank_balance(config: RunnableConfig, account_number: str) -> str:
     return f"The balance for account number {account_number} is ${balance}"
 ```
 
-Finally, locate the file `src/app/tools/customer_support.py` and add the following code:
+Finally, locate the file `src/app/tools/support.py`
+
+In the empty file, add the following code:
 
 ```python
 import logging
@@ -476,7 +517,15 @@ def get_branch_location(state: str) -> Dict[str, List[str]]:
     return branches.get(state, {"Unknown County": ["No branches available", "No branches available"]})
 ```
 
-Now we need to update the tool definitions for each agent. First, import the tools into the `banking_agents.py` file:
+### Integrate the New Tools
+
+With the tools defined, we need to update the tool definitions for each agent. 
+
+In your IDE, navigate to the `banking_agents.py` file.
+
+We need to import the tools into this file.
+
+At the top of the file, add the following import statements:
 
 ```python
 from src.app.tools.sales import calculate_monthly_payment, create_account
@@ -484,7 +533,9 @@ from src.app.tools.support import get_branch_location, service_request
 from src.app.tools.transactions import bank_balance, bank_transfer, get_transaction_history
 ```
 
-Then locate the empty `customer_support_agent_tools = []` list in `banking_agents.py` and update it as follows:
+Next, locate the line containing the empty `customer_support_agent_tools = []` 
+
+Update it with the code below:
 
 ```python
 customer_support_agent_tools = [
@@ -493,7 +544,9 @@ customer_support_agent_tools = [
 ]
 ```
 
-Update the empty `transactions_agent_tools = []` list as follows:
+Next, scroll a further down in this file to locate, the empty `transactions_agent_tools = []` 
+
+Update it with the code below:
 
 ```python
 transactions_agent_tools = [
@@ -503,7 +556,9 @@ transactions_agent_tools = [
 ]
 ```
 
-Finally, update the `sales_agent_tools = []` list as follows:
+Finally, scroll further down to the empty `sales_agent_tools = []`
+
+And update it with the code below:
 
 ```python
 sales_agent_tools = [
@@ -516,9 +571,11 @@ We're done defining the tools each agent has access to, but we still need to def
 
 ### Updating Agent Prompts
 
-Since the agents have now been built, we can update the coordinator agent's prompt accordingly. 
+Since the agents have now been built, we can update the coordinator agent's prompt to route to them.
 
-Locate the file `src/app/prompts/coordinator_agent.prompty` and update it as below: 
+In your IDE, navigate to the file `src/app/prompts/coordinator_agent.prompty`
+
+Replace the contents with this text below: 
 
 ```text
 You are a Chat Initiator and Request Router in a bank.
@@ -529,7 +586,12 @@ If the user wants to check their account balance or make a bank transfer, transf
 You MUST include human-readable response before transferring to another agent.
 ```
 
-Now that the customer support agent has a service request tool, we can update the prompt for the customer support agent. Locate the file `src/app/prompts/customer_support_agent.prompty` and update it as below:
+
+Now that the customer support agent has a service request tool, we can update the prompt for the customer support agent. 
+
+Next, navigate to the file `src/app/prompts/customer_support_agent.prompty` 
+
+Replace the contents with this text below: 
 
 ```text
 You are a customer support agent that can give general advice on banking products and branch locations
@@ -538,22 +600,31 @@ and say you will get someone to call them back, call 'service_request' tool with
 You MUST include human-readable response before transferring to another agent.
 ```
 
-Note that we are not explicitly naming the branch location tool, as this is already implied in the first part of the prompt. However, keep a note of this when you test the agent. Does it always call the tool when you expect? Does the prompt need to be more specific?
+Note that we are not explicitly naming the branch location tool, as this is already implied in the first part of the prompt. However, keep a note of this when you test the agent. Does it always call the tool when you expect? Or does the prompt need to be more specific?
 
-Next, update the prompt for the transactions agent. Locate the file `src/app/prompts/transactions_agent.prompty` and update it as below:
+
+Next, update the prompt for the transactions agent. 
+
+In your IDE, navigate to the empty file `src/app/prompts/transactions_agent.prompty` 
+
+Paste this text below: 
 
 ```text
 You are a banking transactions agent that can handle account balance enquiries and bank transfers.
 If the user wants to make a deposit or withdrawal or transfer, ask for the amount and the account number which they want to transfer from and to.
 Then call 'bank_transfer' tool with toAccount, fromAccount, and amount values.
-Make sure you confirm the transaction details with the user before calling the 'bank_transfer' tool.
+Make sure you confirm the transaction details with the user before calling the 'bank_transfer' tool. 
 then call 'bank_transfer' tool with these values.
 If the user wants to know transaction history, ask for the start and end date, and call 'get_transaction_history' tool with these values.
 If the user needs general help, transfer to 'customer_support' for help.
 You MUST respond with the repayment amounts before transferring to another agent.
 ```
 
-Finally, lets update the prompt for the sales agent. Locate the file `src/app/prompts/sales_agent.prompty` and update it as below:
+Finally, lets update the prompt for the sales agent. 
+
+In your IDE, navigate to the empty file `src/app/prompts/sales_agent.prompty`
+
+Paste this text below: 
 
 ```text
 You are a sales agent that can help users with creating a new account, or taking out bank loans.
@@ -574,7 +645,9 @@ You MUST respond with the repayment amounts before transferring to another agent
 
 We are going to add one more tool that is a little different from the others. This tool will allow the customer support agent to perform a semantic search for products in the bank's database. We'll use Azure Cosmos DB Vector Search capability to perform a semantic search against the OffersData container.
 
-First, locate the file `src/app/tools/customer_support.py` and add the following tool at the top:
+In your IDE, locate the file `src/app/tools/sales.py`
+
+Paste the code for this following tool at the top:
 
 ```python
 @tool
@@ -589,16 +662,24 @@ def get_offer_information(user_prompt: str, accountType: str) -> list[dict[str, 
 
 You can implement this tool in exactly the same way as the other tools. Do you remember the steps? Go ahead and do it!
 
-Hint: the code for the `vector_search` and `generate_embedding` functions is in `src/app/services/azure_cosmos_db.py` so in addition to adding the tool imports, and adding the `get_offer_information` tool to the list of tools declared for the sales agent, you will need to extend the existing imports in `src/app/tools/sales.py` to include the underlying Azure Cosmos DB database functions.
+- Hint: The code for the `vector_search` is in `src/app/services/azure_cosmos_db.py` and `generate_embedding` is in `src/app/services/azure_open_ai.py`
+
+- Hint: Be sure the sales agent definition in `banking_agents.py` knows about its new tool functionality.
+
+
 
 ## Activity 5: Test your Work
 
-With the hands-on exercises complete it is time to test your work.
+With the activities in this module complete, it is time to test your work!
 
-Lets run the application and test the new functionality. Run the following command in your terminal:
+### Ready to test
+
+Let's test our agents!
+
+In your IDE, run the following command in your terminal:
 
 ```bash
-python src/app/banking_agents.py
+python -m src.app.banking_agents
 ```
 
 Try transferring money between accounts:
@@ -636,6 +717,9 @@ You: Savings
 
 ```
 
+Type `exit` to end the test.
+
+
 ## Validation Checklist
 
 - [ ] Account Balance agent functions correctly
@@ -659,12 +743,13 @@ You: Savings
 
 ### Module Solution
 
+The following sections include the completed code for this Module. Copy and paste these into your project if you run into issues and cannot resolve.
+
 <details>
-  <summary>If you are encountering errors or issues with your code for this module, please refer to the following code.</summary>
+  <summary>Completed code for <strong>src/app/banking_agents.py</strong></summary>
 
 <br>
 
-Your `banking_agents.py` file should now look like this:
 ```python
 import logging
 import os
@@ -673,20 +758,21 @@ from typing import Literal
 from langgraph.graph import StateGraph, START, MessagesState
 from langgraph.prebuilt import create_react_agent
 from langgraph.types import Command, interrupt
-from langgraph_checkpoint_cosmosdb import CosmosDBSaver
-
-from src.app.services.azure_cosmos_db import DATABASE_NAME, checkpoint_container, chat_container, update_chat_container, \
-    patch_active_agent
 from src.app.services.azure_open_ai import model
 from src.app.tools.coordinator import create_agent_transfer
+
+from langgraph_checkpoint_cosmosdb import CosmosDBSaver
+from src.app.services.azure_cosmos_db import DATABASE_NAME, checkpoint_container, chat_container, update_chat_container, \
+    patch_active_agent  
+
 from src.app.tools.sales import calculate_monthly_payment, create_account, get_offer_information
 from src.app.tools.support import get_branch_location, service_request
 from src.app.tools.transactions import bank_balance, bank_transfer, get_transaction_history
 
+
 local_interactive_mode = False
 
-logging.basicConfig(level=logging.DEBUG)
-
+logging.basicConfig(level=logging.ERROR)
 
 PROMPT_DIR = os.path.join(os.path.dirname(__file__), 'prompts')
 
@@ -714,11 +800,12 @@ coordinator_agent = create_react_agent(
     state_modifier=load_prompt("coordinator_agent"),
 )
 
+
 customer_support_agent_tools = [
     get_branch_location,
     service_request,
-
 ]
+
 customer_support_agent = create_react_agent(
     model,
     customer_support_agent_tools,
@@ -730,6 +817,7 @@ transactions_agent_tools = [
     bank_transfer,
     get_transaction_history,
 ]
+
 transactions_agent = create_react_agent(
     model,
     transactions_agent_tools,
@@ -738,8 +826,8 @@ transactions_agent = create_react_agent(
 
 sales_agent_tools = [
     calculate_monthly_payment,
-    create_account,
-    get_offer_information,
+    create_account, 
+    get_offer_information
 ]
 
 sales_agent = create_react_agent(
@@ -747,7 +835,6 @@ sales_agent = create_react_agent(
     sales_agent_tools,
     state_modifier=load_prompt("sales_agent"),
 )
-
 
 def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coordinator_agent", "human"]]:
     thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
@@ -760,8 +847,10 @@ def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coo
     partition_key = [tenantId, userId, thread_id]
     activeAgent = None
     try:
-        activeAgent = chat_container.read_item(item=thread_id, partition_key=partition_key).get('activeAgent',
-                                                                                                'unknown')
+        activeAgent = chat_container.read_item(
+            item=thread_id, 
+            partition_key=partition_key).get('activeAgent','unknown')
+        
     except Exception as e:
         logging.debug(f"No active agent found: {e}")
 
@@ -794,8 +883,12 @@ def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coo
 def call_customer_support_agent(state: MessagesState, config) -> Command[Literal["customer_support_agent", "human"]]:
     thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
     if local_interactive_mode:
-        patch_active_agent(tenantId="T1", userId="U1", sessionId=thread_id,
-                           activeAgent="customer_support_agent")
+        patch_active_agent(
+            tenantId="T1", 
+            userId="U1", 
+            sessionId=thread_id,
+            activeAgent="customer_support_agent")
+
     response = customer_support_agent.invoke(state)
     return Command(update=response, goto="human")
 
@@ -803,8 +896,11 @@ def call_customer_support_agent(state: MessagesState, config) -> Command[Literal
 def call_sales_agent(state: MessagesState, config) -> Command[Literal["sales_agent", "human"]]:
     thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
     if local_interactive_mode:
-        patch_active_agent(tenantId="T1", userId="U1", sessionId=thread_id,
-                           activeAgent="sales_agent")
+        patch_active_agent(
+            tenantId="T1", 
+            userId="U1", 
+            sessionId=thread_id,
+            activeAgent="sales_agent")
     response = sales_agent.invoke(state, config)  # Invoke sales agent with state
     return Command(update=response, goto="human")
 
@@ -812,8 +908,11 @@ def call_sales_agent(state: MessagesState, config) -> Command[Literal["sales_age
 def call_transactions_agent(state: MessagesState, config) -> Command[Literal["transactions_agent", "human"]]:
     thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
     if local_interactive_mode:
-        patch_active_agent(tenantId="T1", userId="U1", sessionId=thread_id,
-                           activeAgent="transactions_agent")
+        patch_active_agent(
+            tenantId="T1", 
+            userId="U1", 
+            sessionId=thread_id,
+            activeAgent="transactions_agent")
     response = transactions_agent.invoke(state)
     return Command(update=response, goto="human")
 
@@ -838,11 +937,9 @@ builder.add_edge(START, "coordinator_agent")
 checkpointer = CosmosDBSaver(database_name=DATABASE_NAME, container_name=checkpoint_container)
 graph = builder.compile(checkpointer=checkpointer)
 
-hardcoded_thread_id = "hardcoded-thread-id-04"
-
-
+hardcoded_thread_id = "hardcoded-thread-id-01"
 def interactive_chat():
-    thread_config = {"configurable": {"thread_id": hardcoded_thread_id, "userId": "U1", "tenantId": "T1"}}
+    thread_config = {"configurable": {"thread_id": hardcoded_thread_id, "userId": "cli-test", "tenantId": "cli-test"}}
     global local_interactive_mode
     local_interactive_mode = True
     print("Welcome to the single-agent banking assistant.")
@@ -881,8 +978,13 @@ if __name__ == "__main__":
     interactive_chat()
 ```
 
-Your `src/app/tools/coordinator.py` file should be unchanged from the last module.
-Your `src/app/tools/support.py` file should be unchanged from the last module.
+</details>
+
+<details>
+  <summary>Completed code for <strong>src/app/tools/support.py</strong></summary>
+
+<br>
+
 ```python
 import logging
 import uuid
@@ -1056,7 +1158,13 @@ def get_branch_location(state: str) -> Dict[str, List[str]]:
 
     return branches.get(state, {"Unknown County": ["No branches available", "No branches available"]})
 ```
-Your `src/app/tools/sales.py` file should look like this:
+</details>
+
+<details>
+  <summary>Completed code for <strong>src/app/tools/sales.py</strong></summary>
+
+<br>
+
 ```python
 from typing import Any
 
@@ -1076,6 +1184,7 @@ def get_offer_information(user_prompt: str, accountType: str) -> list[dict[str, 
     vectors = generate_embedding(user_prompt)
     search_results = vector_search(vectors, accountType)
     return search_results
+
 @tool
 def create_account(account_holder: str, balance: float, config: RunnableConfig) -> str:
     """
@@ -1141,8 +1250,13 @@ def calculate_monthly_payment(loan_amount: float, years: int) -> float:
 
     return round(monthly_payment, 2)  # Rounded to 2 decimal places
 ```
+</details>
 
-Your `src/app/tools/transactions.py` file should look like this:
+<details>
+  <summary>Completed code for <strong>src/app/tools/transactions.py</strong></summary>
+
+<br>
+
 ```python
 import logging
 from datetime import datetime
@@ -1252,9 +1366,13 @@ def bank_balance(config: RunnableConfig, account_number: str) -> str:
     balance = account.get("balance", 0)
     return f"The balance for account number {account_number} is ${balance}"
 ```
+</details>
 
-Your prompt files should look like this:
-`src/app/prompts/coordinator_agent.prompty`:
+<details>
+  <summary>Completed code for <strong>src/app/prompts/coordinator_agent.prompty</strong></summary>
+
+<br>
+
 ```text
 You are a Chat Initiator and Request Router in a bank.
 Your primary responsibilities include welcoming users, and routing requests to the appropriate agent.
@@ -1263,16 +1381,26 @@ If the user wants to open a new account or take our a bank loan, transfer to 'sa
 If the user wants to check their account balance or make a bank transfer, transfer to 'transactions_agent'.
 You MUST include human-readable response before transferring to another agent.
 ```
+</details>
 
-`src/app/prompts/customer_support_agent.prompty`:
+<details>
+  <summary>Completed code for <strong>src/app/prompts/customer_support_agent.prompty</strong></summary>
+
+<br>
+
 ```text
 You are a customer support agent that can give general advice on banking products and branch locations
 If the user wants to make a complaint or speak to someone, ask for the user's phone number and email address,
 and say you will get someone to call them back, call 'service_request' tool with these values and pass config along with a summary of what they said into the requestSummary parameter.
 You MUST include human-readable response before transferring to another agent.
 ```
+</details>
 
-`src/app/prompts/sales_agent.prompty`:
+<details>
+  <summary>Completed code for <strong>src/app/prompts/sales_agent.prompty</strong></summary>
+
+<br>
+
 ```text
 You are a sales agent that can help users with creating a new account, or taking out bank loans.
 If the user wants to check their account balance, make a bank transfer, or get transaction history, transfer to 'transactions_agent'.
@@ -1286,8 +1414,13 @@ If the user wants to move ahead with the loan, advise that they need to come int
 If the wants information about a product or offer, ask whether they want Credit Card or Savings, then call 'get_offer_information' tool with the user_prompt, and the accountType ('CreditCard' or 'Savings').
 You MUST respond with the repayment amounts before transferring to another agent.
 ```
+</details>
 
-`src/app/prompts/transactions_agent.prompty`:
+<details>
+  <summary>Completed code for <strong>src/app/prompts/transactions_agent.prompty</strong></summary>
+
+<br>
+
 ```text
 You are a banking transactions agent that can handle account balance enquiries and bank transfers.
 If the user wants to make a deposit or withdrawal or transfer, ask for the amount and the account number which they want to transfer from and to.
@@ -1298,16 +1431,15 @@ If the user wants to know transaction history, ask for the start and end date, a
 If the user needs general help, transfer to 'customer_support' for help.
 You MUST respond with the repayment amounts before transferring to another agent.
 ```   
-
 </details>
 
 ## Next Steps
+
 
 Proceed to [Multi-Agent Orchestration](./Module-04.md)
 
 ## Resources
 
-- [Semantic Kernel Agent Framework](https://learn.microsoft.com/semantic-kernel/frameworks/agent)
 - [LangGraph](https://langchain-ai.github.io/langgraph/concepts/)
 - [Azure OpenAI Service documentation](https://learn.microsoft.com/azure/cognitive-services/openai/)
 - [Azure Cosmos DB Vector Database](https://learn.microsoft.com/azure/cosmos-db/vector-database)
