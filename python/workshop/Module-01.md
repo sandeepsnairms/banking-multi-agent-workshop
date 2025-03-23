@@ -236,7 +236,7 @@ You MUST include human-readable response.
 ```
 
 
-### What have we done?
+### Let's review
 
 Congratulations, you have created your first AI agent!
 
@@ -427,7 +427,7 @@ builder.add_node("customer_support_agent", call_customer_support_agent)
 
 ## Activity 5: Test your Work
 
-With the hands-on exercises complete it is time to test your work!
+With the activities in this module complete, it is time to test your work!
 
 To do this, we are going to add this code to our `banking_agents.py` file. 
 
