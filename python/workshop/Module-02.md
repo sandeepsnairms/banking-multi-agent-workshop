@@ -4,7 +4,7 @@
 
 ## Introduction
 
-In this Module you'll connect your agent to Azure Cosmos DB to provide memory for chat history and state management for your agents to provide durability and context-awareness in your agent interactions.
+In this Module, you'll connect your agent to Azure Cosmos DB to provide memory for chat history and state management for your agents to provide durability and context-awareness in your agent interactions.
 
 
 ## Learning Objectives and Activities
@@ -22,16 +22,16 @@ In this Module you'll connect your agent to Azure Cosmos DB to provide memory fo
 
 ## Activity 1: Session Memory Persistence in Agent Frameworks
 
-In this session you will get an overview of memory and how it works for Semantic Kernel Agents and LangGraph and learn the basics for how to configure and connect both to Azure Cosmos DB as a memory store for both chat history and/or state management.
+In this actibity, you will get an overview of memory and how it works for Semantic Kernel Agents and LangGraph and learn the basics for how to configure and connect both to Azure Cosmos DB as a memory store for both chat history and/or state management.
 
 
 ## Activity 2: Connecting Agent Frameworks to Azure Cosmos DB
 
-In this module, you will learn how to initialize Azure Cosmos DB and integrate with LangGraph to provide persistent memory for chat history and state management.
+Here you will learn how to initialize Azure Cosmos DB and integrate with LangGraph to provide persistent memory for chat history and state management.
 
 The problem with our agents so far is that state is only maintained in memory and is lost when the agent graph is restarted. To solve this problem, we will use Azure Cosmos DB to store the state of the agent. Azure Cosmos DB is a distributed NoSQL database service in Azure. It is designed to for applications requiring low latency and high availability. It is especially adept at handling massive volumes of data with high-concurrency. And its schema-agnostic design makes it ideally suited for theset types of applications. We will also use Azure Cosmos DB to store chat history.
 
-Adding state management using Cosmos DB is easy with the checkpointer plugin. 
+Adding state management using Cosmos DB is easy with the checkpointer plugin.
 
 ### Checkpointer Plugin
 
@@ -162,12 +162,12 @@ def call_customer_support_agent(state: MessagesState, config) -> Command[Literal
     return Command(update=response, goto="human")
 ```
 
-**NOTE!: What is happening here with this `patch_active_agent()` call? need more explanation**
+**TODO NOTE!: What is happening here with this `patch_active_agent()` call? need more explanation**
 
 
 ### Let's review
 
-**Note: maybe could use a rephrasing of the text in this section to make more concise and clear**
+**TODO Note: maybe could use a rephrasing of the text in this section to make more concise and clear**
 
 In the activity above we completed the following:
 
@@ -243,7 +243,7 @@ Open the Chat container.
 
 You should see the agent state and chat history stored there, with "customer_support_agent" as the active agent.
 
-**Note: I DO NOT SEE anything in Chat History container. Only the Chat container and inside ChatContainer I don't see any messages from the chat session itself, only a single item with an empty messages array. Also why is there a ChatHistory container in this database? Does this get used?**
+**TODO Note: I DO NOT SEE anything in Chat History container. Only the Chat container and inside ChatContainer I don't see any messages from the chat session itself, only a single item with an empty messages array. Also why is there a ChatHistory container in this database? Does this get used?**
 
 Navigate back to your terminal and restart the application.
 
@@ -265,14 +265,12 @@ You:
 
 You may also want to look at the checkpoints container in your Cosmos DB account. You should see the agent state stored there. There is much more data stored in this container, as it is not only maintaining the chat history, but also the state of the agent, and any other agent, including computations in between transfers. This allows for a richer conversational experience as the full agent state is remembered and checkpointed regularly. 
 
-
-
 ### Validation Checklist
 
 Your implementation is successful if:
 
 - [ ] Your app compiles with no warnings or errors.
-- [ ] Your agent successfully connects to Azure Cosmos DB. (**TBD how do we test this?**)
+- [ ] Your agent successfully connects to Azure Cosmos DB. (**TODO TBD how do we test this?**)
 
 
 ### Common Issues and Troubleshooting
