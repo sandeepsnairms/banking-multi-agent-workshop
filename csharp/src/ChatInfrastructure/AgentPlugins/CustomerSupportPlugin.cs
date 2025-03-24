@@ -51,7 +51,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Plugins
         }
 
         [KernelFunction]
-        [Description("Get list of availble slots for telebankers specializng in an account type")]
+        [Description("Get list of available slots for telebankers specializing in an account type")]
         public async Task<string> GetTeleBankerSlots(AccountType accountType)
         {
             _logger.LogTrace($"Checking availability for Tele Banker for Tenant: {_tenantId} AccountType: {accountType.ToString()}");
