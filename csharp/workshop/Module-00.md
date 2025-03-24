@@ -48,25 +48,7 @@ Complete the following tasks in order to prepare your environment for this works
 
 ### Get Started
 
-#### Local Environment
-
-1. To run the workshop locally on your machine, install the following:
-
-   - [Docker Desktop](https://docs.docker.com/desktop/)
-   - [Git](https://git-scm.com/downloads)
-   - [Azure Developer CLI (azd)](https://aka.ms/install-azd)
-   - [.NET 9](https://dotnet.microsoft.com/downloads/)
-   - [Visual Studio](https://visualstudio.microsoft.com/downloads/) or [VS Code](https://code.visualstudio.com/Download) with [C# Dev Kit](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csdevkit)
-
-1. Clone the repository and switch to the `start` branch:
-
-   ```bash
-   git clone https://github.com/AzureCosmosDB/banking-multi-agent-workshop/
-   cd banking-multi-agent-workshop
-   git checkout start
-   ```
-
-1. Move on to the **Deployment** section.
+You can choose from the following options to get started with the workshop.
 
 #### GitHub Codespaces
 
@@ -76,25 +58,67 @@ You can run this sample app and workshop virtually by using GitHub Codespaces. T
 
    [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/AzureCosmosDB/banking-multi-agent-workshop?devcontainer_path=.devcontainer%2Fcsharp%2Fdevcontainer.json)
 
-2. Move on to the **Deployment** section.
+2. Move on to the [Deployment](Module-00.md#deployment) section.
+
+#### Local Environment using VS Code Dev Containers
+
+1. Install [Docker Desktop](https://docs.docker.com/desktop/), and [VS Code](https://code.visualstudio.com/Download) along with the [Dev Containers extension](https://code.visualstudio.com/docs/devcontainers/tutorial#_install-the-extension) extension.
+
+2. Clone the repository:
+
+   ```bash
+   git clone https://github.com/AzureCosmosDB/banking-multi-agent-workshop/
+   ```
+
+3. Open the repository in VS Code and select **Reopen in Container** when prompted. When asked to **Select a devcontainer.json file**, select the **C# Development Container**.
+
+4. Wait for the container to build and start. This is a one time operation and may take a few minutes.
+
+5. Move on to the [Deployment](Module-00.md#deployment) section.
+
+#### Local Environment without VS Code Dev Containers
+
+1. To run the workshop locally on your machine, install the following:
+
+   - [Docker Desktop](https://docs.docker.com/desktop/)
+   - [Git](https://git-scm.com/downloads)
+   - [Azure Developer CLI (azd)](https://aka.ms/install-azd)
+   - [.NET 9](https://dotnet.microsoft.com/downloads/)
+   - [Visual Studio](https://visualstudio.microsoft.com/downloads/) or [VS Code](https://code.visualstudio.com/Download) with [C# Dev Kit](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csdevkit)
+   - To build and run the frontend component, install [Node.js](https://nodejs.org/en/download/) and [Angular CLI](https://angular.dev/installation#install-angular-cli)
+
+2. Clone the repository and navigate to the folder:
+
+   ```bash
+   git clone https://github.com/AzureCosmosDB/banking-multi-agent-workshop/
+   cd banking-multi-agent-workshop
+   ```
+
+3. Move on to the [Deployment](Module-00.md#deployment) section.
 
 ## Activity 2: Deploy Azure Services
 
 ### Deployment
 
-1. From the terminal, navigate to the correct folder:
+1. From the terminal, switch to the `start` branch:
+
+   ```bash
+   git checkout start
+   ```
+
+1. Navigate to the correct folder:
 
    ```bash
    cd csharp/infra
    ```
 
-2. Log in to Azure using AZD.
+1. Log in to Azure using AZD.
 
    ```bash
    azd auth login
    ```
 
-3. Provision the Azure services and deploy the application.
+1. Provision the Azure services and deploy the application.
 
    ```bash
    azd up
