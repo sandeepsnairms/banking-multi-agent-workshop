@@ -54,7 +54,7 @@ To run the workshop locally on your machine, you can either use [VS Code Dev Con
 
 Click the button below to run the workshop using Dev Containers. This will run the workshop in a containerized environment:
 
-[![Open in Dev Containers](https://img.shields.io/static/v1?style=for-the-badge&label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/AzureCosmosDB/banking-multi-agent-workshop)
+[![Open in Dev Containers](https://img.shields.io/static/v1?style=for-the-badge&label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/AzureCosmosDB/banking-multi-agent-workshop&devcontainer_path=.devcontainer/csharp/devcontainer.json)
 
 If you do not want to use Dev Containers, install the following on your local machine:
 
