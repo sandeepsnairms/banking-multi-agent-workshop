@@ -113,8 +113,8 @@ namespace MultiAgentCopilot.ChatInfrastructure.Factories
                             if (!string.IsNullOrEmpty(resultString))
                             {
                                 var ContinuationInfo = JsonSerializer.Deserialize<ContinuationInfo>(resultString);
-                                logCallback("SELECTION - Agent", ContinuationInfo.AgentName); // provides visibility (can use logger)
-                                logCallback("SELECTION - Reason", ContinuationInfo.Reason); // provides visibility (can use logger)                            
+                                logCallback("SELECTION - Agent", ContinuationInfo.AgentName); 
+                                logCallback("SELECTION - Reason", ContinuationInfo.Reason);                       
                                 return ContinuationInfo.AgentName;
                             }
                             else
@@ -140,8 +140,8 @@ namespace MultiAgentCopilot.ChatInfrastructure.Factories
                             if (!string.IsNullOrEmpty(resultString))
                             {
                                 var terminationInfo = JsonSerializer.Deserialize<TerminationInfo>(resultString);
-                                logCallback("TERMINATION - Continue", terminationInfo.ShouldContinue.ToString()); // provides visibility (can use logger)
-                                logCallback("TERMINATION - Reason", terminationInfo.Reason); // provides visibility (can use logger)
+                                logCallback("TERMINATION - Continue", terminationInfo.ShouldContinue.ToString()); 
+                                logCallback("TERMINATION - Reason", terminationInfo.Reason); 
                                 return !terminationInfo.ShouldContinue;
                             }
                             else
