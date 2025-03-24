@@ -203,7 +203,7 @@ Update \ChatInfrastructure\AgentPlugins\CustomerSupportPlugin.cs with additional
    }
 
    [KernelFunction]
-   [Description("Get list of availble slots for telebankers specializng in an account type")]
+   [Description("Get list of available slots for telebankers specializing in an account type")]
    public async Task<string> GetTeleBankerSlots(AccountType accountType)
    {
       _logger.LogTrace($"Checking availability for Tele Banker for Tenant: {_tenantId} AccountType: {accountType.ToString()}");
@@ -295,7 +295,7 @@ Always follow these rules when choosing the next participant:
 
 ```
 
-### Add Termination Strategy for Agent reponse
+### Add Termination Strategy for Agent response
 
 Similar to SelectionStrategy deciding when the agents should stop responding to a user prompt is important, else you may see multiple unwanted agent responses to a user prompt. TerminationStrategy is  the mechanism in SemanticKernel to decide when to stop. The TerminationStrategy is defined in natural language. We want the LLM to return YES if more agent participation is required, else it should be NO.
 
@@ -461,58 +461,6 @@ Add GetStrategyPrompts to ChatInfrastructure\Factories\SystemPromptFactory.cs
 
 ```
 
-### AutoFunctionInvocationLoggingFilter.cs
-
-Helper function to log the kernel function selection in the plugin. This is only required to log and debug.
-
-Add AutoFunctionInvocationLoggingFilter.cs in ChatInfrastructure\Logs
-
-```c#
-
-using Microsoft.Extensions.Logging;
-using Microsoft.SemanticKernel;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
-
-namespace MultiAgentCopilot.ChatInfrastructure.Logs
-{
-    public sealed class AutoFunctionInvocationLoggingFilter : IAutoFunctionInvocationFilter
-    {
-        private readonly ILogger<AutoFunctionInvocationLoggingFilter> _logger;
-
-        public AutoFunctionInvocationLoggingFilter(ILogger<AutoFunctionInvocationLoggingFilter> logger)
-        {
-            _logger = logger;
-
-        }
-
-        public async Task OnAutoFunctionInvocationAsync(AutoFunctionInvocationContext context, Func<AutoFunctionInvocationContext, Task> next)
-        {
-
-            var functionCalls = FunctionCallContent.GetFunctionCalls(context.ChatHistory.Last()).ToList();
-
-            if (_logger.IsEnabled(LogLevel.Trace))
-            {
-                functionCalls.ForEach(functionCall
-                    => _logger.LogTrace(
-                        "Function call requests: {PluginName}-{FunctionName}({Arguments})",
-                        functionCall.PluginName,
-                        functionCall.FunctionName,
-                        JsonSerializer.Serialize(functionCall.Arguments)));
-            }
-
-            await next(context);
-        }
-    }
-}
-
-
-````
-
 ### Update Chat Factory to replace Agent with AgentGroupChat
 
 Add the below references in ChatInfrastructure/Factories/ChatFactory.cs
@@ -569,7 +517,7 @@ Add the functions in ChatInfrastructure\Factories\ChatFactory.cs
             AgentGroupChat agentGroupChat = new AgentGroupChat();
             var chatModel = kernel.GetRequiredService<IChatCompletionService>();
 
-            kernel.AutoFunctionInvocationFilters.Add(new AutoFunctionInvocationLoggingFilter(loggerFactory.CreateLogger<AutoFunctionInvocationLoggingFilter>()));
+            //kernel.AutoFunctionInvocationFilters.Add(new AutoFunctionInvocationLoggingFilter(loggerFactory.CreateLogger<AutoFunctionInvocationLoggingFilter>()));
 
             foreach (AgentType agentType in Enum.GetValues(typeof(AgentType)))
             {
@@ -633,46 +581,6 @@ Add the functions in ChatInfrastructure\Factories\ChatFactory.cs
         }
 
 ```
-
-### Add ChatInfrastructure/Helper/AuthorRoleHelper.cs
-
- This code helps reverse look up the Agent's role when building the agent chat from history stored in Cosmos DB.
-
-```csharp
-﻿using Microsoft.SemanticKernel.ChatCompletion;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace MultiAgentCopilot.ChatInfrastructure.Helper
-{
-    internal static class AuthorRoleHelper
-    {
-        private static readonly Dictionary<string, AuthorRole> RoleMap =
-        new(StringComparer.OrdinalIgnoreCase)
-        {
-            { "system", AuthorRole.System },
-            { "assistant", AuthorRole.Assistant },
-            { "user", AuthorRole.User },
-            { "tool", AuthorRole.Tool }
-        };
-
-        public static AuthorRole? FromString(string name)
-        {
-            if (string.IsNullOrWhiteSpace(name))
-            {
-                return null;
-            }
-
-            return RoleMap.TryGetValue(name, out var role) ? role : null;
-        }
-    }
-}
-
-```
-
 
 ### Replace Agent with AgentGroupChat in SemanticKernel
 
@@ -752,6 +660,62 @@ In this hands-on exercise, you will learn how to define an API service layer for
 
 Before executing the below steps, try chatting with the agents. Note that  you are unable to see what what the LLM select an agent. Now lets add some code to bring visibility to behind the scene decision making process.
 
+### Log the kernel function selection
+
+To log the data used by the LLM to invoke functions, we will create a class named `AutoFunctionInvocationLoggingFilter`. Add AutoFunctionInvocationLoggingFilter.cs to ChatInfrastructure\Logs.
+
+```c#
+
+using Microsoft.Extensions.Logging;
+using Microsoft.SemanticKernel;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Text.Json;
+using System.Threading.Tasks;
+
+namespace MultiAgentCopilot.ChatInfrastructure.Logs
+{
+    public sealed class AutoFunctionInvocationLoggingFilter : IAutoFunctionInvocationFilter
+    {
+        private readonly ILogger<AutoFunctionInvocationLoggingFilter> _logger;
+
+        public AutoFunctionInvocationLoggingFilter(ILogger<AutoFunctionInvocationLoggingFilter> logger)
+        {
+            _logger = logger;
+
+        }
+
+        public async Task OnAutoFunctionInvocationAsync(AutoFunctionInvocationContext context, Func<AutoFunctionInvocationContext, Task> next)
+        {
+
+            var functionCalls = FunctionCallContent.GetFunctionCalls(context.ChatHistory.Last()).ToList();
+
+            if (_logger.IsEnabled(LogLevel.Trace))
+            {
+                functionCalls.ForEach(functionCall
+                    => _logger.LogTrace(
+                        "Function call requests: {PluginName}-{FunctionName}({Arguments})",
+                        functionCall.PluginName,
+                        functionCall.FunctionName,
+                        JsonSerializer.Serialize(functionCall.Arguments)));
+            }
+
+            await next(context);
+        }
+    }
+}
+```
+
+To start logging update kernel's AutoFunctionInvocationFilters by uncommenting the following line in the `BuildAgentGroupChat` function in ChatFactory.cs.
+
+```csharp
+
+    //kernel.AutoFunctionInvocationFilters.Add(new AutoFunctionInvocationLoggingFilter(loggerFactory.CreateLogger<AutoFunctionInvocationLoggingFilter>()));
+
+```
+
 ### Log the KernelFunctionSelectionStrategy and KernelFunctionTerminationStrategy
 
 Update GetAgentGroupChatSettings in ChatInfrastructure\Factories\ChatFactory.cs
@@ -759,55 +723,67 @@ Update GetAgentGroupChatSettings in ChatInfrastructure\Factories\ChatFactory.cs
 ```csharp
 
 private AgentGroupChatSettings GetAgentGroupChatSettings(Kernel kernel, LogCallback logCallback)
-        {
-            ChatHistoryTruncationReducer historyReducer = new(5);
+{
+    ChatHistoryTruncationReducer historyReducer = new(5);
 
-            AgentGroupChatSettings ExecutionSettings = new AgentGroupChatSettings
+    AgentGroupChatSettings ExecutionSettings = new AgentGroupChatSettings
+    {
+        SelectionStrategy =
+            new KernelFunctionSelectionStrategy(GetStrategyFunction(ChatResponseFormatBuilder.ChatResponseStrategy.Continuation), kernel)
             {
-                SelectionStrategy =
-                    new KernelFunctionSelectionStrategy(GetStrategyFunction(ChatResponseFormatBuilder.ChatResponseStrategy.Continuation), kernel)
+                Arguments = new KernelArguments(GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStrategy.Continuation)),
+                // Save tokens by only including the final few responses
+                HistoryReducer = historyReducer,
+                // The prompt variable name for the history argument.
+                HistoryVariableName = "lastmessage",
+                // Returns the entire result value as a string.
+                ResultParser = (result) =>
+                {
+                    var resultString = result.GetValue<string>();
+                    if (!string.IsNullOrEmpty(resultString))
                     {
-                        Arguments = new KernelArguments(GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStrategy.Continuation)),
-                        // Save tokens by only including the final few responses
-                        HistoryReducer = historyReducer,
-                        // The prompt variable name for the history argument.
-                        HistoryVariableName = "lastmessage",
-                        // Returns the entire result value as a string.
-                        ResultParser = (result) =>
-                        {
-#pragma warning disable CS8604 // Possible null reference argument.
-                            var ContinuationInfo = JsonSerializer.Deserialize<ContinuationInfo>(result.GetValue<string>());
-#pragma warning restore CS8604 // Possible null reference argument.
-                            logCallback("SELECTION - Agent",ContinuationInfo.AgentName); // provides visibility (can use logger)
-                            logCallback("SELECTION - Reason",ContinuationInfo.Reason); // provides visibility (can use logger)                            
-                            return ContinuationInfo.AgentName;
-                        }
-                    },
-                TerminationStrategy =
-                    new KernelFunctionTerminationStrategy(GetStrategyFunction(ChatResponseFormatBuilder.ChatResponseStrategy.Termination), kernel)
+                        var ContinuationInfo = JsonSerializer.Deserialize<ContinuationInfo>(resultString);
+                        logCallback("SELECTION - Agent", ContinuationInfo.AgentName); 
+                        logCallback("SELECTION - Reason", ContinuationInfo.Reason);               
+                        return ContinuationInfo.AgentName;
+                    }
+                    else
                     {
-                        Arguments = new KernelArguments(GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStrategy.Termination)),
-                        // Save tokens by only including the final response
-                        HistoryReducer = historyReducer,
-                        // The prompt variable name for the history argument.
-                        HistoryVariableName = "lastmessage",
-                        // Limit total number of turns
-                        MaximumIterations = 8,
-                        // user result parser to determine if the response is "yes"
-                        ResultParser = (result) =>
-                        {
-#pragma warning disable CS8604 // Possible null reference argument.
-                            var terminationInfo = JsonSerializer.Deserialize<TerminationInfo>(result.GetValue<string>());
-#pragma warning restore CS8604 // Possible null reference argument.
-                            logCallback("TERMINATION - Continue",terminationInfo.ShouldContinue.ToString()); // provides visibility (can use logger)
-                            logCallback("TERMINATION - Reason",terminationInfo.Reason); // provides visibility (can use logger)
-                            return !terminationInfo.ShouldContinue;
-                        }
-                    },
-            };
+                        return string.Empty;
+                    }
+                }
+            },
+        TerminationStrategy =
+            new KernelFunctionTerminationStrategy(GetStrategyFunction(ChatResponseFormatBuilder.ChatResponseStrategy.Termination), kernel)
+            {
+                Arguments = new KernelArguments(GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStrategy.Termination)),
+                // Save tokens by only including the final response
+                HistoryReducer = historyReducer,
+                // The prompt variable name for the history argument.
+                HistoryVariableName = "lastmessage",
+                // Limit total number of turns
+                MaximumIterations = 8,
+                // user result parser to determine if the response is "yes"
+                ResultParser = (result) =>
+                {
+                    var resultString = result.GetValue<string>();
+                    if (!string.IsNullOrEmpty(resultString))
+                    {
+                        var terminationInfo = JsonSerializer.Deserialize<TerminationInfo>(resultString);
+                        logCallback("TERMINATION - Continue", terminationInfo.ShouldContinue.ToString()); 
+                        logCallback("TERMINATION - Reason", terminationInfo.Reason); 
+                        return !terminationInfo.ShouldContinue;
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+            },
+    };
 
-            return ExecutionSettings;
-        }
+    return ExecutionSettings;
+}
 
 ```
 
@@ -864,7 +840,6 @@ Update GetResponse in ChatInfrastructure\Services\SemanticKernelService.cs
                 }
             }
             while (!agentGroupChat.IsComplete);
-            //_promptDebugProperties.Clear();
 
             return new Tuple<List<Message>, List<DebugLog>>(completionMessages, completionMessagesLogs);
         }
