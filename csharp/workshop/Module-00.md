@@ -2,7 +2,6 @@
 
 **[Home](Home.md)** - [Creating Your First Agent >](./Module-01.md)
 
-
 ## Introduction
 
 In this Module, you'll deploy the Azure Services needed to run this workshop and get your local environment configured and ready. You will also learn about the structure of this workshop and get an overview of Multi-Agent Systems.
@@ -15,7 +14,6 @@ In this Module, you'll deploy the Azure Services needed to run this workshop and
 - Complete the configuration of your local environment
 - Compile and run the starter solution locally
 
-
 ## Module Exercises
 
 1. [Activity 1: Configure Workshop Environment](#activity-1-configure-workshop-environment)
@@ -23,7 +21,6 @@ In this Module, you'll deploy the Azure Services needed to run this workshop and
 1. [Activity 3: Workshop Structure and Overview Session](#activity-3-workshop-structure-and-overview-session)
 1. [Activity 4: Configure Environment Variables](#activity-4-configure-environment-variables)
 1. [Activity 5: Compile and Run](#activity-5-compile-and-run)
-
 
 ## Activity 1 Configure Workshop Environment
 
@@ -37,7 +34,6 @@ Complete the following tasks in order to prepare your environment for this works
 - Azure subscription with **owner rights**
 - Subscription access to Azure OpenAI service. Start here to [Request Access to Azure OpenAI Service](https://aka.ms/oaiapply). If you have access, see below for ensuring enough quota to deploy.
 
-
   #### Checking Azure OpenAI quota limits
 
   For this sample to deploy successfully, there needs to be enough Azure OpenAI quota for the models used by this sample within your subscription. This sample deploys a new Azure OpenAI account with two models, **gpt-4o-mini with 10K tokens** per minute and **text-3-embedding-small with 5k tokens** per minute. For more information on how to check your model quota and change it, see [Manage Azure OpenAI Service Quota](https://learn.microsoft.com/azure/ai-services/openai/how-to/quota)
@@ -50,34 +46,9 @@ Complete the following tasks in order to prepare your environment for this works
   - [Cosmos DB Operator](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/databases#cosmos-db-operator)
   - [Cognitive Services OpenAI User](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/ai-machine-learning#cognitive-services-openai-user)
 
-
 ### Get Started
 
-#### Local Environment
-
-1. To run the workshop locally on your machine, install the following prerequisites:
-
-    - Common pre-requisites:
-      - [Docker Desktop](https://docs.docker.com/desktop/)
-      - [Git](https://git-scm.com/downloads)
-      - [Azure Developer CLI (azd)](https://aka.ms/install-azd)
-  
-    Then either of the following depending on which sample you want to explore
-
-    - LangGraph Sample
-      - [Python 3.12+](https://www.python.org/downloads/)
-      - Your Python IDE or [VS Code](https://code.visualstudio.com/Download) with [Python Extension](https://marketplace.visualstudio.com/items?itemName=ms-python.python)
-    - Semantic Kernel Agent Sample
-      - [.NET 9](https://dotnet.microsoft.com/downloads/)
-      - [Visual Studio](https://visualstudio.microsoft.com/downloads/) or [VS Code](https://code.visualstudio.com/Download) with [C# Dev Kit](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csdevkit)
-  
-1. Open a terminal session and navigate to the folder you want to copy the source code to.
-
-1. Download the project source code:
-
-  ```shell
-  azd init -t AzureCosmosDB/banking-multi-agent-workshop/tree/start
-  ```
+You can choose from the following options to get started with the workshop.
 
 #### GitHub Codespaces
 
@@ -85,18 +56,61 @@ You can run this sample app and workshop virtually by using GitHub Codespaces. T
 
 1. Open the template (this may take several minutes):
 
-  [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/AzureCosmosDB/banking-multi-agent-workshop/tree/start)
+   [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/AzureCosmosDB/banking-multi-agent-workshop?devcontainer_path=.devcontainer%2Fcsharp%2Fdevcontainer.json)
 
-1. Continue with the [Deployment](#deployment) below
+2. Move on to the [Deployment](Module-00.md#deployment) section.
 
+#### Local Environment using VS Code Dev Containers
+
+1. Install [Docker Desktop](https://docs.docker.com/desktop/), and [VS Code](https://code.visualstudio.com/Download) along with the [Dev Containers extension](https://code.visualstudio.com/docs/devcontainers/tutorial#_install-the-extension) extension.
+
+2. Clone the repository:
+
+   ```bash
+   git clone https://github.com/AzureCosmosDB/banking-multi-agent-workshop/
+   ```
+
+3. Open the repository in VS Code and select **Reopen in Container** when prompted. When asked to **Select a devcontainer.json file**, select the **C# Development Container**.
+
+4. Wait for the container to build and start. This is a one time operation and may take a few minutes.
+
+5. Move on to the [Deployment](Module-00.md#deployment) section.
+
+#### Local Environment without VS Code Dev Containers
+
+1. To run the workshop locally on your machine, install the following:
+
+   - [Docker Desktop](https://docs.docker.com/desktop/)
+   - [Git](https://git-scm.com/downloads)
+   - [Azure Developer CLI (azd)](https://aka.ms/install-azd)
+   - [.NET 9](https://dotnet.microsoft.com/downloads/)
+   - [Visual Studio](https://visualstudio.microsoft.com/downloads/) or [VS Code](https://code.visualstudio.com/Download) with [C# Dev Kit](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csdevkit)
+   - To build and run the frontend component, install [Node.js](https://nodejs.org/en/download/) and [Angular CLI](https://angular.dev/installation#install-angular-cli)
+
+2. Clone the repository and navigate to the folder:
+
+   ```bash
+   git clone https://github.com/AzureCosmosDB/banking-multi-agent-workshop/
+   cd banking-multi-agent-workshop
+   ```
+
+3. Move on to the [Deployment](Module-00.md#deployment) section.
 
 ## Activity 2: Deploy Azure Services
 
 ### Deployment
 
-1. From the terminal, navigate to the `csharp` or `python` folder.
+1. From the terminal, switch to the `start` branch:
 
-1. Navigate to the /infra folder.
+   ```bash
+   git checkout start
+   ```
+
+1. Navigate to the correct folder:
+
+   ```bash
+   cd csharp/infra
+   ```
 
 1. Log in to Azure using AZD.
 
@@ -119,14 +133,11 @@ This step will take approximately 10-15 minutes.
 
 While the Azure Services are deploying we will have a presentation to cover on the structure for this workshop for today as well as provide an introduction and overview of multi-agent sytems.
 
-
-
 ## Activity 4: Configure Environment Variables
 
 ### Setting up local debugging
 
 When you deploy this solution it automatically injects endpoints and configuration values into the .env file stored in the .azure directory in a folder with the name of your resource group. Open the .env file.
-
 
 ### Update src\ChatAPI\appsettings.json
 
@@ -141,6 +152,7 @@ When you deploy this solution it automatically injects endpoints and configurati
 #### 1. Start the ChatAPI
 
 ##### If running on Codespaces:
+
 1. Navigate to `src\ChatAPI`.
 2. Run the following command to trust the development certificate:
    ```sh
@@ -153,6 +165,7 @@ When you deploy this solution it automatically injects endpoints and configurati
 4. Copy the URL from the **Ports** tab.
 
 ##### If running locally on Visual Studio or VS Code:
+
 1. Navigate to `src\ChatAPI`.
 2. Press **F5** or select **Run** to start the application.
 3. Copy the URL from the browser window that opens.
@@ -163,37 +176,37 @@ When you deploy this solution it automatically injects endpoints and configurati
 
 1. Edit the file to this.
 
-    ```javascript
-    export const environment = {
-        production: false,
-        apiUrl: 'https://localhost:63279/'
-      };
-    ```
+   ```javascript
+   export const environment = {
+     production: false,
+     apiUrl: "https://localhost:63279/",
+   };
+   ```
+
 1. Save and close the file.
 1. Open a new terminal. Navigate to the `frontend` folder.
 1. Copy and run the following:
-    ```sh
-    npm i
-    ng serve
-    ```
+   ```sh
+   npm i
+   ng serve
+   ```
 1. Open your browser and navigate to http://localhost:4200/.
 
 #### 3. Start a Chat Session
+
 1. Open the frontend app.
 1. Start a new chat session.
-1. Send the message:  
+1. Send the message:
    ```
    Hello, how are you?
    ```
 1. You should see something like the output below.
 
-    ![Test output](./media/module-00/test-output.png)
-
+   ![Test output](./media/module-00/test-output.png)
 
 #### 4. Stop the Application
+
 - Press **Ctrl + C** to stop the debugger.
-
-
 
 ### Deployment Validation
 
@@ -207,27 +220,26 @@ Use the steps below to validate that the solution was deployed successfully.
 ### Common Issues and Troubleshooting
 
 1. Errors during azd deployment:
-    - Service principal "not found" error.
-    - Rerun `azd up`
+   - Service principal "not found" error.
+   - Rerun `azd up`
 1. Azure OpenAI deployment issues:
-    - Ensure your subscription has access to Azure OpenAI
-    - Check regional availability
+   - Ensure your subscription has access to Azure OpenAI
+   - Check regional availability
 1. Frontend issues:
-    - If frontend doesn't fully start, navigate to `/frontend/src/environments/environment.ts` and update `apiUrl: 'https://localhost:63279/'`
-    - Rrontend will restart
+   - If frontend doesn't fully start, navigate to `/frontend/src/environments/environment.ts` and update `apiUrl: 'https://localhost:63279/'`
+   - Rrontend will restart
 1. Connecting to backend running CodeSpaces
-    - If you cannot get the front end to connect to the backend service when running in Codespaces try the following
-      - Navigate to the /src/ChatAPI folder in the Terminal
-      - Run the following command to trust the development certificate:
-        ```sh
-        dotnet dev-certs https --trust
-        ```
-      - Then start the application:
-        ```sh
-        dotnet run
-        ```
-    - Copy the URL from the **Ports** tab and use this for the environments.ts file
-
+   - If you cannot get the front end to connect to the backend service when running in Codespaces try the following
+     - Navigate to the /src/ChatAPI folder in the Terminal
+     - Run the following command to trust the development certificate:
+       ```sh
+       dotnet dev-certs https --trust
+       ```
+     - Then start the application:
+       ```sh
+       dotnet run
+       ```
+   - Copy the URL from the **Ports** tab and use this for the environments.ts file
 
 ## Success Criteria
 

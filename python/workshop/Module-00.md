@@ -2,7 +2,6 @@
 
 **[Home](Home.md)** - [Creating Your First Agent >](./Module-01.md)
 
-
 ## Introduction
 
 In this Module, you'll deploy the Azure Services needed to run this workshop and get your local environment configured and ready. You will also learn about the structure of this workshop and get an overview of Multi-Agent Systems.
@@ -15,7 +14,6 @@ In this Module, you'll deploy the Azure Services needed to run this workshop and
 - Complete the configuration of your local environment
 - Compile and run the starter solution locally
 
-
 ## Module Exercises
 
 1. [Activity 1: Configure Workshop Environment](#activity-1-configure-workshop-environment)
@@ -23,7 +21,6 @@ In this Module, you'll deploy the Azure Services needed to run this workshop and
 1. [Activity 3: Workshop Structure and Overview Session](#activity-3-workshop-structure-and-overview)
 1. [Activity 4: Configure Environment Variables](#activity-4-configure-environment-variables)
 1. [Activity 5: Compile and Run](#activity-5-compile-and-run)
-
 
 ## Activity 1 Configure Workshop Environment
 
@@ -37,7 +34,6 @@ Complete the following tasks in order to prepare your environment for this works
 - Azure subscription with **owner rights**
 - Subscription access to Azure OpenAI service. Start here to [Request Access to Azure OpenAI Service](https://aka.ms/oaiapply). If you have access, see below for ensuring enough quota to deploy.
 
-
   #### Checking Azure OpenAI quota limits
 
   For this sample to deploy successfully, there needs to be enough Azure OpenAI quota for the models used by this sample within your subscription. This sample deploys a new Azure OpenAI account with two models, **gpt-4o-mini with 10K tokens** per minute and **text-3-embedding-small with 5k tokens** per minute. For more information on how to check your model quota and change it, see [Manage Azure OpenAI Service Quota](https://learn.microsoft.com/azure/ai-services/openai/how-to/quota)
@@ -50,31 +46,9 @@ Complete the following tasks in order to prepare your environment for this works
   - [Cosmos DB Operator](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/databases#cosmos-db-operator)
   - [Cognitive Services OpenAI User](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/ai-machine-learning#cognitive-services-openai-user)
 
-
 ### Get Started
 
-#### Local Environment
-
-1. To run the workshop locally on your machine, install the following prerequisites:
-
-    - Common pre-requisites:
-      - [Docker Desktop](https://docs.docker.com/desktop/) Note: ensure docker is running.
-      - [Git](https://git-scm.com/downloads)
-      - [Azure Developer CLI (azd)](https://aka.ms/install-azd)
-    - LangGraph Sample
-      - [Python 3.12+](https://www.python.org/downloads/)
-      - Your Python IDE or [VS Code](https://code.visualstudio.com/Download) with [Python Extension](https://marketplace.visualstudio.com/items?itemName=ms-python.python)
-    - Frontend
-      - [Node.js](https://nodejs.org/en/download/)
-      - [Angular CLI](https://angular.io/guide/setup-local)
-  
-1. Open a terminal session and navigate to the folder you want to copy the source code to.
-
-1. Download the project source code:
-
-  ```shell
-  azd init -t AzureCosmosDB/banking-multi-agent-workshop/tree/start
-  ```
+You can choose from the following options to get started with the workshop.
 
 #### GitHub Codespaces
 
@@ -82,18 +56,61 @@ You can run this sample app and workshop virtually by using GitHub Codespaces. T
 
 1. Open the template (this may take several minutes):
 
-  [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/AzureCosmosDB/banking-multi-agent-workshop/tree/start)
+   [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/AzureCosmosDB/banking-multi-agent-workshop?devcontainer_path=.devcontainer%2Fpython%2Fdevcontainer.json)
 
-1. Continue with the [Deployment](#deployment) below
+2. Move on to the [Deployment](Module-00.md#deployment) section.
 
+#### Local Environment using VS Code Dev Containers
+
+1. Install [Docker Desktop](https://docs.docker.com/desktop/), and [VS Code](https://code.visualstudio.com/Download) along with the [Dev Containers extension](https://code.visualstudio.com/docs/devcontainers/tutorial#_install-the-extension) extension.
+
+2. Clone the repository:
+
+   ```bash
+   git clone https://github.com/AzureCosmosDB/banking-multi-agent-workshop/
+   ```
+
+3. Open the repository in VS Code and select **Reopen in Container** when prompted. When asked to **Select a devcontainer.json file**, select the **Python Development Container**.
+
+4. Wait for the container to build and start. This is a one time operation and may take a few minutes.
+
+5. Move on to the [Deployment](Module-00.md#deployment) section.
+
+#### Local Environment without VS Code Dev Containers
+
+1. To run the workshop locally on your machine, install the following:
+
+   - [Docker Desktop](https://docs.docker.com/desktop/)
+   - [Git](https://git-scm.com/downloads)
+   - [Azure Developer CLI (azd)](https://aka.ms/install-azd)
+   - [Python 3.12+](https://www.python.org/downloads/)
+   - Your Python IDE or [VS Code](https://code.visualstudio.com/Download) with [Python Extension](https://marketplace.visualstudio.com/items?itemName=ms-python.python)
+   - To build and run the frontend component, install [Node.js](https://nodejs.org/en/download/) and [Angular CLI](https://angular.dev/installation#install-angular-cli)
+
+2. Clone the repository and navigate to the folder:
+
+   ```bash
+   git clone https://github.com/AzureCosmosDB/banking-multi-agent-workshop/
+   cd banking-multi-agent-workshop
+   ```
+
+3. Move on to the [Deployment](Module-00.md#deployment) section.
 
 ## Activity 2: Deploy Azure Services
 
 ### Deployment
 
-1. From the terminal, navigate to the `python` folder.
+1. From the terminal, switch to the `start` branch:
 
-1. Ensure you are in the /python folder.
+   ```bash
+   git checkout start
+   ```
+
+1. Navigate to the correct folder:
+
+   ```bash
+   cd python/infra
+   ```
 
 1. Log in to Azure using AZD.
 
@@ -107,7 +124,7 @@ You can run this sample app and workshop virtually by using GitHub Codespaces. T
    azd up
    ```
 
-This step will take approximately 10-15 minutes. 
+This step will take approximately 10-15 minutes.
 
 > [!IMPORTANT]
 > If you encounter any errors during the deployment, rerun `azd up` to continue the deployment from where it left off. This will not create duplicate resources, and tends to resolve most issues.
@@ -130,11 +147,9 @@ Adding dummy data is optional and can be skipped, but we recommend loading the d
 
 You can click on the FrontendApp endpoint to see the deployed application, but if you try chatting to it, you will see that it is not yet implemented. This is because we have not yet built the agents that will be served by the API layer.
 
-
 ## Activity 3: Workshop Structure and Overview Session
 
 While the Azure Services are deploying we will have a presentation to cover on the structure for this workshop for today as well as provide an introduction and overview of multi-agent sytems.
-
 
 ## Activity 4: Configure Environment Variables
 
@@ -147,38 +162,39 @@ But you will still need to install dependencies to run the solution locally.
 1. Navigate to the python folder of the project.
 2. Create and activate a virtual environment (Linux/Mac):
 
-    ```shell
-    python -m venv .venv
-    source .venv/bin/activate
-    ```
-   
-    For Windows:
+   ```shell
+   python -m venv .venv
+   source .venv/bin/activate
+   ```
 
-    ```shell
-    python -m venv .venv
-    .venv\Scripts\Activate.ps1
-    ```
+   For Windows:
+
+   ```shell
+   python -m venv .venv
+   .venv\Scripts\Activate.ps1
+   ```
+
 3. Install the required dependencies for the project.
 
-    ```shell
-    pip install -r src/app/requirements.txt
-    ```
-
+   ```shell
+   pip install -r src/app/requirements.txt
+   ```
 
 ## Activity 5: Compile and Run
 
 ### Running the solution
- 
+
 1. Navigate to the python folder of the project.
 2. Start the fastapi server.
 
-    ```shell
-    uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 8000
-    ```
-   
-The API will be available at `http://localhost:8000/docs`. This has been pre-built with boilerplate code that will create chat sessions and store the chat history in Cosmos DB. 
+   ```shell
+   uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 8000
+   ```
+
+The API will be available at `http://localhost:8000/docs`. This has been pre-built with boilerplate code that will create chat sessions and store the chat history in Cosmos DB.
 
 To run the frontend
+
 - Navigate to the `frontend` folder
 - update the `apiUrl` values in `src/environments/environment.ts` file with the API endpoint (http://localhost:8000/)
 - In a separate terminal window from the one running FastAPI server, Run the following command (make sure you have Node.js and Angular CLI installed - see the prerequisites section above):
@@ -191,11 +207,11 @@ ng serve
 You can now navigate to `http://localhost:4200` to see the frontend application.
 
 Lets try a couple of things:
- 
+
 - Try out the API by creating a chat session in the front end. This should return a response saying "Hello, I am not yet implemented".
 - Navigate to the Cosmos DB account in the Azure portal to view the containers. You should see an entry in the `Chat` container. If you selected "yes" to the option during `azd up`, there will also be some transactional data in the `OffersData`, `AccountsData`, and `Users` containers as well.
 - Take a look at the files in the `src/app/services` folder - these are the boilerplate code for interacting with the Cosmos DB and Azure OpenAI services.
-- You will also see an empty file `src/app/banking_agents.py` as well as empty files in the `src/app/tools` and `src/app/prompts` folder. This is where you will build your multi-agent system! 
+- You will also see an empty file `src/app/banking_agents.py` as well as empty files in the `src/app/tools` and `src/app/prompts` folder. This is where you will build your multi-agent system!
 
 Next, we will start building the agents that will be served by the API layer and interact with Cosmos DB and Azure OpenAI using LangGraph!
 
@@ -207,31 +223,35 @@ Use the steps below to validate that the solution was deployed successfully.
 - [ ] You can compile the solution in CodeSpaces or locally
 - [ ] You can start the project and it runs without errors
 
-
 ### Common Issues and Troubleshooting
 
 1. Errors during azd deployment:
-  - Service principal "not found" error.
-    - Rerun `azd up`
-  - If you are running on Windows with Powershell, you may get: 
-    - `"error executing step command 'deploy --all': getting target resource: resource not found: unable to find a resource tagged with 'azd-service-name: ChatServiceWebApi'"`
-    - This is likely because you have used Az CLI before, and have an old default resource group name cached that is different from the one specified during `azd up`.
-    - To resolve this:
-      - Delete `.azure` in the root folder and `.azd` folders in your home directory (`C:\Users\<user name>`).
-      - Start again, but first set resource group explicitly. Replace <environment name> in the below with the name you intend to set for your environment: 
-        - `azd env set AZURE_RESOURCE_GROUP rg-<environment name>`
-        - Then enter <environment name> when prompted:
-          -  `Enter a new environment name: <environment name>`
-        - Run `azd auth login` again
-        - Then run `azd up` again.
-1. Azure OpenAI deployment issues:
-  - Ensure your subscription has access to Azure OpenAI
-  - Check regional availability
-1. Python environment issues:
-  - Ensure correct Python version
-  - Verify all dependencies are installed
-1. 
 
+- Service principal "not found" error.
+  - Rerun `azd up`
+- If you are running on Windows with Powershell, you may get:
+  - `"error executing step command 'deploy --all': getting target resource: resource not found: unable to find a resource tagged with 'azd-service-name: ChatServiceWebApi'"`
+  - This is likely because you have used Az CLI before, and have an old default resource group name cached that is different from the one specified during `azd up`.
+  - To resolve this:
+    - Delete `.azure` in the root folder and `.azd` folders in your home directory (`C:\Users\<user name>`).
+    - Start again, but first set resource group explicitly. Replace <environment name> in the below with the name you intend to set for your environment:
+      - `azd env set AZURE_RESOURCE_GROUP rg-<environment name>`
+      - Then enter <environment name> when prompted:
+        - `Enter a new environment name: <environment name>`
+      - Run `azd auth login` again
+      - Then run `azd up` again.
+
+1. Azure OpenAI deployment issues:
+
+- Ensure your subscription has access to Azure OpenAI
+- Check regional availability
+
+1. Python environment issues:
+
+- Ensure correct Python version
+- Verify all dependencies are installed
+
+1.
 
 ## Success Criteria
 
@@ -252,7 +272,6 @@ Proceed to [Creating Your First Agent](./Module-01.md)
 - [LangGraph](https://langchain-ai.github.io/langgraph/concepts/)
 - [Azure OpenAI Service documentation](https://learn.microsoft.com/azure/cognitive-services/openai/)
 - [Azure Cosmos DB Vector Database](https://learn.microsoft.com/azure/cosmos-db/vector-database)
-
 
 <details>
   <summary>If you prefer to run this locally on your machine, open this section and install these additional tools.</summary>
