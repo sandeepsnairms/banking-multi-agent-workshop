@@ -723,55 +723,67 @@ Update GetAgentGroupChatSettings in ChatInfrastructure\Factories\ChatFactory.cs
 ```csharp
 
 private AgentGroupChatSettings GetAgentGroupChatSettings(Kernel kernel, LogCallback logCallback)
-        {
-            ChatHistoryTruncationReducer historyReducer = new(5);
+{
+    ChatHistoryTruncationReducer historyReducer = new(5);
 
-            AgentGroupChatSettings ExecutionSettings = new AgentGroupChatSettings
+    AgentGroupChatSettings ExecutionSettings = new AgentGroupChatSettings
+    {
+        SelectionStrategy =
+            new KernelFunctionSelectionStrategy(GetStrategyFunction(ChatResponseFormatBuilder.ChatResponseStrategy.Continuation), kernel)
             {
-                SelectionStrategy =
-                    new KernelFunctionSelectionStrategy(GetStrategyFunction(ChatResponseFormatBuilder.ChatResponseStrategy.Continuation), kernel)
+                Arguments = new KernelArguments(GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStrategy.Continuation)),
+                // Save tokens by only including the final few responses
+                HistoryReducer = historyReducer,
+                // The prompt variable name for the history argument.
+                HistoryVariableName = "lastmessage",
+                // Returns the entire result value as a string.
+                ResultParser = (result) =>
+                {
+                    var resultString = result.GetValue<string>();
+                    if (!string.IsNullOrEmpty(resultString))
                     {
-                        Arguments = new KernelArguments(GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStrategy.Continuation)),
-                        // Save tokens by only including the final few responses
-                        HistoryReducer = historyReducer,
-                        // The prompt variable name for the history argument.
-                        HistoryVariableName = "lastmessage",
-                        // Returns the entire result value as a string.
-                        ResultParser = (result) =>
-                        {
-#pragma warning disable CS8604 // Possible null reference argument.
-                            var ContinuationInfo = JsonSerializer.Deserialize<ContinuationInfo>(result.GetValue<string>());
-#pragma warning restore CS8604 // Possible null reference argument.
-                            logCallback("SELECTION - Agent",ContinuationInfo.AgentName); 
-                            logCallback("SELECTION - Reason",ContinuationInfo.Reason);                   
-                            return ContinuationInfo.AgentName;
-                        }
-                    },
-                TerminationStrategy =
-                    new KernelFunctionTerminationStrategy(GetStrategyFunction(ChatResponseFormatBuilder.ChatResponseStrategy.Termination), kernel)
+                        var ContinuationInfo = JsonSerializer.Deserialize<ContinuationInfo>(resultString);
+                        logCallback("SELECTION - Agent", ContinuationInfo.AgentName); 
+                        logCallback("SELECTION - Reason", ContinuationInfo.Reason);               
+                        return ContinuationInfo.AgentName;
+                    }
+                    else
                     {
-                        Arguments = new KernelArguments(GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStrategy.Termination)),
-                        // Save tokens by only including the final response
-                        HistoryReducer = historyReducer,
-                        // The prompt variable name for the history argument.
-                        HistoryVariableName = "lastmessage",
-                        // Limit total number of turns
-                        MaximumIterations = 8,
-                        // user result parser to determine if the response is "yes"
-                        ResultParser = (result) =>
-                        {
-#pragma warning disable CS8604 // Possible null reference argument.
-                            var terminationInfo = JsonSerializer.Deserialize<TerminationInfo>(result.GetValue<string>());
-#pragma warning restore CS8604 // Possible null reference argument.
-                            logCallback("TERMINATION - Continue",terminationInfo.ShouldContinue.ToString()); 
-                            logCallback("TERMINATION - Reason",terminationInfo.Reason); 
-                            return !terminationInfo.ShouldContinue;
-                        }
-                    },
-            };
+                        return string.Empty;
+                    }
+                }
+            },
+        TerminationStrategy =
+            new KernelFunctionTerminationStrategy(GetStrategyFunction(ChatResponseFormatBuilder.ChatResponseStrategy.Termination), kernel)
+            {
+                Arguments = new KernelArguments(GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStrategy.Termination)),
+                // Save tokens by only including the final response
+                HistoryReducer = historyReducer,
+                // The prompt variable name for the history argument.
+                HistoryVariableName = "lastmessage",
+                // Limit total number of turns
+                MaximumIterations = 8,
+                // user result parser to determine if the response is "yes"
+                ResultParser = (result) =>
+                {
+                    var resultString = result.GetValue<string>();
+                    if (!string.IsNullOrEmpty(resultString))
+                    {
+                        var terminationInfo = JsonSerializer.Deserialize<TerminationInfo>(resultString);
+                        logCallback("TERMINATION - Continue", terminationInfo.ShouldContinue.ToString()); 
+                        logCallback("TERMINATION - Reason", terminationInfo.Reason); 
+                        return !terminationInfo.ShouldContinue;
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+            },
+    };
 
-            return ExecutionSettings;
-        }
+    return ExecutionSettings;
+}
 
 ```
 
