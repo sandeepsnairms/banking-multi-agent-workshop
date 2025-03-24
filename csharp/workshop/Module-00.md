@@ -50,21 +50,23 @@ Complete the following tasks in order to prepare your environment for this works
 
 #### Local Environment
 
-To run the workshop locally on your machine, you can either use [VS Code Dev Containers](https://code.visualstudio.com/docs/devcontainers/containers) or install the required tools manually.
+1. To run the workshop locally on your machine, install the following:
 
-Click the button below to run the workshop using Dev Containers. This will run the workshop in a containerized environment:
+   - [Docker Desktop](https://docs.docker.com/desktop/)
+   - [Git](https://git-scm.com/downloads)
+   - [Azure Developer CLI (azd)](https://aka.ms/install-azd)
+   - [.NET 9](https://dotnet.microsoft.com/downloads/)
+   - [Visual Studio](https://visualstudio.microsoft.com/downloads/) or [VS Code](https://code.visualstudio.com/Download) with [C# Dev Kit](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csdevkit)
 
-[![Open in Dev Containers](https://img.shields.io/static/v1?style=for-the-badge&label=Dev%20Containers&message=Open&color=blue&logo=visualstudiocode)](vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/AzureCosmosDB/banking-multi-agent-workshop&devcontainer_path=.devcontainer/csharp/devcontainer.json)
+1. Clone the repository and switch to the `start` branch:
 
-If you do not want to use Dev Containers, install the following on your local machine:
+   ```bash
+   git clone https://github.com/AzureCosmosDB/banking-multi-agent-workshop/
+   cd banking-multi-agent-workshop
+   git checkout start
+   ```
 
-- [Docker Desktop](https://docs.docker.com/desktop/)
-- [Git](https://git-scm.com/downloads)
-- [Azure Developer CLI (azd)](https://aka.ms/install-azd)
-- [.NET 9](https://dotnet.microsoft.com/downloads/)
-- [Visual Studio](https://visualstudio.microsoft.com/downloads/) or [VS Code](https://code.visualstudio.com/Download) with [C# Dev Kit](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csdevkit)
-
-Move on to the **Deployment** section.
+1. Move on to the **Deployment** section.
 
 #### GitHub Codespaces
 
