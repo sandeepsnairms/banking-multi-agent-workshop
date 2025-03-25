@@ -137,10 +137,12 @@ While the Azure Services are deploying we will have a presentation to cover on t
 
 ### Setting up local debugging
 
-When you deploy this solution it automatically injects endpoints and configuration values into the .env file stored in the .azure directory in a folder with the name of your resource group. Open the .env file.
+When you deploy this solution it automatically injects endpoints and configuration values into the .env file stored in the .azure directory in a folder with the name of your resource group.
 
-### Update src\ChatAPI\appsettings.json
-
+1. Navigate to `.azure\[your-resource-group-name]\.env`
+1. Open the .env file using any text editor.
+1. Navigate to `csharp\src\MultiAgentCopilot.sln` and open the solution.
+1. Within your IDE, navigate to `ChatAPI` project and open `appsettings.json`
 1. Update `"CosmosDBSettings:CosmosUri": "https://[accountname].documents.azure.com:443/"` with the AZURE_COSMOSDB_ENDPOINT value from the .env file.
 1. Update `"SemanticKernelServiceSettings:AzureOpenAISettings:Endpoint": "https://[accountname].openai.azure.com/"` with the AZURE_OPENAI_ENDPOINT value from the .env file.
 1. Update `"ApplicationInsights:ConnectionString": "[connectionstring]"` with the APP_INSIGHTS_CONNECTION_STRING value from the .env file.
@@ -155,16 +157,20 @@ When you deploy this solution it automatically injects endpoints and configurati
 
 1. Navigate to `src\ChatAPI`.
 2. Run the following command to trust the development certificate:
+
    ```sh
    dotnet dev-certs https --trust
    ```
+
 3. Start the application:
+
    ```sh
    dotnet run
    ```
+
 4. Copy the URL from the **Ports** tab.
 
-##### If running locally on Visual Studio or VS Code:
+##### If running locally on Visual Studio or VS Code
 
 1. Navigate to `src\ChatAPI`.
 2. Press **F5** or select **Run** to start the application.
@@ -186,20 +192,24 @@ When you deploy this solution it automatically injects endpoints and configurati
 1. Save and close the file.
 1. Open a new terminal. Navigate to the `frontend` folder.
 1. Copy and run the following:
+
    ```sh
    npm i
    ng serve
    ```
-1. Open your browser and navigate to http://localhost:4200/.
+
+1. Open your browser and navigate to <http://localhost:4200/>.
 
 #### 3. Start a Chat Session
 
 1. Open the frontend app.
 1. Start a new chat session.
 1. Send the message:
-   ```
+
+   ```text
    Hello, how are you?
    ```
+
 1. You should see something like the output below.
 
    ![Test output](./media/module-00/test-output.png)
@@ -227,18 +237,22 @@ Use the steps below to validate that the solution was deployed successfully.
    - Check regional availability
 1. Frontend issues:
    - If frontend doesn't fully start, navigate to `/frontend/src/environments/environment.ts` and update `apiUrl: 'https://localhost:63279/'`
-   - Rrontend will restart
+   - Frontend will restart
 1. Connecting to backend running CodeSpaces
    - If you cannot get the front end to connect to the backend service when running in Codespaces try the following
      - Navigate to the /src/ChatAPI folder in the Terminal
      - Run the following command to trust the development certificate:
+
        ```sh
        dotnet dev-certs https --trust
        ```
+
      - Then start the application:
+
        ```sh
        dotnet run
        ```
+
    - Copy the URL from the **Ports** tab and use this for the environments.ts file
 
 ## Success Criteria
