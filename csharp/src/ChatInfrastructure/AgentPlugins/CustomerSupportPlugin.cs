@@ -2,12 +2,8 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using System.ComponentModel;
-using BankingServices.Interfaces;
-using Microsoft.Extensions.Logging;
-using Microsoft.SemanticKernel;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
 using System.Security.AccessControl;
 using System.Text;
