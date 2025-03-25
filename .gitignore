@@ -100,3 +100,4 @@ __azurite_db*__.json
 /csharp/src/ChatAPI/appsettings.development.json
 /csharp/test.ps1
 /frontend/src/environments/environment.ts
+/frontend/src/environments/environment.prod.ts
