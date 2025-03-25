@@ -28,7 +28,7 @@ function Build-And-Deploy-Frontend {
     # Switching to frontend directory
     Set-Location -Path $frontendPath
 	
-	# Setting ChatServiceWebApi URL in frontend app"
+	# Setting ChatServiceWebApi URL in frontend app
 	$envContent = "export const environment = { apiUrl: '$apiUrl/' };"
 	$envFilePath = "$frontendPath\src\environments\environment.prod.ts"  # Adjust the path accordingly
 
@@ -49,10 +49,10 @@ function Build-And-Deploy-Frontend {
 		Remove-Item $zipFile -Force
 	 }
 	
-	Write-Host "`r`Compressing $frontendPath\$buildOutput build output to $zipFile"	
+	# Compressing build output
     Compress-Archive -Path "$frontendPath\$buildOutput\browser\*" -DestinationPath $zipFile -Force
 
-	Write-Host "`r`Deploying to Azure Web App..."
+	Write-Host "Deploying to Azure Web App..."
 	az webapp deploy --resource-group $resourceGroup --name $webAppName --src-path $zipFile --type zip --only-show-errors
 }
 
@@ -81,7 +81,7 @@ function Send-Data($jsonFilePath, $endpoint) {
 }
 
 # Ask user if they want to add dummy data
-$dummyDataResponse = Read-Host "`r`Do you want to add some dummy data for testing? (yes/no)"
+$dummyDataResponse = Read-Host "Do you want to add some dummy data for testing? (yes/no)"
 if ($dummyDataResponse -match "^(yes|y)$") {
     Write-Host "Adding dummy data..."
     # Load dummy data
@@ -89,13 +89,15 @@ if ($dummyDataResponse -match "^(yes|y)$") {
 	Send-Data "./data/AccountsData.json" "accountdata"
 	Send-Data "./data/OffersData.json" "offerdata"
 }
-
+Write-Host ""
 # Ask user if they want to deploy frontend
-$dummyDataResponse = Read-Host "`r`Do you want to deploy the frontend app? (yes/no)"
+$dummyDataResponse = Read-Host "Do you want to deploy the frontend app? (yes/no)"
 if ($dummyDataResponse -match "^(yes|y)$") {
+	Write-Host ""
     Write-Host "***FRONTEND APP deployment started!***"
 	# Deploy frontend
 	Build-And-Deploy-Frontend -webAppName $webAppName -resourceGroup $resourceGroup
 	
-	Write-Host "`r`Deployment complete. You can visit your app at : $webAppUrl"
+	Write-Host ""
+	Write-Host "Deployment complete. You can visit your app at : $webAppUrl"
 }
