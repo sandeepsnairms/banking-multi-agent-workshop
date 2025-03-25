@@ -216,7 +216,8 @@ When you deploy this solution it automatically injects endpoints and configurati
 
 #### 4. Stop the Application
 
-- Press **Ctrl + C** to stop the debugger.
+- In the frontend terminal, press **Ctrl + C** to stop the application.
+- In your IDE press **Shift-F5** or stop the debugger.
 
 ### Deployment Validation
 

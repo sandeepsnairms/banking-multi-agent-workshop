@@ -110,27 +110,26 @@ Create a new class, **SemanticKernelService.cs**
 Replace the contents of the new class with the code below.
 
 ```csharp
-using MultiAgentCopilot.Common.Models.Chat;
-using MultiAgentCopilot.ChatInfrastructure.Interfaces;
-using MultiAgentCopilot.Common.Models.Configuration;
+using System;
+using System.Runtime;
+using System.Data;
+using Newtonsoft.Json;
+using Azure.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+
 using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Connectors.OpenAI;
-using MultiAgentCopilot.Common.Models.Configuration;
-using Microsoft.SemanticKernel.ChatCompletion;
-
-using Azure.Identity;
-using Newtonsoft.Json;
-using System.Data;
-using MultiAgentCopilot.Common.Models.Debug;
-using Microsoft.SemanticKernel.Embeddings;
-using System.Runtime;
 using Microsoft.SemanticKernel.Agents;
-using Message = MultiAgentCopilot.Common.Models.Chat.Message;
-using System;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
+using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel.Embeddings;
 
+using MultiAgentCopilot.Common.Models.Chat;
+using MultiAgentCopilot.ChatInfrastructure.Interfaces;
+using MultiAgentCopilot.Common.Models.Configuration;
+using MultiAgentCopilot.Common.Models.Debug;
+using Message = MultiAgentCopilot.Common.Models.Chat.Message;
 
 namespace MultiAgentCopilot.ChatInfrastructure.Services;
 
@@ -466,7 +465,8 @@ With the activities in this module complete, it is time to test your work.
 
 ### 4. Stop the Application
 
-- Press **Ctrl + C** to stop the debugger.
+- In the frontend terminal, press **Ctrl + C** to stop the application.
+- In your IDE press **Shift-F5** or stop the debugger.
 
 ### Validation Checklist
 
@@ -511,26 +511,26 @@ namespace MultiAgentCopilot.ChatInfrastructure.Interfaces
 <br>
 
 ```csharp
-using MultiAgentCopilot.Common.Models.Chat;
-using MultiAgentCopilot.ChatInfrastructure.Interfaces;
-using MultiAgentCopilot.Common.Models.Configuration;
+using System;
+using System.Runtime;
+using System.Data;
+using Newtonsoft.Json;
+using Azure.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Connectors.OpenAI;
-using MultiAgentCopilot.Common.Models.Configuration;
-using Microsoft.SemanticKernel.ChatCompletion;
 
-using Azure.Identity;
-using Newtonsoft.Json;
-using System.Data;
-using MultiAgentCopilot.Common.Models.Debug;
-using Microsoft.SemanticKernel.Embeddings;
-using System.Runtime;
+using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
+using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel.Embeddings;
+
+using MultiAgentCopilot.Common.Models.Chat;
+using MultiAgentCopilot.ChatInfrastructure.Interfaces;
+using MultiAgentCopilot.Common.Models.Configuration;
+using MultiAgentCopilot.Common.Models.Debug;
 using Message = MultiAgentCopilot.Common.Models.Chat.Message;
-using System;
 
 namespace MultiAgentCopilot.ChatInfrastructure.Services;
 
