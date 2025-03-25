@@ -195,7 +195,7 @@ Then replace the first line immediately within the function to this:
 
 ```python
 def interactive_chat():
-    thread_config = {"configurable": {"thread_id": hardcoded_thread_id, "userId": "cli-test", "tenantId": "cli-test"}}
+    thread_config = {"configurable": {"thread_id": hardcoded_thread_id, "userId": "U1", "tenantId": "T1"}}
 ```
 
 ### Ready to test
