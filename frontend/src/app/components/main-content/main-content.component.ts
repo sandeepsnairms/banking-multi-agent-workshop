@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef, AfterViewChecked, QueryList, ViewChildren } from '@angular/core';
 import { Session } from '../../models/session';
 import { Message } from '../../models/message';
 import { ChatOptionsService } from '../../services/chat-options/chat-options.service';
@@ -16,6 +16,7 @@ import { LogPopupComponent } from '../log-popup/log-popup.component';
   styleUrl: './main-content.component.css'
 })
 export class MainContentComponent implements OnInit, AfterViewChecked {
+  @ViewChildren('latestMessage') latestMessages!: QueryList<ElementRef>;
   //@ts-ignorets-ignore
   @ViewChild('mainContent') private mainContent: ElementRef;
   message = '';
@@ -77,13 +78,14 @@ export class MainContentComponent implements OnInit, AfterViewChecked {
 
 
   ngAfterViewChecked() {
-    this.scrollToBottom();
+    this.scrollToLatestMessage();
   }
 
-  private scrollToBottom(): void {
-    try {
-      this.mainContent.nativeElement.scrollTop = this.mainContent.nativeElement.scrollHeight;
-    } catch (err) { }
+  private scrollToLatestMessage() {
+    if (this.latestMessages.length > 0) {
+      const lastMessage = this.latestMessages.last; // Get the last element
+      lastMessage.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
   }
 
   initCompletion() {
@@ -171,7 +173,7 @@ export class MainContentComponent implements OnInit, AfterViewChecked {
         }
       });
 
-    setTimeout(() => this.scrollToBottom(), 0);
+    
   }
 
   convertToJSON(malformedString: string): any | null {
