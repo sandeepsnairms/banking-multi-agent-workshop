@@ -27,254 +27,11 @@ In this session you will learn how this all comes together and get insights into
 
 ## Activity 2: Define Agents and Roles
 
-Lets add some more banking domain functions that wil be used by the various agents.
-
-Update IBankDataService at BankingAPI\Interface to add more function definitions
-
-```csharp
-
-        Task<List<BankTransaction>> GetTransactionsAsync(string tenantId, string accountId, DateTime startDate, DateTime endDate);
-
-        Task<ServiceRequest> CreateFundTransferRequestAsync(string tenantId, string accountId, string userId, string requestAnnotation, string recipientEmail, string recipientPhone, decimal debitAmount);
-
-        Task<ServiceRequest> CreateTeleBankerRequestAsync(string tenantId, string accountId, string userId, string requestAnnotation, DateTime scheduledDateTime);
-
-        Task<ServiceRequest> CreateFulfilmentRequestAsync(string tenantId, string accountId, string userId, string requestAnnotation, Dictionary<string, string> fulfilmentDetails);
-
-        Task<List<ServiceRequest>> GetServiceRequestsAsync(string tenantId, string accountId, string? userId = null, ServiceRequestType? SRType = null);
-
-        Task<bool> AddServiceRequestDescriptionAsync(string tenantId, string accountId, string requestId, string annotationToAdd);
-
-        Task<String> GetTeleBankerAvailabilityAsync();
-```
-
-Update BankingDataService at Services\BankingDataService.cs to add function implementations
-
-```csharp
-
-
-public async Task<List<BankTransaction>> GetTransactionsAsync(string tenantId, string accountId, DateTime startDate, DateTime endDate)
-        {
-            try
-            {
-                var partitionKey = PartitionManager.GetAccountsDataFullPK(tenantId, accountId);
-
-                QueryDefinition queryDefinition = new QueryDefinition(
-                       "SELECT * FROM c WHERE c.accountId = @accountId AND c.transactionDateTime >= @startDate AND c.transactionDateTime <= @endDate AND c.type = @type")
-                       .WithParameter("@accountId", accountId)
-                       .WithParameter("@type", nameof(BankTransaction))
-                       .WithParameter("@startDate", startDate)
-                       .WithParameter("@endDate", endDate);
-
-                List<BankTransaction> transactions = new List<BankTransaction>();
-                using (FeedIterator<BankTransaction> feedIterator = _accountData.GetItemQueryIterator<BankTransaction>(queryDefinition, requestOptions: new QueryRequestOptions { PartitionKey = partitionKey }))
-                {
-                    while (feedIterator.HasMoreResults)
-                    {
-                        //var abc= await feedIterator.ReadNextAsync();
-                        FeedResponse<BankTransaction> response = await feedIterator.ReadNextAsync();
-                        transactions.AddRange(response);
-                    }
-                }
-
-                return transactions;
-            }
-            catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
-                _logger.LogError(ex.ToString());
-                return new List<BankTransaction>();
-            }
-        }
-
-        public async Task<ServiceRequest> CreateFundTransferRequestAsync(string tenantId, string accountId, string userId, string requestAnnotation, string recipientEmail, string recipientPhone, decimal debitAmount)
-        {
-            var req= new ServiceRequest(ServiceRequestType.FundTransfer, tenantId, accountId, userId, requestAnnotation, recipientEmail, recipientPhone, debitAmount,  DateTime.MinValue,null);
-            return await AddServiceRequestAsync(req);
-        }
-
-        public async Task<ServiceRequest> CreateTeleBankerRequestAsync(string tenantId, string accountId, string userId, string requestAnnotation, DateTime scheduledDateTime)
-        {
-            var req = new ServiceRequest(ServiceRequestType.TeleBankerCallBack, tenantId, accountId, userId, requestAnnotation, string.Empty, string.Empty, 0,  scheduledDateTime,null);
-            return await AddServiceRequestAsync(req);
-        }
-
-        public Task<string> GetTeleBankerAvailabilityAsync()
-        {
-            return Task.FromResult("Monday to Friday, 8 AM to 8 PM Pacific Time");
-        }
-        public async Task<ServiceRequest> CreateFulfilmentRequestAsync(string tenantId, string accountId, string userId, string requestAnnotation, Dictionary<string,string> fulfilmentDetails)
-        {
-            var req = new ServiceRequest(ServiceRequestType.Fulfilment, tenantId, accountId, userId, requestAnnotation, string.Empty, string.Empty, 0,  DateTime.MinValue, fulfilmentDetails);
-            return await AddServiceRequestAsync(req);
-        }
-        public async Task<List<ServiceRequest>> GetServiceRequestsAsync(string tenantId, string accountId, string? userId = null, ServiceRequestType? SRType = null)
-        {
-            try
-            {
-                var partitionKey = PartitionManager.GetAccountsDataFullPK(tenantId, accountId);
-
-                var queryBuilder = new StringBuilder("SELECT * FROM c WHERE c.type = @type");
-                var queryDefinition = new QueryDefinition(queryBuilder.ToString())
-                      .WithParameter("@type", nameof(ServiceRequest));
-
-                if (!string.IsNullOrEmpty(userId))
-                {
-                    queryBuilder.Append(" AND c.userId = @userId");
-                    queryDefinition = queryDefinition.WithParameter("@userId", userId);
-                }
-
-                if (SRType.HasValue)
-                {
-                    queryBuilder.Append(" AND c.SRType = @SRType");
-                    queryDefinition = queryDefinition.WithParameter("@SRType", SRType);
-                }
-
-
-                List<ServiceRequest> reqs = new List<ServiceRequest>();
-                using (FeedIterator<ServiceRequest> feedIterator = _requestData.GetItemQueryIterator<ServiceRequest>(queryDefinition, requestOptions: new QueryRequestOptions { PartitionKey = partitionKey }))
-                {
-                    while (feedIterator.HasMoreResults)
-                    {
-                        FeedResponse<ServiceRequest> response = await feedIterator.ReadNextAsync();
-                        reqs.AddRange(response);
-                    }
-                }
-
-                return reqs;
-            }
-            catch (CosmosException ex)
-            {
-                _logger.LogError(ex.ToString());
-                return new List<ServiceRequest>();
-            }
-        }
-
-
-
-        public async Task<bool> AddServiceRequestDescriptionAsync(string tenantId, string accountId, string requestId, string annotationToAdd)
-        {
-            try
-            {
-                var partitionKey = PartitionManager.GetAccountsDataFullPK(tenantId, accountId);
-
-                var patchOperations = new List<PatchOperation>
-                {
-                    PatchOperation.Add("/requestAnnotations/-", $"[{DateTime.Now.ToUniversalTime().ToString()}] : {annotationToAdd}")
-                };
-
-                ItemResponse<ServiceRequest> response = await _requestData.PatchItemAsync<ServiceRequest>(
-                    id: requestId,
-                    partitionKey: partitionKey,
-                    patchOperations: patchOperations
-                );
-
-                return true;
-            }
-            catch (CosmosException ex)
-            {
-                _logger.LogError(ex.ToString());
-                return false;
-            }
-        }
-       
-
-```
-
-Update \ChatInfrastructure\AgentPlugins\CustomerSupportPlugin.cs with additional functions  
-
-```csharp
-
-   [KernelFunction("CheckPendingServiceRequests")]
-   [Description("Search the database for pending requests")]
-   public async Task<List<ServiceRequest>> CheckPendingServiceRequests(string? accountId = null, ServiceRequestType? srType = null)
-   {
-      _logger.LogTrace($"Searching database for matching requests for Tenant: {_tenantId} User: {_userId}");
-
-      return await _bankService.GetServiceRequestsAsync(_tenantId, accountId ?? string.Empty, null, srType);
-   }
-
-   [KernelFunction]
-   [Description("Adds a telebanker callback request for the specified account.")]
-   public async Task<ServiceRequest> AddTeleBankerRequest(string accountId,string requestAnnotation ,DateTime callbackTime)
-   {
-      _logger.LogTrace($"Adding Tele Banker request for Tenant: {_tenantId} User: {_userId}, account: {accountId}");
-
-      return await _bankService.CreateTeleBankerRequestAsync(_tenantId, accountId,_userId, requestAnnotation, callbackTime);
-   }
-
-   [KernelFunction]
-   [Description("Get list of available slots for telebankers specializing in an account type")]
-   public async Task<string> GetTeleBankerSlots(AccountType accountType)
-   {
-      _logger.LogTrace($"Checking availability for Tele Banker for Tenant: {_tenantId} AccountType: {accountType.ToString()}");
-
-      return await _bankService.GetTeleBankerAvailabilityAsync();
-   }
-
-
-
-   [KernelFunction]
-   [Description("Updates an existing service request with additional details")]
-   public async Task<bool> UpdateExistingServiceRequest(string requestId, string accountId, string requestAnnotation)
-   {
-      _logger.LogTrace($"Updating service request for Request: {requestId}");
-
-      return await  _bankService.AddServiceRequestDescriptionAsync(_tenantId, accountId, requestId, requestAnnotation);
-   }
-
-```
-
-
-Update ChatInfrastructure\AgentPlugins\SalesPlugin.cs with additional functions  
-
-```csharp
-
-        [KernelFunction]
-        [Description("Register a new account.")]
-        public async Task<ServiceRequest> RegisterAccount(string userId, AccountType accType, Dictionary<string,string> fulfilmentDetails)
-        {
-            _logger.LogTrace($"Registering Account. User ID: {userId}, Account Type: {accType}");
-            return await _bankService.CreateFulfilmentRequestAsync(_tenantId, string.Empty,_userId,string.Empty,fulfilmentDetails);
-        }
-```
-
-Update ChatInfrastructure\AgentPlugins\TransactionPlugin.cs with additional functions  
-
-```csharp
-    [KernelFunction]
-    [Description("Adds a new Account Transaction request")]
-    public async Task<ServiceRequest> AddFunTransferRequest(
-       string debitAccountId,
-       decimal amount,
-       string requestAnnotation,
-       string? recipientPhoneNumber = null,
-       string? recipientEmailId = null)
-    {
-       _logger.LogTrace("Adding AccountTransaction request for User ID: {UserId}, Debit Account: {DebitAccountId}", _userId, debitAccountId);
-    
-       // Ensure non-null values for recipientEmailId and recipientPhoneNumber
-       string emailId = recipientEmailId ?? string.Empty;
-       string phoneNumber = recipientPhoneNumber ?? string.Empty;
-    
-       return await _bankService.CreateFundTransferRequestAsync(_tenantId, debitAccountId, _userId, requestAnnotation, emailId, phoneNumber, amount);
-    }
-    
-    
-    [KernelFunction]
-    [Description("Get the transactions history between 2 dates")]
-    public async Task<List<BankTransaction>> GetTransactionHistory(string accountId, DateTime startDate, DateTime endDate)
-    {
-       _logger.LogTrace("Fetching AccountTransaction history for Account: {AccountId}, From: {StartDate} To: {EndDate}", accountId, startDate, endDate);
-       return await _bankService.GetTransactionsAsync(_tenantId, accountId, startDate, endDate);
-    
-    }
-
-```
-
+When dealing with multiple agents, clear agent roles is important to avoid conflicts and making sure  customer gets the most appropriate response.
 
 ### Add Selection Strategy for Agent Selection
 
-When dealing with multiple agents, deciding which agent should respond is critical. We don't all agents to respond to all user prompts. SelectionStrategy is  the mechanism in SemanticKernel to decide the next participant. The SelectionStrategy is defined in natural language.
+SelectionStrategy is the mechanism in SemanticKernel that determines the next participant. By using the SelectionStrategy, we can identify the available agents and guide the LLM by defining the selection rule in natural language.
 
 Add SelectionStrategy.prompty at ChatAPI\Prompts\
 
@@ -297,7 +54,7 @@ Always follow these rules when choosing the next participant:
 
 ### Add Termination Strategy for Agent response
 
-Similar to SelectionStrategy deciding when the agents should stop responding to a user prompt is important, else you may see multiple unwanted agent responses to a user prompt. TerminationStrategy is  the mechanism in SemanticKernel to decide when to stop. The TerminationStrategy is defined in natural language. We want the LLM to return YES if more agent participation is required, else it should be NO.
+Similar to how SelectionStrategy selects an agent, TerminationStrategy decides when agents should stop responding. This is crucial to prevent multiple unwanted agent chatter in response to a user prompt. TerminationStrategy is the mechanism in SemanticKernel that determines when to stop. It is defined in natural language and instructs the LLM to return YES if more agent participation is required, otherwise it should return NO.
 
 Add TerminationStrategy.prompty at ChatAPI\Prompts\
 
@@ -312,7 +69,7 @@ Otherwise, respond with the word YES (without explanation) if any the following 
 
 ### ChatResponseFormat
 
-By default  the LLM responds to a user response in natural language. However, we can force the LLM to  use a structure format in its response. A structure format helps us parse the response and use it our code for decision making.
+By default, the LLM responds to user prompts in natural language. However, we can enforce a structured format in its responses. A structured format allows us to parse the response and utilize it in our code for decision-making.
 
 Lets define the models for the response
 
@@ -356,7 +113,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Models.ChatInfoFormats
 
 ```
 
-Prompts to make the LLM output the Continuation and Termination models as responses
+Let's define a format builder that the LLM can use to output the Continuation and Termination models as responses.
 
 Add ChatResponseFormat.cs to ChatInfrastructure\StructuredFormats
 
@@ -548,11 +305,18 @@ Add the functions in ChatInfrastructure\Factories\ChatFactory.cs
                         // Returns the entire result value as a string.
                         ResultParser = (result) =>
                         {
-#pragma warning disable CS8604 // Possible null reference argument.
-                            var ContinuationInfo = JsonSerializer.Deserialize<ContinuationInfo>(result.GetValue<string>());
-#pragma warning restore CS8604 // Possible null reference argument.
-                         
-                            return ContinuationInfo.AgentName;
+                            var resultString = result.GetValue<string>();
+                            if (!string.IsNullOrEmpty(resultString))
+                            {
+                                var ContinuationInfo = JsonSerializer.Deserialize<ContinuationInfo>(resultString);
+                                logCallback("SELECTION - Agent", ContinuationInfo.AgentName); 
+                                logCallback("SELECTION - Reason", ContinuationInfo.Reason);                       
+                                return ContinuationInfo.AgentName;
+                            }
+                            else
+                            {
+                                return string.Empty;
+                            }
                         }
                     },
                 TerminationStrategy =
@@ -568,16 +332,21 @@ Add the functions in ChatInfrastructure\Factories\ChatFactory.cs
                         // user result parser to determine if the response is "yes"
                         ResultParser = (result) =>
                         {
-#pragma warning disable CS8604 // Possible null reference argument.
-                            var terminationInfo = JsonSerializer.Deserialize<TerminationInfo>(result.GetValue<string>());
-#pragma warning restore CS8604 // Possible null reference argument.
-
-                            return !terminationInfo.ShouldContinue;
+                            var resultString = result.GetValue<string>();
+                            if (!string.IsNullOrEmpty(resultString))
+                            {
+                                var terminationInfo = JsonSerializer.Deserialize<TerminationInfo>(resultString);
+                                logCallback("TERMINATION - Continue", terminationInfo.ShouldContinue.ToString()); 
+                                logCallback("TERMINATION - Reason", terminationInfo.Reason); 
+                                return !terminationInfo.ShouldContinue;
+                            }
+                            else
+                            {
+                                return false;
+                            }
                         }
                     },
             };
-
-            return ExecutionSettings;
         }
 
 ```
@@ -585,13 +354,6 @@ Add the functions in ChatInfrastructure\Factories\ChatFactory.cs
 ### Replace Agent with AgentGroupChat in SemanticKernel
 
 Till now the responses we received were from a single agent, lets us use AgentGroupChat to orchestrate a chat were multiple agents participate.
-
-Add the below references in ChatInfrastructure/Factories/ChatFactory.cs
-
-```csharp
-using MultiAgentCopilot.ChatInfrastructure.Helper;
-
-```
 
 Update GetResponse in ChatInfrastructure\Services\SemanticKernelService.cs
 
@@ -854,50 +616,59 @@ Update GetResponse in ChatInfrastructure\Services\SemanticKernelService.cs
 
 ## Activity 5: Test your Work
 
-With the hands-on exercises complete it is time to test your work.
+In the previous module we tested each agent independently. With the code  changes in this module we should now be able to orchestrate and  multi agent chat where agent selection is automated based on the SelectionStrategy and agent prompts. Lets go ahead and test if the code works as expected.
 
-1. Navigate to src\ChatAPI.
-    - If running on Codespaces:
-       1. Run dotnet dev-certs https --trust to manually accept the certificate warning.
-       2. Run dotnet run.
-    - If running locally on Visual Studio or VS Code:
-       1. Press F5 or select Run.
-2. Copy the launched URL and use it as the API endpoint in the next step.
-3. Follow the [instructions](../..//README.md) to run the Frontend app.
-4. Start a conversation in the UI
-5. Try the below messages and respond according to the AI response.
+#### 1. Start the ChatAPI
+
+- Codespaces open a terminal and type `dotnet run`
+- In your IDE press **F5** or select **Run** to start the application.
+
+#### 2. Run the Frontend App
+
+- Open a new terminal or use an existing one that is open to the `/frontend` folder.
+
+    ```sh
+    ng serve
+    ```
+
+- Navigate to, <http://localhost:4200> in your browser
+
+#### 3. Start a Chat Session
+
+1. Open the frontend app.
+1. Start a new conversation.
+1. Try the below prompts and respond according to the AI response.
     1. Transfer $50 to my friend.
     1. Looking for a Savings account with high interest rate.
     1. File a complaint about theft from my account.
     1. How much did I spend on grocery?
     1. Provide me a statement of my account.
-1. Expected result each message response is based on the agent you selected and plugins available with the agent.
+1. Expected response: The response is inline with the Agent's prompts and plugins.
+
+### 4. Stop the Application
+
+- In the frontend terminal, press **Ctrl + C** to stop the application.
+- In your IDE press **Shift-F5** or stop the debugger.
 
 ### Validation Checklist
 
-- [ ] item 1
-- [ ] item 2
-- [ ] item 3
+- [ ] Depending on the user prompt the agent selection is dynamic.
+- [ ] All the agents  context of the previous messages in teh conversation.
+- [ ] The agents are able to invoke the right plugin function to interact with `BankingService`.
+- [ ] Vector search  works as expected.
 
 ### Common Issues and Solutions
 
-1. Item 1:
+1. Multiple agents respond together or Wrong agent responding:
 
-   - Sub item 1
-   - Sub item 2
-   - Sub item 3
+   - View the 'DebugLog' by using the **Bug** icon in each impacted AI response.
+   - Study the Termination Reason
+   - Edit the appropriate Prompty files to resolve the conflict.
 
-1. Item 2:
+1. Agent response are invalid:
 
-   - Sub item 1
-   - Sub item 2
-   - Sub item 3
-
-3. Item 3:
-
-   - Sub item 1
-   - Sub item 2
-   - Sub item 3
+   - Change in model and/or its version can cause invalid/irrelevant agent behavior.
+   - Thorough testing with updated prompts will be required.
 
 ### Module Solution
 

@@ -49,7 +49,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.SemanticKernel;
 using MultiAgentCopilot.ChatInfrastructure.Services;
-
+using MultiAgentCopilot.ChatInfrastructure.Models;
 
 namespace MultiAgentCopilot.ChatInfrastructure.Factories
 {
@@ -90,6 +90,9 @@ using Microsoft.SemanticKernel.Agents.Chat;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
+using MultiAgentCopilot.ChatInfrastructure.Helper;
+using MultiAgentCopilot.ChatInfrastructure.Models;
+using BankingServices.Interfaces;
 using OpenAI.Chat;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
@@ -433,7 +436,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.SemanticKernel;
 using MultiAgentCopilot.ChatInfrastructure.Services;
-
+using MultiAgentCopilot.ChatInfrastructure.Models;
 
 namespace MultiAgentCopilot.ChatInfrastructure.Factories
 {
