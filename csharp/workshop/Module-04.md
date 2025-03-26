@@ -665,6 +665,10 @@ In the previous module we tested each agent independently. With the code  change
    - Study the Termination Reason
    - Edit the appropriate Prompty files to resolve the conflict.
 
+1. Agent response are invalid:
+
+   - Change in model and/or its version can cause invalid/irrelevant agent behavior.
+   - Thorough testing with updated prompts will be required.
 
 ### Module Solution
 
