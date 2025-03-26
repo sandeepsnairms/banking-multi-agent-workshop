@@ -1,27 +1,19 @@
-﻿using MultiAgentCopilot.Common.Models.Chat;
-using MultiAgentCopilot.Common.Models.Configuration;
-using MultiAgentCopilot.ChatInfrastructure.Interfaces;
+﻿using Azure.Identity;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Fluent;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using MultiAgentCopilot.ChatInfrastructure.Interfaces;
+using MultiAgentCopilot.Common.Helper;
+using MultiAgentCopilot.Common.Models.Chat;
+using MultiAgentCopilot.Common.Models.Configuration;
+using MultiAgentCopilot.Common.Models.Debug;
 using Newtonsoft.Json.Linq;
 using System.Diagnostics;
-using Azure.Identity;
-using MultiAgentCopilot.Common.Models.Debug;
-using System.ComponentModel;
-using Microsoft.Azure.Cosmos.Serialization.HybridRow.Schemas;
-using System.Xml.Linq;
-using PartitionKey = Microsoft.Azure.Cosmos.PartitionKey;
 using Container = Microsoft.Azure.Cosmos.Container;
-using MultiAgentCopilot.Common.Helper;
-using System.Collections.Concurrent;
-using Microsoft.VisualStudio.TestPlatform.ObjectModel.DataCollection;
-using Microsoft.VisualStudio.TestPlatform.CommunicationUtilities;
 using Message = MultiAgentCopilot.Common.Models.Chat.Message;
-using System.Security.Principal;
-using Newtonsoft.Json;
-using System.Text.Json;
+using PartitionKey = Microsoft.Azure.Cosmos.PartitionKey;
+
 namespace MultiAgentCopilot.ChatInfrastructure.Services
 {
     /// <summary>
