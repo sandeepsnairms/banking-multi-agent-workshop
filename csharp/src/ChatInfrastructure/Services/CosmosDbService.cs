@@ -373,6 +373,6 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
                 return false;
             }
         }
-
+        //Insert new function here
     }
 }
