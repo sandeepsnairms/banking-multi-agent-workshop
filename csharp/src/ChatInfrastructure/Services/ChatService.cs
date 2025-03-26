@@ -164,6 +164,6 @@ public class ChatService : IChatService
             return false;
         }
     }
-
+    //Insert new function here
 }
 
