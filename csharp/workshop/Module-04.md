@@ -616,50 +616,55 @@ Update GetResponse in ChatInfrastructure\Services\SemanticKernelService.cs
 
 ## Activity 5: Test your Work
 
-With the hands-on exercises complete it is time to test your work.
+In the previous module we tested each agent independently. With the code  changes in this module we should now be able to orchestrate and  multi agent chat where agent selection is automated based on the SelectionStrategy and agent prompts. Lets go ahead and test if the code works as expected.
 
-1. Navigate to src\ChatAPI.
-    - If running on Codespaces:
-       1. Run dotnet dev-certs https --trust to manually accept the certificate warning.
-       2. Run dotnet run.
-    - If running locally on Visual Studio or VS Code:
-       1. Press F5 or select Run.
-2. Copy the launched URL and use it as the API endpoint in the next step.
-3. Follow the [instructions](../..//README.md) to run the Frontend app.
-4. Start a conversation in the UI
-5. Try the below messages and respond according to the AI response.
+#### 1. Start the ChatAPI
+
+- Codespaces open a terminal and type `dotnet run`
+- In your IDE press **F5** or select **Run** to start the application.
+
+#### 2. Run the Frontend App
+
+- Open a new terminal or use an existing one that is open to the `/frontend` folder.
+
+    ```sh
+    ng serve
+    ```
+
+- Navigate to, <http://localhost:4200> in your browser
+
+#### 3. Start a Chat Session
+
+1. Open the frontend app.
+1. Start a new conversation.
+1. Try the below prompts and respond according to the AI response.
     1. Transfer $50 to my friend.
     1. Looking for a Savings account with high interest rate.
     1. File a complaint about theft from my account.
     1. How much did I spend on grocery?
     1. Provide me a statement of my account.
-1. Expected result each message response is based on the agent you selected and plugins available with the agent.
+1. Expected response: The response is inline with the Agent's prompts and plugins.
+
+### 4. Stop the Application
+
+- In the frontend terminal, press **Ctrl + C** to stop the application.
+- In your IDE press **Shift-F5** or stop the debugger.
 
 ### Validation Checklist
 
-- [ ] item 1
-- [ ] item 2
-- [ ] item 3
+- [ ] Depending on the user prompt the agent selection is dynamic.
+- [ ] All the agents  context of the previous messages in teh conversation.
+- [ ] The agents are able to invoke the right plugin function to interact with `BankingService`.
+- [ ] Vector search  works as expected.
 
 ### Common Issues and Solutions
 
-1. Item 1:
+1. Multiple agents respond together or Wrong agent responding:
 
-   - Sub item 1
-   - Sub item 2
-   - Sub item 3
+   - View the 'DebugLog' by using the **Bug** icon in each impacted AI response.
+   - Study the Termination Reason
+   - Edit the appropriate Prompty files to resolve the conflict.
 
-1. Item 2:
-
-   - Sub item 1
-   - Sub item 2
-   - Sub item 3
-
-3. Item 3:
-
-   - Sub item 1
-   - Sub item 2
-   - Sub item 3
 
 ### Module Solution
 
