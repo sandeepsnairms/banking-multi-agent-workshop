@@ -34,7 +34,7 @@ After the session in Activity 1, you should understand the need and importance f
 
 When working with any kind of data we need to review our data models.
 
-To begin, navigate to the `Common` project and navigate to the `/Models/Banking' folder. Familiarize yourself with the models used here.
+To begin, navigate to the `Common` project and navigate to the `/Models/Banking` folder. Familiarize yourself with the models used here.
 
 The project and folder structure should look like the following:
 
@@ -87,14 +87,6 @@ We are now ready to complete the implementation for the **System Prompt Factory*
 In the same `ChatInfrastructure` project, navigate to the `/Factories` folder.
 
 Open the `SystemPromptFactory.cs`
-
-Add this with the other using statements at the top of the file:
-
-```csharp
-using MultiAgentCopilot.ChatInfrastructure.Models;
-```
-
-Remain in this same class.
 
 Next we need to replace our original hard-coded implementation from Module 3 to use the AgentType enum for our newly defined banking agents. It is also worth noting that it is here where the contents of the `CommonAgentsRules.prompty` are included as part of the system prompts that define our agents.
 
@@ -161,7 +153,7 @@ Replace the code for both `GetAgentName()` and `GetAgentPrompts()` with the code
 
 ## Activity 4: Integrating Bank Domain Functions as Plugins
 
-All banking domain code is encapsulated in a separate `BankingServices` project. Let's update it make banking domain functions available to the agent plugins. For simplicity in this workshop, all functions reference BankingServices. However, kernel functions can be any managed code that enables the LLM to interact with the outside world. The Base plugin, inherited by all plugins, contains common code for all plugins.
+All banking domain code is encapsulated in a separate `BankingServices` project. Let's add the banking domain functions to the agent plugins. For simplicity in this workshop, all functions reference BankingServices. However, kernel functions can be any managed code that enables the LLM to interact with the outside world. The Base plugin, inherited by all plugins, contains common code for all plugins.
 
 In your IDE, navigate to the **ChatInfrastructure** project in the solution.
 
@@ -169,7 +161,7 @@ Then navigate to the `ChatInfrastructure\AgentPlugins\` folder.
 
 Open the `BasePlugin.cs` file
 
-Add the three functions below into this class.
+Copy the following code into the class.
 
 ```csharp
     [KernelFunction("GetLoggedInUser")]
@@ -289,6 +281,7 @@ Copy the following code into the class.
 
 Navigate to and open the `TransactionPlugin.cs` file
 
+Copy the following code into the class.
 ```csharp
     [KernelFunction]
     [Description("Adds a new Account Transaction request")]
@@ -384,14 +377,7 @@ Next we will modify the `BuildAgent()` function within the `ChatFactory` class t
 
 Within the `/Factories` folder, open the `ChatFactory.cs` file.
 
-Add the following lines of code to the `usings` at the top of the file.
-
-```csharp
-using BankingServices.Interfaces;
-using MultiAgentCopilot.ChatInfrastructure.Models;
-```
-
-Next, replace the `BuildAgent()` function with this code below.
+Replace the `BuildAgent()` function with this code below.
 
 ```csharp
     public ChatCompletionAgent BuildAgent(Kernel kernel, AgentType agentType, ILoggerFactory loggerFactory, IBankDataService bankService, string tenantId, string userId)
