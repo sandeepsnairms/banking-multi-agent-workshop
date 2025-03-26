@@ -32,7 +32,7 @@ In this session we will dive into how to create Semantic Kernel Agent Framework 
 
 After the session in Activity 1, you should understand the need and importance for agent specialization and have a basic grasp of how to build and integrate them. For the remainder of this module we will do just that for our banking scenario.
 
-When working with any kind of data we need to define data models that define its schema. So to enable agents to operate on your data, let's define data models that the LLM can understand.
+When working with any kind of data we need to review our data models.
 
 To begin, navigate to the `Common` project and navigate to the `/Models/Banking' folder. Familiarize yourself with the models used here.
 
@@ -56,56 +56,29 @@ Look in your IDE, within the `ChatAPI` project, the `/Prompts` folder with the p
 
 #### Common Agent Rules
 
-This isn't agent but provides a baseline for how agents are supposed to behave. Think of it like a set of global rules for agents. All agents import the text from this prompt to govern their responses. Read the contents of `CommonAgentRules.prompty`.
+This isn't agent but provides a baseline for how agents are supposed to behave. Think of it like a set of global rules for agents. All agents import the text from this prompt to govern their responses. Review the contents of `CommonAgentRules.prompty`.
 
 #### Coordinator Agent
 
-This agent is the coordinator for the entire multi-agent system we are building. Its purpose is own the entire experience for users with the banking agent system. It starts by greeting new users when they initiate a new session, then routes user requests to the correct agent(s) to handle on their behalf. Finally it asks for feedback on how it did its job. Read the contents of `Coordinator.prompty`.
+This agent is the coordinator for the entire multi-agent system we are building. Its purpose is own the entire experience for users with the banking agent system. It starts by greeting new users when they initiate a new session, then routes user requests to the correct agent(s) to handle on their behalf. Finally it asks for feedback on how it did its job. Review the contents of `Coordinator.prompty`.
 
 #### Customer Support Agent
 
-This agent handles anything that appears to be a customer support request by a user. It can create, find and update services requests for users. It can also take certain action on behalf of users too. Read the contents of `CustomerSupport.prompty`.
+This agent handles anything that appears to be a customer support request by a user. It can create, find and update services requests for users. It can also take certain action on behalf of users too. Review the contents of `CustomerSupport.prompty`.
 
 #### Sales Agent
 
-This agent is used when customers ask questions about what kinds of services a bank offers. The data on the products the bank has are stored in Cosmos DB. This agent performs a vector search in Cosmos DB to find the most suitable products for a customer's request. Read the contents of `Sales.prompty`.
+This agent is used when customers ask questions about what kinds of services a bank offers. The data on the products the bank has are stored in Cosmos DB. This agent performs a vector search in Cosmos DB to find the most suitable products for a customer's request. Review the contents of `Sales.prompty`.
 
 #### Transaction Agent
 
-This agent handles any account-based transactions on behalf of the user including getting account balances, generating statements and doing fund transfers between accounts. Read the contents of `Transactions.prompty`.
+This agent handles any account-based transactions on behalf of the user including getting account balances, generating statements and doing fund transfers between accounts. Review the contents of `Transactions.prompty`.
 
 ### Retrieving the prompty text for Agents
 
 In our banking solution we have four agents: transactions agent, sales agent, customer support agent, and a coordinator agent to manage all of them. With the behavior of the agents defined in Prompty, we now need to implement the code that will allow the application to load the agent behavior for each of the agents.
 
-To begin we will create an enum for the four agents.
-
-In your IDE, navigate to the `ChatInfrastructure` project.
-
-Create a new folder called, `Models`.
-
-Create a new class, `AgentTypes.cs`.
-
-Replace the code with this code below for creating an enum for AgentType
-
-```csharp
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace MultiAgentCopilot.ChatInfrastructure.Models
-{
-    enum AgentType
-    {
-        Transactions = 0,
-        Sales = 1,
-        CustomerSupport = 2,
-        Coordinator = 3,
-    }
-}
-```
+In your IDE, navigate to the `Models` folder within the `ChatInfrastructure` project. Review the contents of `AgentTypes.cs`.
 
 ### Implementing the System Prompt Factory
 
@@ -466,7 +439,7 @@ Data Models used for Vector Search in Semantic Kernel need to be enhanced with a
 
 To add the `OfferTerm` model, navigate to the `Common` project and navigate to the `/Models/Banking' folder
 
-Next create a new class, `OfferTerm.cs`
+Create a new class, `OfferTerm.cs`
 
 Replace the code with this code below for creating an OfferTerm class
 
@@ -739,18 +712,24 @@ With the activities in this module complete, it is time to test your work.
 
 Execute the below steps to check the behavior for each agent.
 
-### Select the AgentType
+### Test the Response for Each AgentType
 
-**TO-DO: This activity needs work. There isn't enough information for a user to know what to do for them to test. They need a series of prompts to test here with these different agents. However, this module is already so long I would limit this to just making this use the agent it should have and do one test**
-Update AgentType within GetResponse in ChatInfrastructure\Services\SemanticKernelService.cs to see how different agents work.
+So far, we have created four agents, each with its own specialized role. However, we don't have any code to decide which agent to invoke in what scenario. That's something we will do in the next module. For now, let's test each agent independently and make sure all agents are functional.
+
+To perform the tests, we will repeat the steps below for each agent type.
+
+Update `AgentType` within `GetResponse` in `ChatInfrastructure\Services\SemanticKernelService.cs` to see how different agents work.
 
 ```c#
- var agent = agentChatGeneratorService.BuildAgent(_semanticKernel,AgentType.CustomerSupport, _loggerFactory,  bankService, tenantId, userId);
+var agent = agentChatGeneratorService.BuildAgent(_semanticKernel, AgentType.CustomerSupport, _loggerFactory, bankService, tenantId, userId);
 ```
 
-Run the below steps for each Agent Type.
+Use the prompts below during your test:
 
-### Running the ChatAPI and Frontend App
+- **Coordinator**: Hi
+- **Transactions**: How much did I spend on grocery?
+- **Sales**: Looking for a high interest savings account
+- **CustomerSupport**: File a complaint for theft in Acc001
 
 #### 1. Start the ChatAPI
 
@@ -781,22 +760,23 @@ Run the below steps for each Agent Type.
 
 ## Validation Checklist
 
-- [ ] Each Agent  response is per the corresponding prompty file contents and the plugin functions.
+- [ ] Each Agent response is per the corresponding prompty file contents and the plugin functions.
 - [ ] Semantic Search functions correctly
 
 ### Common Issues and Solutions
 
-1. Issue 1:
-    - TBD
-    - TBD
+1. No response to your prompt (on local):
+    - Check if you are getting throttled by Azure OpenAI model.
+    - Increase Azure open AI tokens if required.
 
-1. Issue 2:
-    - TBD
-    - TBD
+1. Invalid/incomplete response:
+    - Check if  the Azure Cosmos DB containers have valid data.
 
-1. Issue 3:
-    - TBD
-    - TBD
+1. No response to your prompt (hosted):
+    - Navigate to the Application Insights account.
+    - Navigate to `Live metrics` blade under `Investigate` section.
+    - [Learn more] (https://learn.microsoft.com/en-us/azure/azure-monitor/app/live-stream?tabs=otel)
+
 
 ### Module Solution
 
