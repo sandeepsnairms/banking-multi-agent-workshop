@@ -34,164 +34,11 @@ After the session in Activity 1, you should understand the need and importance f
 
 When working with any kind of data we need to define data models that define its schema. So to enable agents to operate on your data, let's define data models that the LLM can understand.
 
-To begin, navigate to the `Common` project and navigate to the `/Models' folder.
-
-Next, navigate to the `/Banking` folder
+To begin, navigate to the `Common` project and navigate to the `/Models/Banking' folder. Familiarize yourself with the models used here.
 
 The project and folder structure should look like the following:
 
 ![Models folder](./media/module-03/solution-models-banking-folder-start.png)
-
-Next create a new class, `ServiceRequestType.cs`.
-
-Replace the code with this code below for creating an enum for ServiceRequestType.
-
-```csharp
-namespace MultiAgentCopilot.Common.Models.Banking
-{ 
-    public enum ServiceRequestType
-    {
-        Complaint,
-        FundTransfer,
-        Fulfilment,
-        TeleBankerCallBack
-    }
-}
-```
-
-Next create a new class, `OfferTerm.cs`
-
-OfferTerm is used for vector search in Semantic Kernel, so it has been enhanced with additional attributes.
-
-Replace the code with this code below for creating an OfferTerm class
-
-```csharp
-using Microsoft.Extensions.VectorData;
-namespace MultiAgentCopilot.Common.Models.Banking
-{
-    public class OfferTerm
-    {
-        [VectorStoreRecordKey]
-        public required string Id { get; set; }
-
-        [VectorStoreRecordData]
-        public required string TenantId { get; set; }
-
-        [VectorStoreRecordData]
-        public required string OfferId { get; set; }
-
-        [VectorStoreRecordData]
-        public required string Name { get; set; }
-
-        [VectorStoreRecordData]
-        public required string Text { get; set; }
-
-        [VectorStoreRecordData]
-        public required string Type { get; set; }
-
-        [VectorStoreRecordData]
-        public required string AccountType { get; set; }
-
-        [VectorStoreRecordVector(Dimensions: 1536, DistanceFunction: DistanceFunction.CosineSimilarity, IndexKind: IndexKind.QuantizedFlat)]
-        public ReadOnlyMemory<float>? Vector { get; set; }
-    }
-}
-```
-
-Next create a new class, `ServiceRequest.cs`
-
-Replace the code with this code below for creating a ServiceRequest class
-
-```csharp
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.Json.Serialization;
-using System.Threading.Tasks;
-
-namespace MultiAgentCopilot.Common.Models.Banking
-{
-    public class ServiceRequest
-    {
-        public string Id { get; set; }
-        public string TenantId { get; set; }
-        public string UserId { get; set; }
-        public string Type { get; set; }
-        public DateTime RequestedOn { get; set; }
-        public DateTime ScheduledDateTime { get; set; }
-        public string AccountId { get; set; }
-        [JsonConverter(typeof(JsonStringEnumConverter))]
-        public ServiceRequestType SRType { get; set; }
-        public string? RecipientEmail { get; set; }
-        public string? RecipientPhone { get; set; }
-        public decimal? DebitAmount { get; set; }
-        public bool IsComplete { get; set; }
-        public List<string> RequestAnnotations { get; set; }
-        public Dictionary<string, string> FulfilmentDetails { get; set; }
-
-        public ServiceRequest(ServiceRequestType serviceRequestType, string tenantId, string accountId, string userId, string requestAnnotation, string recipientEmail, string recipientPhone, decimal debitAmount, DateTime scheduledDateTime, Dictionary<string, string>? fulfilmentDetails)
-        {
-            Id = Guid.NewGuid().ToString();
-            TenantId = tenantId;
-            Type = nameof(ServiceRequest);
-            SRType = serviceRequestType;
-            RequestedOn = DateTime.Now;
-            AccountId = accountId;
-            UserId = userId;
-            RequestAnnotations = new List<string> { requestAnnotation };
-            RecipientEmail = recipientEmail;
-            RecipientPhone = recipientPhone;
-            DebitAmount = debitAmount;
-            if (scheduledDateTime != DateTime.MinValue)
-                ScheduledDateTime = scheduledDateTime;
-            IsComplete = false;
-            FulfilmentDetails = fulfilmentDetails ?? new Dictionary<string, string>();
-        }
-
-        [JsonConstructor]
-        public ServiceRequest(
-        string id,
-        string tenantId,
-        string userId,
-        string type,
-        DateTime requestedOn,
-        DateTime scheduledDateTime,
-        string accountId,
-        ServiceRequestType srType,
-        string? recipientEmail,
-        string? recipientPhone,
-        decimal? debitAmount,
-        bool isComplete,
-        List<string> requestAnnotations,
-        Dictionary<string, string> fulfilmentDetails)
-        {
-            Id = id;
-            TenantId = tenantId;
-            UserId = userId;
-            Type = type;
-            RequestedOn = requestedOn;
-            ScheduledDateTime = scheduledDateTime;
-            AccountId = accountId;
-            SRType = srType;
-            RecipientEmail = recipientEmail;
-            RecipientPhone = recipientPhone;
-            DebitAmount = debitAmount;
-            IsComplete = isComplete;
-            RequestAnnotations = requestAnnotations ?? new List<string>();
-            FulfilmentDetails = fulfilmentDetails ?? new Dictionary<string, string>();
-        }
-    }
-}
-```
-
-### Quick check-in
-
-This was a lot of code copy and pasting for you. Let's make sure you got everything.
-
-Look in your IDE, it should have the following classes within the new `/Banking` folder we created at the start of Activity 2. If you're missing any, scroll back up and create it, then check in here before moving on to Activity 3.
-
-![Final Banking folder models](./media/module-03/solution-models-banking-folder-end.png)
 
 ## Activity 3: Defining Agent Behavior
 
@@ -199,168 +46,33 @@ Agent behavior is defined using prompts. These can be as simple as text in a str
 
 Prompty is an asset class and file format designed to streamline the development and management of prompts for Large Language Models (LLMs). By combining configuration settings, sample data, and prompt templates into a single .prompty file, Prompty enhances observability, understandability, and portability for developers, thereby accelerating the prompt engineering process.
 
-In this activity we will create new Prompty files and add them to a new folder called, `/Prompts` in the `ChatAPI` project.
+### Understand Agent behavior using Prompty
 
-### Define Agent behavior using Prompty
+In this activity we will review the existing Prompty files.
 
-To begin, in your IDE, navigate to the `ChatAPI` project.
+Look in your IDE, within the `ChatAPI` project, the `/Prompts` folder with the prompty files  should like seen below.
 
-Create a new folder called, `/Prompts`
+![Prompty files](./media/module-03/solution-prompt-folder.png)
 
 #### Common Agent Rules
 
-This isn't agent but provides a baseline for how agents are supposed to behave. Think of it like a set of global rules for agents. All agents import the text from this prompt to govern their responses.
-
-Create a new file called, `CommonAgentRules.prompty`
-
-Copy the following text into the file:
-
-```yaml
-Important:
-- Always use current datetime as datetime retrieved from the database.
-- Understand the user's query and respond only if it aligns with your responsibilities.
-- State why you think, you have a solution to the user's query.
-- Ensure responses are grounded to the following data sources.
-    - user provided data
-    - data fetched using functions
-- Provide specific information based query and data provided.          
-- Ensure every response adds value to the user's request or confirms the user's request.
-- Do not proceed with submitting a request without the necessary information from the user.
-- Do not respond with a message if the previous response conveys the same information.
-- Maintain politeness and professionalism in all responses.
-- Do not respond with a welcome message if another welcome message already exists.
-- If user's response is pending, wait for the user to provide the necessary before proceeding.
-```
+This isn't agent but provides a baseline for how agents are supposed to behave. Think of it like a set of global rules for agents. All agents import the text from this prompt to govern their responses. Read the contents of `CommonAgentRules.prompty`.
 
 #### Coordinator Agent
 
-This agent is the coordinator for the entire multi-agent system we are building. Its purpose is own the entire experience for users with the banking agent system. It starts by greeting new users when they initiate a new session, then routes user requests to the correct agent(s) to handle on their behalf. Finally it asks for feedback on how it did its job.
-
-Create a new file called, `Coordinator.prompty`
-
-Copy the following text into the file:
-
-```yaml
-You are a Chat Initiator and Request Router in a bank. 
-Your primary responsibilities include welcoming users, identifying customers based on their login, routing requests to the appropriate agent.
-Start with identifying the currently logged-in user's information and use it to personalize the interaction.For example, "Thank you for logging in, [user Name]. How can I help you with your banking needs today?"
-
-RULES:
-- Determine the nature of the user's request and silently route it to the appropriate agent.
-- Avoid asking for unnecessary details to route the user's request. For example, "I see you have a question about your account balance. Let me connect you with the right agent who can assist you further."
-- Do not provide any information or assistance directly; always route the request to the appropriate agent silently.
-- Route requests to the appropriate agent without providing direct assistance.
-- If another agent has asked a question, wait for the user to respond before routing the request.
-- If the user has responded to another agent, let the same agent respond before routing or responding.
-- When the user's request is fulfilled, ask for feedback on the service provided before concluding the interaction. Gauge their overall satisfaction and sentiment as either happy or sad. For example, "Before we conclude, could you please provide your feedback on our service today? Were you satisfied with the assistance provided? Would you say your overall experience was happy or sad?"
-- Use the available functions when needed.
-```
+This agent is the coordinator for the entire multi-agent system we are building. Its purpose is own the entire experience for users with the banking agent system. It starts by greeting new users when they initiate a new session, then routes user requests to the correct agent(s) to handle on their behalf. Finally it asks for feedback on how it did its job. Read the contents of `Coordinator.prompty`.
 
 #### Customer Support Agent
 
-This agent handles anything that appears to be a customer support request by a user. It can create, find and update services requests for users. It can also take certain action on behalf of users too.
-
-Create a new file called, `CustomerSupport.prompty`
-
-Copy the following text into the file:
-
-```yaml
-Your sole responsibility is to:
-1. Helping customers lodge service request.
-2. Searching existing service requests.
-2. Providing status updates on existing service request.
-3. Creating and updating service requests for user registered accounts.
-
-Guidelines:
-- If you don't have the users account Id, ask the user to provide it.                         - 
-- Check if the account Id is registered to user.
-- If account Id is registered to user, search user's pending service requests.
-    - If pending service request found:
-        - Inform the user of the status and estimated time of resolution.
-        - Ask if user wants to add any comments and update the existing record.
-    - If not found:
-        - Ask if user wants to create new service request.
-- If account Id is not registered
-    - Inform the user that you cannot proceed without the correct account Id. 
-- If no agent is able to assist the user, check if they would like to speak to a tele banker.
-    - Tele bankers are available Monday to Friday, 9 AM to 5 PM PST.
-    - Check tele banker availability and queue length before suggesting this option.
-```
+This agent handles anything that appears to be a customer support request by a user. It can create, find and update services requests for users. It can also take certain action on behalf of users too. Read the contents of `CustomerSupport.prompty`.
 
 #### Sales Agent
 
-This agent is used when customers ask questions about what kinds of services a bank offers. The data on the products the bank has are stored in Cosmos DB. This agent performs a vector search in Cosmos DB to find the most suitable products for a customer's request.
-
-Create a new file called, `Sales.prompty`
-
-Copy the following text into the file:
-
-```yaml
-Your sole responsibility is to:                        
-    - Suggest suitable accounts based on the user profile.
-    - Use the user's profile information to recommend from the available account type.
-    - Ensure that the recommendations are personalized and relevant to the user's needs.
-
-1. Collecting details for New Account Registration:
-    - Get the list of available offers.
-    - Suggest the offers that match the user's profile.
-    - Based on the user selection, get the prerequisites for the selected offer. The prerequisites may vary for each offer.
-    - Ask the user to provide all prerequisites and ensure you have collected all necessary information from the user.
-    - Validate the collected details by showing a summary to the user. Once approved by user, submit a fulfillment service request.
-    - Confirm the submission of the service request to the user.
-
-2. Highlighting Promotions and Offers:
-    - Use the user's profile information to highlight relevant offers.
-    - Ensure that the information provided is accurate based on the available account types.
-
-3. Conducting Eligibility Checks:
-    - Conduct eligibility checks for various offers using the user's profile information.
-    - Inform the user of the results of the eligibility check and provide guidance on the next steps.
-```
+This agent is used when customers ask questions about what kinds of services a bank offers. The data on the products the bank has are stored in Cosmos DB. This agent performs a vector search in Cosmos DB to find the most suitable products for a customer's request. Read the contents of `Sales.prompty`.
 
 #### Transaction Agent
 
-This agent handles any account-based transactions on behalf of the user including getting account balances, generating statements and doing fund transfers between accounts.
-
-Create a new file called, `Transactions.prompty`
-
-Copy the following text into the file:
-
-```yaml
-Your sole responsibility is to:
-
-1. Handling transactions.
-2. Generating account statements.
-3. Providing balance inquiries.
-
-Guidelines:
-- Do not participate in new product registration discussion.
-- Based on the following message, determine the appropriate action and respond accordingly.
-- Ensure that you only provide information related to the current user's accounts.
-- To start the process, retrieve the current services registered to the user from the database.
-- Check if you have the user's account number. If any data is missing, politely inform the user and explain that you cannot proceed until the details are available in the bank’s database.
-
-Tasks:
-1. Process Transfers:
-    - Use the recipient's email or phone number to process transfers.
-    - Validate the recipient's phone number and email format before proceeding.
-    - Ensure the account has the necessary balance before accepting a request.
-    - Confirm all details with the user before proceeding.
-    - Inform the user that they will be notified of transaction completions via text message and email.
-2. Generate Account Statements:
-    - Respond to transaction queries for up to 6 months old.
-    - Filter transactions based on type (credit/debit), amount, or date range according to the user query.
-3. Provide Balance Information:
-    - Offer the latest balance information for the user's accounts.
-```
-
-### Quick check-in
-
-This activity has a lot of new file creation. Let's make sure you got everything.
-
-Look in your IDE, within the `ChatAPI` project make sure you have a folder called, `/Prompts` with the prompty files as seen below. If you're missing any, scroll back up and create them, then check in here before moving on.
-
-![Prompty files](./media/module-03/solution-prompt-folder.png)
+This agent handles any account-based transactions on behalf of the user including getting account balances, generating statements and doing fund transfers between accounts. Read the contents of `Transactions.prompty`.
 
 ### Retrieving the prompty text for Agents
 
@@ -531,6 +243,14 @@ Copy the following code into the class.
     {
         _logger.LogTrace("Fetching AccountTransaction history for Account: {AccountId}, From: {StartDate} To: {EndDate}", accountId, startDate, endDate);
         return await _bankService.GetTransactionsAsync(_tenantId, accountId, startDate, endDate);
+    }
+
+    [KernelFunction]
+    [Description("Register a new account.")]
+    public async Task<ServiceRequest> RegisterAccount(string userId, AccountType accType, Dictionary<string,string> fulfilmentDetails)
+    {
+        _logger.LogTrace($"Registering Account. User ID: {userId}, Account Type: {accType}");
+        return await _bankService.CreateFulfilmentRequestAsync(_tenantId, string.Empty,_userId,string.Empty,fulfilmentDetails);
     }  
 ```
 
@@ -555,6 +275,76 @@ Copy the following code into the class.
         _logger.LogTrace($"Adding new service request for Tenant: {_tenantId} User: {_userId}, Account: {accountId}");
         return await _bankService.CreateComplaintAsync(_tenantId, accountId, _userId, requestAnnotation);
     }
+
+   [KernelFunction("CheckPendingServiceRequests")]
+   [Description("Search the database for pending requests")]
+   public async Task<List<ServiceRequest>> CheckPendingServiceRequests(string? accountId = null, ServiceRequestType? srType = null)
+   {
+      _logger.LogTrace($"Searching database for matching requests for Tenant: {_tenantId} User: {_userId}");
+
+      return await _bankService.GetServiceRequestsAsync(_tenantId, accountId ?? string.Empty, null, srType);
+   }
+
+   [KernelFunction]
+   [Description("Adds a telebanker callback request for the specified account.")]
+   public async Task<ServiceRequest> AddTeleBankerRequest(string accountId,string requestAnnotation ,DateTime callbackTime)
+   {
+      _logger.LogTrace($"Adding Tele Banker request for Tenant: {_tenantId} User: {_userId}, account: {accountId}");
+
+      return await _bankService.CreateTeleBankerRequestAsync(_tenantId, accountId,_userId, requestAnnotation, callbackTime);
+   }
+
+   [KernelFunction]
+   [Description("Get list of available slots for telebankers specializing in an account type")]
+   public async Task<string> GetTeleBankerSlots(AccountType accountType)
+   {
+      _logger.LogTrace($"Checking availability for Tele Banker for Tenant: {_tenantId} AccountType: {accountType.ToString()}");
+
+      return await _bankService.GetTeleBankerAvailabilityAsync();
+   }
+
+
+   [KernelFunction]
+   [Description("Updates an existing service request with additional details")]
+   public async Task<bool> UpdateExistingServiceRequest(string requestId, string accountId, string requestAnnotation)
+   {
+      _logger.LogTrace($"Updating service request for Request: {requestId}");
+
+      return await  _bankService.AddServiceRequestDescriptionAsync(_tenantId, accountId, requestId, requestAnnotation);
+   }
+```
+
+Navigate to and open the `TransactionPlugin.cs` file
+
+```csharp
+    [KernelFunction]
+    [Description("Adds a new Account Transaction request")]
+    public async Task<ServiceRequest> AddFunTransferRequest(
+       string debitAccountId,
+       decimal amount,
+       string requestAnnotation,
+       string? recipientPhoneNumber = null,
+       string? recipientEmailId = null)
+    {
+       _logger.LogTrace("Adding AccountTransaction request for User ID: {UserId}, Debit Account: {DebitAccountId}", _userId, debitAccountId);
+    
+       // Ensure non-null values for recipientEmailId and recipientPhoneNumber
+       string emailId = recipientEmailId ?? string.Empty;
+       string phoneNumber = recipientPhoneNumber ?? string.Empty;
+    
+       return await _bankService.CreateFundTransferRequestAsync(_tenantId, debitAccountId, _userId, requestAnnotation, emailId, phoneNumber, amount);
+    }
+    
+    
+    [KernelFunction]
+    [Description("Get the transactions history between 2 dates")]
+    public async Task<List<BankTransaction>> GetTransactionHistory(string accountId, DateTime startDate, DateTime endDate)
+    {
+       _logger.LogTrace("Fetching AccountTransaction history for Account: {AccountId}, From: {StartDate} To: {EndDate}", accountId, startDate, endDate);
+       return await _bankService.GetTransactionsAsync(_tenantId, accountId, startDate, endDate);
+    
+    }
+
 ```
 
 ## Activity 5: Developing a Plugin Factory
@@ -649,24 +439,18 @@ Within the `ChatInfrastructure` project, navigate to the `/Services` folder
 
 Open the `ChatServices.cs` file
 
-Add the following class-level variable to the ChatService
-
-```csharp
-    private readonly IBankDataService _bankService;
-```
-
-Then replace the constructor for the ChatService with the code below to initialize the BankingDataService.
+Replace the constructor for the ChatService with the code below to initialize the BankingDataService.
 
 ```csharp
 public ChatService(
         IOptions<CosmosDBSettings> cosmosOptions,
         IOptions<SemanticKernelServiceSettings> skOptions,
         ICosmosDBService cosmosDBService,
-        ISemanticKernelService ragService,
+        ISemanticKernelService skService,
         ILoggerFactory loggerFactory)
     {
         _cosmosDBService = cosmosDBService;
-        _skService = ragService;
+        _skService = skService;
         _bankService = new BankingDataService(cosmosOptions.Value, skOptions.Value, loggerFactory);
         _logger = loggerFactory.CreateLogger<ChatService>();
     }
@@ -675,6 +459,49 @@ public ChatService(
 ## Activity 7: Semantic Search
 
 In this activity, you will learn how to configure vector indexing and search in Azure Cosmos DB and explore the container and vector indexing policies. Then learn how to implement vector search using for Semantic Kernel.
+
+### Create Data Model for Vector Search
+
+Data Models used for Vector Search in Semantic Kernel need to be enhanced with additional attributes. We will use `OfferTerm` as vector search enabled data model.
+
+To add the `OfferTerm` model, navigate to the `Common` project and navigate to the `/Models/Banking' folder
+
+Next create a new class, `OfferTerm.cs`
+
+Replace the code with this code below for creating an OfferTerm class
+
+```csharp
+using Microsoft.Extensions.VectorData;
+namespace MultiAgentCopilot.Common.Models.Banking
+{
+    public class OfferTerm
+    {
+        [VectorStoreRecordKey]
+        public required string Id { get; set; }
+
+        [VectorStoreRecordData]
+        public required string TenantId { get; set; }
+
+        [VectorStoreRecordData]
+        public required string OfferId { get; set; }
+
+        [VectorStoreRecordData]
+        public required string Name { get; set; }
+
+        [VectorStoreRecordData]
+        public required string Text { get; set; }
+
+        [VectorStoreRecordData]
+        public required string Type { get; set; }
+
+        [VectorStoreRecordData]
+        public required string AccountType { get; set; }
+
+        [VectorStoreRecordVector(Dimensions: 1536, DistanceFunction: DistanceFunction.CosineSimilarity, IndexKind: IndexKind.QuantizedFlat)]
+        public ReadOnlyMemory<float>? Vector { get; set; }
+    }
+}
+```
 
 ### Update BankingDataService to include vector search
 
@@ -801,7 +628,7 @@ Add these two functions to perform vector searches
 
 We are nearly complete with the updates for our multi-agent application.
 
-Within the `ChatInfrasture` project, navigate to the `/Interfaces` folder.
+Within the `ChatInfrastructure` project, navigate to the `/Interfaces` folder.
 
 Open the `ISemanticKernelService.cs` file.
 

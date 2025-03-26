@@ -10,6 +10,7 @@ using Newtonsoft.Json.Linq;
 using System.Text.Json;
 using Newtonsoft.Json;
 using Microsoft.Identity.Client;
+using BankingServices.Interfaces;
 
 
 namespace MultiAgentCopilot.ChatInfrastructure.Services;
@@ -18,8 +19,8 @@ public class ChatService : IChatService
 {
     private readonly ICosmosDBService _cosmosDBService;
     private readonly ILogger _logger;
+    private readonly IBankDataService _bankService;
 
-    
     public ChatService(
         IOptions<CosmosDBSettings> cosmosOptions,
         ICosmosDBService cosmosDBService,

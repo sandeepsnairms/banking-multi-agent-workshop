@@ -90,6 +90,7 @@ using Microsoft.SemanticKernel.Agents.Chat;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
+using MultiAgentCopilot.ChatInfrastructure.Helper;
 using OpenAI.Chat;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
