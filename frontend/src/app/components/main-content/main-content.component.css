@@ -7,13 +7,16 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  overflow: hidden;
 }
 
 /* Main Content Container */
 .main-content-container {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  flex-grow: 1;
+  height: calc(100vh - 64px);
+  overflow: hidden;
 }
 
 /* Fixed Toolbar */
@@ -76,13 +79,23 @@ body {
   flex-direction: column;
   flex-grow: 1;
   overflow: hidden;
-  height: calc(100vh - 64px); /* Adjust height to exclude toolbar */
+  height: calc(100vh - 64px);
 }
 
 /* Messages Wrapper */
 .messages-wrapper {
   flex-grow: 1;
-  overflow-y: auto; /* Add scrollbar here */
+  overflow-y: auto;
+  max-height: 100%;
+}
+
+.messages-wrapper::-webkit-scrollbar {
+  width: 8px;
+}
+
+.messages-wrapper::-webkit-scrollbar-thumb {
+  background-color: #0078d4;
+  border-radius: 4px;
 }
 
 /* Conversations */
@@ -90,12 +103,9 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 10px;
-  padding-left: 10%;
-  padding-right: 10%;
+  padding: 10px 10% 10px 10%;
 }
 
-/* Message Container */
 .message {
   display: flex;
   align-items: flex-start;
@@ -103,7 +113,6 @@ body {
   max-width: 100%;
 }
 
-/* Message Content */
 .message-content {
   display: flex;
   align-items: center;
@@ -115,9 +124,9 @@ body {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   max-width: 80%;
   position: relative;
+  padding-right: 60px;
 }
 
-/* User Messages */
 .message.user {
   justify-content: flex-end;
   width: 100%;
@@ -127,7 +136,6 @@ body {
   background-color: #e1f5fe;
 }
 
-/* Assistant Messages */
 .message.assistant {
   justify-content: flex-start;
   width: 100%;
@@ -137,7 +145,6 @@ body {
   background-color: #e6f0ff;
 }
 
-/* Input Container */
 .input-container {
   position: fixed;
   bottom: 0;
@@ -176,77 +183,62 @@ body {
   cursor: pointer;
   color: #0078d4;
   font-size: 1.5rem;
-  margin-left: 10px;
 }
 
-.end-chat-btn {
-  background-color: #0078d4;
-  color: white;
-  padding: 8px 16px;
-  font-size: 1rem;
-  border-radius: 20px;
-  border: none;
-  cursor: pointer;
-  transition: background-color 0.3s;
-  margin-left: 10px;
-}
-
-.end-chat-btn:hover {
-  background-color: #005a8d;
-}
-
-/* Error Message */
 .error-message {
   color: red;
   font-size: 0.9rem;
   text-align: center;
 }
 
-/* Center the reaction buttons */
 .reaction-buttons {
+  top: -8px;
+  right: -20px;
   display: flex;
   gap: 10px;
   align-items: center;
   visibility: hidden;
+  padding: 4px;
+  border-radius: 8px;
 }
 
 .message.assistant:hover .reaction-buttons {
   visibility: visible;
 }
 
-.reaction-btn {
-  border-radius: 50%;
-  padding: 5px;
-  background-color: transparent;
-}
-
-.thumb-icon {
-  color: black;
-}
-
-/* Top Menu Bar */
-.top-menu-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background-color: white;
-  color: #0078d4;
-  padding: 0 16px;
-  height: 64px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-}
-/* Scrollbar for Messages */
-.messages-wrapper {
-  overflow-y: auto;
-  max-height: calc(100vh - 130px); /* Adjusted to fit within the viewport */
-}
-
-/* Optional: Make scrollbar visible and styled */
-.messages-wrapper::-webkit-scrollbar {
-  width: 8px;
-}
-
-.messages-wrapper::-webkit-scrollbar-thumb {
+.agent-info {
+  position: absolute;
+  right: 4px;
+  bottom: -12px;
   background-color: #0078d4;
-  border-radius: 4px;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: calc(100% - 60px);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.highlight-icon {
+  font-size: 16px;
+  color: white;
+}
+
+.top-menu-bar {
+  background-color: white !important;
+  color: #0078d4;
+}
+
+.top-menu-bar .toolbar-title {
+  color: #0078d4;
+}
+
+.top-menu-bar button mat-icon {
+  color: #0078d4;
 }

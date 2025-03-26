@@ -1,4 +1,5 @@
-# Ensure this file is always saved with LF line endings
+#Ensure this file always uses LD linendings
+
 set -e  # Exit on error
 
 # Log the environment variable

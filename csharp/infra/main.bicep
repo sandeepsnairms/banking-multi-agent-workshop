@@ -203,30 +203,22 @@ module ChatAPI './app/ChatAPI.bicep' = {
   dependsOn: [cosmos, monitoring, openAi]
 }
 
-// Deploy Frontend Container App
-module FrontendApp './app/FrontendApp.bicep' = {
-  name: 'FrontendApp'
+
+module webApp './app/webApp.bicep' = {
+  name: 'webApp'  
   params: {
-    name: '${abbrs.appContainerApps}frontend-${resourceToken}'
-	tags: tags
-	containerAppName: 'frontend'
-    containerImageTag: 'latest'  // Change this if versioning is required
-    containerPort: 80
-    identityName: AssignRoles.outputs.identityName
-	environmentId: appsEnv.outputs.id
-	imageName: 'frontendapp'  // ACR repository name
-	registryServer:registry.outputs.name
-	chatAPIUrl:ChatAPI.outputs.uri
+    name: '${abbrs.webSitesAppService}${resourceToken}'
+    appServicePlanName: '${abbrs.webServerFarms}${resourceToken}'
   }
   scope: rg
-  dependsOn: [registry, appsEnv]
+  dependsOn: [ChatAPI]
 }
+
 
 // Outputs
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = registry.outputs.loginServer
 output SERVICE_ChatAPI_ENDPOINT_URL string = ChatAPI.outputs.uri
-output FRONTENDPOINT_URL string = FrontendApp.outputs.uri
+output FRONTENDPOINT_URL string = webApp.outputs.url
+output WEB_APP_NAME string = '${abbrs.webSitesAppService}${resourceToken}'
+output RG_NAME string = 'rg-${environmentName}'
 
-output AZURE_COSMOSDB_ENDPOINT string = cosmos.outputs.endpoint
-output AZURE_OPENAI_ENDPOINT string = openAi.outputs.endpoint
-output APP_INSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
