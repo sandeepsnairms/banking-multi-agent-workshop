@@ -34,7 +34,7 @@ namespace BankingServices.Services
         private readonly CosmosDBSettings _settings;
         private readonly ILogger _logger;
 
-	//paste code here
+        //paste code here
         private readonly AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm> _offerDataVectorStore;
         private readonly AzureOpenAITextEmbeddingGenerationService _textEmbeddingGenerationService;
 
@@ -114,6 +114,14 @@ namespace BankingServices.Services
                       
 
             _semanticKernel = builder.Build();
+
+            _textEmbeddingGenerationService = new(
+                deploymentName: skSettings.AzureOpenAISettings.EmbeddingsDeployment,
+                endpoint: skSettings.AzureOpenAISettings.Endpoint,
+                credential: credential);
+
+            var vectorStoreOptions = new AzureCosmosDBNoSQLVectorStoreRecordCollectionOptions<OfferTerm> { PartitionKeyPropertyName = "TenantId", JsonSerializerOptions = jsonSerializerOptions };
+            _offerDataVectorStore = new AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm>(_database, _settings.OfferDataContainer.Trim(), vectorStoreOptions);
 
             //Paste code here
 
@@ -349,6 +357,55 @@ namespace BankingServices.Services
                     return results.FirstOrDefault();
                 }
                 return null;
+            }
+            catch (CosmosException ex)
+            {
+                _logger.LogError(ex.ToString());
+                return null;
+            }
+        }
+
+        public async Task<List<OfferTerm>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription)
+        {
+            try
+            {
+                // Generate Embedding
+                ReadOnlyMemory<float> embedding = (await _textEmbeddingGenerationService.GenerateEmbeddingsAsync(
+                       new[] { requirementDescription }
+                   )).FirstOrDefault();
+
+                // perform vector search
+                var filter = new VectorSearchFilter()
+                    .EqualTo("TenantId", tenantId)
+                    .EqualTo("Type", "Term")
+                    .EqualTo("AccountType", "Savings");
+                var options = new VectorSearchOptions { VectorPropertyName = "Vector", Filter = filter, Top = 10, IncludeVectors = false };
+
+                var searchResults = await _offerDataVectorStore.VectorizedSearchAsync(embedding, options);
+
+                List<OfferTerm> offerTerms = new();
+                await foreach (var result in searchResults.Results)
+                {
+                    offerTerms.Add(result.Record);
+                }
+                return offerTerms;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.ToString());
+                return new List<OfferTerm>();
+            }
+        }
+
+        public async Task<Offer> GetOfferDetailsAsync(string tenantId, string offerId)
+        {
+            try
+            {
+                var partitionKey = new PartitionKey(tenantId);
+
+                return await _offerData.ReadItemAsync<Offer>(
+                       id: offerId,
+                       partitionKey: new PartitionKey(tenantId));
             }
             catch (CosmosException ex)
             {

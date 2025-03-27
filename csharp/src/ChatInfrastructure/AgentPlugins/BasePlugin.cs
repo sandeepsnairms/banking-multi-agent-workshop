@@ -26,6 +26,30 @@ namespace MultiAgentCopilot.ChatInfrastructure.Plugins
             _tenantId = tenantId;
             _userId = userId;
             _bankService = bankService;
-        }       
+        }
+
+        [KernelFunction("GetLoggedInUser")]
+        [Description("Get the current logged-in BankUser")]
+        public async Task<BankUser> GetLoggedInUser()
+        {
+            _logger.LogTrace($"Get Logged In User for Tenant:{_tenantId}  User:{_userId}");
+            return await _bankService.GetUserAsync(_tenantId, _userId);
+        }
+
+        [KernelFunction("GetCurrentDateTime")]
+        [Description("Get the current date time in UTC")]
+        public DateTime GetCurrentDateTime()
+        {
+            _logger.LogTrace($"Get Datetime: {System.DateTime.Now.ToUniversalTime()}");
+            return System.DateTime.Now.ToUniversalTime();
+        }
+
+        [KernelFunction("GetUserRegisteredAccounts")]
+        [Description("Get user registered accounts")]
+        public async Task<List<BankAccount>> GetUserRegisteredAccounts()
+        {
+            _logger.LogTrace($"Fetching accounts for Tenant: {_tenantId} User ID: {_userId}");
+            return await _bankService.GetUserRegisteredAccountsAsync(_tenantId, _userId);
+        }
     }
 }

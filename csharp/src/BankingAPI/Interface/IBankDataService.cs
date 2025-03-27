@@ -22,6 +22,7 @@ namespace BankingServices.Interfaces
         Task<bool> AddServiceRequestDescriptionAsync(string tenantId, string accountId, string requestId, string annotationToAdd);
         Task<Offer> GetOfferDetailsByNameAsync(string tenantId, string offerName);
         Task<String> GetTeleBankerAvailabilityAsync();
-
+        Task<List<OfferTerm>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription);
+        Task<Offer> GetOfferDetailsAsync(string tenantId, string offerId);
     }
 }

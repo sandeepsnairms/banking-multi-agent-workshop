@@ -19,6 +19,9 @@ using MultiAgentCopilot.Common.Models.Configuration;
 using MultiAgentCopilot.Common.Models.Debug;
 using Message = MultiAgentCopilot.Common.Models.Chat.Message;
 using MultiAgentCopilot.ChatInfrastructure.Factories;
+using MultiAgentCopilot.ChatInfrastructure.Models;
+using BankingServices.Interfaces;
+
 
 namespace MultiAgentCopilot.ChatInfrastructure.Services;
 
@@ -103,14 +106,13 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
         _promptDebugProperties.Add(new LogProperty(key, value));
     }
 
-    public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, string tenantId, string userId)
+    public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, IBankDataService bankService, string tenantId, string userId)
     {
         try
         {
-            //Replace from here
             ChatFactory agentChatGeneratorService = new ChatFactory();
 
-            var agent = agentChatGeneratorService.BuildAgent(_semanticKernel, _loggerFactory, tenantId, userId);
+            var agent = agentChatGeneratorService.BuildAgent(_semanticKernel, AgentType.Coordinator, _loggerFactory, bankService, tenantId, userId);
 
             ChatHistory chatHistory = [];
 
@@ -134,21 +136,12 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
             List<Message> completionMessages = new();
             List<DebugLog> completionMessagesLogs = new();
 
-
             await foreach (ChatMessageContent response in agent.InvokeAsync(chatHistory))
             {
                 string messageId = Guid.NewGuid().ToString();
-                completionMessages.Add(new Message(
-                    userMessage.TenantId,
-                    userMessage.UserId,
-                    userMessage.SessionId,
-                    response.AuthorName ?? string.Empty,
-                    response.Role.ToString(),
-                    response.Content ?? string.Empty,
-                    messageId));
+                completionMessages.Add(new Message(userMessage.TenantId, userMessage.UserId, userMessage.SessionId, response.AuthorName ?? string.Empty, response.Role.ToString(), response.Content ?? string.Empty, messageId));
             }
             return new Tuple<List<Message>, List<DebugLog>>(completionMessages, completionMessagesLogs);
-            //end replace
         }
         catch (Exception ex)
         {

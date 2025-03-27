@@ -23,13 +23,14 @@ namespace MultiAgentCopilot.ChatInfrastructure.Factories
     {
         public delegate void LogCallback(string key, string value);
 
-        public ChatCompletionAgent BuildAgent(Kernel kernel, ILoggerFactory loggerFactory, string tenantId, string userId)
+        public ChatCompletionAgent BuildAgent(Kernel kernel, AgentType agentType, ILoggerFactory loggerFactory, IBankDataService bankService, string tenantId, string userId)
         {
             ChatCompletionAgent agent = new ChatCompletionAgent
             {
-                Name = SystemPromptFactory.GetAgentName(),
-                Instructions = $"""{SystemPromptFactory.GetAgentPrompts()}""",
-                Kernel = kernel.Clone()
+                Name = SystemPromptFactory.GetAgentName(agentType),
+                Instructions = $"""{SystemPromptFactory.GetAgentPrompts(agentType)}""",
+                Kernel = PluginFactory.GetAgentKernel(kernel, agentType, loggerFactory, bankService, tenantId, userId),
+                Arguments = new KernelArguments(new AzureOpenAIPromptExecutionSettings() { FunctionChoiceBehavior = FunctionChoiceBehavior.Auto() })
             };
 
             return agent;

@@ -89,7 +89,6 @@ public class ChatService : IChatService
     {
         try
         {
-            //Replace from here
             ArgumentNullException.ThrowIfNull(sessionId);
 
             // Retrieve conversation, including latest prompt.
@@ -99,18 +98,16 @@ public class ChatService : IChatService
             var userMessage = new Message(tenantId, userId, sessionId, "User", "User", userPrompt);
 
             // Generate the completion to return to the user
-            var result = await _skService.GetResponse(userMessage, archivedMessages, tenantId, userId);
+            var result = await _skService.GetResponse(userMessage, archivedMessages, _bankService, tenantId, userId);
 
             await AddPromptCompletionMessagesAsync(tenantId, userId, sessionId, userMessage, result.Item1, result.Item2);
 
             return result.Item1;
-            //end replace
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Error getting completion in session {sessionId} for user prompt [{userPrompt}].");
-            return new List<Message> { new Message(tenantId, userId, sessionId!,
-                "Error", "Error", $"Error getting completion in session {sessionId} for user prompt [{userPrompt}].") };
+            return new List<Message> { new Message(tenantId, userId, sessionId!, "Error", "Error", $"Error getting completion in session {sessionId} for user prompt [{userPrompt}].") };
         }
     }
 
