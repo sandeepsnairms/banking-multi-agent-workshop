@@ -30,7 +30,7 @@ In this session ou will get a deeper introduction into the Semantic Kernel Agent
 
 ## Activity 3: Instantiate Semantic Kernel Agent Framework and Connect to Azure OpenAI
 
-In this hands-on exercise, you will learn how to initialize an agent framework and integrate it with a large language model.
+In this hands-on exercise, you will learn how to initialize an agent framework and integrate it with a Large Language Model(LLM).
 
 The Semantic Kernel Agent Framework is a platform within Microsoft's Semantic Kernel ecosystem designed to facilitate the creation and orchestration of AI agents. It enables developers to incorporate agentic patterns into applications, leveraging the core features of the Semantic Kernel framework. Agents built using this framework can collaborate, manage multiple concurrent conversations, and integrate human input, making it suitable for complex, multi-agent workflows.
 
@@ -273,7 +273,7 @@ In our application the GetResponse() function is the key entry point for users.
 
 In our example here we are going to implement a very simple **ChatCompletionAgent**. This is one of the built-in agents from Semantic Kernel Agent Framework and a key component for building these types of applications. The design for this agent is simple. It simply takes user input and translates the responses into French.
 
-Within the `GetResponse()` function, inside the `Try..Catch` block, copy the following code:
+Within the `GetResponse()` function of  **SemanticKernelService.cs**, inside the `Try..Catch` block, copy the following code:
 
 ```csharp
             ChatCompletionAgent agent = new ChatCompletionAgent
@@ -345,11 +345,12 @@ public ChatService(
         IOptions<CosmosDBSettings> cosmosOptions,
         IOptions<SemanticKernelServiceSettings> skOptions,
         ICosmosDBService cosmosDBService,
-        ISemanticKernelService ragService,
+        ISemanticKernelService skService,
         ILoggerFactory loggerFactory)
     {
         _cosmosDBService = cosmosDBService;
-        _skService = ragService;        
+        _skService = skService;
+        _bankService = new BankingDataService(cosmosOptions.Value, skOptions.Value, loggerFactory);
         _logger = loggerFactory.CreateLogger<ChatService>();
     }
 ```

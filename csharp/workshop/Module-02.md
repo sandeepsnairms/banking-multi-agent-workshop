@@ -624,9 +624,9 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
 
     public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, string tenantId, string userId)
     {
-
         try
         {
+            //Replace from here
             ChatFactory agentChatGeneratorService = new ChatFactory();
 
             var agent = agentChatGeneratorService.BuildAgent(_semanticKernel, _loggerFactory, tenantId, userId);
@@ -667,6 +667,7 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
                     messageId));
             }
             return new Tuple<List<Message>, List<DebugLog>>(completionMessages, completionMessagesLogs);
+            //end replace
         }
         catch (Exception ex)
         {
@@ -674,6 +675,7 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
             return new Tuple<List<Message>, List<DebugLog>>(new List<Message>(), new List<DebugLog>());
         }
     }
+
 
     public async Task<string> Summarize(string sessionId, string userPrompt)
     {
@@ -798,15 +800,17 @@ public interface ICosmosDBService
     /// <param name="sessionId">Chat session identifier used to flag messages and sessions for deletion.</param>
     Task DeleteSessionAndMessagesAsync(string tenantId, string userId,string sessionId);
 
+   
+    Task<DebugLog> GetChatCompletionDebugLogAsync(string tenantId, string userId,string sessionId, string debugLogId);
+
+    Task<bool> InsertDocumentAsync(string containerName, JObject document);
+
     /// <summary>
     /// Batch create or update chat messages and session.
     /// </summary>
     /// <param name="messages">Chat message and session items to create or replace.</param>
     Task UpsertSessionBatchAsync(List<Message> messages, List<DebugLog> debugLogs, Session session);
 
-    Task<DebugLog> GetChatCompletionDebugLogAsync(string tenantId, string userId,string sessionId, string debugLogId);
-
-    Task<bool> InsertDocumentAsync(string containerName, JObject document);
 }
 ```
 
@@ -1238,6 +1242,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
         }
     }
 }
+
 ```
 
 </details>
@@ -1261,6 +1266,7 @@ using System.Text.Json;
 using Newtonsoft.Json;
 using Microsoft.Identity.Client;
 using BankingServices.Interfaces;
+using BankingServices.Services;
 
 
 namespace MultiAgentCopilot.ChatInfrastructure.Services;
@@ -1276,11 +1282,12 @@ public class ChatService : IChatService
         IOptions<CosmosDBSettings> cosmosOptions,
         IOptions<SemanticKernelServiceSettings> skOptions,
         ICosmosDBService cosmosDBService,
-        ISemanticKernelService ragService,
+        ISemanticKernelService skService,
         ILoggerFactory loggerFactory)
     {
         _cosmosDBService = cosmosDBService;
-        _skService = ragService;
+        _skService = skService;
+        _bankService = new BankingDataService(cosmosOptions.Value, skOptions.Value, loggerFactory);
         _logger = loggerFactory.CreateLogger<ChatService>();
     }
 
@@ -1337,6 +1344,7 @@ public class ChatService : IChatService
     {
         try
         {
+            //Replace from here
             ArgumentNullException.ThrowIfNull(sessionId);
 
             // Retrieve conversation, including latest prompt.
@@ -1351,11 +1359,13 @@ public class ChatService : IChatService
             await AddPromptCompletionMessagesAsync(tenantId, userId, sessionId, userMessage, result.Item1, result.Item2);
 
             return result.Item1;
+            //end replace
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Error getting completion in session {sessionId} for user prompt [{userPrompt}].");
-            return new List<Message> { new Message(tenantId, userId, sessionId!, "Error", "Error", $"Error getting completion in session {sessionId} for user prompt [{userPrompt}].") };
+            return new List<Message> { new Message(tenantId, userId, sessionId!,
+                "Error", "Error", $"Error getting completion in session {sessionId} for user prompt [{userPrompt}].") };
         }
     }
 
@@ -1425,6 +1435,7 @@ public class ChatService : IChatService
             return false;
         }
     }
+
     /// <summary>
     /// Add user prompt and AI assistance response to the chat session message list object and insert into the data service as a transaction.
     /// </summary>
@@ -1436,6 +1447,8 @@ public class ChatService : IChatService
         await _cosmosDBService.UpsertSessionBatchAsync(completionMessages, completionMessageLogs, session);
     }
 }
+
+
 ```
 
 </details>

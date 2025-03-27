@@ -60,7 +60,7 @@ The contents of this folder should look like this below.
 
 Review the contents of `CommonAgentRules.prompty`.
 
-The contens of this file doesn't define a single agent's behavior but provides a baseline for how all agents are supposed to behave. Think of it like a set of global rules for agents. All agents import the text from this prompt to govern their responses.
+The contents of this file doesn't define a single agent's behavior but provides a baseline for how all agents are supposed to behave. Think of it like a set of global rules for agents. All agents import the text from this prompt to govern their responses.
 
 #### Coordinator Agent
 
@@ -96,13 +96,13 @@ Review the contents of `AgentTypes.cs`.
 
 ### Implementing the System Prompt Factory
 
-We are now ready to complete the implementation for the **System Prompt Factory** we created in the previous Module. We will do that by first adding a reference to `MultiAgentCopilot.ChatInfrastructure.Models` in `ChatInfrastructure\Factories\SystemPromptFactory.cs`. This will allow it to consume the `AgentType` enum we created in the previous step.
+We are now ready to complete the implementation for the **System Prompt Factory** created in the previous module. The `SystemPromptFactory` will generate prompts based on the `agentType` parameter, allowing us to reuse the code and add more agents. To achieve this, we will first add a reference to `MultiAgentCopilot.ChatInfrastructure.Models` in `ChatInfrastructure\Factories\SystemPromptFactory.cs`, enabling it to consume the AgentType enum.
 
 In the same `ChatInfrastructure` project, navigate to the `/Factories` folder.
 
 Open the `SystemPromptFactory.cs`
 
-Next we need to replace our original hard-coded implementation from Module 3 to use the AgentType enum for our newly defined banking agents. It is also worth noting that it is here where the contents of the `CommonAgentsRules.prompty` are included as part of the system prompts that define our agents.
+Next we need to replace our original hard-coded implementation from Module 2 to use the AgentType enum for our banking agents. It is also worth noting that it is here where the contents of the `CommonAgentsRules.prompty` are included as part of the system prompts that define our agents.
 
 Within the `SystemPromptFactory.cs`
 
@@ -167,7 +167,7 @@ Replace the code for both `GetAgentName()` and `GetAgentPrompts()` with the code
 
 ## Activity 4: Integrating Bank Domain Functions as Plugins
 
-All banking domain code is encapsulated in a separate `BankingServices` project. Let's add the banking domain functions to the agent plugins. For simplicity in this workshop, all functions reference BankingServices. However, kernel functions can be any managed code that enables the LLM to interact with the outside world. The Base plugin, inherited by all plugins, contains common code for all plugins.
+All banking domain code is encapsulated in a separate `BankingServices` project. Let's add the banking domain functions to the agent plugins. For simplicity in this workshop, all functions reference BankingServices. However, kernel functions can be any managed code that enables the LLM to interact with the outside world. The Base plugin, inherited by all plugins, contains common code for all plugins. For best results the `KernelFunction` available in the agent plugin should be consistent with the agent system prompts.
 
 In your IDE, navigate to the `ChatInfrastructure` project in the solution.
 
@@ -327,7 +327,7 @@ Paste the following code into the class definition below the constructor.
 
 ## Activity 5: Developing a Plugin Factory
 
-Next we will create a  **PluginFactory** that dynamically generates a plugin based on the agent type.
+Similar to generating system prompts based on agent type, we need the plugins to be created dynamically. Next, we will create a `PluginFactory` that dynamically generates a plugin based on the agent type.
 
 In the `ChatInfrastructure` project, navigate to the `/Factories` folder
 
@@ -385,7 +385,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Factories
 
 ## Activity 6: Building an Agent Factory
 
-Next we will modify the `BuildAgent()` function within the `ChatFactory` class to dynamically add plugins to the agents.
+Now that we have `SystemPromptFactory` and `PluginFactory` that dynamically generate system prompts and plugins, we can make the agent build process dynamic based on the `agentType` parameter. Next, we will modify the `BuildAgent()` function within the `ChatFactory` class to dynamically add plugins to the agents.
 
 Within the `/Factories` folder, open the `ChatFactory.cs` file.
 
@@ -403,27 +403,6 @@ Replace the `BuildAgent()` function with this code below.
         };
     
         return agent;
-    }
-```
-
-Within the `ChatInfrastructure` project, navigate to the `/Services` folder
-
-Open the `ChatService.cs` file
-
-Replace the constructor for the ChatService with the code below to initialize the BankingDataService.
-
-```csharp
-public ChatService(
-        IOptions<CosmosDBSettings> cosmosOptions,
-        IOptions<SemanticKernelServiceSettings> skOptions,
-        ICosmosDBService cosmosDBService,
-        ISemanticKernelService skService,
-        ILoggerFactory loggerFactory)
-    {
-        _cosmosDBService = cosmosDBService;
-        _skService = skService;
-        _bankService = new BankingDataService(cosmosOptions.Value, skOptions.Value, loggerFactory);
-        _logger = loggerFactory.CreateLogger<ChatService>();
     }
 ```
 

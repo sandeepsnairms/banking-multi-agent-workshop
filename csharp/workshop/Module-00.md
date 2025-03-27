@@ -188,10 +188,10 @@ When you deploy this solution it automatically injects endpoints and configurati
 
 1. Open your browser and navigate to <http://localhost:4200/>.
 
-#### 3. Start a Chat Session
+#### 3. Start a Conversation
 
 1. Open the frontend app.
-1. Start a new chat session.
+1. Start a new conversation.
 1. Send the message:
 
    ```text
