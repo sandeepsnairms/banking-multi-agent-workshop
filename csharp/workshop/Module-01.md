@@ -16,8 +16,8 @@ In this Module, you'll implement your first agent as part of a multi-agent banki
 
 1. [Activity 1: Session on Single-agent architecture](#activity-1-session-on-single-agent-architecture)
 1. [Activity 2: Session on Semantic Kernel Agent Framework and LangGraph](#activity-2-session-on-semantic-kernel-agent-framework-and-langgraph)
-1. [Activity 3: Instantiate Agent Framework and Connect to Azure OpenAI](#activity-3-instantiate-agent-framework-and-connect-to-azure-openai)
-1. [Activity 4: Create a Simple Customer Service Agent](#activity-4-create-a-simple-customer-service-agent)
+1. [Activity 3: Instantiate Agent Framework and Connect to Azure OpenAI](#activity-3-instantiate-semantic-kernel-agent-framework-and-connect-to-azure-openai)
+1. [Activity 4: Create a Simple Agent](#activity-4-create-a-simple-agent)
 1. [Activity 5: Test your Work](#activity-5-test-your-work)
 
 ## Activity 1: Session on Single-agent architecture
@@ -56,9 +56,9 @@ The following steps are completed in your IDE.
 
 This solution is initially organized with the following three projects.
 
-- **BankingServices** this service layer encapsulates the core banking functionality for our application.
-- **ChatAPI** is the backend service layer for this solution. It exposes endpoints that are called by our frontend Angular app and wraps all of the functionality we are going to be implementing in this workshop.
-- **ChatInfrastructure** is the core for this solution. It provides the core wrappers for the underlying Azure Services and the Semantic Kernel Agent Framework and defines interfaces for each of the major service layers. Within this project the key entry point for the ChatAPI service above is the *ChatService*. All user interaction enters and leaves through this service.
+- **BankingServices** this project provides a data service layer for core the banking functionality for our application.
+- **ChatAPI** this project wraps backend service layer for this solution. It exposes REST endpoints that are called by our frontend Angular app.
+- **ChatInfrastructure** is the backend service layer itself. It provides the core wrappers for the underlying Azure Services and the Semantic Kernel Agent Framework and defines interfaces for each of the major service layers. Within this project the key entry point for the ChatAPI service above is the *ChatService*. All user interaction enters and leaves through this service.
 - **Common** provides components that are shared across the entire solution including entity models, configuration, helpers as well as exception handling and debugging.
 
 Here is what the structure of this solution appears like in Visual Studio. Spend a few moments to familiarize yourself with the structure as it will help you navigate as we go through the activities.
@@ -77,7 +77,7 @@ There are three functions we will implement as part of our multi-agent applicati
 
 In your IDE, navigate to the **ChatInfrastructure** project in the solution.
 
-Then navigate to the `ChatInfrastructure\Interfaces\` folder within it.
+Then navigate to the `\Interfaces\` folder within it.
 
 Create a new class, **ISemanticKernelService.cs**
 
@@ -92,11 +92,8 @@ namespace MultiAgentCopilot.ChatInfrastructure.Interfaces
     public interface ISemanticKernelService
     {
         Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, string tenantId, string userId);
-
         Task<string> Summarize(string sessionId, string userPrompt);
-
         Task<float[]> GenerateEmbedding(string text);
-
     }
 }
 ```
@@ -264,7 +261,7 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
 }
 ```
 
-## Activity 4: Create a Simple Customer Service Agent
+## Activity 4: Create a Simple Agent
 
 In this activity we are going to create a simple customer service agent. This agent is going to be the key agent that will interact with users. However, right now, we are going to only implement a very simple agent that will take your user input and translate it into French. Later on we will greatly expand this customer service agent's functinality.
 
@@ -274,9 +271,7 @@ In Semantic Kernel all agents are derived from an abstract `Agent` class. Semant
 
 In our application the GetResponse() function is the key entry point for users.
 
-This function accepts the user's input, building the context window from chat history, calling different functions and invoking the Semantic Kernel Agent framework to process and route requests and generate responses.
-
-In our example here we are going to create a **ChatCompletionAgent**. This is one of the built-in agents from Semantic Kernel Agent Framework and a key component for building these types of applications.
+In our example here we are going to implement a very simple **ChatCompletionAgent**. This is one of the built-in agents from Semantic Kernel Agent Framework and a key component for building these types of applications. The design for this agent is simple. It simply takes user input and translates the responses into French.
 
 Within the `GetResponse()` function, inside the `Try..Catch` block, copy the following code:
 
@@ -466,7 +461,7 @@ With the activities in this module complete, it is time to test your work.
 ### 4. Stop the Application
 
 - In the frontend terminal, press **Ctrl + C** to stop the application.
-- In your IDE press **Shift-F5** or stop the debugger.
+- In your IDE press **Shift + F5** or stop the debugger.
 
 ### Validation Checklist
 
@@ -617,6 +612,7 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
 
     public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, string tenantId, string userId)
     {
+
         try
         {
             ChatCompletionAgent agent = new ChatCompletionAgent
@@ -627,6 +623,7 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
             };
 
             ChatHistory chatHistory = [];
+
             chatHistory.AddUserMessage(userMessage.Text);
 
             _promptDebugProperties = new List<LogProperty>();
@@ -664,6 +661,7 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
 
             // Invoke the function
             var summary = await _semanticKernel.InvokeAsync(summarizeFunction, new() { ["input"] = userPrompt });
+
             return summary.GetValue<string>() ?? "No summary generated";
         }
         catch (Exception ex)
@@ -704,7 +702,6 @@ using Azure.Identity;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.ApplicationInsights;
-
 namespace MultiAgentCopilot
 {
     /// <summary>
@@ -712,17 +709,6 @@ namespace MultiAgentCopilot
     /// </summary>
     public static partial class DependencyInjection
     {
-        /// <summary>
-        /// Registers the <see cref="ISemanticKernelService"/> implementation with the dependency injection container.
-        /// </summary>
-        /// <param name="builder">The hosted applications and services builder.</param>
-        public static void AddSemanticKernelService(this IHostApplicationBuilder builder)
-        {
-            builder.Services.AddOptions<SemanticKernelServiceSettings>()
-                .Bind(builder.Configuration.GetSection("SemanticKernelServiceSettings"));
-            builder.Services.AddSingleton<ISemanticKernelService, SemanticKernelService>();
-        }
-
         /// <summary>
         /// Registers the <see cref="ICosmosDBService"/> implementation with the dependency injection container.
         /// </summary>
@@ -736,6 +722,7 @@ namespace MultiAgentCopilot
             builder.Services.AddSingleton<ICosmosDBService, CosmosDBService>();
         }
 
+
         /// <summary>
         /// Registers the <see cref="IChatService"/> implementation with the dependency injection container.
         /// </summary>
@@ -745,6 +732,17 @@ namespace MultiAgentCopilot
             builder.Services.AddOptions<CosmosDBSettings>()
                 .Bind(builder.Configuration.GetSection("CosmosDBSettings"));
             builder.Services.AddSingleton<IChatService, ChatService>();
+        }
+
+        /// <summary>
+        /// Registers the <see cref="ISemanticKernelService"/> implementation with the dependency injection container.
+        /// </summary>
+        /// <param name="builder">The hosted applications and services builder.</param>
+        public static void AddSemanticKernelService(this IHostApplicationBuilder builder)
+        {
+            builder.Services.AddOptions<SemanticKernelServiceSettings>()
+                .Bind(builder.Configuration.GetSection("SemanticKernelServiceSettings"));
+            builder.Services.AddSingleton<ISemanticKernelService, SemanticKernelService>();
         }
     }
 }
@@ -769,14 +767,17 @@ using Newtonsoft.Json.Linq;
 using System.Text.Json;
 using Newtonsoft.Json;
 using Microsoft.Identity.Client;
+using BankingServices.Interfaces;
+
 
 namespace MultiAgentCopilot.ChatInfrastructure.Services;
 
 public class ChatService : IChatService
 {
-    private readonly ISemanticKernelService _skService;
     private readonly ICosmosDBService _cosmosDBService;
     private readonly ILogger _logger;
+    private readonly IBankDataService _bankService;
+    private readonly ISemanticKernelService _skService;
 
     public ChatService(
         IOptions<CosmosDBSettings> cosmosOptions,

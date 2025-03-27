@@ -153,7 +153,7 @@ When you deploy this solution it automatically injects endpoints and configurati
 
 #### 1. Start the ChatAPI
 
-##### If running on Codespaces:
+##### If running on Codespaces
 
 1. Navigate to `src\ChatAPI`.
 2. Run the following command to trust the development certificate:
@@ -217,7 +217,7 @@ When you deploy this solution it automatically injects endpoints and configurati
 #### 4. Stop the Application
 
 - In the frontend terminal, press **Ctrl + C** to stop the application.
-- In your IDE press **Shift-F5** or stop the debugger.
+- In your IDE press **Shift + F5** or stop the debugger.
 
 ### Deployment Validation
 

@@ -15,7 +15,7 @@ In this Module you'll connect your agent to Azure Cosmos DB to provide memory fo
 ## Module Exercises
 
 1. [Activity 1: Session Memory Persistence in Agent Frameworks](#activity-1-session-memory-persistence-in-agent-frameworks)
-1. [Activity 2: Create a Simple Agent](#activity-2-create-a-simple-agent)
+1. [Activity 2: Create a Simple Banking Agent](#activity-2-create-a-simple-banking-agent)
 1. [Activity 3: Connecting Agent Frameworks to Azure Cosmos DB](#activity-3-connecting-agent-frameworks-to-azure-cosmos-db)
 1. [Activity 4: Test your Work](#activity-4-test-your-work)
 
@@ -23,9 +23,9 @@ In this Module you'll connect your agent to Azure Cosmos DB to provide memory fo
 
 In this session you will get an overview of memory and how it works for Semantic Kernel Agents and LangGraph and learn the basics for how to configure and connect both to Azure Cosmos DB as a memory store for both chat history and/or state management.
 
-## Activity 2: Create a Simple Agent
+## Activity 2: Create a Simple Banking Agent
 
-In this hands-on exercise, you will learn how to create a agent using a simple prompt.
+In this hands-on exercise, we will evolve the agent that translated responses into French into an agent that is intended for the banking scenario we are building here. We will also take the first step to learning about prompts here as well.
 
 First, navigate to the `ChatInfrastructure` project in your IDE
 
@@ -37,7 +37,7 @@ Create `Factories` folder inside this project. Your project should look like thi
 
 System prompts provide instructions to the LLM, shaping its responses accordingly. This next step enables the creation of system prompts for various scenarios. We are going to implement a very simple agent to demonstrate how these work.
 
-In your IDE, within the `/Factories` folder, create a new class, `SystemPromptFactory.cs`. 
+In your IDE, within the `/Factories` folder, create a new class, `SystemPromptFactory.cs`.
 
 Then replace the code with this below:
 
@@ -141,7 +141,7 @@ using MultiAgentCopilot.ChatInfrastructure.Factories;
 
 ### Update GetResponse() function in SemanticKernelService
 
-The `GetResponse()` function is the main entry point for our multi-agent application. Within that function, a variable named, `messageHistory` stores a list of historical messages from the chat session. The `chatHistory` object is used to construct this history and passed to the Semantic Kernel Chat Completion Agent object. The `completionMessages` list is used to store the response received from the agent which then needs to be persisted in CosmosDB for the next iteration of the agent.
+The `GetResponse()` function is the main entry point for our multi-agent application. Within that function, a variable named, `messageHistory` stores a list of historical messages from the chat session. The `chatHistory` object is used to construct this history and passed to the Semantic Kernel Chat Completion Agent object. The `completionMessages` list is used to store the response received from the agent which then needs to be persisted in Cosmos DB for the next iteration of the agent.
 
 We're going to modify this function to provide that persistence with Cosmos DB.
 
@@ -208,7 +208,7 @@ Replace all of the code within the `Try` block with the code below:
 
 ### Store user messages and responses in CosmosDB
 
-The next few steps will walk you through how to persist our agent interactions in Cosmos DB. Cosmos DB is used extensively for capturing user and agent interactions in these types of applications. It is a great choice for this scenario due to its design as a NoSQL database that can scale out to support any number of users instantly.
+The next few steps will walk you through how to persist our agent interactions in Cosmos DB. Azure Cosmos DB is used extensively for capturing user and agent interactions in these types of applications. It is a great choice for this scenario due to its schema-agnostic design as a NoSQL database that can scale out to support any number of users instantly.
 
 To accomplish this task we will do the following tasks:
 
@@ -316,7 +316,9 @@ Scroll to the end of the file. Before the *the last* curly brace copy and paste 
 
 We also need to implement a method to Get the conversation for the current session. To do that we will update an existing method, `GetChatCompletionAsync()` to include a call to the Cosmos DB service, `GetSessionMessagesAsync()` that has already been implemented.
 
-To begin, locate `GetChatCompletionAsync()`, then update with the code in the `Try` block below:
+To begin, within the same `ChatServices.cs` file, locate `GetChatCompletionAsync()`
+
+Then update the function with the code in the `Try` block below:
 
 ```csharp
     public async Task<List<Message>> GetChatCompletionAsync(string tenantId, string userId,string? sessionId, string userPrompt)
@@ -372,6 +374,8 @@ With the activities in this module complete, it is time to test your work.
 
 #### 3. Start a Chat Session
 
+We have a new agent now that thinks it works for a bank. So in our test here we are going to ask it banking-related questions.
+
 1. Open the frontend app.
 1. Start a new conversation.
 1. Send the following message:
@@ -396,7 +400,7 @@ With the activities in this module complete, it is time to test your work.
 ### 4. Stop the Application
 
 - In the frontend terminal, press **Ctrl + C** to stop the application.
-- In your IDE press **Shift-F5** or stop the debugger.
+- In your IDE press **Shift + F5** or stop the debugger.
 
 ### Validation Checklist
 
@@ -476,6 +480,9 @@ using Microsoft.SemanticKernel.Agents.Chat;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
+using MultiAgentCopilot.ChatInfrastructure.Helper;
+using MultiAgentCopilot.ChatInfrastructure.Models;
+using BankingServices.Interfaces;
 using OpenAI.Chat;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
@@ -617,6 +624,7 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
 
     public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, string tenantId, string userId)
     {
+
         try
         {
             ChatFactory agentChatGeneratorService = new ChatFactory();
@@ -659,7 +667,6 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
                     messageId));
             }
             return new Tuple<List<Message>, List<DebugLog>>(completionMessages, completionMessagesLogs);
-
         }
         catch (Exception ex)
         {
@@ -720,12 +727,6 @@ namespace MultiAgentCopilot.ChatInfrastructure.Interfaces;
 
 public interface ICosmosDBService
 {
-
-    /// <summary>
-    /// Batch create or update chat messages and session.
-    /// </summary>
-    /// <param name="messages">Chat message and session items to create or replace.</param>
-    Task UpsertSessionBatchAsync(List<Message> messages, List<DebugLog> debugLogs, Session session);
 
     /// <summary>
     /// Gets a list of all current chat sessions.
@@ -796,6 +797,12 @@ public interface ICosmosDBService
     /// </summary>
     /// <param name="sessionId">Chat session identifier used to flag messages and sessions for deletion.</param>
     Task DeleteSessionAndMessagesAsync(string tenantId, string userId,string sessionId);
+
+    /// <summary>
+    /// Batch create or update chat messages and session.
+    /// </summary>
+    /// <param name="messages">Chat message and session items to create or replace.</param>
+    Task UpsertSessionBatchAsync(List<Message> messages, List<DebugLog> debugLogs, Session session);
 
     Task<DebugLog> GetChatCompletionDebugLogAsync(string tenantId, string userId,string sessionId, string debugLogId);
 
@@ -904,7 +911,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
                 QueryDefinition query = new QueryDefinition("SELECT DISTINCT * FROM c WHERE c.type = @type")
                     .WithParameter("@type", nameof(Session));
 
-                var partitionKey = PartitionManager.GetChatDataPartialPK(tenantId, userId);
+                var partitionKey= PartitionManager.GetChatDataPartialPK(tenantId, userId);
                 FeedIterator<Session> response = _chatData.GetItemQueryIterator<Session>(query, null, new QueryRequestOptions() { PartitionKey = partitionKey });
 
                 List<Session> output = new();
@@ -926,8 +933,8 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
         public async Task<Session> GetSessionAsync(string tenantId, string userId, string sessionId)
         {
             try
-            {
-                var partitionKey = PartitionManager.GetChatDataFullPK(tenantId, userId, sessionId);
+            { 
+                var partitionKey = PartitionManager.GetChatDataFullPK(tenantId, userId,sessionId);
 
                 return await _chatData.ReadItemAsync<Session>(
                     id: sessionId,
@@ -940,7 +947,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
             }
         }
 
-        public async Task<List<Message>> GetSessionMessagesAsync(string tenantId, string userId, string sessionId)
+        public async Task<List<Message>> GetSessionMessagesAsync(string tenantId, string userId,string sessionId)
         {
             try
             {
@@ -971,10 +978,10 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
         public async Task<Session> InsertSessionAsync(Session session)
         {
             try
-            {
-                var partitionKey = PartitionManager.GetChatDataFullPK(session.TenantId, session.UserId, session.SessionId);
+            { 
+                var partitionKey = PartitionManager.GetChatDataFullPK(session.TenantId, session.UserId,session.SessionId);
 
-                var response = await _chatData.CreateItemAsync(
+                var response= await _chatData.CreateItemAsync(
                     item: session,
                     partitionKey: partitionKey
                 );
@@ -991,7 +998,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
         public async Task<Message> InsertMessageAsync(Message message)
         {
             try
-            {
+            { 
                 var partitionKey = PartitionManager.GetChatDataFullPK(message.TenantId, message.UserId, message.SessionId);
 
                 return await _chatData.CreateItemAsync(
@@ -1009,7 +1016,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
         public async Task<Message> UpdateMessageAsync(Message message)
         {
             try
-            {
+            { 
                 var partitionKey = PartitionManager.GetChatDataFullPK(message.TenantId, message.UserId, message.SessionId);
 
                 return await _chatData.ReplaceItemAsync(
@@ -1025,10 +1032,10 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
             }
         }
 
-        public async Task<Message> UpdateMessageRatingAsync(string tenantId, string userId, string sessionId, string messageId, bool? rating)
+        public async Task<Message> UpdateMessageRatingAsync(string tenantId, string userId, string sessionId,string messageId, bool? rating)
         {
             try
-            {
+            { 
                 var partitionKey = PartitionManager.GetChatDataFullPK(tenantId, userId, sessionId);
 
                 var response = await _chatData.PatchItemAsync<Message>(
@@ -1051,7 +1058,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
         public async Task<Session> UpdateSessionAsync(Session session)
         {
             try
-            {
+            { 
                 var partitionKey = PartitionManager.GetChatDataFullPK(session.TenantId, session.UserId, session.SessionId);
 
                 return await _chatData.ReplaceItemAsync(
@@ -1067,7 +1074,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
             }
         }
 
-        public async Task<Session> UpdateSessionNameAsync(string tenantId, string userId, string sessionId, string name)
+        public async Task<Session> UpdateSessionNameAsync(string tenantId, string userId,string sessionId, string name)
         {
             try
             {
@@ -1090,12 +1097,16 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
                 _logger.LogError(ex.ToString());
                 throw;
             }
-        }
+}
 
-        public async Task DeleteSessionAndMessagesAsync(string tenantId, string userId, string sessionId)
+
+
+        
+
+        public async Task DeleteSessionAndMessagesAsync(string tenantId, string userId,string sessionId)
         {
             try
-            {
+            { 
                 var partitionKey = PartitionManager.GetChatDataFullPK(tenantId, userId, sessionId);
 
                 var query = new QueryDefinition("SELECT c.id FROM c WHERE c.sessionId = @sessionId")
@@ -1124,10 +1135,10 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
             }
         }
 
-        public async Task<DebugLog> GetChatCompletionDebugLogAsync(string tenantId, string userId, string sessionId, string debugLogId)
+        public async Task<DebugLog> GetChatCompletionDebugLogAsync(string tenantId, string userId,string sessionId, string debugLogId)
         {
             try
-            {
+            { 
                 var partitionKey = PartitionManager.GetChatDataFullPK(tenantId, userId, sessionId);
 
                 return await _chatData.ReadItemAsync<DebugLog>(
@@ -1140,10 +1151,11 @@ namespace MultiAgentCopilot.ChatInfrastructure.Services
                 throw;
             }
         }
+        
 
         public async Task<bool> InsertDocumentAsync(string containerName, JObject document)
         {
-            Container container = null;
+            Container container=null;
 
             switch (containerName)
             {
@@ -1248,16 +1260,17 @@ using Newtonsoft.Json.Linq;
 using System.Text.Json;
 using Newtonsoft.Json;
 using Microsoft.Identity.Client;
+using BankingServices.Interfaces;
 
 
 namespace MultiAgentCopilot.ChatInfrastructure.Services;
 
 public class ChatService : IChatService
 {
-    private readonly ISemanticKernelService _skService;
     private readonly ICosmosDBService _cosmosDBService;
     private readonly ILogger _logger;
-
+    private readonly IBankDataService _bankService;
+    private readonly ISemanticKernelService _skService;
 
     public ChatService(
         IOptions<CosmosDBSettings> cosmosOptions,
@@ -1368,6 +1381,7 @@ public class ChatService : IChatService
         }
     }
 
+
     /// <summary>
     /// Rate an assistant message. This can be used to discover useful AI responses for training, discoverability, and other benefits down the road.
     /// </summary>
@@ -1386,6 +1400,7 @@ public class ChatService : IChatService
 
         return await _cosmosDBService.GetChatCompletionDebugLogAsync(tenantId,userId, sessionId, debugLogId);
     }
+
 
     public async Task<bool> AddDocument(string containerName, JsonElement document)
     {
@@ -1410,7 +1425,6 @@ public class ChatService : IChatService
             return false;
         }
     }
-
     /// <summary>
     /// Add user prompt and AI assistance response to the chat session message list object and insert into the data service as a transaction.
     /// </summary>

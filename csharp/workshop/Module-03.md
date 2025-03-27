@@ -50,35 +50,49 @@ Prompty is an asset class and file format designed to streamline the development
 
 In this activity we will review the existing Prompty files.
 
-Look in your IDE, within the `ChatAPI` project, the `/Prompts` folder with the prompty files  should like seen below.
+In your IDE, navigate to the `ChatAPI` project, then the `/Prompts` folder.
+
+The contents of this folder should look like this below.
 
 ![Prompty files](./media/module-03/solution-prompt-folder.png)
 
 #### Common Agent Rules
 
-This isn't agent but provides a baseline for how agents are supposed to behave. Think of it like a set of global rules for agents. All agents import the text from this prompt to govern their responses. Review the contents of `CommonAgentRules.prompty`.
+Review the contents of `CommonAgentRules.prompty`.
+
+The contens of this file doesn't define a single agent's behavior but provides a baseline for how all agents are supposed to behave. Think of it like a set of global rules for agents. All agents import the text from this prompt to govern their responses.
 
 #### Coordinator Agent
 
-This agent is the coordinator for the entire multi-agent system we are building. Its purpose is own the entire experience for users with the banking agent system. It starts by greeting new users when they initiate a new session, then routes user requests to the correct agent(s) to handle on their behalf. Finally it asks for feedback on how it did its job. Review the contents of `Coordinator.prompty`.
+Review the contents of `Coordinator.prompty`.
+
+This agent is the coordinator for the entire multi-agent system we are building. Its purpose is own the entire experience for users with the banking agent system. It starts by greeting new users when they initiate a new session, then routes user requests to the correct agent(s) to handle on their behalf. Finally it asks for feedback on how it did its job.
 
 #### Customer Support Agent
 
-This agent handles anything that appears to be a customer support request by a user. It can create, find and update services requests for users. It can also take certain action on behalf of users too. Review the contents of `CustomerSupport.prompty`.
+Review the contents of `CustomerSupport.prompty`.
+
+This agent handles anything that appears to be a customer support request by a user. It can create, find and update services requests for users. It can also take certain action on behalf of users too.
 
 #### Sales Agent
 
-This agent is used when customers ask questions about what kinds of services a bank offers. The data on the products the bank has are stored in Cosmos DB. This agent performs a vector search in Cosmos DB to find the most suitable products for a customer's request. Review the contents of `Sales.prompty`.
+Review the contents of `Sales.prompty`.
+
+This agent is used when customers ask questions about what kinds of services a bank offers. The data on the products the bank has are stored in Cosmos DB. This agent performs a vector search in Cosmos DB to find the most suitable products for a customer's request.
 
 #### Transaction Agent
 
-This agent handles any account-based transactions on behalf of the user including getting account balances, generating statements and doing fund transfers between accounts. Review the contents of `Transactions.prompty`.
+Review the contents of `Transactions.prompty`.
+
+This agent handles any account-based transactions on behalf of the user including getting account balances, generating statements and doing fund transfers between accounts.
 
 ### Retrieving the prompty text for Agents
 
 In our banking solution we have four agents: transactions agent, sales agent, customer support agent, and a coordinator agent to manage all of them. With the behavior of the agents defined in Prompty, we now need to implement the code that will allow the application to load the agent behavior for each of the agents.
 
-In your IDE, navigate to the `Models` folder within the `ChatInfrastructure` project. Review the contents of `AgentTypes.cs`.
+In your IDE, navigate to the `Models` folder within the `ChatInfrastructure` project.
+
+Review the contents of `AgentTypes.cs`.
 
 ### Implementing the System Prompt Factory
 
@@ -155,13 +169,13 @@ Replace the code for both `GetAgentName()` and `GetAgentPrompts()` with the code
 
 All banking domain code is encapsulated in a separate `BankingServices` project. Let's add the banking domain functions to the agent plugins. For simplicity in this workshop, all functions reference BankingServices. However, kernel functions can be any managed code that enables the LLM to interact with the outside world. The Base plugin, inherited by all plugins, contains common code for all plugins.
 
-In your IDE, navigate to the **ChatInfrastructure** project in the solution.
+In your IDE, navigate to the `ChatInfrastructure` project in the solution.
 
-Then navigate to the `ChatInfrastructure\AgentPlugins\` folder.
+Then navigate to the `AgentPlugins` folder.
 
 Open the `BasePlugin.cs` file
 
-Copy the following code into the class.
+Paste the following code into the class definition below the constructor.
 
 ```csharp
     [KernelFunction("GetLoggedInUser")]
@@ -191,7 +205,7 @@ Copy the following code into the class.
 
 Navigate and open the `SalesPlugin.cs` file.
 
-Copy the following code into the class.
+Paste the following code into the class definition below the constructor.
 
 ```csharp
     [KernelFunction]
@@ -221,7 +235,7 @@ Copy the following code into the class.
 
 Navigate to and open the `CustomerSupportPlugin.cs` file
 
-Copy the following code into the class.
+Paste the following code into the class definition below the constructor.
 
 ```csharp
     [KernelFunction("IsAccountRegisteredToUser")]
@@ -281,16 +295,17 @@ Copy the following code into the class.
 
 Navigate to and open the `TransactionPlugin.cs` file
 
-Copy the following code into the class.
+Paste the following code into the class definition below the constructor.
+
 ```csharp
     [KernelFunction]
     [Description("Adds a new Account Transaction request")]
     public async Task<ServiceRequest> AddFunTransferRequest(
-       string debitAccountId,
-       decimal amount,
-       string requestAnnotation,
-       string? recipientPhoneNumber = null,
-       string? recipientEmailId = null)
+        string debitAccountId,
+        decimal amount,
+        string requestAnnotation,
+        string? recipientPhoneNumber = null,
+        string? recipientEmailId = null)
     {
        _logger.LogTrace("Adding AccountTransaction request for User ID: {UserId}, Debit Account: {DebitAccountId}", _userId, debitAccountId);
     
@@ -301,16 +316,13 @@ Copy the following code into the class.
        return await _bankService.CreateFundTransferRequestAsync(_tenantId, debitAccountId, _userId, requestAnnotation, emailId, phoneNumber, amount);
     }
     
-    
     [KernelFunction]
     [Description("Get the transactions history between 2 dates")]
     public async Task<List<BankTransaction>> GetTransactionHistory(string accountId, DateTime startDate, DateTime endDate)
     {
        _logger.LogTrace("Fetching AccountTransaction history for Account: {AccountId}, From: {StartDate} To: {EndDate}", accountId, startDate, endDate);
        return await _bankService.GetTransactionsAsync(_tenantId, accountId, startDate, endDate);
-    
     }
-
 ```
 
 ## Activity 5: Developing a Plugin Factory
@@ -396,7 +408,7 @@ Replace the `BuildAgent()` function with this code below.
 
 Within the `ChatInfrastructure` project, navigate to the `/Services` folder
 
-Open the `ChatServices.cs` file
+Open the `ChatService.cs` file
 
 Replace the constructor for the ChatService with the code below to initialize the BankingDataService.
 
@@ -423,7 +435,9 @@ In this activity, you will learn how to configure vector indexing and search in 
 
 Data Models used for Vector Search in Semantic Kernel need to be enhanced with additional attributes. We will use `OfferTerm` as vector search enabled data model.
 
-To add the `OfferTerm` model, navigate to the `Common` project and navigate to the `/Models/Banking' folder
+In your IDE, navigate to the `Common` project.
+
+Open the `/Models/Banking' folder
 
 Create a new class, `OfferTerm.cs`
 
@@ -591,7 +605,7 @@ Within the `ChatInfrastructure` project, navigate to the `/Interfaces` folder.
 
 Open the `ISemanticKernelService.cs` file.
 
-Copy the following code to modify our `GetResponse()` function.
+Replace the interface definition for the `GetResponse()` function with the following code.
 
 ```csharp
     Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, IBankDataService bankService, string tenantId, string userId);
@@ -613,7 +627,7 @@ Then modify the `GetResponse()` function to implement the updated interface.
 Replace the function with the code below.
 
 ```csharp
- public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, IBankDataService bankService, string tenantId, string userId)
+public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, IBankDataService bankService, string tenantId, string userId)
     {
         try
         {
@@ -704,18 +718,28 @@ So far, we have created four agents, each with its own specialized role. However
 
 To perform the tests, we will repeat the steps below for each agent type.
 
-Update `AgentType` within `GetResponse` in `ChatInfrastructure\Services\SemanticKernelService.cs` to see how different agents work.
+To begin, navigate to the `ChatInfrastructure` project.
+
+Open the `Services` folder.
+
+Locate the `GetResponse()` function.
+
+Within this function update `AgentType` on this line of code below to see how different agents work.
 
 ```c#
 var agent = agentChatGeneratorService.BuildAgent(_semanticKernel, AgentType.CustomerSupport, _loggerFactory, bankService, tenantId, userId);
 ```
 
-Use the prompts below during your test:
+Use this combination of AgentTypes and prompts for your test.
 
-- **Coordinator**: Hi
-- **Transactions**: How much did I spend on grocery?
-- **Sales**: Looking for a high interest savings account
-- **CustomerSupport**: File a complaint for theft in Acc001
+| Agent Type | User Prompt |
+|-|-|
+| AgentType.Coordinator | Hi |
+| AgentType.Transactions | How much did I spend on groceries? |
+| AgentType.Sales | Looking for a high interest savings account |
+| AgentType.CustomerSupport | File a complaint for theft in Acc001 |
+
+Note: For each of these combinations above, you only need stop the Backend service. You can keep the front end up.
 
 #### 1. Start the ChatAPI
 
@@ -742,7 +766,7 @@ Use the prompts below during your test:
 ### 4. Stop the Application
 
 - In the frontend terminal, press **Ctrl + C** to stop the application.
-- In your IDE press **Shift-F5** or stop the debugger.
+- In your IDE press **Shift + F5** or stop the debugger.
 
 ## Validation Checklist
 
@@ -763,300 +787,9 @@ Use the prompts below during your test:
     - Navigate to `Live metrics` blade under `Investigate` section.
     - [Learn more] (https://learn.microsoft.com/en-us/azure/azure-monitor/app/live-stream?tabs=otel)
 
-
 ### Module Solution
 
-<details>
-  <summary>Completed code for <strong>Common/Models/Banking/OfferTerm.cs</strong></summary>
-
-<br>
-
-```csharp
-using Microsoft.Extensions.VectorData;
-namespace MultiAgentCopilot.Common.Models.Banking
-{
-    public class OfferTerm
-    {
-        [VectorStoreRecordKey]
-        public required string Id { get; set; }
-
-        [VectorStoreRecordData]
-        public required string TenantId { get; set; }
-
-        [VectorStoreRecordData]
-        public required string OfferId { get; set; }
-
-        [VectorStoreRecordData]
-        public required string Name { get; set; }
-
-        [VectorStoreRecordData]
-        public required string Text { get; set; }
-
-        [VectorStoreRecordData]
-        public required string Type { get; set; }
-
-        [VectorStoreRecordData]
-        public required string AccountType { get; set; }
-
-        [VectorStoreRecordVector(Dimensions: 1536, DistanceFunction: DistanceFunction.CosineSimilarity, IndexKind: IndexKind.QuantizedFlat)]
-        public ReadOnlyMemory<float>? Vector { get; set; }
-    }
-}
-```
-
-</details>
-
-<details>
-  <summary>Completed code for <strong>Common/Models/Banking/ServiceRequest.cs</strong></summary>
-
-<br>
-
-```csharp
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.Json.Serialization;
-using System.Threading.Tasks;
-
-namespace MultiAgentCopilot.Common.Models.Banking
-{
-    public class ServiceRequest
-    {
-        public string Id { get; set; }
-        public string TenantId { get; set; }
-        public string UserId { get; set; }
-        public string Type { get; set; }
-        public DateTime RequestedOn { get; set; }
-        public DateTime ScheduledDateTime { get; set; }
-        public string AccountId { get; set; }
-        [JsonConverter(typeof(JsonStringEnumConverter))]
-        public ServiceRequestType SRType { get; set; }
-        public string? RecipientEmail { get; set; }
-        public string? RecipientPhone { get; set; }
-        public decimal? DebitAmount { get; set; }
-        public bool IsComplete { get; set; }
-        public List<string> RequestAnnotations { get; set; }
-        public Dictionary<string, string> FulfilmentDetails { get; set; }
-
-        public ServiceRequest(ServiceRequestType serviceRequestType, string tenantId, string accountId, string userId, string requestAnnotation, string recipientEmail, string recipientPhone, decimal debitAmount, DateTime scheduledDateTime, Dictionary<string, string>? fulfilmentDetails)
-        {
-            Id = Guid.NewGuid().ToString();
-            TenantId = tenantId;
-            Type = nameof(ServiceRequest);
-            SRType = serviceRequestType;
-            RequestedOn = DateTime.Now;
-            AccountId = accountId;
-            UserId = userId;
-            RequestAnnotations = new List<string> { requestAnnotation };
-            RecipientEmail = recipientEmail;
-            RecipientPhone = recipientPhone;
-            DebitAmount = debitAmount;
-            if (scheduledDateTime != DateTime.MinValue)
-                ScheduledDateTime = scheduledDateTime;
-            IsComplete = false;
-            FulfilmentDetails = fulfilmentDetails ?? new Dictionary<string, string>();
-        }
-
-        [JsonConstructor]
-        public ServiceRequest(
-        string id,
-        string tenantId,
-        string userId,
-        string type,
-        DateTime requestedOn,
-        DateTime scheduledDateTime,
-        string accountId,
-        ServiceRequestType srType,
-        string? recipientEmail,
-        string? recipientPhone,
-        decimal? debitAmount,
-        bool isComplete,
-        List<string> requestAnnotations,
-        Dictionary<string, string> fulfilmentDetails)
-        {
-            Id = id;
-            TenantId = tenantId;
-            UserId = userId;
-            Type = type;
-            RequestedOn = requestedOn;
-            ScheduledDateTime = scheduledDateTime;
-            AccountId = accountId;
-            SRType = srType;
-            RecipientEmail = recipientEmail;
-            RecipientPhone = recipientPhone;
-            DebitAmount = debitAmount;
-            IsComplete = isComplete;
-            RequestAnnotations = requestAnnotations ?? new List<string>();
-            FulfilmentDetails = fulfilmentDetails ?? new Dictionary<string, string>();
-        }
-    }
-}
-```
-
-</details>
-
-<details>
-  <summary>Completed code for <strong>Common/Models/Banking/ServiceRequestType.cs</strong></summary>
-
-<br>
-
-```csharp
-namespace MultiAgentCopilot.Common.Models.Banking
-{
-    public enum ServiceRequestType
-    {
-        Complaint,
-        FundTransfer,
-        Fulfilment,
-        TeleBankerCallBack
-    }
-}
-```
-
-</details>
-
-<details>
-  <summary>Completed code for <strong>ChatAP/Prompts/CommonAgentRules.prompty</strong></summary>
-
-<br>
-
-```yaml
-Important:
-- Always use current datetime as datetime retrieved from the database.
-- Understand the user's query and respond only if it aligns with your responsibilities.
-- State why you think, you have a solution to the user's query.
-- Ensure responses are grounded to the following data sources.
-    - user provided data
-    - data fetched using functions
-- Provide specific information based query and data provided.          
-- Ensure every response adds value to the user's request or confirms the user's request.
-- Do not proceed with submitting a request without the necessary information from the user.
-- Do not respond with a message if the previous response conveys the same information.
-- Maintain politeness and professionalism in all responses.
-- Do not respond with a welcome message if another welcome message already exists.
-- If user's response is pending, wait for the user to provide the necessary before proceeding.
-```
-
-</details>
-
-<details>
-  <summary>Completed code for <strong>ChatAPI/Prompts/Coordinator.prompty</strong></summary>
-
-<br>
-
-```yaml
-You are a Chat Initiator and Request Router in a bank. 
-Your primary responsibilities include welcoming users, identifying customers based on their login, routing requests to the appropriate agent.
-Start with identifying the currently logged-in user's information and use it to personalize the interaction.For example, "Thank you for logging in, [user Name]. How can I help you with your banking needs today?"
-
-RULES:
-- Determine the nature of the user's request and silently route it to the appropriate agent.
-- Avoid asking for unnecessary details to route the user's request. For example, "I see you have a question about your account balance. Let me connect you with the right agent who can assist you further."
-- Do not provide any information or assistance directly; always route the request to the appropriate agent silently.
-- Route requests to the appropriate agent without providing direct assistance.
-- If another agent has asked a question, wait for the user to respond before routing the request.
-- If the user has responded to another agent, let the same agent respond before routing or responding.
-- When the user's request is fulfilled, ask for feedback on the service provided before concluding the interaction. Gauge their overall satisfaction and sentiment as either happy or sad. For example, "Before we conclude, could you please provide your feedback on our service today? Were you satisfied with the assistance provided? Would you say your overall experience was happy or sad?"
-- Use the available functions when needed.
-```
-
-</details>
-
-<details>
-  <summary>Completed code for <strong>ChatAPI/Prompts/CustomerSupport.prompty</strong></summary>
-
-<br>
-
-```yaml
-Your sole responsibility is to:
-1. Helping customers lodge service request.
-2. Searching existing service requests.
-2. Providing status updates on existing service request.
-3. Creating and updating service requests for user registered accounts.
-
-Guidelines:
-- If you don't have the users account Id, ask the user to provide it.                         - 
-- Check if the account Id is registered to user.
-- If account Id is registered to user, search user's pending service requests.
-    - If pending service request found:
-        - Inform the user of the status and estimated time of resolution.
-        - Ask if user wants to add any comments and update the existing record.
-    - If not found:
-        - Ask if user wants to create new service request.
-- If account Id is not registered
-    - Inform the user that you cannot proceed without the correct account Id. 
-- If no agent is able to assist the user, check if they would like to speak to a tele banker.
-    - Tele bankers are available Monday to Friday, 9 AM to 5 PM PST.
-    - Check tele banker availability and queue length before suggesting this option.
-```
-
-</details>
-
-<details>
-  <summary>Completed code for <strong>ChatAPI/Prompts/Sales.prompty</strong></summary>
-
-<br>
-
-```yaml
-Your sole responsibility is to:                        
-    - Suggest suitable accounts based on the user profile.
-    - Use the user's profile information to recommend from the available account type.
-    - Ensure that the recommendations are personalized and relevant to the user's needs.
-
-1. Collecting details for New Account Registration:
-    - Get the list of available offers.
-    - Suggest the offers that match the user's profile.
-    - Based on the user selection, get the prerequisites for the selected offer. The prerequisites may vary for each offer.
-    - Ask the user to provide all prerequisites and ensure you have collected all necessary information from the user.
-    - Validate the collected details by showing a summary to the user. Once approved by user, submit a fulfillment service request.
-    - Confirm the submission of the service request to the user.
-
-2. Highlighting Promotions and Offers:
-    - Use the user's profile information to highlight relevant offers.
-    - Ensure that the information provided is accurate based on the available account types.
-
-3. Conducting Eligibility Checks:
-    - Conduct eligibility checks for various offers using the user's profile information.
-    - Inform the user of the results of the eligibility check and provide guidance on the next steps.
-```
-
-</details>
-
-<details>
-  <summary>Completed code for <strong>ChatAPI/Prompts/Transaction.prompty</strong></summary>
-
-<br>
-
-```yaml
-Your sole responsibility is to:
-
-1. Handling transactions.
-2. Generating account statements.
-3. Providing balance inquiries.
-
-Guidelines:
-- Do not participate in new product registration discussion.
-- Based on the following message, determine the appropriate action and respond accordingly.
-- Ensure that you only provide information related to the current user's accounts.
-- To start the process, retrieve the current services registered to the user from the database.
-- Check if you have the user's account number. If any data is missing, politely inform the user and explain that you cannot proceed until the details are available in the bank’s database.
-
-Tasks:
-1. Process Transfers:
-    - Use the recipient's email or phone number to process transfers.
-    - Validate the recipient's phone number and email format before proceeding.
-    - Ensure the account has the necessary balance before accepting a request.
-    - Confirm all details with the user before proceeding.
-    - Inform the user that they will be notified of transaction completions via text message and email.
-2. Generate Account Statements:
-    - Respond to transaction queries for up to 6 months old.
-    - Filter transactions based on type (credit/debit), amount, or date range according to the user query.
-3. Provide Balance Information:
-    - Offer the latest balance information for the user's accounts.
-```
-
-</details>
+The following sections include the completed code for this Module. Copy and paste these into your project if you run into issues and cannot resolve.
 
 <details>
   <summary>Completed code for <strong>ChatInfrastructure/Models/AgentTypes.cs</strong></summary>
@@ -1327,6 +1060,64 @@ namespace MultiAgentCopilot.ChatInfrastructure.Plugins
 </details>
 
 <details>
+  <summary>Completed code for <strong>ChatInfrastructure/Plugins/TransactionPlugin.cs</strong></summary>
+
+<br>
+
+```csharp
+using Microsoft.Extensions.Logging;
+using Microsoft.SemanticKernel;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Transactions;
+using MultiAgentCopilot.Common.Models.Banking;
+using BankingServices.Interfaces;
+
+namespace MultiAgentCopilot.ChatInfrastructure.Plugins
+{
+    public class TransactionPlugin : BasePlugin
+    {
+        public TransactionPlugin(ILogger<BasePlugin> logger, IBankDataService bankService, string tenantId, string userId)
+         : base(logger, bankService, tenantId, userId)
+        {
+        }
+
+        [KernelFunction]
+        [Description("Adds a new Account Transaction request")]
+        public async Task<ServiceRequest> AddFunTransferRequest(
+           string debitAccountId,
+           decimal amount,
+           string requestAnnotation,
+           string? recipientPhoneNumber = null,
+           string? recipientEmailId = null)
+        {
+            _logger.LogTrace("Adding AccountTransaction request for User ID: {UserId}, Debit Account: {DebitAccountId}", _userId, debitAccountId);
+
+            // Ensure non-null values for recipientEmailId and recipientPhoneNumber
+            string emailId = recipientEmailId ?? string.Empty;
+            string phoneNumber = recipientPhoneNumber ?? string.Empty;
+
+            return await _bankService.CreateFundTransferRequestAsync(_tenantId, debitAccountId, _userId, requestAnnotation, emailId, phoneNumber, amount);
+        }
+
+        [KernelFunction]
+        [Description("Get the transactions history between 2 dates")]
+        public async Task<List<BankTransaction>> GetTransactionHistory(string accountId, DateTime startDate, DateTime endDate)
+        {
+            _logger.LogTrace("Fetching AccountTransaction history for Account: {AccountId}, From: {StartDate} To: {EndDate}", accountId, startDate, endDate);
+            return await _bankService.GetTransactionsAsync(_tenantId, accountId, startDate, endDate);
+        }
+    }
+}
+```
+
+</details>
+
+<details>
   <summary>Completed code for <strong>ChatInfrastructure/Factories/PluginFactory.cs</strong></summary>
 
 <br>
@@ -1439,26 +1230,24 @@ using Microsoft.Identity.Client;
 using BankingServices.Interfaces;
 using BankingServices.Services;
 
-
 namespace MultiAgentCopilot.ChatInfrastructure.Services;
 
 public class ChatService : IChatService
 {
-    private readonly ISemanticKernelService _skService;
     private readonly ICosmosDBService _cosmosDBService;
     private readonly ILogger _logger;
     private readonly IBankDataService _bankService;
-
+    private readonly ISemanticKernelService _skService;
 
     public ChatService(
         IOptions<CosmosDBSettings> cosmosOptions,
         IOptions<SemanticKernelServiceSettings> skOptions,
         ICosmosDBService cosmosDBService,
-        ISemanticKernelService ragService,
+        ISemanticKernelService skService,
         ILoggerFactory loggerFactory)
     {
         _cosmosDBService = cosmosDBService;
-        _skService = ragService;
+        _skService = skService;
         _bankService = new BankingDataService(cosmosOptions.Value, skOptions.Value, loggerFactory);
         _logger = loggerFactory.CreateLogger<ChatService>();
     }
@@ -1560,6 +1349,7 @@ public class ChatService : IChatService
         }
     }
 
+
     /// <summary>
     /// Rate an assistant message. This can be used to discover useful AI responses for training, discoverability, and other benefits down the road.
     /// </summary>
@@ -1578,6 +1368,7 @@ public class ChatService : IChatService
 
         return await _cosmosDBService.GetChatCompletionDebugLogAsync(tenantId,userId, sessionId, debugLogId);
     }
+
 
     public async Task<bool> AddDocument(string containerName, JsonElement document)
     {
@@ -1602,7 +1393,6 @@ public class ChatService : IChatService
             return false;
         }
     }
-
     /// <summary>
     /// Add user prompt and AI assistance response to the chat session message list object and insert into the data service as a transaction.
     /// </summary>
@@ -1612,6 +1402,84 @@ public class ChatService : IChatService
 
         completionMessages.Insert(0, promptMessage);
         await _cosmosDBService.UpsertSessionBatchAsync(completionMessages, completionMessageLogs, session);
+    }
+}
+```
+
+</details>
+
+<details>
+  <summary>Completed code for <strong>Common/Models/Banking/OfferTerm.cs</strong></summary>
+
+<br>
+
+```csharp
+using Microsoft.Extensions.VectorData;
+namespace MultiAgentCopilot.Common.Models.Banking
+{
+    public class OfferTerm
+    {
+        [VectorStoreRecordKey]
+        public required string Id { get; set; }
+
+        [VectorStoreRecordData]
+        public required string TenantId { get; set; }
+
+        [VectorStoreRecordData]
+        public required string OfferId { get; set; }
+
+        [VectorStoreRecordData]
+        public required string Name { get; set; }
+
+        [VectorStoreRecordData]
+        public required string Text { get; set; }
+
+        [VectorStoreRecordData]
+        public required string Type { get; set; }
+
+        [VectorStoreRecordData]
+        public required string AccountType { get; set; }
+
+        [VectorStoreRecordVector(Dimensions: 1536, DistanceFunction: DistanceFunction.CosineSimilarity, IndexKind: IndexKind.QuantizedFlat)]
+        public ReadOnlyMemory<float>? Vector { get; set; }
+    }
+}
+```
+
+</details>
+
+<details>
+  <summary>Completed code for <strong>BankingServices/Interfaces/IBankDataService.cs</strong></summary>
+
+<br>
+
+```csharp
+using Microsoft.Azure.Cosmos;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using MultiAgentCopilot.Common.Models.Banking;
+
+namespace BankingServices.Interfaces
+{
+    public interface IBankDataService
+    {
+        Task<BankUser> GetUserAsync(string tenantId, string userId);
+        Task<BankAccount> GetAccountDetailsAsync(string tenantId, string userId, string accountId);
+        Task<List<BankAccount>> GetUserRegisteredAccountsAsync(string tenantId, string userId);
+        Task<List<BankTransaction>> GetTransactionsAsync(string tenantId, string accountId, DateTime startDate, DateTime endDate);
+        Task<ServiceRequest> CreateFundTransferRequestAsync(string tenantId, string accountId, string userId, string requestAnnotation, string recipientEmail, string recipientPhone, decimal debitAmount);
+        Task<ServiceRequest> CreateTeleBankerRequestAsync(string tenantId, string accountId, string userId, string requestAnnotation, DateTime scheduledDateTime);
+        Task<ServiceRequest> CreateComplaintAsync(string tenantId, string accountId, string userId, string requestAnnotation);
+        Task<ServiceRequest> CreateFulfilmentRequestAsync(string tenantId, string accountId, string userId, string requestAnnotation, Dictionary<string, string> fulfilmentDetails);
+        Task<List<ServiceRequest>> GetServiceRequestsAsync(string tenantId, string accountId, string? userId = null, ServiceRequestType? SRType = null);
+        Task<bool> AddServiceRequestDescriptionAsync(string tenantId, string accountId, string requestId, string annotationToAdd);
+        Task<Offer> GetOfferDetailsByNameAsync(string tenantId, string offerName);
+        Task<String> GetTeleBankerAvailabilityAsync();
+        Task<List<OfferTerm>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription);
+        Task<Offer> GetOfferDetailsAsync(string tenantId, string offerId);
     }
 }
 ```
@@ -1692,7 +1560,6 @@ namespace BankingServices.Services
                         traceSource.Listeners.Clear();
                     }
                 }                 
-                
             }
 
             CosmosSerializationOptions options = new()
@@ -1711,7 +1578,6 @@ namespace BankingServices.Services
                 {
                     ManagedIdentityClientId = _settings.UserAssignedIdentityClientID
                 });
-
             }
 
             var jsonSerializerOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
@@ -1731,12 +1597,10 @@ namespace BankingServices.Services
 
             _logger.LogInformation("Banking service initialized for Cosmos DB.");
 
-
             // Set up Semantic Kernel with Azure OpenAI and Managed Identity
             var builder = Kernel.CreateBuilder();
 
             builder.Services.AddSingleton<ILoggerFactory>(loggerFactory);
-                      
 
             _semanticKernel = builder.Build();
 
@@ -1749,6 +1613,55 @@ namespace BankingServices.Services
             _offerDataVectorStore = new AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm>(_database, _settings.OfferDataContainer.Trim(), vectorStoreOptions);
 
             _logger.LogInformation("Banking service initialized.");
+        }
+
+        public async Task<List<OfferTerm>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription)
+        {
+            try
+            {
+                // Generate Embedding
+                ReadOnlyMemory<float> embedding = (await _textEmbeddingGenerationService.GenerateEmbeddingsAsync(
+                       new[] { requirementDescription }
+                   )).FirstOrDefault();
+
+                // perform vector search
+                var filter = new VectorSearchFilter()
+                    .EqualTo("TenantId", tenantId)
+                    .EqualTo("Type", "Term")
+                    .EqualTo("AccountType", "Savings");
+                var options = new VectorSearchOptions { VectorPropertyName = "Vector", Filter = filter, Top = 10, IncludeVectors = false };
+
+                var searchResults = await _offerDataVectorStore.VectorizedSearchAsync(embedding, options);
+
+                List<OfferTerm> offerTerms = new();
+                await foreach (var result in searchResults.Results)
+                {
+                    offerTerms.Add(result.Record);
+                }
+                return offerTerms;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.ToString());
+                return new List<OfferTerm>();
+            }
+        }
+
+        public async Task<Offer> GetOfferDetailsAsync(string tenantId, string offerId)
+        {
+            try
+            {
+                var partitionKey = new PartitionKey(tenantId);
+
+                return await _offerData.ReadItemAsync<Offer>(
+                       id: offerId,
+                       partitionKey: new PartitionKey(tenantId));
+            }
+            catch (CosmosException ex)
+            {
+                _logger.LogError(ex.ToString());
+                return null;
+            }
         }
 
         public async Task<BankUser> GetUserAsync(string tenantId, string userId)
@@ -1767,7 +1680,6 @@ namespace BankingServices.Services
                 return null;
             }
         }
-
 
         public async Task<List<BankAccount>> GetUserRegisteredAccountsAsync(string tenantId, string userId)
         {
@@ -1795,7 +1707,6 @@ namespace BankingServices.Services
                 return null;
             }
         }
-
 
         public async Task<BankAccount> GetAccountDetailsAsync(string tenantId, string userId, string accountId)
         {
@@ -1876,7 +1787,6 @@ namespace BankingServices.Services
             return await AddServiceRequestAsync(req);
         }
 
-
         private async Task<ServiceRequest> AddServiceRequestAsync(ServiceRequest req)
         {
             try
@@ -1892,13 +1802,11 @@ namespace BankingServices.Services
             }
         }
 
-
         public async Task<List<ServiceRequest>> GetServiceRequestsAsync(string tenantId, string accountId, string? userId = null, ServiceRequestType? SRType = null)
         {
             try
             {
                 var partitionKey = PartitionManager.GetAccountsDataFullPK(tenantId, accountId);
-
                 var queryBuilder = new StringBuilder("SELECT * FROM c WHERE c.type = @type");
                 var queryDefinition = new QueryDefinition(queryBuilder.ToString())
                       .WithParameter("@type", nameof(ServiceRequest));
@@ -1914,7 +1822,6 @@ namespace BankingServices.Services
                     queryBuilder.Append(" AND c.SRType = @SRType");
                     queryDefinition = queryDefinition.WithParameter("@SRType", SRType);
                 }
-
 
                 List<ServiceRequest> reqs = new List<ServiceRequest>();
                 using (FeedIterator<ServiceRequest> feedIterator = _requestData.GetItemQueryIterator<ServiceRequest>(queryDefinition, requestOptions: new QueryRequestOptions { PartitionKey = partitionKey }))
@@ -1935,14 +1842,11 @@ namespace BankingServices.Services
             }
         }
 
-
-
         public async Task<bool> AddServiceRequestDescriptionAsync(string tenantId, string accountId, string requestId, string annotationToAdd)
         {
             try
             {
                 var partitionKey = PartitionManager.GetAccountsDataFullPK(tenantId, accountId);
-
                 var patchOperations = new List<PatchOperation>
                 {
                     PatchOperation.Add("/requestAnnotations/-", $"[{DateTime.Now.ToUniversalTime().ToString()}] : {annotationToAdd}")
@@ -1962,6 +1866,7 @@ namespace BankingServices.Services
                 return false;
             }
         }
+
         public async Task<Offer> GetOfferDetailsByNameAsync(string tenantId, string offerName)
         {
             try
@@ -1987,94 +1892,6 @@ namespace BankingServices.Services
                 return null;
             }
         }
-
-        public async Task<List<OfferTerm>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription)
-        {
-            try
-            {
-                // Generate Embedding
-                ReadOnlyMemory<float> embedding = (await _textEmbeddingGenerationService.GenerateEmbeddingsAsync(
-                       new[] { requirementDescription }
-                   )).FirstOrDefault();
-
-                // perform vector search
-                var filter = new VectorSearchFilter()
-                    .EqualTo("TenantId", tenantId)
-                    .EqualTo("Type", "Term")
-                    .EqualTo("AccountType", "Savings");
-                var options = new VectorSearchOptions { VectorPropertyName = "Vector", Filter = filter, Top = 10, IncludeVectors = false };
-
-                var searchResults = await _offerDataVectorStore.VectorizedSearchAsync(embedding, options);
-
-                List<OfferTerm> offerTerms = new();
-                await foreach (var result in searchResults.Results)
-                {
-                    offerTerms.Add(result.Record);
-                }
-                return offerTerms;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex.ToString());
-                return new List<OfferTerm>();
-            }
-        }
-
-        public async Task<Offer> GetOfferDetailsAsync(string tenantId, string offerId)
-        {
-            try
-            {
-                var partitionKey = new PartitionKey(tenantId);
-
-                return await _offerData.ReadItemAsync<Offer>(
-                       id: offerId,
-                       partitionKey: new PartitionKey(tenantId));
-            }
-            catch (CosmosException ex)
-            {
-                _logger.LogError(ex.ToString());
-                return null;
-            }
-        }
-    }
-}
-```
-
-</details>
-
-<details>
-  <summary>Completed code for <strong>BankingServices/Interfaces/IBankDataService.cs</strong></summary>
-
-<br>
-
-```csharp
-using Microsoft.Azure.Cosmos;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using MultiAgentCopilot.Common.Models.Banking;
-
-namespace BankingServices.Interfaces
-{
-    public interface IBankDataService
-    {
-        Task<BankUser> GetUserAsync(string tenantId, string userId);
-        Task<BankAccount> GetAccountDetailsAsync(string tenantId, string userId, string accountId);
-        Task<List<BankAccount>> GetUserRegisteredAccountsAsync(string tenantId, string userId);
-        Task<List<BankTransaction>> GetTransactionsAsync(string tenantId, string accountId, DateTime startDate, DateTime endDate);
-        Task<ServiceRequest> CreateFundTransferRequestAsync(string tenantId, string accountId, string userId, string requestAnnotation, string recipientEmail, string recipientPhone, decimal debitAmount);
-        Task<ServiceRequest> CreateTeleBankerRequestAsync(string tenantId, string accountId, string userId, string requestAnnotation, DateTime scheduledDateTime);
-        Task<ServiceRequest> CreateComplaintAsync(string tenantId, string accountId, string userId, string requestAnnotation);
-        Task<ServiceRequest> CreateFulfilmentRequestAsync(string tenantId, string accountId, string userId, string requestAnnotation, Dictionary<string, string> fulfilmentDetails);
-        Task<List<ServiceRequest>> GetServiceRequestsAsync(string tenantId, string accountId, string? userId = null, ServiceRequestType? SRType = null);
-        Task<bool> AddServiceRequestDescriptionAsync(string tenantId, string accountId, string requestId, string annotationToAdd);
-        Task<Offer> GetOfferDetailsByNameAsync(string tenantId, string offerName);
-        Task<String> GetTeleBankerAvailabilityAsync();
-
-        Task<List<OfferTerm>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription);
-        Task<Offer> GetOfferDetailsAsync(string tenantId, string offerId);
     }
 }
 ```
@@ -2096,9 +1913,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Interfaces
     public interface ISemanticKernelService
     {
         Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, IBankDataService bankService, string tenantId, string userId);
-
         Task<string> Summarize(string sessionId, string userPrompt);
-
         Task<float[]> GenerateEmbedding(string text);
     }
 }
@@ -2133,6 +1948,7 @@ using MultiAgentCopilot.Common.Models.Configuration;
 using MultiAgentCopilot.Common.Models.Debug;
 using Message = MultiAgentCopilot.Common.Models.Chat.Message;
 using MultiAgentCopilot.ChatInfrastructure.Factories;
+
 using MultiAgentCopilot.ChatInfrastructure.Models;
 using BankingServices.Interfaces;
 
@@ -2225,7 +2041,7 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
         {
             ChatFactory agentChatGeneratorService = new ChatFactory();
 
-            var agent = agentChatGeneratorService.BuildAgent(_semanticKernel, AgentType.CustomerSupport, _loggerFactory, bankService, tenantId, userId);
+            var agent = agentChatGeneratorService.BuildAgent(_semanticKernel, AgentType.Coordinator, _loggerFactory, bankService, tenantId, userId);
 
             ChatHistory chatHistory = [];
 

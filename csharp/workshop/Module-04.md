@@ -35,7 +35,7 @@ SelectionStrategy is the mechanism in SemanticKernel that determines the next pa
 
 Add SelectionStrategy.prompty at ChatAPI\Prompts\
 
-```
+```text
 Examine RESPONSE and choose the next participant.
 
 Choose only from these participants:
@@ -618,12 +618,12 @@ Update GetResponse in ChatInfrastructure\Services\SemanticKernelService.cs
 
 In the previous module we tested each agent independently. With the code  changes in this module we should now be able to orchestrate and  multi agent chat where agent selection is automated based on the SelectionStrategy and agent prompts. Lets go ahead and test if the code works as expected.
 
-#### 1. Start the ChatAPI
+### 1. Start the ChatAPI
 
 - Codespaces open a terminal and type `dotnet run`
 - In your IDE press **F5** or select **Run** to start the application.
 
-#### 2. Run the Frontend App
+### 2. Run the Frontend App
 
 - Open a new terminal or use an existing one that is open to the `/frontend` folder.
 
@@ -633,7 +633,7 @@ In the previous module we tested each agent independently. With the code  change
 
 - Navigate to, <http://localhost:4200> in your browser
 
-#### 3. Start a Chat Session
+### 3. Start a Chat Session
 
 1. Open the frontend app.
 1. Start a new conversation.
@@ -648,7 +648,7 @@ In the previous module we tested each agent independently. With the code  change
 ### 4. Stop the Application
 
 - In the frontend terminal, press **Ctrl + C** to stop the application.
-- In your IDE press **Shift-F5** or stop the debugger.
+- In your IDE press **Shift + F5** or stop the debugger.
 
 ### Validation Checklist
 
