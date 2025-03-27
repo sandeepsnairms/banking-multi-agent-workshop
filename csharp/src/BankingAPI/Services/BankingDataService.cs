@@ -35,6 +35,8 @@ namespace BankingServices.Services
         private readonly ILogger _logger;
 
 	//paste code here
+        private readonly AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm> _offerDataVectorStore;
+        private readonly AzureOpenAITextEmbeddingGenerationService _textEmbeddingGenerationService;
 
         public bool IsInitialized { get; private set; }
 
