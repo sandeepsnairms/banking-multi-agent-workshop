@@ -43,6 +43,7 @@ namespace ChatAPI
             //builder.AddApplicationInsightsTelemetry();
 
             builder.AddCosmosDBService();
+            builder.AddSemanticKernelService();
 
             builder.AddChatService();
             builder.Services.AddScoped<ChatEndpoints>();

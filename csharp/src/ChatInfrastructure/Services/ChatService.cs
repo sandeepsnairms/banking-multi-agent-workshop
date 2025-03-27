@@ -11,6 +11,7 @@ using System.Text.Json;
 using Newtonsoft.Json;
 using Microsoft.Identity.Client;
 using BankingServices.Interfaces;
+using BankingServices.Services;
 
 
 namespace MultiAgentCopilot.ChatInfrastructure.Services;
@@ -20,13 +21,18 @@ public class ChatService : IChatService
     private readonly ICosmosDBService _cosmosDBService;
     private readonly ILogger _logger;
     private readonly IBankDataService _bankService;
+    private readonly ISemanticKernelService _skService;
 
     public ChatService(
         IOptions<CosmosDBSettings> cosmosOptions,
+        IOptions<SemanticKernelServiceSettings> skOptions,
         ICosmosDBService cosmosDBService,
+        ISemanticKernelService skService,
         ILoggerFactory loggerFactory)
     {
-        _cosmosDBService = cosmosDBService;    
+        _cosmosDBService = cosmosDBService;
+        _skService = skService;
+        _bankService = new BankingDataService(cosmosOptions.Value, skOptions.Value, loggerFactory);
         _logger = loggerFactory.CreateLogger<ChatService>();
     }
 
@@ -79,17 +85,19 @@ public class ChatService : IChatService
     /// <summary>
     /// Receive a prompt from a user, vectorize it from the OpenAI service, and get a completion from the OpenAI service.
     /// </summary>
-    public async Task<List<Message>> GetChatCompletionAsync(string tenantId, string userId,string? sessionId, string userPrompt)
+    public async Task<List<Message>> GetChatCompletionAsync(string tenantId, string userId, string? sessionId, string userPrompt)
     {
         try
         {
             ArgumentNullException.ThrowIfNull(sessionId);
-            
 
             // Add both prompt and completion to cache, then persist in Cosmos DB
-            var userMessage = new Message(tenantId,userId,sessionId, "User","User", "## Replay user message ## " + userPrompt);
-                      
-            return new List<Message> { userMessage };
+            var userMessage = new Message(tenantId, userId, sessionId, "User", "User", userPrompt);
+
+            // Generate the completion to return to the user
+            var result = await _skService.GetResponse(userMessage, new List<Message>(), tenantId, userId);
+
+            return result.Item1;
         }
         catch (Exception ex)
         {
@@ -101,13 +109,13 @@ public class ChatService : IChatService
     /// <summary>
     /// Generate a name for a chat message, based on the passed in prompt.
     /// </summary>
-    public async Task<string> SummarizeChatSessionNameAsync(string tenantId, string userId,string? sessionId, string prompt)
+    public async Task<string> SummarizeChatSessionNameAsync(string tenantId, string userId, string? sessionId, string prompt)
     {
         try
         {
             ArgumentNullException.ThrowIfNull(sessionId);
 
-            var summary = "not implemented";
+            var summary = await _skService.Summarize(sessionId, prompt);
 
             var session = await RenameChatSessionAsync(tenantId, userId, sessionId, summary);
 

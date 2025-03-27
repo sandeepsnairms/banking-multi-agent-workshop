@@ -29,6 +29,16 @@ namespace MultiAgentCopilot
             builder.Services.AddSingleton<ICosmosDBService, CosmosDBService>();
         }
 
+        /// <summary>
+        /// Registers the <see cref="ISemanticKernelService"/> implementation with the dependency injection container.
+        /// </summary>
+        /// <param name="builder">The hosted applications and services builder.</param>
+        public static void AddSemanticKernelService(this IHostApplicationBuilder builder)
+        {
+            builder.Services.AddOptions<SemanticKernelServiceSettings>()
+                .Bind(builder.Configuration.GetSection("SemanticKernelServiceSettings"));
+            builder.Services.AddSingleton<ISemanticKernelService, SemanticKernelService>();
+        }
 
         /// <summary>
         /// Registers the <see cref="IChatService"/> implementation with the dependency injection container.
