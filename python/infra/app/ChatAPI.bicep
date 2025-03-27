@@ -50,12 +50,12 @@ resource chatservicewebapi 'Microsoft.App/containerApps@2024-02-02-preview' = {
 				'*'
           ]
 		  allowedMethods: [
-				'DELETE'
-				'GET'
-				'POST'
-				'PUT'
+			'DELETE'
+			'GET'
+			'POST'
+			'PUT'
           ]
-          allowedHeaders: [
+		  allowedHeaders: [
 			'*'
           ]
         }

@@ -2,14 +2,13 @@
 
 ## PreRequisites
 
-Navigtate to frontend folder and do 
+Navigtate to frontend folder and do
 
 ```bash
 npm i
 ```
 
 Specify the relevant API endpoint in the src/environments/enviroment.ts file apiUrl
-
 
 ## Development server
 
@@ -19,9 +18,10 @@ To start a local development server, run:
 ng serve
 ```
 
+> Use `ng serve --host 0.0.0.0` if you are using devcontainer.
+
 Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
- 
- 
+
 ## Building
 
 To build the project run:
