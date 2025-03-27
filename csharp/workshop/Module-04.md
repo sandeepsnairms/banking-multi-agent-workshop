@@ -66,8 +66,7 @@ Create a new file, `TerminationStrategy.prompty`
 
 Replace the contents of the file with the text below.
 
-
-```
+```text
 Determine if agent has requested user input or has responded to the user's query.
 Respond with the word NO (without explanation) if agent has requested user input.
 Otherwise, respond with the word YES (without explanation) if any the following conditions are met:
@@ -90,9 +89,7 @@ Create a new folder `ChatInfoFormats`, then create a new file, `ContinuationInfo
 
 Replace the contents of the file with the code below.
 
-
 ```c#
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -111,13 +108,11 @@ namespace MultiAgentCopilot.ChatInfrastructure.Models.ChatInfoFormats
 
 ### TerminationInfo
 
-
-In the `ChatInfrastructure` project, navigate to the `/Models` folder
+Remain in the same `ChatInfoFormats` folder.
 
 Create a new file, `TerminationInfo.cs`
 
 Replace the contents of the file with the code below.
-
 
 ```csharp
 using System;
@@ -134,8 +129,8 @@ namespace MultiAgentCopilot.ChatInfrastructure.Models.ChatInfoFormats
         public string Reason { get; set; } = string.Empty;
     }
 }
-
 ```
+
 Let's define a format builder that the LLM can use to output the Continuation and Termination models as responses.
 
 In the `ChatInfrastructure` project, create a new folder `StructuredFormats`.
@@ -160,7 +155,6 @@ namespace MultiAgentCopilot.ChatInfrastructure.StructuredFormats
         {
             Continuation,
             Termination
-
         }
 
         internal static string BuildFormat(ChatResponseStrategy strategyType)
@@ -170,7 +164,6 @@ namespace MultiAgentCopilot.ChatInfrastructure.StructuredFormats
                 case ChatResponseStrategy.Continuation:
                     string jsonSchemaFormat_Continuation = """
                     {
-
                         "type": "object", 
                             "properties": {
                                 "AgentName": { "type": "string", "description":"name of the selected agent" },
@@ -178,15 +171,14 @@ namespace MultiAgentCopilot.ChatInfrastructure.StructuredFormats
                             },
                             "required": ["AgentName", "Reason"],
                             "additionalProperties": false
-
                     }
                     """;
 
                     return jsonSchemaFormat_Continuation;
+
                 case ChatResponseStrategy.Termination:
                     string jsonSchemaFormat_termination = """
                     {
-
                         "type": "object", 
                             "properties": {
                                 "ShouldContinue": { "type": "boolean", "description":"Does conversation require further agent participation" },
@@ -194,43 +186,42 @@ namespace MultiAgentCopilot.ChatInfrastructure.StructuredFormats
                             },
                             "required": ["ShouldContinue", "Reason"],
                             "additionalProperties": false
-
                     }
                     """;
 
                     return jsonSchemaFormat_termination;
+
                 default:
                     return "";
             }
-
         }
     }
-
-
 }
-
-
 ```
 
 In your IDE, navigate to the `ChatInfrastructure` project in the solution.
 
 Navigate to and open the `\Factories\SystemPromptFactory.cs` file
 
-Paste the lines of code below to add a reference for `MultiAgentCopilot.ChatInfrastructure.StructuredFormats.ChatResponseFormatBuilder`
+Locate the the existing *using* statements in this file.
+
+Paste this line of code below them to add a reference for `MultiAgentCopilot.ChatInfrastructure.StructuredFormats.ChatResponseFormatBuilder`
 
 ```csharp
 using static MultiAgentCopilot.ChatInfrastructure.StructuredFormats.ChatResponseFormatBuilder;
-
 ```
 
 ### StrategyPrompts
 
 Just like Agent System Prompts lets return StrategyPrompts based on strategyType.
 
-Add the following code at the bottom of the class.
+Remain in the same `SystemPromptFactory.cs` file.
+
+Navigate to the bottom of the file and locate the end of the `GetAgentPrompts()` function.
+
+Add the following code as a new function at the bottom of the class.
 
 ```csharp
-
    public static string GetStrategyPrompts(ChatResponseStrategy strategyType)
    {
       string prompt = string.Empty;
@@ -242,31 +233,32 @@ Add the following code at the bottom of the class.
             case ChatResponseStrategy.Termination:
                prompt = File.ReadAllText("Prompts/TerminationStrategy.prompty");
                break;
-
       }
       return prompt;
    }
-
 ```
 
 ### Update Chat Factory to replace Agent with AgentGroupChat
 
 In your IDE, navigate to the `ChatInfrastructure` project in the solution.
 
-Navigate to and open the `\Factories\ChatFactory.cs` file
+Navigate to and open the `\Factories\ChatFactory.cs` file.
+
+Locate the *using* statements in this file.
 
 Paste the below lines of code below to add additional references.
 
 ```csharp
-
 using MultiAgentCopilot.ChatInfrastructure.StructuredFormats;
 using MultiAgentCopilot.ChatInfrastructure.Models.ChatInfoFormats;
-using MultiAgentCopilot.ChatInfrastructure.Models;
 using MultiAgentCopilot.ChatInfrastructure.Logs;
-
 ```
 
-Add the following code at the bottom of the class.
+> [!NOTE] This last using statement for *Logs* will not resolve. Please continue. This is added in Activity #4.
+
+Locate the end of the `BuildAgent()` function.
+
+Add the following code as four new functions to the bottom of the class.
 
 ```csharp
         private OpenAIPromptExecutionSettings GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStrategy strategyType)
@@ -287,7 +279,6 @@ Add the following code at the bottom of the class.
 
         private KernelFunction GetStrategyFunction(ChatResponseFormatBuilder.ChatResponseStrategy strategyType)
         {
-
             KernelFunction function =
                 AgentGroupChat.CreatePromptFunctionForStrategy(
                     $$$"""
@@ -301,7 +292,6 @@ Add the following code at the bottom of the class.
             return function;
         }
                
-
         public AgentGroupChat BuildAgentGroupChat(Kernel kernel, ILoggerFactory loggerFactory, LogCallback logCallback, IBankDataService bankService, string tenantId, string userId)
         {
             AgentGroupChat agentGroupChat = new AgentGroupChat();
@@ -316,10 +306,8 @@ Add the following code at the bottom of the class.
 
             agentGroupChat.ExecutionSettings = GetAgentGroupChatSettings(kernel, logCallback);
 
-
             return agentGroupChat;
         }
-
 
         private AgentGroupChatSettings GetAgentGroupChatSettings(Kernel kernel, LogCallback logCallback)
         {
@@ -383,20 +371,18 @@ Add the following code at the bottom of the class.
 
             return ExecutionSettings;
         }
-
 ```
 
 ### Replace Agent with AgentGroupChat in SemanticKernel
 
-Till now the responses we received were from a single agent, lets us use AgentGroupChat to orchestrate a chat were multiple agents participate.
+Until now the responses we received were from a single agent, lets us use AgentGroupChat to orchestrate a chat were multiple agents participate.
 
-Navigate to `Services\SemanticKernelService.cs`
+Within `ChatInfrastructure` project, navigate to `Services\SemanticKernelService.cs`
 
 Replace the `GetResponse` function with below code.
 
 ```csharp
-
- public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, IBankDataService bankService, string tenantId, string userId)
+public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, IBankDataService bankService, string tenantId, string userId)
     {
         try
         {
@@ -446,7 +432,6 @@ Replace the `GetResponse` function with below code.
             return new Tuple<List<Message>, List<DebugLog>>(new List<Message>(), new List<DebugLog>());
         }
     }
-
 ```
 
 ## Activity 3: Session on Testing and Monitoring
@@ -470,7 +455,6 @@ Create a new file `AutoFunctionInvocationLoggingFilter.cs`
 Replace the contents of the file with the code below.
 
 ```c#
-
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using System;
@@ -489,12 +473,10 @@ namespace MultiAgentCopilot.ChatInfrastructure.Logs
         public AutoFunctionInvocationLoggingFilter(ILogger<AutoFunctionInvocationLoggingFilter> logger)
         {
             _logger = logger;
-
         }
 
         public async Task OnAutoFunctionInvocationAsync(AutoFunctionInvocationContext context, Func<AutoFunctionInvocationContext, Task> next)
         {
-
             var functionCalls = FunctionCallContent.GetFunctionCalls(context.ChatHistory.Last()).ToList();
 
             if (_logger.IsEnabled(LogLevel.Trace))
@@ -513,16 +495,14 @@ namespace MultiAgentCopilot.ChatInfrastructure.Logs
 }
 ```
 
-Start logging update kernel's AutoFunctionInvocationFilters
+Start logging update Semantic Kernel's AutoFunctionInvocationFilters
 
 Navigate to `ChatFactory.cs`
 
 Uncomment the following line in the `BuildAgentGroupChat` function.
 
 ```csharp
-
     //kernel.AutoFunctionInvocationFilters.Add(new AutoFunctionInvocationLoggingFilter(loggerFactory.CreateLogger<AutoFunctionInvocationLoggingFilter>()));
-
 ```
 
 ### Store the log information along with the chat response.
@@ -534,8 +514,7 @@ Navigate to `Services\SemanticKernelService.cs`
 Replace the  `GetResponse` function code with the following code.
 
 ```csharp
-
- public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, IBankDataService bankService, string tenantId, string userId)
+public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, IBankDataService bankService, string tenantId, string userId)
     {
         try
         {
@@ -591,17 +570,15 @@ Replace the  `GetResponse` function code with the following code.
             return new Tuple<List<Message>, List<DebugLog>>(new List<Message>(), new List<DebugLog>());
         }
     }
-
 ```
 
 The final folder structure for `ChatInfrastructure` project should look like below.
 
 ![ChatInfrastructure final folder](./media/module-04/chatinfrastucture-folder-after.png)
 
-
 ## Activity 5: Test your Work
 
-In the previous module we tested each agent independently. With the code  changes in this module we should now be able to orchestrate and  multi agent chat where agent selection is automated based on the SelectionStrategy and agent prompts. Lets go ahead and test if the code works as expected.
+In the previous module we tested each agent independently. With the code changes in this module we should now be able to orchestrate a multi-agent chat where agent selection is automated based on the SelectionStrategy and agent prompts. Lets go ahead and test if the code works as expected.
 
 ### 1. Start the ChatAPI
 
@@ -625,11 +602,11 @@ In the previous module we tested each agent independently. With the code  change
 1. Try the below prompts and respond according to the AI response. For each response use the Debug log to understand the agent selection and termination strategy.
    ![Debug Log](./media/module-04/view-debuglog.png)
     1. Who can help me here?
-    1. Transfer $50 to my friend.
+    1. Transfer $50 to my friend. (When prompted, give it an account number ranging from `Acc001` to `Acc009` and any email address)
     1. Looking for a Savings account with high interest rate.
     1. File a complaint about theft from my account.
-    1. How much did I spend on grocery?
-    1. Provide me a statement of my account.
+    1. How much did I spend on groceries? (If prompted, say over the last 6 months)
+    1. Provide me a statement of my account. (If prompted, give it an account number ranging from `Acc001` to `Acc009`)
 1. Expected response: The response is inline with the Agent's prompts and plugins.
 
 ### 4. Stop the Application
@@ -646,6 +623,12 @@ In the previous module we tested each agent independently. With the code  change
 
 ### Common Issues and Solutions
 
+1. Agents don't respond:
+
+   - Increase the quota for the GPT model in Azure Portal.
+   - Open the resource group, find the OpenAI account, navigate to Azure Foundry, locate the GPT model.
+   - Increase the quota amount to 30K Tokens/minute.
+
 1. Multiple agents respond together or Wrong agent responding:
 
    - View the 'DebugLog' by using the **Bug** icon in each impacted AI response.
@@ -661,13 +644,12 @@ In the previous module we tested each agent independently. With the code  change
 
 The following sections include the completed code for this Module. Copy and paste these into your project if you run into issues and cannot resolve.
 
-
 <details>
   <summary>Completed code for <strong>ChatAPI\Prompts\SelectionStrategy.prompty</strong></summary>
 
 <br>
 
-```
+```text
 Examine RESPONSE and choose the next participant.
 
 Choose only from these participants:
@@ -681,25 +663,226 @@ Always follow these rules when choosing the next participant:
 - If the user is responding to an agent, select that same agent.
 - If the agent is responding after fetching or verifying data , select that same agent.
 - If unclear, select Coordinator.
-
 ```
 
 </details>
-
 
 <details>
   <summary>Completed code for <strong>ChatAPI\Prompts\TerminationStrategy.prompty</strong></summary>
 
 <br>
 
-```
+```text
 Determine if agent has requested user input or has responded to the user's query.
 Respond with the word NO (without explanation) if agent has requested user input.
 Otherwise, respond with the word YES (without explanation) if any the following conditions are met:
 - An action is pending by an agent.
 - Further participation from an agent is required
 - The information requested by the user was not provided by the current agent.
+```
 
+</details>
+
+<details>
+  <summary>Completed code for <strong>ChatInfrastructure\Models\ContinuationInfo.cs</strong></summary>
+
+<br>
+
+```csharp
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace MultiAgentCopilot.ChatInfrastructure.Models.ChatInfoFormats
+{
+    public class ContinuationInfo
+    {
+        public string AgentName { get; set; } = string.Empty;
+        public string Reason { get; set; } = string.Empty;
+    }
+}
+
+```
+
+</details>
+
+<details>
+  <summary>Completed code for <strong>ChatInfrastructure\Models\TerminationInfo.cs</strong></summary>
+
+<br>
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace MultiAgentCopilot.ChatInfrastructure.Models.ChatInfoFormats
+{
+    internal class TerminationInfo
+    {
+        public bool ShouldContinue { get; set; }
+        public string Reason { get; set; } = string.Empty;
+    }
+}
+```
+
+</details>
+
+<details>
+  <summary>Completed code for <strong>ChatInfrastructure\StructuredFormats\ChatResponseFormat.cs</strong></summary>
+
+<br>
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+
+namespace MultiAgentCopilot.ChatInfrastructure.StructuredFormats
+{
+    internal static class ChatResponseFormatBuilder
+    {
+        internal enum ChatResponseStrategy
+        {
+            Continuation,
+            Termination
+
+        }
+
+        internal static string BuildFormat(ChatResponseStrategy strategyType)
+        {
+            switch (strategyType)
+            {
+                case ChatResponseStrategy.Continuation:
+                    string jsonSchemaFormat_Continuation = """
+                    {
+
+                        "type": "object", 
+                            "properties": {
+                                "AgentName": { "type": "string", "description":"name of the selected agent" },
+                                "Reason": { "type": "string","description":"reason for selecting the agent" }
+                            },
+                            "required": ["AgentName", "Reason"],
+                            "additionalProperties": false
+
+                    }
+                    """;
+
+                    return jsonSchemaFormat_Continuation;
+                case ChatResponseStrategy.Termination:
+                    string jsonSchemaFormat_termination = """
+                    {
+
+                        "type": "object", 
+                            "properties": {
+                                "ShouldContinue": { "type": "boolean", "description":"Does conversation require further agent participation" },
+                                "Reason": { "type": "string","description":"List the conditions that evaluated to true for further agent participation" }
+                            },
+                            "required": ["ShouldContinue", "Reason"],
+                            "additionalProperties": false
+
+                    }
+                    """;
+
+                    return jsonSchemaFormat_termination;
+                default:
+                    return "";
+            }
+        }
+    }
+}
+```
+
+</details>
+
+<details>
+  <summary>Completed code for <strong>ChatInfrastructure\Factories\SystemPromptFactory.cs</strong></summary>
+
+<br>
+
+```csharp
+using MultiAgentCopilot.ChatInfrastructure.Models;
+using static MultiAgentCopilot.ChatInfrastructure.StructuredFormats.ChatResponseFormatBuilder;
+
+internal static class SystemPromptFactory
+{
+    //Replace from here
+    public static string GetAgentName(AgentType agentType)
+    {
+        string name = string.Empty;
+        switch (agentType)
+        {
+            case AgentType.Sales:
+                name = "Sales";
+                break;
+            case AgentType.Transactions:
+                name = "Transactions";
+                break;
+            case AgentType.CustomerSupport:
+                name = "CustomerSupport";
+                break;
+            case AgentType.Coordinator:
+                name = "Coordinator";
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(agentType), agentType, null);
+        }
+
+        return name;//.ToUpper();
+    }
+
+    public static string GetAgentPrompts(AgentType agentType)
+    {
+        string promptFile = string.Empty;
+        switch (agentType)
+        {
+            case AgentType.Sales:
+                promptFile = "Sales.prompty";
+                break;
+            case AgentType.Transactions:
+                promptFile = "Transactions.prompty";
+                break;
+            case AgentType.CustomerSupport:
+                promptFile = "CustomerSupport.prompty";
+                break;
+            case AgentType.Coordinator:
+                promptFile = "Coordinator.prompty";
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(agentType), agentType, null);
+        }
+
+        string prompt = $"{File.ReadAllText("Prompts/" + promptFile)}{File.ReadAllText("Prompts/CommonAgentRules.prompty")}";
+
+        return prompt;
+    }
+    //end replace
+
+    public static string GetStrategyPrompts(ChatResponseStrategy strategyType)
+    {
+        string prompt = string.Empty;
+        switch (strategyType)
+        {
+            case ChatResponseStrategy.Continuation:
+                prompt = File.ReadAllText("Prompts/SelectionStrategy.prompty");
+                break;
+            case ChatResponseStrategy.Termination:
+                prompt = File.ReadAllText("Prompts/TerminationStrategy.prompty");
+                break;
+
+        }
+        return prompt;
+    }
+
+}
 ```
 
 </details>
@@ -785,7 +968,6 @@ namespace MultiAgentCopilot.ChatInfrastructure.Factories
             return function;
         }
 
-
         public AgentGroupChat BuildAgentGroupChat(Kernel kernel, ILoggerFactory loggerFactory, LogCallback logCallback, IBankDataService bankService, string tenantId, string userId)
         {
             AgentGroupChat agentGroupChat = new AgentGroupChat();
@@ -799,7 +981,6 @@ namespace MultiAgentCopilot.ChatInfrastructure.Factories
             }
 
             agentGroupChat.ExecutionSettings = GetAgentGroupChatSettings(kernel, logCallback);
-
 
             return agentGroupChat;
         }
@@ -867,149 +1048,8 @@ namespace MultiAgentCopilot.ChatInfrastructure.Factories
 
             return ExecutionSettings;
         }
-
-
     }
 }
-
-```
-
-</details>
-
-<details>
-  <summary>Completed code for <strong></strong>ChatInfrastructure\Factories\SystemPromptFactory.cs</summary>
-
-<br>
-
-```csharp
-using MultiAgentCopilot.ChatInfrastructure.Models;
-using static MultiAgentCopilot.ChatInfrastructure.StructuredFormats.ChatResponseFormatBuilder;
-
-internal static class SystemPromptFactory
-{
-    //Replace from here
-    public static string GetAgentName(AgentType agentType)
-    {
-        string name = string.Empty;
-        switch (agentType)
-        {
-            case AgentType.Sales:
-                name = "Sales";
-                break;
-            case AgentType.Transactions:
-                name = "Transactions";
-                break;
-            case AgentType.CustomerSupport:
-                name = "CustomerSupport";
-                break;
-            case AgentType.Coordinator:
-                name = "Coordinator";
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(agentType), agentType, null);
-        }
-
-        return name;//.ToUpper();
-    }
-
-    public static string GetAgentPrompts(AgentType agentType)
-    {
-        string promptFile = string.Empty;
-        switch (agentType)
-        {
-            case AgentType.Sales:
-                promptFile = "Sales.prompty";
-                break;
-            case AgentType.Transactions:
-                promptFile = "Transactions.prompty";
-                break;
-            case AgentType.CustomerSupport:
-                promptFile = "CustomerSupport.prompty";
-                break;
-            case AgentType.Coordinator:
-                promptFile = "Coordinator.prompty";
-                break;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(agentType), agentType, null);
-        }
-
-        string prompt = $"{File.ReadAllText("Prompts/" + promptFile)}{File.ReadAllText("Prompts/CommonAgentRules.prompty")}";
-
-        return prompt;
-    }
-    //end replace
-
-
-    public static string GetStrategyPrompts(ChatResponseStrategy strategyType)
-    {
-        string prompt = string.Empty;
-        switch (strategyType)
-        {
-            case ChatResponseStrategy.Continuation:
-                prompt = File.ReadAllText("Prompts/SelectionStrategy.prompty");
-                break;
-            case ChatResponseStrategy.Termination:
-                prompt = File.ReadAllText("Prompts/TerminationStrategy.prompty");
-                break;
-
-        }
-        return prompt;
-    }
-
-}
-
-```
-
-</details>
-
-<details>
-  <summary>Completed code for <strong>ChatInfrastructure\Models\ContinuationInfo.cs</strong></summary>
-
-<br>
-
-```csharp
-
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace MultiAgentCopilot.ChatInfrastructure.Models.ChatInfoFormats
-{
-    public class ContinuationInfo
-    {
-        public string AgentName { get; set; } = string.Empty;
-        public string Reason { get; set; } = string.Empty;
-    }
-}
-
-```
-
-</details>
-
-<details>
-  <summary>Completed code for <strong>ChatInfrastructure\Models\TerminationInfo.cs</strong></summary>
-
-<br>
-
-```csharp
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace MultiAgentCopilot.ChatInfrastructure.Models.ChatInfoFormats
-{
-    internal class TerminationInfo
-    {
-        public bool ShouldContinue { get; set; }
-        public string Reason { get; set; } = string.Empty;
-    }
-}
-
-
 ```
 
 </details>
@@ -1129,8 +1169,6 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
         _promptDebugProperties.Add(new LogProperty(key, value));
     }
 
-
-
     public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, IBankDataService bankService, string tenantId, string userId)
     {
         try
@@ -1188,9 +1226,6 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
         }
     }
 
-
-
-
     public async Task<string> Summarize(string sessionId, string userPrompt)
     {
         try
@@ -1224,87 +1259,57 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
         return embedding.ToArray();
     }
 }
-
 ```
 
 </details>
 
 <details>
-  <summary>Completed code for <strong>ChatInfrastructure\StructuredFormats\ChatResponseFormat.cs</strong></summary>
+  <summary>Completed code for <strong>ChatInfrastructure\Logs\AutoFunctionInvocationLoggingFilter.cs</strong></summary>
 
 <br>
 
 ```csharp
+using Microsoft.Extensions.Logging;
+using Microsoft.SemanticKernel;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
-
-namespace MultiAgentCopilot.ChatInfrastructure.StructuredFormats
+namespace MultiAgentCopilot.ChatInfrastructure.Logs
 {
-    internal static class ChatResponseFormatBuilder
+    public sealed class AutoFunctionInvocationLoggingFilter : IAutoFunctionInvocationFilter
     {
-        internal enum ChatResponseStrategy
-        {
-            Continuation,
-            Termination
+        private readonly ILogger<AutoFunctionInvocationLoggingFilter> _logger;
 
+        public AutoFunctionInvocationLoggingFilter(ILogger<AutoFunctionInvocationLoggingFilter> logger)
+        {
+            _logger = logger;
         }
 
-        internal static string BuildFormat(ChatResponseStrategy strategyType)
+        public async Task OnAutoFunctionInvocationAsync(AutoFunctionInvocationContext context, Func<AutoFunctionInvocationContext, Task> next)
         {
-            switch (strategyType)
+            var functionCalls = FunctionCallContent.GetFunctionCalls(context.ChatHistory.Last()).ToList();
+
+            if (_logger.IsEnabled(LogLevel.Trace))
             {
-                case ChatResponseStrategy.Continuation:
-                    string jsonSchemaFormat_Continuation = """
-                    {
-
-                        "type": "object", 
-                            "properties": {
-                                "AgentName": { "type": "string", "description":"name of the selected agent" },
-                                "Reason": { "type": "string","description":"reason for selecting the agent" }
-                            },
-                            "required": ["AgentName", "Reason"],
-                            "additionalProperties": false
-
-                    }
-                    """;
-
-                    return jsonSchemaFormat_Continuation;
-                case ChatResponseStrategy.Termination:
-                    string jsonSchemaFormat_termination = """
-                    {
-
-                        "type": "object", 
-                            "properties": {
-                                "ShouldContinue": { "type": "boolean", "description":"Does conversation require further agent participation" },
-                                "Reason": { "type": "string","description":"List the conditions that evaluated to true for further agent participation" }
-                            },
-                            "required": ["ShouldContinue", "Reason"],
-                            "additionalProperties": false
-
-                    }
-                    """;
-
-                    return jsonSchemaFormat_termination;
-                default:
-                    return "";
+                functionCalls.ForEach(functionCall
+                    => _logger.LogTrace(
+                        "Function call requests: {PluginName}-{FunctionName}({Arguments})",
+                        functionCall.PluginName,
+                        functionCall.FunctionName,
+                        JsonSerializer.Serialize(functionCall.Arguments)));
             }
 
+            await next(context);
         }
     }
-
-
 }
-
-
-
 ```
 
 </details>
-
 
 ## Next Steps
 
@@ -1313,7 +1318,5 @@ Proceed to [Lessons Learned, Agent Futures, Q&A](./Module-04.md)
 ## Resources
 
 - [Semantic Kernel Agent Framework](https://learn.microsoft.com/semantic-kernel/frameworks/agent)
-- [LangGraph](https://langchain-ai.github.io/langgraph/concepts/)
 - [Azure OpenAI Service documentation](https://learn.microsoft.com/azure/cognitive-services/openai/)
 - [Azure Cosmos DB Vector Database](https://learn.microsoft.com/azure/cosmos-db/vector-database)
-

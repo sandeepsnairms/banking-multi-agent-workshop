@@ -83,7 +83,7 @@ You can run this sample app and workshop virtually by using GitHub Codespaces. T
    - [Docker Desktop](https://docs.docker.com/desktop/)
    - [Git](https://git-scm.com/downloads)
    - [Azure Developer CLI (azd)](https://aka.ms/install-azd)
-   - [.NET 9](https://dotnet.microsoft.com/downloads/)
+   - [.NET 8](https://dotnet.microsoft.com/downloads/)
    - [Visual Studio](https://visualstudio.microsoft.com/downloads/) or [VS Code](https://code.visualstudio.com/Download) with [C# Dev Kit](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csdevkit)
    - To build and run the frontend component, install [Node.js](https://nodejs.org/en/download/) and [Angular CLI](https://angular.dev/installation#install-angular-cli)
 
