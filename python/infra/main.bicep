@@ -42,7 +42,7 @@ module cosmos './shared/cosmosdb.bicep' = {
   name: 'cosmos'
   params: {    
     databaseName: 'MultiAgentBanking'
-	chatsContainerName: 'ChatsData'
+	chatsContainerName: 'Chat'
 	accountsContainerName: 'AccountsData'
 	offersContainerName:'OffersData'
 	usersContainerName:'Users'
@@ -157,19 +157,19 @@ module ChatAPI './app/ChatAPI.bicep' = {
 	applicationInsightsName: monitoring.outputs.applicationInsightsName
     envSettings: [     
 	  {
-        name: 'SemanticKernelServiceSettings__AzureOpenAISettings__Endpoint'
+        name: 'AZURE_OPENAI_ENDPOINT'
         value: openAi.outputs.endpoint
       }	  
 	  {
-        name: 'SemanticKernelServiceSettings__AzureOpenAISettings__CompletionsDeployment'
+        name: 'AZURE_OPENAI_COMPLETIONSDEPLOYMENTID'
         value: openAiModelDeployments[0].outputs.name
       }
 	  {
-        name: 'SemanticKernelServiceSettings__AzureOpenAISettings__EmbeddingsDeployment'
+        name: 'AZURE_OPENAI_EMBEDDINGDEPLOYMENTID'
         value: openAiModelDeployments[1].outputs.name
       }
       {
-        name: 'CosmosDBSettings__CosmosUri'
+        name: 'COSMOSDB_ENDPOINT'
         value: cosmos.outputs.endpoint
       }
 	  {
@@ -178,20 +178,36 @@ module ChatAPI './app/ChatAPI.bicep' = {
       }
 	  {
         name: 'CosmosDBSettings__ChatDataContainer'
-        value: 'ChatsData'
+        value: 'Chat'
       }
 	  {
         name: 'CosmosDBSettings__UserDataContainer'
         value: 'Users'
       }
+      {
+        name: 'BankingCosmosDBSettings__CosmosUri'
+        value: cosmos.outputs.endpoint
+      }	
+      {
+        name: 'BankingCosmosDBSettings__Database'
+        value: 'MultiAgentBanking'
+      }
 	  {
-        name: 'CosmosDBSettings__RequestDataContainer'
+        name: 'BankingCosmosDBSettings__AccountsContainer'
         value: 'AccountsData'
       }
 	  {
-        name: 'CosmosDBSettings__AccountsContainer'
+        name: 'BankingCosmosDBSettings__UserDataContainer'
+        value: 'Users'
+      }
+	  {
+        name: 'BankingCosmosDBSettings__RequestDataContainer'
         value: 'AccountsData'
-      }      
+      }
+	  {
+        name: 'BankingCosmosDBSettings__OfferDataContainer'
+        value: 'OffersData'
+      }
       {
         name: 'ApplicationInsightsConnectionString'
         value: monitoring.outputs.applicationInsightsConnectionString
@@ -203,22 +219,31 @@ module ChatAPI './app/ChatAPI.bicep' = {
   dependsOn: [cosmos, monitoring, openAi]
 }
 
-
-module webApp './app/webApp.bicep' = {
-  name: 'webApp'  
+// Deploy Frontend Container App
+module FrontendApp './app/FrontendApp.bicep' = {
+  name: 'FrontendApp'
   params: {
-    name: '${abbrs.webSitesAppService}${resourceToken}'
-    appServicePlanName: '${abbrs.webServerFarms}${resourceToken}'
+    name: '${abbrs.appContainerApps}frontend-${resourceToken}'
+	tags: tags
+	containerAppName: 'frontend'
+    containerImageTag: 'latest'  // Change this if versioning is required
+    containerPort: 80
+    identityName: AssignRoles.outputs.identityName
+	environmentId: appsEnv.outputs.id
+	imageName: 'frontendapp'  // ACR repository name
+	registryServer:registry.outputs.name
+	chatAPIUrl:ChatAPI.outputs.uri
   }
   scope: rg
-  dependsOn: [ChatAPI]
+  dependsOn: [registry, appsEnv]
 }
-
 
 // Outputs
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = registry.outputs.loginServer
 output SERVICE_ChatAPI_ENDPOINT_URL string = ChatAPI.outputs.uri
-output FRONTENDPOINT_URL string = webApp.outputs.url
-output WEB_APP_NAME string = '${abbrs.webSitesAppService}${resourceToken}'
-output RG_NAME string = 'rg-${environmentName}'
-
+output FRONTENDPOINT_URL string = FrontendApp.outputs.uri
+output AZURE_OPENAI_ENDPOINT string = openAi.outputs.endpoint
+output AZURE_OPENAI_COMPLETIONSDEPLOYMENTID string = openAiModelDeployments[0].outputs.name
+output AZURE_OPENAI_EMBEDDINGDEPLOYMENTID string = openAiModelDeployments[1].outputs.name
+output COSMOSDB_ENDPOINT string = cosmos.outputs.endpoint
+output APPLICATIONINSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString

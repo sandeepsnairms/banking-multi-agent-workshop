@@ -50,12 +50,12 @@ resource chatservicewebapi 'Microsoft.App/containerApps@2024-02-02-preview' = {
 				'*'
           ]
 		  allowedMethods: [
-				'DELETE'
-				'GET'
-				'POST'
-				'PUT'
+			'DELETE'
+			'GET'
+			'POST'
+			'PUT'
           ]
-          allowedHeaders: [
+		  allowedHeaders: [
 			'*'
           ]
         }
@@ -74,7 +74,7 @@ resource chatservicewebapi 'Microsoft.App/containerApps@2024-02-02-preview' = {
           name: containerAppName
           image: fetchLatestImage.outputs.?containers[?0].image ?? 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
           env: union(
-            [             
+            [
 			  {
 				name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
 				value: applicationInsights.properties.ConnectionString
@@ -84,15 +84,7 @@ resource chatservicewebapi 'Microsoft.App/containerApps@2024-02-02-preview' = {
 				value: '8080'
 			  }
 			  {
-				name: 'SemanticKernelServiceSettings__AzureOpenAISettings__UserAssignedIdentityClientID'
-				value: identity.properties.clientId
-			  }
-			  {
-				name: 'CosmosDBSettings__UserAssignedIdentityClientID'
-				value: identity.properties.clientId
-			  }
-			  {
-				name: 'BankingCosmosDBSettings__UserAssignedIdentityClientID'
+				name: 'AZURE_CLIENT_ID'
 				value: identity.properties.clientId
 			  }
             ],
