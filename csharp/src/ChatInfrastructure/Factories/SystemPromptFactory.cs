@@ -1,4 +1,5 @@
 ﻿using MultiAgentCopilot.ChatInfrastructure.Models;
+using static MultiAgentCopilot.ChatInfrastructure.StructuredFormats.ChatResponseFormatBuilder;
 
 internal static class SystemPromptFactory
 {
@@ -53,4 +54,22 @@ internal static class SystemPromptFactory
         return prompt;
     }
     //end replace
+
+
+    public static string GetStrategyPrompts(ChatResponseStrategy strategyType)
+    {
+        string prompt = string.Empty;
+        switch (strategyType)
+        {
+            case ChatResponseStrategy.Continuation:
+                prompt = File.ReadAllText("Prompts/SelectionStrategy.prompty");
+                break;
+            case ChatResponseStrategy.Termination:
+                prompt = File.ReadAllText("Prompts/TerminationStrategy.prompty");
+                break;
+
+        }
+        return prompt;
+    }
+
 }

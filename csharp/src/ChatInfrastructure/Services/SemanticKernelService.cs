@@ -21,6 +21,7 @@ using Message = MultiAgentCopilot.Common.Models.Chat.Message;
 using MultiAgentCopilot.ChatInfrastructure.Factories;
 using MultiAgentCopilot.ChatInfrastructure.Models;
 using BankingServices.Interfaces;
+using MultiAgentCopilot.ChatInfrastructure.Helper;
 
 
 namespace MultiAgentCopilot.ChatInfrastructure.Services;
@@ -106,41 +107,56 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
         _promptDebugProperties.Add(new LogProperty(key, value));
     }
 
+
+
     public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, IBankDataService bankService, string tenantId, string userId)
     {
         try
         {
-            ChatFactory agentChatGeneratorService = new ChatFactory();
+            ChatFactory multiAgentChatGeneratorService = new ChatFactory();
 
-            var agent = agentChatGeneratorService.BuildAgent(_semanticKernel, AgentType.Coordinator, _loggerFactory, bankService, tenantId, userId);
-
-            ChatHistory chatHistory = [];
+            var agentGroupChat = multiAgentChatGeneratorService.BuildAgentGroupChat(_semanticKernel, _loggerFactory, LogMessage, bankService, tenantId, userId);
 
             // Load history
             foreach (var chatMessage in messageHistory)
             {
-                if (chatMessage.SenderRole == "User")
+                AuthorRole? role = AuthorRoleHelper.FromString(chatMessage.SenderRole);
+                var chatMessageContent = new ChatMessageContent
                 {
-                    chatHistory.AddUserMessage(chatMessage.Text);
-                }
-                else
-                {
-                    chatHistory.AddAssistantMessage(chatMessage.Text);
-                }
+                    Role = role ?? AuthorRole.User,
+                    Content = chatMessage.Text
+                };
+                agentGroupChat.AddChatMessage(chatMessageContent);
             }
-
-            chatHistory.AddUserMessage(userMessage.Text);
 
             _promptDebugProperties = new List<LogProperty>();
 
             List<Message> completionMessages = new();
             List<DebugLog> completionMessagesLogs = new();
-
-            await foreach (ChatMessageContent response in agent.InvokeAsync(chatHistory))
+            do
             {
-                string messageId = Guid.NewGuid().ToString();
-                completionMessages.Add(new Message(userMessage.TenantId, userMessage.UserId, userMessage.SessionId, response.AuthorName ?? string.Empty, response.Role.ToString(), response.Content ?? string.Empty, messageId));
+                var userResponse = new ChatMessageContent(AuthorRole.User, userMessage.Text);
+                agentGroupChat.AddChatMessage(userResponse);
+
+                agentGroupChat.IsComplete = false;
+
+                await foreach (ChatMessageContent response in agentGroupChat.InvokeAsync())
+                {
+                    string messageId = Guid.NewGuid().ToString();
+                    string debugLogId = Guid.NewGuid().ToString();
+                    completionMessages.Add(new Message(userMessage.TenantId, userMessage.UserId, userMessage.SessionId, response.AuthorName ?? string.Empty, response.Role.ToString(), response.Content ?? string.Empty, messageId, debugLogId));
+
+                    if (_promptDebugProperties.Count > 0)
+                    {
+                        var completionMessagesLog = new DebugLog(userMessage.TenantId, userMessage.UserId, userMessage.SessionId, messageId, debugLogId);
+                        completionMessagesLog.PropertyBag = _promptDebugProperties;
+                        completionMessagesLogs.Add(completionMessagesLog);
+                    }
+
+                }
             }
+            while (!agentGroupChat.IsComplete);
+
             return new Tuple<List<Message>, List<DebugLog>>(completionMessages, completionMessagesLogs);
         }
         catch (Exception ex)
@@ -149,6 +165,8 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
             return new Tuple<List<Message>, List<DebugLog>>(new List<Message>(), new List<DebugLog>());
         }
     }
+
+
 
 
     public async Task<string> Summarize(string sessionId, string userPrompt)
