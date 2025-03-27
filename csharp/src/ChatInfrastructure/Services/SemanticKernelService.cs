@@ -18,6 +18,7 @@ using MultiAgentCopilot.ChatInfrastructure.Interfaces;
 using MultiAgentCopilot.Common.Models.Configuration;
 using MultiAgentCopilot.Common.Models.Debug;
 using Message = MultiAgentCopilot.Common.Models.Chat.Message;
+using MultiAgentCopilot.ChatInfrastructure.Factories;
 
 namespace MultiAgentCopilot.ChatInfrastructure.Services;
 
@@ -104,33 +105,58 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
 
     public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, string tenantId, string userId)
     {
-
-        ChatCompletionAgent agent = new ChatCompletionAgent
+        try
         {
-            Name = "BasicAgent",
-            Instructions = "Greet the user and translate the request into French",
-            Kernel = _semanticKernel.Clone()
-        };
+            //Replace from here
+            ChatFactory agentChatGeneratorService = new ChatFactory();
 
-        ChatHistory chatHistory = [];
+            var agent = agentChatGeneratorService.BuildAgent(_semanticKernel, _loggerFactory, tenantId, userId);
 
-        chatHistory.AddUserMessage(userMessage.Text);
+            ChatHistory chatHistory = [];
 
-        _promptDebugProperties = new List<LogProperty>();
+            // Load history
+            foreach (var chatMessage in messageHistory)
+            {
+                if (chatMessage.SenderRole == "User")
+                {
+                    chatHistory.AddUserMessage(chatMessage.Text);
+                }
+                else
+                {
+                    chatHistory.AddAssistantMessage(chatMessage.Text);
+                }
+            }
 
-        List<Message> completionMessages = new();
-        List<DebugLog> completionMessagesLogs = new();
+            chatHistory.AddUserMessage(userMessage.Text);
 
-        ChatMessageContent message = new(AuthorRole.User, userMessage.Text);
-        chatHistory.Add(message);
+            _promptDebugProperties = new List<LogProperty>();
 
-        await foreach (ChatMessageContent response in agent.InvokeAsync(chatHistory))
-        {
-            string messageId = Guid.NewGuid().ToString();
-            completionMessages.Add(new Message(userMessage.TenantId, userMessage.UserId, userMessage.SessionId, response.AuthorName ?? string.Empty, response.Role.ToString(), response.Content ?? string.Empty, messageId));
+            List<Message> completionMessages = new();
+            List<DebugLog> completionMessagesLogs = new();
+
+
+            await foreach (ChatMessageContent response in agent.InvokeAsync(chatHistory))
+            {
+                string messageId = Guid.NewGuid().ToString();
+                completionMessages.Add(new Message(
+                    userMessage.TenantId,
+                    userMessage.UserId,
+                    userMessage.SessionId,
+                    response.AuthorName ?? string.Empty,
+                    response.Role.ToString(),
+                    response.Content ?? string.Empty,
+                    messageId));
+            }
+            return new Tuple<List<Message>, List<DebugLog>>(completionMessages, completionMessagesLogs);
+            //end replace
         }
-        return new Tuple<List<Message>, List<DebugLog>>(completionMessages, completionMessagesLogs);
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.ToString());
+            return new Tuple<List<Message>, List<DebugLog>>(new List<Message>(), new List<DebugLog>());
+        }
     }
+
 
     public async Task<string> Summarize(string sessionId, string userPrompt)
     {

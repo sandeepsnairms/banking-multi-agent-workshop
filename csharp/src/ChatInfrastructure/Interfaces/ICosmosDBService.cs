@@ -83,4 +83,10 @@ public interface ICosmosDBService
 
     Task<bool> InsertDocumentAsync(string containerName, JObject document);
 
+    /// <summary>
+    /// Batch create or update chat messages and session.
+    /// </summary>
+    /// <param name="messages">Chat message and session items to create or replace.</param>
+    Task UpsertSessionBatchAsync(List<Message> messages, List<DebugLog> debugLogs, Session session);
+
 }
