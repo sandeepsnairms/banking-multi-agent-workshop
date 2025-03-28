@@ -18,7 +18,6 @@ In this Module we will wrap up what you have learned during this workshop. We wi
 1. [Activity 1: Session Lessons Learned Building This Workshop](#activity-1-session-lessons-learned-building-this-workshop)
 1. [Activity 2: Q&A](#activity-2-q-and-a)
 
-
 ## Activity 1: Session Lessons Learned Building This Workshop
 
 In this session ...
@@ -27,13 +26,11 @@ In this session ...
 
 In this session ...
 
-
 ## Wrap up and Conclusion
 
 Thanks!!!
 
 Return to **[Home](Home.md)**
-
 
 ## Resources
 
