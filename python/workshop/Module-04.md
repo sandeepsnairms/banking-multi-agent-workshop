@@ -35,11 +35,222 @@ Up until this point, you have created a number of agents that can perform specif
 
 Determine which agents you think should be able to talk to each other, and then wire them up! If you've forgotten how to do it, look back through the modules.
 
-Hint: the coordinator agent is a good place to start!
+Hint: the coordinator agent is a good place to start! And you might need to update the agent prompts appropriately for it to work.
 
 ## Activity 3: Session on Testing and Monitoring
 
-In this session you will learn about how to architect the service layer for a multi-agent system and how to configure and coduct testing and debugging and monitoring for these systems.
+In this session you will learn about how to design the service layer for a multi-agent system and how to configure and conduct testing and debugging and monitoring for these systems.
+
+## Activity 4: Implement Agent Tracing and Monitoring
+In this activity, you'll integrate LangSmith, a powerful observability and monitoring platform, into our multi-agent application. You'll learn how to trace agent interactions and monitor application behavior using LangSmith's build in tools. This would help you understand how your agents perform, where bottlenecks occur, and how the application behaves end-to-end.
+
+### Creating a LangSmith Account
+1. Visit https://smith.langchain.com
+2. Click Sign Up and create your free LangSmith account.
+3. Once you're signed in, go to your Account Settings, and create a new API Key.
+
+### Adding LangSmith Environment Variables
+Open the .env file in the python folder of the code base.
+
+```python
+LANGCHAIN_API_KEY="<your_langsmith_api_key>"
+LANGCHAIN_TRACING_V2="true"
+LANGCHAIN_PROJECT="multi-agent-banking-app"
+```
+
+Your .env file should look like this after adding the above lines.
+
+```python
+COSMOSDB_ENDPOINT="<your_cosmos_db_uri>"
+AZURE_OPENAI_ENDPOINT="<your_azure_open_ai_uri>"
+AZURE_OPENAI_EMBEDDINGDEPLOYMENTID="text-embedding-3-small"
+AZURE_OPENAI_COMPLETIONSDEPLOYMENTID="gpt-4o"
+APPLICATIONINSIGHTS_CONNECTION_STRING="<your_applications_insights_conn_string>"
+LANGCHAIN_API_KEY="<your_langsmith_api_key>"
+LANGCHAIN_TRACING_V2="true"
+LANGCHAIN_PROJECT="multi-agent-banking-app"
+```
+
+### Adding tracing to the Agents
+LangSmith makes it easy to trace specific functions or agents using the @traceable decorator. 
+
+The decorator works by creating a run tree for you each time the function is called and inserting it within the current trace. The function inputs, name, and other information is then streamed to LangSmith. If the function raises an error or if it returns a response, that information is also added to the tree, and updates are patched to LangSmith so you can detect and diagnose sources of errors. This is all done on a background thread to avoid blocking your app's execution.
+
+LangSmith UX is built in a way that different components of your multi-agent application get rendered differently. LangSmith supports many different types of Runs - you can specify the type of Run in the @traceable decorator. The types of runs are:
+1. LLM: Invokes an LLM 
+2. Retriever: Retrieves documents from databases or other sources
+3. Tool: Executes actions with function calls
+4. Chain: Default type; combines multiple Runs into a larger process
+5. Prompt: Hydrates a prompt to be used with an LLM
+6. Parser: Extracts structured data
+
+Let's update our code to add @traceable decorator so that we can monitor the traces in langsmith.
+
+In your IDE, navigate to the file `banking_agents.py` file.
+
+Add `@traceable(run_type="llm")` on top of the `def call_coordinator_agent(state: MessagesState, config)` function. It should look like this now. 
+
+```python
+@traceable(run_type="llm")
+def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coordinator_agent", "human"]]:
+```
+
+Now, let's do this for other functions in the `banking_agents.py` file. Finally, your functions should look like this.
+
+```python
+@traceable(run_type="llm")
+def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coordinator_agent", "human"]]:
+
+@traceable(run_type="llm")
+def call_customer_support_agent(state: MessagesState, config) -> Command[Literal["customer_support_agent", "human"]]:
+
+@traceable(run_type="llm")
+def call_sales_agent(state: MessagesState, config) -> Command[Literal["sales_agent", "human"]]:
+
+@traceable(run_type="llm")
+def call_transactions_agent(state: MessagesState, config) -> Command[Literal["transactions_agent", "human"]]:
+
+@traceable
+def human_node(state: MessagesState, config) -> None:
+
+@traceable(run_type="llm")
+def interactive_chat():
+```
+
+Let's go to the `tools/coordinator.py` file now. We will add the `@traceable` on top of all the functions. We are not adding the run type on these functions because we already have `@tool` decorator on top of these functions which would help LangSmith to infer that these are tools used by the Agents. It should look like this.
+
+```python
+@tool
+@traceable
+def service_request(config: RunnableConfig,  recipientPhone: str, recipientEmail: str,
+                    requestSummary: str) -> str:
+
+@tool
+@traceable
+def get_branch_location(state: str) -> Dict[str, List[str]]:
+```
+
+Now, let's go to the `tools/sales.py` file now. It should look like this after adding the `@traceable` decorator.
+
+```python
+@tool
+@traceable(run_type="retriever")
+def get_offer_information(user_prompt: str, accountType: str) -> list[dict[str, Any]]:
+
+@tool
+@traceable
+def create_account(account_holder: str, balance: float, config: RunnableConfig) -> str:
+
+@tool
+@traceable
+def calculate_monthly_payment(loan_amount: float, years: int) -> float:
+```
+
+Now, let's go to the `tools/transactions.py` file  now. It should look like this after adding the `@traceable` decorator.
+
+```python
+@tool
+@traceable
+def bank_transfer(config: RunnableConfig, toAccount: str, fromAccount: str, amount: float) -> str:
+
+@tool
+@traceable
+def get_transaction_history(accountId: str, startDate: datetime, endDate: datetime) -> List[Dict]:
+
+@tool
+@traceable
+def bank_balance(config: RunnableConfig, account_number: str) -> str:
+```
+
+### Let's monitor traces in LangSmith
+
+Before testing, lets make a small amendment to your `interactive_chat()` function in our `banking_agents.py` file to add a unique thread ID everytime you resart the app. The thread ID is the unique identifier for the conversation state. Until now we have hard coded it to demonstrate how the conversation can be picked up later even when the application has stopped. But now we want a unique Id everytime the application is stopped, so we can see unique runs in LangSmith. 
+
+Within the `banking_agents.py` file locate the `def interactive_chat()` function.
+
+Immediately above the function declaration remove the below line of code:
+
+```python
+hardcoded_thread_id = "hardcoded-thread-id-01"
+```
+
+Then replace the first line immediately within the function to this:
+
+```python
+def interactive_chat():
+    thread_config = {"configurable": {"thread_id": str(uuid.uuid4()), "userId": "U1", "tenantId": "T1"}}
+```
+
+In your IDE, run the following command in your terminal.
+
+```bash
+python -m src.app.banking_agents
+```
+
+Let's open [LangSmith](https://smith.langchain.com/) now to make sure our project is listed under traces. The project name will be `multi-agent-banking-app` as we mentioned in our .env file.
+
+Note: If you are not able to see your project under traces, search for banking in the search bar, and then you should be able to see it.
+
+![LangSmith_1](./media/module-04/lang_smith_1.png)
+
+Try asking about banking offers to invoke a vector search again:
+```shell
+Welcome to the single-agent banking assistant.
+Type 'exit' to end the conversation.
+
+You: Tell me about banking offers
+transfer_to_sales_agent...
+sales_agent: Would you like information about Credit Card offers or Savings offers? Let me know so I can provide the most relevant details for you!
+```
+
+You can see in the below image that the app starts with the coordinator agent, which calls the sales agent based on the user prompt. Clicking on the agent, under sales_agent as highlighted in the below image, you can check the stack trace of the conversation between Human and AI.
+
+![LangSmith_2](./media/module-04/lang_smith_2.png)
+
+Try asking about credit card offers.
+
+```shell
+Welcome to the single-agent banking assistant.
+Type 'exit' to end the conversation.
+
+You: Tell me about banking offers
+transfer_to_sales_agent...
+sales_agent: Would you like information about Credit Card offers or Savings offers? Let me know so I can provide the most relevant details for you!
+
+You: Credit Card
+```
+
+You can again see conversation between Human and AI based on the new user prompt, that we asked about credit card offers. 
+
+![LangSmith_3](./media/module-04/lang_smith_3.png)
+
+You can see in the below image the stacktrace of the retriever tool call made to the cosmos db to perform vector search. Click the `get_offer_information` as highlighted in the image below. Scroll to the bottom, and you would be able to see the vector search results returned by the query made to cosmos db. 
+
+![LangSmith_4](./media/module-04/lang_smith_4.png)
+
+You can see the result produced by the LLM after getting the result back from the vector search query. Click on the agent as highlighted in the image below, to view the LLM result. You should be able to see the same result printed on the terminal of your IDE.
+
+![LangSmith_5](./media/module-04/lang_smith_5.png)
+
+You can try with the below example as well to monitor trace of the transactions agent. Please type `exit` to end the conversation and start a new one, before trying this example.
+
+```shell
+Welcome to the single-agent banking assistant.
+Type 'exit' to end the conversation.
+
+You: Show me transactions for account A1
+transfer_to_transactions_agent...
+transactions_agent: Please provide the start and end dates for the transaction history you would like to view for account A1.
+
+You: start date as 2025-02-07 and end date as 2025-02-12
+```
+The run which has a loading icon in front of it should be the current trace. 
+
+![LangSmith_6](./media/module-04/lang_smith_6.png)
+
+You can click the final agent call, highlighted below to see the final result created by the LLM based on the results returned by the cosmos db query. You would be able to see the same result in your terminal running on your IDE.
+
+![LangSmith_8](./media/module-04/lang_smith_8.png)
 
 ## Activity 5: Putting It All Together
 

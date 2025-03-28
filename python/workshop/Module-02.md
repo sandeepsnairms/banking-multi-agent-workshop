@@ -181,7 +181,7 @@ In the activity above we completed the following:
 
 With the activities in this module complete, it is time to test your work!
 
-Before testing, lets make a small amendment to your `interactive_chat()` function in our `banking_agents.py` file to hardcode the thread ID. The thread ID is the unique identifier for the conversation state. Until now we have not made use of it. In the change below we are going to hard code it to demonstrate how the converation can be picked up later even when the application has stopped.
+Before testing, lets make a small amendment to your `interactive_chat()` function in our `banking_agents.py` file to hardcode the thread ID. The thread ID is the unique identifier for the conversation state. Until now, we have not made use of it. In the change below we are going to hard code it to demonstrate how the conversation can be picked up later even when the application has stopped.
 
 Within the `banking_agents.py` file locate the `def interactive_chat()` function.
 

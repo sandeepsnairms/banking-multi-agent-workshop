@@ -156,7 +156,7 @@ coordinator_agent = create_react_agent(
 
 ### Functions
 
-Since LangGraph is a graph, the agents, which are comprised of prompts, tools, and functions are the implemented as nodes. But humans are also a part of the workflow here so we need to define them as a node too. In our simple sample we have two nodes, one for the coordinator agent and one for the human.
+Since LangGraph is a graph, the agents, which are comprised of prompts, tools, and functions are implemented as nodes. But humans are also a part of the workflow here so we need to define them as a node too. In our simple sample we have two nodes, one for the coordinator agent and one for the human.
 
 
 In the `banking_agents.py` file, navigate to the `# define functions` comment.
@@ -180,7 +180,7 @@ def human_node(state: MessagesState, config) -> None:
 
 ### Built-in Functions
 
-Before we go any further we should cover a few new things you may have seen. LangGraph has a series of built-in functions that you will use when building these types of applications. The first you saw above when we defined our agent, `create_react_agent()`. There are two more here immiately above, `Command()` and `interrupt()`. Here is a short summary of built-in functions.
+Before we go any further we should cover a few new things you may have seen. LangGraph has a series of built-in functions that you will use when building these types of applications. The first you saw above when we defined our agent, `create_react_agent()`. There are two more used above, `Command()` and `interrupt()`. Here is a short summary of built-in functions.
 
 
 | Function | Purpose |
