@@ -169,6 +169,9 @@ When you deploy this solution it automatically injects endpoints and configurati
    dotnet run
    ```
 
+4. In the **Ports** tab, right-click and select the **Port Visibility** option to set port **63280** as **Public**.
+5. Copy the URL for **63280** port.
+
 ##### If running locally on Visual Studio or VS Code
 
 1. Navigate to `src\ChatAPI`.
@@ -190,8 +193,6 @@ When you deploy this solution it automatically injects endpoints and configurati
 1. Open your browser and navigate to <http://localhost:4200/>.
 
 ##### If running on Codespaces
-
-1. From the **PORTS** tab, search for the port with the label **ChatAPI**. Right click and change **Port Visibility** to **Public**.
 
 1. From the **PORTS** tab, search for the port with the label **Frontend app**. Hover over the address and choose **Open in Browser** (second icon) to access the frontend application.
 
