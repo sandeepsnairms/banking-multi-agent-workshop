@@ -162,19 +162,23 @@ def call_customer_support_agent(state: MessagesState, config) -> Command[Literal
     return Command(update=response, goto="human")
 ```
 
-**TODO NOTE!: What is happening here with this `patch_active_agent()` call? need more explanation**
+The `patch_active_agent` function is used to log or track which agent is currently active within a multi-agent LangGraph application. It typically records metadata such as the `tenantId`, `userId`, `sessionId` (or `thread ID`), and the name of the `activeAgent`. This is especially useful in local or interactive environments where you want visibility into which agent is handling a specific part of the conversation. 
 
 
 ### Let's review
 
-**TODO Note: maybe could use a rephrasing of the text in this section to make more concise and clear**
+In this activity, we completed the following key steps:
 
-In the activity above we completed the following:
+- **Stored the active agent in Cosmos DB**:  
+  We added logic to persist the current "active agent" in Azure Cosmos DB. Before routing, we check if an agent is already active—if so, the system routes the conversation directly to that agent without relying on further reasoning.
 
-- Enabled storing an "active agent" in Cosmos DB, adding a check to see if the active agent is known. If so, we are routing directly to that agent. 
-- Enabled state and chat history is saved to Azure Cosmos DB so that it lasts beyond the lifetime of the application.
-- We are patching the active agent in the Chat container after transfer. This is important to ensure that turn-by-turn routing is deterministic when it is known which agent asked the last question.
-  - Note: it is feasible to rely on the LLM to reason about which agent to route to, but its behavior is less reliable and may not be suitable for all use cases.
+- **Enabled persistent state and chat history**:  
+  We configured the application to store chat history and conversation state in Cosmos DB, ensuring the data persists beyond the current runtime session and can be retrieved across sessions or restarts.
+
+- **Patched the active agent after agent transfer**:  
+  After handing off to a new agent, we update the `activeAgent` field in the Cosmos DB `Chat` container. This ensures deterministic, turn-by-turn routing—especially when it's known which agent asked the last question.
+
+> **Note**: While it's technically possible to rely on the LLM to determine the next agent using reasoning alone, this approach is generally less reliable and may not be suitable for scenarios requiring consistency and control.
 
 
 ## Activity 3: Test your Work
@@ -270,22 +274,7 @@ You may also want to look at the checkpoints container in your Cosmos DB account
 Your implementation is successful if:
 
 - [ ] Your app compiles with no warnings or errors.
-- [ ] Your agent successfully connects to Azure Cosmos DB. (**TODO TBD how do we test this?**)
-
-
-### Common Issues and Troubleshooting
-
-1. Issue 1:
-    - TBD
-    - TBD
-
-1. Issue 2:
-    - TBD
-    - TBD
-
-1. Issue 3:
-    - TBD
-    - TBD
+- [ ] Your agent successfully connects to Azure Cosmos DB.
 
 
 ### Module Solution
