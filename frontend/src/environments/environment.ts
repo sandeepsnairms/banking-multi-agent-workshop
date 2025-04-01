@@ -1,4 +1,4 @@
 export const environment = {
     production: false,
-    apiUrl: 'http://localhost:63280/'
+    apiUrl: 'https://fuzzy-waddle-9xg5x9jqp5cpjr-63280.app.github.dev/'
   };

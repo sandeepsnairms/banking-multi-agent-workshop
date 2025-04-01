@@ -33,7 +33,8 @@
     },
     "4200": {
       "label": "Frontend app",
-      "protocol": "http"
+      "protocol": "http",
+      "visibility": "public"
     }
   }
 }
