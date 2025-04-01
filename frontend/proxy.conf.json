@@ -1,6 +1,6 @@
 {
     "/api": {
-      "target": "https://localhost:63280/",
+      "target": "https://fuzzy-waddle-9xg5x9jqp5cpjr-63280.app.github.dev/",
       "secure": false,
       "changeOrigin": true,
       "logLevel": "debug",

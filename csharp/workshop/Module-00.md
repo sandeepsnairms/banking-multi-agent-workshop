@@ -168,8 +168,6 @@ When you deploy this solution it automatically injects endpoints and configurati
    dotnet run
    ```
 
-4. Copy the URL from the **Ports** tab.
-
 ##### If running locally on Visual Studio or VS Code
 
 1. Navigate to `src\ChatAPI`.
@@ -182,11 +180,19 @@ When you deploy this solution it automatically injects endpoints and configurati
 1. Copy and run the following:
 
    ```sh
-   npm i
-   ng serve --host 0.0.0.0
+   npm install
+   npm start
    ```
 
+##### If running locally
+
 1. Open your browser and navigate to <http://localhost:4200/>.
+
+##### If running on Codespaces
+
+1. From the **PORTS** tab, search for the port with the label **ChatAPI**. Right click and change **Port Visibility** to **Public**.
+
+1. From the **PORTS** tab, search for the port with the label **Frontend app**. Hover over the address and choose **Open in Browser** (second icon) to access the frontend application.
 
 #### 3. Start a Conversation
 
