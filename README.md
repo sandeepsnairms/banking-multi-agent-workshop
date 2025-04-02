@@ -79,6 +79,13 @@ You can run this sample app and workshop virtually by using GitHub Codespaces. T
 azd init -t AzureCosmosDB/banking-multi-agent-workshop
 ```
 
+1. Switch to the `start` branch.
+
+```shell
+git fetch --all
+git checkout start
+```
+
 ### Deployment
 
 1. From the terminal, naviate to the csharp or python folder.
