@@ -46,6 +46,9 @@ module cosmos './shared/cosmosdb.bicep' = {
 	accountsContainerName: 'AccountsData'
 	offersContainerName:'OffersData'
 	usersContainerName:'Users'
+	checkpointsContainerName:'Checkpoints'
+	chatHistoryContainerName:'ChatHistory'
+	debugContainerName:'Debug'
     location: location
     name: '${abbrs.documentDBDatabaseAccounts}${resourceToken}'
     tags: tags
