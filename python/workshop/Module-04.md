@@ -164,23 +164,6 @@ def bank_balance(config: RunnableConfig, account_number: str) -> str:
 
 ### Let's monitor traces in LangSmith
 
-Before testing, lets make a small amendment to your `interactive_chat()` function in our `banking_agents.py` file to add a unique thread ID everytime you resart the app. The thread ID is the unique identifier for the conversation state. Until now we have hard coded it to demonstrate how the conversation can be picked up later even when the application has stopped. But now we want a unique Id everytime the application is stopped, so we can see unique runs in LangSmith. 
-
-Within the `banking_agents.py` file locate the `def interactive_chat()` function.
-
-Immediately above the function declaration remove the below line of code:
-
-```python
-hardcoded_thread_id = "hardcoded-thread-id-01"
-```
-
-Then replace the first line immediately within the function to this:
-
-```python
-def interactive_chat():
-    thread_config = {"configurable": {"thread_id": str(uuid.uuid4()), "userId": "U1", "tenantId": "T1"}}
-```
-
 In your IDE, run the following command in your terminal.
 
 ```bash
@@ -238,9 +221,9 @@ You can try with the below example as well to monitor trace of the transactions 
 Welcome to the single-agent banking assistant.
 Type 'exit' to end the conversation.
 
-You: Show me transactions for account A1
+You: Show me transactions for account Acc001
 transfer_to_transactions_agent...
-transactions_agent: Please provide the start and end dates for the transaction history you would like to view for account A1.
+transactions_agent: Please provide the start and end dates for the transaction history you would like to view for account Acc001.
 
 You: start date as 2025-02-07 and end date as 2025-02-12
 ```
@@ -413,18 +396,18 @@ Next, open a browser and navigate to `http://localhost:8000/docs` to view the sw
 
 This app comes with a few pre-created tenant and user ids that you can use to test with.
 
-| Tenant Id | User Id |
-|-|-|
-| T1 | U1 |
-| T1 | U2 |
-| T1 | U3 |
-| T2 | U4 |
-| T2 | U5 |
-| T2 | U6 |
+| Tenant Id | User Id  |
+|-----------|----------|
+| Contoso   | Mark     |
+| Contoso   | Sandeep  |
+| Contoso   | Theo     |
+| Fabrikan  | Sajee    |
+| Fabrikan  | Abhishek |
+| Fabrikan  | David    |
 
 You can use these to test the API using the Swagger UI with these operations below.
 
-Create a new session with tenantId = `T1` and userId = `U1`
+Create a new session with tenantId = `Contoso` and userId = `Mark`
 
 ![Create a new session](./media/module-04/post_create_session.png)
 
@@ -437,10 +420,10 @@ Capture the value of the new sessionId
   "id": "653cc488-e9d5-4af4-9175-9410e501acb9",
   "type": "session",
   "sessionId": "653cc488-e9d5-4af4-9175-9410e501acb9",
-  "tenantId": "T1",
-  "userId": "U1",
+  "tenantId": "Contoso",
+  "userId": "Mark",
   "tokensUsed": 0,
-  "name": "U1",
+  "name": "Mark Brown",
   "messages": []
 }
 ```
@@ -459,8 +442,8 @@ Here you can see the request from Swagger and the response from our agent.
     "id": "1a568dff-43fe-4477-977b-9c21c8bf61f3",
     "type": "ai_response",
     "sessionId": "653cc488-e9d5-4af4-9175-9410e501acb9",
-    "tenantId": "T1",
-    "userId": "U1",
+    "tenantId": "Contoso",
+    "userId": "Mark",
     "timeStamp": "",
     "sender": "User",
     "senderRole": "User",
@@ -474,8 +457,8 @@ Here you can see the request from Swagger and the response from our agent.
     "id": "10c6daa8-714d-41d8-b564-99a6c8ffdb5d",
     "type": "ai_response",
     "sessionId": "653cc488-e9d5-4af4-9175-9410e501acb9",
-    "tenantId": "T1",
-    "userId": "U1",
+    "tenantId": "Contoso",
+    "userId": "Mark",
     "timeStamp": "",
     "sender": "Coordinator",
     "senderRole": "Assistant",
@@ -534,29 +517,9 @@ azd up
 
 ### Validation Checklist
 
-- [ ] item 1
-- [ ] item 2
-- [ ] item 3
-
-### Common Issues and Solutions
-
-1. Item 1:
-
-   - Sub item 1
-   - Sub item 2
-   - Sub item 3
-
-1. Item 2:
-
-   - Sub item 1
-   - Sub item 2
-   - Sub item 3
-
-3. Item 3:
-
-   - Sub item 1
-   - Sub item 2
-   - Sub item 3
+- [ ] LangSmith is showing the traces of the project correctly.
+- [ ] Swagger UI is working correctly, and you are able to test the API's there.
+- [ ] Frontend is loading correctly, and testing on the UI works correctly.
 
 ### Module Solution
 

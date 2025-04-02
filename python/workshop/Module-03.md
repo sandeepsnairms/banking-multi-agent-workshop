@@ -386,7 +386,7 @@ def service_request(config: RunnableConfig,  recipientPhone: str, recipientEmail
             "type": "ServiceRequest",
             "requestedOn": requested_on,
             "scheduledDateTime": "0001-01-01T00:00:00",
-            "accountId": "A1",
+            "accountId": "Acc001",
             "srType": 0,
             "recipientEmail": recipientEmail,
             "recipientPhone": recipientPhone,
@@ -671,6 +671,26 @@ You can implement this tool in exactly the same way as the other tools. Do you r
 
 With the activities in this module complete, it is time to test your work!
 
+Before we begin testing, let’s make a small update to the `interactive_chat()` function in the `banking_agents.py` file. We’ll modify it to generate a unique thread ID each time the application is restarted. This thread ID serves as the unique identifier for the conversation state. 
+
+Up to this point, we’ve been using a hardcoded thread ID to demonstrate how a conversation can be resumed even after the application stops. However, going forward, we want a fresh, unique ID to be generated on each run to represent a new conversation session.
+
+
+Within the `banking_agents.py` file locate the `def interactive_chat()` function.
+
+Immediately above the function declaration remove the below line of code:
+
+```python
+hardcoded_thread_id = "hardcoded-thread-id-01"
+```
+
+Then replace the first line immediately within the function to this:
+
+```python
+def interactive_chat():
+    thread_config = {"configurable": {"thread_id": str(uuid.uuid4()), "userId": "U1", "tenantId": "T1"}}
+```
+
 ### Ready to test
 
 Let's test our agents!
@@ -687,12 +707,12 @@ Try transferring money between accounts:
 Welcome to the single-agent banking assistant.
 Type 'exit' to end the conversation.
 
-You: I want to transfer 500 from account A1 to A3
+You: I want to transfer 500 from account Acc001 to Acc003
 transfer_to_transactions_agent...
-transactions_agent: To proceed with the transfer of $500 from account A1 to account A3, can you please confirm the following details:
+transactions_agent: To proceed with the transfer of $500 from account Acc001 to account Acc003, can you please confirm the following details:
 
-- **From Account:** A1
-- **To Account:** A3
+- **From Account:** Acc001
+- **To Account:** Acc003
 - **Amount:** $500
 
 Is this correct?
@@ -726,20 +746,6 @@ Type `exit` to end the test.
 - [ ] Service Request agent successfully creates a new service request on behalf of user
 - [ ] New Service request is correctly read by second service request agent
 
-### Common Issues and Solutions
-
-1. Issue 1:
-    - TBD
-    - TBD
-
-1. Issue 2:
-    - TBD
-    - TBD
-
-1. Issue 3:
-    - TBD
-    - TBD
-
 ### Module Solution
 
 The following sections include the completed code for this Module. Copy and paste these into your project if you run into issues and cannot resolve.
@@ -750,6 +756,7 @@ The following sections include the completed code for this Module. Copy and past
 <br>
 
 ```python
+import uuid
 import logging
 import os
 from langchain.schema import AIMessage
@@ -761,13 +768,12 @@ from src.app.services.azure_open_ai import model
 from src.app.tools.coordinator import create_agent_transfer
 
 from langgraph_checkpoint_cosmosdb import CosmosDBSaver
-from src.app.services.azure_cosmos_db import DATABASE_NAME, checkpoint_container, chat_container, update_chat_container, \
-    patch_active_agent  
+from src.app.services.azure_cosmos_db import DATABASE_NAME, checkpoint_container, chat_container, update_chat_container,
+   patch_active_agent
 
 from src.app.tools.sales import calculate_monthly_payment, create_account, get_offer_information
 from src.app.tools.support import get_branch_location, service_request
 from src.app.tools.transactions import bank_balance, bank_transfer, get_transaction_history
-
 
 local_interactive_mode = False
 
@@ -775,153 +781,154 @@ logging.basicConfig(level=logging.ERROR)
 
 PROMPT_DIR = os.path.join(os.path.dirname(__file__), 'prompts')
 
+
 def load_prompt(agent_name):
-    """Loads the prompt for a given agent from a file."""
-    file_path = os.path.join(PROMPT_DIR, f"{agent_name}.prompty")
-    print(f"Loading prompt for {agent_name} from {file_path}")
-    try:
-        with open(file_path, "r", encoding="utf-8") as file:
-            return file.read().strip()
-    except FileNotFoundError:
-        print(f"Prompt file not found for {agent_name}, using default placeholder.")
-        return "You are an AI banking assistant."  # Fallback default prompt
+   """Loads the prompt for a given agent from a file."""
+   file_path = os.path.join(PROMPT_DIR, f"{agent_name}.prompty")
+   print(f"Loading prompt for {agent_name} from {file_path}")
+   try:
+      with open(file_path, "r", encoding="utf-8") as file:
+         return file.read().strip()
+   except FileNotFoundError:
+      print(f"Prompt file not found for {agent_name}, using default placeholder.")
+      return "You are an AI banking assistant."  # Fallback default prompt
 
 
 coordinator_agent_tools = [
-    create_agent_transfer(agent_name="customer_support_agent"),
-    create_agent_transfer(agent_name="transactions_agent"),
-    create_agent_transfer(agent_name="sales_agent"),
+   create_agent_transfer(agent_name="customer_support_agent"),
+   create_agent_transfer(agent_name="transactions_agent"),
+   create_agent_transfer(agent_name="sales_agent"),
 ]
 
 coordinator_agent = create_react_agent(
-    model,
-    tools=coordinator_agent_tools,
-    state_modifier=load_prompt("coordinator_agent"),
+   model,
+   tools=coordinator_agent_tools,
+   state_modifier=load_prompt("coordinator_agent"),
 )
 
-
 customer_support_agent_tools = [
-    get_branch_location,
-    service_request,
+   get_branch_location,
+   service_request,
 ]
 
 customer_support_agent = create_react_agent(
-    model,
-    customer_support_agent_tools,
-    state_modifier=load_prompt("customer_support_agent"),
+   model,
+   customer_support_agent_tools,
+   state_modifier=load_prompt("customer_support_agent"),
 )
 
 transactions_agent_tools = [
-    bank_balance,
-    bank_transfer,
-    get_transaction_history,
+   bank_balance,
+   bank_transfer,
+   get_transaction_history,
 ]
 
 transactions_agent = create_react_agent(
-    model,
-    transactions_agent_tools,
-    state_modifier=load_prompt("transactions_agent"),
+   model,
+   transactions_agent_tools,
+   state_modifier=load_prompt("transactions_agent"),
 )
 
 sales_agent_tools = [
-    calculate_monthly_payment,
-    create_account, 
-    get_offer_information
+   calculate_monthly_payment,
+   create_account,
+   get_offer_information
 ]
 
 sales_agent = create_react_agent(
-    model,
-    sales_agent_tools,
-    state_modifier=load_prompt("sales_agent"),
+   model,
+   sales_agent_tools,
+   state_modifier=load_prompt("sales_agent"),
 )
 
+
 def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coordinator_agent", "human"]]:
-    thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
-    userId = config["configurable"].get("userId", "UNKNOWN_USER_ID")
-    tenantId = config["configurable"].get("tenantId", "UNKNOWN_TENANT_ID")
+   thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
+   userId = config["configurable"].get("userId", "UNKNOWN_USER_ID")
+   tenantId = config["configurable"].get("tenantId", "UNKNOWN_TENANT_ID")
 
-    logging.debug(f"Calling coordinator agent with Thread ID: {thread_id}")
+   logging.debug(f"Calling coordinator agent with Thread ID: {thread_id}")
 
-    # Get the active agent from Cosmos DB with a point lookup
-    partition_key = [tenantId, userId, thread_id]
-    activeAgent = None
-    try:
-        activeAgent = chat_container.read_item(
-            item=thread_id, 
-            partition_key=partition_key).get('activeAgent','unknown')
-        
-    except Exception as e:
-        logging.debug(f"No active agent found: {e}")
+   # Get the active agent from Cosmos DB with a point lookup
+   partition_key = [tenantId, userId, thread_id]
+   activeAgent = None
+   try:
+      activeAgent = chat_container.read_item(
+         item=thread_id,
+         partition_key=partition_key).get('activeAgent', 'unknown')
 
-    if activeAgent is None:
-        if local_interactive_mode:
-            update_chat_container({
-                "id": thread_id,
-                "tenantId": "T1",
-                "userId": "U1",
-                "sessionId": thread_id,
-                "name": "cli-test",
-                "age": "cli-test",
-                "address": "cli-test",
-                "activeAgent": "unknown",
-                "ChatName": "cli-test",
-                "messages": []
-            })
+   except Exception as e:
+      logging.debug(f"No active agent found: {e}")
 
-    logging.debug(f"Active agent from point lookup: {activeAgent}")
+   if activeAgent is None:
+      if local_interactive_mode:
+         update_chat_container({
+            "id": thread_id,
+            "tenantId": "T1",
+            "userId": "U1",
+            "sessionId": thread_id,
+            "name": "cli-test",
+            "age": "cli-test",
+            "address": "cli-test",
+            "activeAgent": "unknown",
+            "ChatName": "cli-test",
+            "messages": []
+         })
 
-    # If active agent is something other than unknown or coordinator_agent, transfer directly to that agent
-    if activeAgent is not None and activeAgent not in ["unknown", "coordinator_agent"]:
-        logging.debug(f"Routing straight to last active agent: {activeAgent}")
-        return Command(update=state, goto=activeAgent)
-    else:
-        response = coordinator_agent.invoke(state)
-        return Command(update=response, goto="human")
+   logging.debug(f"Active agent from point lookup: {activeAgent}")
+
+   # If active agent is something other than unknown or coordinator_agent, transfer directly to that agent
+   if activeAgent is not None and activeAgent not in ["unknown", "coordinator_agent"]:
+      logging.debug(f"Routing straight to last active agent: {activeAgent}")
+      return Command(update=state, goto=activeAgent)
+   else:
+      response = coordinator_agent.invoke(state)
+      return Command(update=response, goto="human")
 
 
 def call_customer_support_agent(state: MessagesState, config) -> Command[Literal["customer_support_agent", "human"]]:
-    thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
-    if local_interactive_mode:
-        patch_active_agent(
-            tenantId="T1", 
-            userId="U1", 
-            sessionId=thread_id,
-            activeAgent="customer_support_agent")
+   thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
+   if local_interactive_mode:
+      patch_active_agent(
+         tenantId="T1",
+         userId="U1",
+         sessionId=thread_id,
+         activeAgent="customer_support_agent")
 
-    response = customer_support_agent.invoke(state)
-    return Command(update=response, goto="human")
+   response = customer_support_agent.invoke(state)
+   return Command(update=response, goto="human")
 
 
 def call_sales_agent(state: MessagesState, config) -> Command[Literal["sales_agent", "human"]]:
-    thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
-    if local_interactive_mode:
-        patch_active_agent(
-            tenantId="T1", 
-            userId="U1", 
-            sessionId=thread_id,
-            activeAgent="sales_agent")
-    response = sales_agent.invoke(state, config)  # Invoke sales agent with state
-    return Command(update=response, goto="human")
+   thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
+   if local_interactive_mode:
+      patch_active_agent(
+         tenantId="T1",
+         userId="U1",
+         sessionId=thread_id,
+         activeAgent="sales_agent")
+   response = sales_agent.invoke(state, config)  # Invoke sales agent with state
+   return Command(update=response, goto="human")
 
 
 def call_transactions_agent(state: MessagesState, config) -> Command[Literal["transactions_agent", "human"]]:
-    thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
-    if local_interactive_mode:
-        patch_active_agent(
-            tenantId="T1", 
-            userId="U1", 
-            sessionId=thread_id,
-            activeAgent="transactions_agent")
-    response = transactions_agent.invoke(state)
-    return Command(update=response, goto="human")
+   thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
+   if local_interactive_mode:
+      patch_active_agent(
+         tenantId="T1",
+         userId="U1",
+         sessionId=thread_id,
+         activeAgent="transactions_agent")
+   response = transactions_agent.invoke(state)
+   return Command(update=response, goto="human")
 
 
 # The human_node with interrupt function serves as a mechanism to stop
 # the graph and collect user input for multi-turn conversations.
 def human_node(state: MessagesState, config) -> None:
-    """A node for collecting user input."""
-    interrupt(value="Ready for user input.")
-    return None
+   """A node for collecting user input."""
+   interrupt(value="Ready for user input.")
+   return None
 
 
 builder = StateGraph(MessagesState)
@@ -936,45 +943,45 @@ builder.add_edge(START, "coordinator_agent")
 checkpointer = CosmosDBSaver(database_name=DATABASE_NAME, container_name=checkpoint_container)
 graph = builder.compile(checkpointer=checkpointer)
 
-hardcoded_thread_id = "hardcoded-thread-id-01"
+
 def interactive_chat():
-    thread_config = {"configurable": {"thread_id": hardcoded_thread_id, "userId": "cli-test", "tenantId": "cli-test"}}
-    global local_interactive_mode
-    local_interactive_mode = True
-    print("Welcome to the single-agent banking assistant.")
-    print("Type 'exit' to end the conversation.\n")
+   thread_config = {"configurable": {"thread_id": str(uuid.uuid4()), "userId": "cli-test", "tenantId": "cli-test"}}
+   global local_interactive_mode
+   local_interactive_mode = True
+   print("Welcome to the single-agent banking assistant.")
+   print("Type 'exit' to end the conversation.\n")
 
-    user_input = input("You: ")
-    conversation_turn = 1
+   user_input = input("You: ")
+   conversation_turn = 1
 
-    while user_input.lower() != "exit":
+   while user_input.lower() != "exit":
 
-        input_message = {"messages": [{"role": "user", "content": user_input}]}
+      input_message = {"messages": [{"role": "user", "content": user_input}]}
 
-        response_found = False  # Track if we received an AI response
+      response_found = False  # Track if we received an AI response
 
-        for update in graph.stream(
-                input_message,
-                config=thread_config,
-                stream_mode="updates",
-        ):
-            for node_id, value in update.items():
-                if isinstance(value, dict) and value.get("messages"):
-                    last_message = value["messages"][-1]  # Get last message
-                    if isinstance(last_message, AIMessage):
-                        print(f"{node_id}: {last_message.content}\n")
-                        response_found = True
+      for update in graph.stream(
+              input_message,
+              config=thread_config,
+              stream_mode="updates",
+      ):
+         for node_id, value in update.items():
+            if isinstance(value, dict) and value.get("messages"):
+               last_message = value["messages"][-1]  # Get last message
+               if isinstance(last_message, AIMessage):
+                  print(f"{node_id}: {last_message.content}\n")
+                  response_found = True
 
-        if not response_found:
-            print("DEBUG: No AI response received.")
+      if not response_found:
+         print("DEBUG: No AI response received.")
 
-        # Get user input for the next round
-        user_input = input("You: ")
-        conversation_turn += 1
+      # Get user input for the next round
+      user_input = input("You: ")
+      conversation_turn += 1
 
 
 if __name__ == "__main__":
-    interactive_chat()
+   interactive_chat()
 ```
 
 </details>
@@ -1027,7 +1034,7 @@ def service_request(config: RunnableConfig,  recipientPhone: str, recipientEmail
             "type": "ServiceRequest",
             "requestedOn": requested_on,
             "scheduledDateTime": "0001-01-01T00:00:00",
-            "accountId": "A1",
+            "accountId": "Acc001",
             "srType": 0,
             "recipientEmail": recipientEmail,
             "recipientPhone": recipientPhone,
