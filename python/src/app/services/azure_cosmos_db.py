@@ -34,46 +34,23 @@ except Exception as dac_error:
     print(f"[ERROR] Failed to authenticate using DefaultAzureCredential: {dac_error}")
     raise dac_error
 
-# Initialize Cosmos DB client
+# Initialize Cosmos DB client and containers
 try:
     database = cosmos_client.get_database_client(DATABASE_NAME)
     print(f"[DEBUG] Connected to Cosmos DB: {DATABASE_NAME}")
 
-    chat_container = database.create_container_if_not_exists(
-        # Create a Cosmos DB container with hierarchical partition key
-        id='Chat', partition_key=PartitionKey(path=["/tenantId", "/userId", "/sessionId"], kind="MultiHash")
-    )
-    checkpoint_container = database.create_container_if_not_exists(
-        id='Checkpoints',
-        partition_key=PartitionKey(path="/partition_key"),
-    )
-    chat_history_container = database.create_container_if_not_exists(
-        id='ChatHistory',
-        partition_key=PartitionKey(path="/sessionId"),
-    )
-    users_container = database.create_container_if_not_exists(
-        id="Users",
-        partition_key=PartitionKey(path="/tenantId"),
-    )
-
-    offers_container = database.create_container_if_not_exists(
-        id="OffersData",
-        partition_key=PartitionKey(path="/tenantId"),
-    )
-
-    account_container = database.create_container_if_not_exists(
-        id="AccountsData",
-        partition_key=PartitionKey(path="/accountId"),
-    )
-    debug_container = database.create_container_if_not_exists(
-        id='Debug',
-        partition_key=PartitionKey(path="/sessionId"),
-    )
-
+    chat_container = database.get_container_client("Chat")
+    checkpoint_container = database.get_container_client("Checkpoints")
+    chat_history_container = database.get_container_client("ChatHistory")
+    users_container = database.get_container_client("Users")
+    offers_container = database.get_container_client("OffersData")
+    account_container = database.get_container_client("AccountsData")
+    debug_container = database.get_container_client("Debug")
 
 except Exception as e:
-    print(f"[ERROR] Error initializing Cosmos DB Container: {e}")
+    print(f"[ERROR] Error initializing Cosmos DB Containers: {e}")
     raise e
+
 
 
 def vector_search(vectors, accountType):
