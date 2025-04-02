@@ -52,7 +52,7 @@ You can choose from the following options to get started with the workshop.
 
 #### GitHub Codespaces
 
-You can run this sample app and workshop virtually by using GitHub Codespaces. The button will open a web-based VS Code instance in your browser:
+You can run this sample app and workshop virtually by using GitHub Codespaces (requires a GitHub account). The button will open a web-based VS Code instance in your browser:
 
 1. Open the template (this may take several minutes):
 
@@ -65,10 +65,12 @@ You can run this sample app and workshop virtually by using GitHub Codespaces. T
 
 1. Install [Docker Desktop](https://docs.docker.com/desktop/), and [VS Code](https://code.visualstudio.com/Download) along with the [Dev Containers extension](https://code.visualstudio.com/docs/devcontainers/tutorial#_install-the-extension) extension.
 
-2. Clone the repository:
+2. Clone the repository and checkout the start branch:
 
    ```bash
    git clone https://github.com/AzureCosmosDB/banking-multi-agent-workshop/
+   cd banking-multi-agent-workshop
+   git checkout start
    ```
 
 3. Open the repository in VS Code and select **Reopen in Container** when prompted. When asked to **Select a devcontainer.json file**, select the **C# Development Container**.
@@ -88,11 +90,12 @@ You can run this sample app and workshop virtually by using GitHub Codespaces. T
    - [Visual Studio](https://visualstudio.microsoft.com/downloads/) or [VS Code](https://code.visualstudio.com/Download) with [C# Dev Kit](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csdevkit)
    - To build and run the frontend component, install [Node.js](https://nodejs.org/en/download/) and [Angular CLI](https://angular.dev/installation#install-angular-cli)
 
-2. Clone the repository and navigate to the folder:
+2. Clone the repository and checkout the start branch:
 
    ```bash
    git clone https://github.com/AzureCosmosDB/banking-multi-agent-workshop/
    cd banking-multi-agent-workshop
+   git checkout start
    ```
 
 3. Move on to the [Deployment](Module-00.md#deployment) section.
@@ -101,19 +104,13 @@ You can run this sample app and workshop virtually by using GitHub Codespaces. T
 
 ### Deployment
 
-1. From the terminal, switch to the `start` branch:
-
-   ```bash
-   git checkout start
-   ```
-
 1. Navigate to the correct folder:
 
    ```bash
    cd csharp/infra
    ```
 
-1. Log in to Azure using AZD.
+1. Log in to Azure using AZD. Follow the prompts to complete authentication.
 
    ```bash
    azd auth login
@@ -129,6 +126,31 @@ This step will take approximately 10-15 minutes.
 
 > [!IMPORTANT]
 > If you encounter any errors during the deployment, rerun `azd up` to continue the deployment from where it left off. This will not create duplicate resources, and tends to resolve most issues.
+
+1. When the resources are finally deployed, you will see a message in the terminal like below:
+
+```bash
+Deploying services (azd deploy)
+
+  (✓) Done: Deploying service ChatServiceWebApi
+  - Endpoint: https://ca-webapi-6xbkqp3ybtbuw.whitemoss-86b36485.eastus2.azurecontainerapps.io/
+
+Do you want to add some dummy data for testing? (yes/no): y
+```
+
+1. Press `y` to load the data for the workshop.
+
+1. After the data is loaded, you will see a message in the terminal like below:
+
+```bash
+PUT offerdata Request Successful: True
+PUT offerdata Request Successful: True
+PUT offerdata Request Successful: True
+
+Do you want to deploy the frontend app? (yes/no): 
+```
+1. Press `y` to deploy the frontend application.
+
 
 ## Activity 3: Workshop Structure and Overview Session
 
@@ -156,7 +178,7 @@ When you deploy this solution it automatically injects endpoints and configurati
 
 ##### If running on Codespaces
 
-1. Navigate to `src\ChatAPI`.
+1. Navigate to `src/ChatAPI`.
 2. Run the following command to trust the development certificate:
 
    ```sh

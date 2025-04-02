@@ -222,3 +222,7 @@ output FRONTENDPOINT_URL string = webApp.outputs.url
 output WEB_APP_NAME string = '${abbrs.webSitesAppService}${resourceToken}'
 output RG_NAME string = 'rg-${environmentName}'
 
+ output AZURE_COSMOSDB_ENDPOINT string = cosmos.outputs.endpoint
+ output AZURE_OPENAI_ENDPOINT string = openAi.outputs.endpoint
+ output APP_INSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString
+

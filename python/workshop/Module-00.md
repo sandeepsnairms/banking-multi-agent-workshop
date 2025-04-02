@@ -52,7 +52,7 @@ You can choose from the following options to get started with the workshop.
 
 #### GitHub Codespaces
 
-You can run this sample app and workshop virtually by using GitHub Codespaces. The button will open a web-based VS Code instance in your browser:
+You can run this sample app and workshop virtually by using GitHub Codespaces (requires a GitHub account). The button will open a web-based VS Code instance in your browser:
 
 1. Open the template (this may take several minutes):
 
@@ -64,10 +64,12 @@ You can run this sample app and workshop virtually by using GitHub Codespaces. T
 
 1. Install [Docker Desktop](https://docs.docker.com/desktop/), and [VS Code](https://code.visualstudio.com/Download) along with the [Dev Containers extension](https://code.visualstudio.com/docs/devcontainers/tutorial#_install-the-extension) extension.
 
-2. Clone the repository:
+2. Clone the repository and checkout the start branch:
 
    ```bash
    git clone https://github.com/AzureCosmosDB/banking-multi-agent-workshop/
+   cd banking-multi-agent-workshop
+   git checkout start
    ```
 
 3. Open the repository in VS Code and select **Reopen in Container** when prompted. When asked to **Select a devcontainer.json file**, select the **Python Development Container**.
@@ -92,6 +94,7 @@ You can run this sample app and workshop virtually by using GitHub Codespaces. T
    ```bash
    git clone https://github.com/AzureCosmosDB/banking-multi-agent-workshop/
    cd banking-multi-agent-workshop
+   git checkout start
    ```
 
 3. Move on to the [Deployment](Module-00.md#deployment) section.
@@ -100,19 +103,13 @@ You can run this sample app and workshop virtually by using GitHub Codespaces. T
 
 ### Deployment
 
-1. From the terminal, switch to the `start` branch:
-
-   ```bash
-   git checkout start
-   ```
-
 1. Navigate to the correct folder:
 
    ```bash
    cd python/infra
    ```
 
-1. Log in to Azure using AZD.
+1. Log in to Azure using AZD. Follow the prompts to complete authentication.
 
    ```bash
    azd auth login
@@ -129,7 +126,7 @@ This step will take approximately 10-15 minutes.
 > [!IMPORTANT]
 > If you encounter any errors during the deployment, rerun `azd up` to continue the deployment from where it left off. This will not create duplicate resources, and tends to resolve most issues.
 
-When the resources are finally deployed, you will see a message in the terminal like below:
+1. When the resources are finally deployed, you will see a message in the terminal like below:
 
 ```bash
 Deploying services (azd deploy)
@@ -137,15 +134,11 @@ Deploying services (azd deploy)
   (✓) Done: Deploying service ChatServiceWebApi
   - Endpoint: https://ca-webapi-6xbkqp3ybtbuw.whitemoss-86b36485.eastus2.azurecontainerapps.io/
 
-  (✓) Done: Deploying service FrontendApp
-  - Endpoint: https://ca-frontend-6xbkqp3ybtbuw.whitemoss-86b36485.eastus2.azurecontainerapps.io/
-
 Do you want to add some dummy data for testing? (yes/no): y
 ```
 
-Adding dummy data is optional and can be skipped, but we recommend loading the data to have a more complete experience.
+1. Press `y` to load the data for the workshop.
 
-You can click on the FrontendApp endpoint to see the deployed application, but if you try chatting to it, you will see that it is not yet implemented. This is because we have not yet built the agents that will be served by the API layer.
 
 ## Activity 3: Workshop Structure and Overview Session
 
