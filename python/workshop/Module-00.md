@@ -193,18 +193,29 @@ But you will still need to install dependencies to run the solution locally.
 
 The API will be available at `http://localhost:8000/docs`. This has been pre-built with boilerplate code that will create chat sessions and store the chat history in Cosmos DB.
 
-To run the frontend
+#### Run the Frontend App locally
 
-- Navigate to the `frontend` folder
-- update the `apiUrl` values in `src/environments/environment.ts` file with the API endpoint (http://localhost:8000/)
-- In a separate terminal window from the one running FastAPI server, Run the following command (make sure you have Node.js and Angular CLI installed - see the prerequisites section above):
+1. Update the `apiUrl` values in `frontend/src/environments/environment.ts` file with the API endpoint (http://localhost:8000/)
+1. Open a new terminal, navigate to the `frontend` folder and run the following to start the application:
 
-```shell
-npm i
-ng serve
-```
+   ```sh
+   npm install
+   npm start
+   ```
+1. Open your browser and navigate to <http://localhost:8000/>.
 
-You can now navigate to `http://localhost:4200` to see the frontend application.
+#### Run the Frontend App on Codespaces
+
+
+1. Open a new terminal, navigate to the `frontend` folder and run the following to start the application:
+
+   ```sh
+   npm install
+   npm start
+   ```
+1. From the **Ports** tab:
+   1. Right-click and select the **Port Visibility** option to set port **ChatAPI (8000)** as **Public**.
+   1. For the port with the label **Frontend app**. Hover over the address and choose **Open in Browser** (second icon) to access the frontend application.
 
 Lets try a couple of things:
 
