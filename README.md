@@ -20,15 +20,7 @@ This template, the application code and configuration it contains, has been buil
 This application demonstrates the following concepts and how to implement them:
 
 View the Exercises for the [LangGraph Python Workshop](./python/workshop/Exercise-00.md)
-View the Exercises for the [Semantic Kernel Csharp Workshop](./csharp/workshop/Exercise-00.md)
-
-### Architecture Diagram
-
-![Architecture Diagram](./media/construction.jpg)
-
-### User Experience
-
-![Multi-Agent user interface](./media/construction.jpg)
+View the Exercises for the [Semantic Kernel C# Workshop](./csharp/workshop/Exercise-00.md)
 
 ## Getting Started
 
