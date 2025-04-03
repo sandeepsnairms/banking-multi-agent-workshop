@@ -69,6 +69,7 @@ You can run this sample app and workshop virtually by using GitHub Codespaces (r
    ```bash
    git clone https://github.com/AzureCosmosDB/banking-multi-agent-workshop/
    cd banking-multi-agent-workshop
+   git fetch --all
    git checkout start
    ```
 
