@@ -84,7 +84,7 @@ module openAi './shared/openai.bicep' = {
 var deployments = [
   {
     name: 'gpt-4o'
-    skuCapacity: 10
+    skuCapacity: 30
 	skuName: 'GlobalStandard'
     modelName: 'gpt-4o'
     modelVersion: '2024-11-20'
