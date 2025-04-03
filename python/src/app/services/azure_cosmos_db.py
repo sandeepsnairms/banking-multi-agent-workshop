@@ -55,7 +55,8 @@ except Exception as e:
 
 def vector_search(vectors, accountType):
     print("accountType: ", accountType)
-    print("vectors: ", vectors)
+    # commenting out printing vectors due to length
+    # print("vectors: ", vectors)
     # Execute the query
     results = offers_container.query_items(
         query='''
