@@ -628,7 +628,7 @@ graph = builder.compile(checkpointer=checkpointer)
 
 
 def interactive_chat():
-    thread_config = {"configurable": {"thread_id": str(uuid.uuid4()), "userId": "U1", "tenantId": "T1"}}
+    thread_config = {"configurable": {"thread_id": str(uuid.uuid4()), "userId": "Mark", "tenantId": "Contoso"}}
     global local_interactive_mode
     local_interactive_mode = True
     print("Welcome to the single-agent banking assistant.")

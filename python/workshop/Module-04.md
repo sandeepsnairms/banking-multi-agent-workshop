@@ -88,7 +88,12 @@ Let's update our code to add @traceable decorator so that we can monitor the tra
 
 In your IDE, navigate to the file `banking_agents.py` file.
 
-Add `@traceable(run_type="llm")` on top of the `def call_coordinator_agent(state: MessagesState, config)` function. It should look like this now. 
+Add `@traceable(run_type="llm")` on top of the `def call_coordinator_agent(state: MessagesState, config)` function. It should look like this now.
+
+Add the below import line under the imports for this file
+```python
+from langsmith import traceable
+```
 
 ```python
 @traceable(run_type="llm")
@@ -117,7 +122,12 @@ def human_node(state: MessagesState, config) -> None:
 def interactive_chat():
 ```
 
-Let's go to the `tools/coordinator.py` file now. We will add the `@traceable` on top of all the functions. We are not adding the run type on these functions because we already have `@tool` decorator on top of these functions which would help LangSmith to infer that these are tools used by the Agents. It should look like this.
+Let's go to the `tools/support.py` file now. We will add the `@traceable` on top of all the functions. We are not adding the run type on these functions because we already have `@tool` decorator on top of these functions which would help LangSmith to infer that these are tools used by the Agents. It should look like this.
+
+Add the below import line under the imports for this file
+```python
+from langsmith import traceable
+```
 
 ```python
 @tool
@@ -131,6 +141,11 @@ def get_branch_location(state: str) -> Dict[str, List[str]]:
 ```
 
 Now, let's go to the `tools/sales.py` file now. It should look like this after adding the `@traceable` decorator.
+
+Add the below import line under the imports for this file
+```python
+from langsmith import traceable
+```
 
 ```python
 @tool
@@ -147,6 +162,11 @@ def calculate_monthly_payment(loan_amount: float, years: int) -> float:
 ```
 
 Now, let's go to the `tools/transactions.py` file  now. It should look like this after adding the `@traceable` decorator.
+
+Add the below import line under the imports for this file
+```python
+from langsmith import traceable
+```
 
 ```python
 @tool
