@@ -24,6 +24,19 @@
       ]
     }
   },
-  "postCreateCommand": "npm install -g @angular/cli",
-  "remoteUser": "vscode"
+  "postCreateCommand": "npm install -g @angular/cli && echo \"Updating API URL in environment.ts...\" && if [ -n \"$CODESPACE_NAME\" ]; then sed -i \"s|http://localhost:63280/|https://$CODESPACE_NAME-8000.app.github.dev/|g\" /workspaces/banking-multi-agent-workshop/frontend/src/environments/environment.ts; else sed -i \"s|http://localhost:63280/|http://localhost:8000/|g\" /workspaces/banking-multi-agent-workshop/frontend/src/environments/environment.ts; fi",
+  "remoteUser": "vscode",
+  "forwardPorts": [8000, 4200],
+  "portsAttributes": {
+    "8000": {
+      "label": "ChatAPI",
+      "protocol": "http",
+      "visibility": "public"
+    },
+    "4200": {
+      "label": "Frontend app",
+      "protocol": "http",
+      "visibility": "public"
+    }
+  }
 }
