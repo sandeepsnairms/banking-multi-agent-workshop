@@ -11,6 +11,12 @@ This sample application and full-day workshop shows how to build a multi-tenant,
 
 Both are hosted on Azure Container Apps, with Azure Cosmos DB for NoSQL as the transactional database and vector store and Azure OpenAI Service for embeddings and completions. This is sample and full-day workshop provides practical guidance on many concepts you will need to design and build these types of applications.
 
+## User Experience 
+
+
+https://github.com/user-attachments/assets/cfd6cd29-ceeb-4753-ba38-9fa05447bfcc
+
+
 ## Important Security Notice
 
 This template, the application code and configuration it contains, has been built to showcase Microsoft Azure specific services and tools. We strongly advise our customers not to make this code part of their production environments without implementing or enabling additional security features.
@@ -19,8 +25,8 @@ This template, the application code and configuration it contains, has been buil
 
 This application demonstrates the following concepts and how to implement them:
 
-View the Exercises for the [LangGraph Python Workshop](./python/workshop/Exercise-00.md)
-View the Exercises for the [Semantic Kernel C# Workshop](./csharp/workshop/Exercise-00.md)
+View the Exercises for the [LangGraph Python Workshop](./python/workshop/Module-00.md)
+View the Exercises for the [Semantic Kernel C# Workshop](./csharp/workshop/Module-00.md)
 
 ## Getting Started
 
