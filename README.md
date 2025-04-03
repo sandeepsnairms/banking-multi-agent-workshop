@@ -26,6 +26,7 @@ This template, the application code and configuration it contains, has been buil
 This application demonstrates the following concepts and how to implement them:
 
 View the Exercises for the [LangGraph Python Workshop](./python/workshop/Module-00.md)
+
 View the Exercises for the [Semantic Kernel C# Workshop](./csharp/workshop/Module-00.md)
 
 ## Getting Started
