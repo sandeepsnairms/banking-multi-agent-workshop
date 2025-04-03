@@ -22,7 +22,7 @@ In this Module, you'll connect your agent to Azure Cosmos DB to provide memory f
 
 ## Activity 1: Session Memory Persistence in Agent Frameworks
 
-In this actibity, you will get an overview of memory and how it works for Semantic Kernel Agents and LangGraph and learn the basics for how to configure and connect both to Azure Cosmos DB as a memory store for both chat history and/or state management.
+In this activity, you will get an overview of memory and how it works for Semantic Kernel Agents and LangGraph and learn the basics for how to configure and connect both to Azure Cosmos DB as a memory store for both chat history and/or state management.
 
 
 ## Activity 2: Connecting Agent Frameworks to Azure Cosmos DB
@@ -50,7 +50,7 @@ Key Features of the Checkpointer Plugin:
 
 Let's add the Checkpointer Plugin to our application.
 
-To being, navigate to the `banking_Agents.py` file.
+To begin, navigate to the `banking_Agents.py` file.
 
 Copy the code below to the top of the file with the other imports:
 
