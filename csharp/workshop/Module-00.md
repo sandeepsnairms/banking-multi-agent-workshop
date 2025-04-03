@@ -36,7 +36,7 @@ Complete the following tasks in order to prepare your environment for this works
 
   #### Checking Azure OpenAI quota limits
 
-  For this sample to deploy successfully, there needs to be enough Azure OpenAI quota for the models used by this sample within your subscription. This sample deploys a new Azure OpenAI account with two models, **gpt-4o-mini with 10K tokens** per minute and **text-3-embedding-small with 5k tokens** per minute. For more information on how to check your model quota and change it, see [Manage Azure OpenAI Service Quota](https://learn.microsoft.com/azure/ai-services/openai/how-to/quota)
+  For this sample to deploy successfully, there needs to be enough Azure OpenAI quota for the models used by this sample within your subscription. This sample deploys a new Azure OpenAI account with two models, **gpt-4o with 30K tokens** per minute and **text-3-embedding-small with 5k tokens** per minute. For more information on how to check your model quota and change it, see [Manage Azure OpenAI Service Quota](https://learn.microsoft.com/azure/ai-services/openai/how-to/quota)
 
   #### Azure Subscription Permission Requirements
 
@@ -168,7 +168,8 @@ When you deploy this solution it automatically injects endpoints and configurati
    dotnet run
    ```
 
-4. Copy the URL from the **Ports** tab.
+4. In the **Ports** tab, right-click and select the **Port Visibility** option to set port **63280** as **Public**.
+5. Copy the URL for **63280** port.
 
 ##### If running locally on Visual Studio or VS Code
 
@@ -186,7 +187,13 @@ When you deploy this solution it automatically injects endpoints and configurati
    ng serve --host 0.0.0.0
    ```
 
+##### If running locally
+
 1. Open your browser and navigate to <http://localhost:4200/>.
+
+##### If running on Codespaces
+
+1. From the **PORTS** tab, search for the port with the label **Frontend app**. Hover over the address and choose **Open in Browser** (second icon) to access the frontend application.
 
 #### 3. Start a Conversation
 

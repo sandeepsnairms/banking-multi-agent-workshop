@@ -81,7 +81,7 @@ module openAi './shared/openai.bicep' = {
 var deployments = [
   {
     name: 'gpt-4o'
-    skuCapacity: 10
+    skuCapacity: 30
 	skuName: 'GlobalStandard'
     modelName: 'gpt-4o'
     modelVersion: '2024-11-20'
@@ -221,4 +221,6 @@ output SERVICE_ChatAPI_ENDPOINT_URL string = ChatAPI.outputs.uri
 output FRONTENDPOINT_URL string = webApp.outputs.url
 output WEB_APP_NAME string = '${abbrs.webSitesAppService}${resourceToken}'
 output RG_NAME string = 'rg-${environmentName}'
-
+output AZURE_COSMOSDB_ENDPOINT string = cosmos.outputs.endpoint
+output AZURE_OPENAI_ENDPOINT string = openAi.outputs.endpoint
+output APP_INSIGHTS_CONNECTION_STRING string = monitoring.outputs.applicationInsightsConnectionString

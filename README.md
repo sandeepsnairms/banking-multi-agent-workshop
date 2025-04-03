@@ -29,6 +29,7 @@ There are two completely separate implementations for this sample multi-agent ap
 [LangGraph Multi-Agent Sample](./python/readme.md)
 [Semantic Kernel Multi-Agent Sample](./csharp/README.md)
 
+
 ## Important Security Notice
 
 This template, the application code and configuration it contains, has been built to showcase Microsoft Azure specific services and tools. We strongly advise our customers not to make this code part of their production environments without implementing or enabling additional security features.

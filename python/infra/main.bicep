@@ -46,6 +46,9 @@ module cosmos './shared/cosmosdb.bicep' = {
 	accountsContainerName: 'AccountsData'
 	offersContainerName:'OffersData'
 	usersContainerName:'Users'
+	checkpointsContainerName:'Checkpoints'
+	chatHistoryContainerName:'ChatHistory'
+	debugContainerName:'Debug'
     location: location
     name: '${abbrs.documentDBDatabaseAccounts}${resourceToken}'
     tags: tags
@@ -81,7 +84,7 @@ module openAi './shared/openai.bicep' = {
 var deployments = [
   {
     name: 'gpt-4o'
-    skuCapacity: 10
+    skuCapacity: 30
 	skuName: 'GlobalStandard'
     modelName: 'gpt-4o'
     modelVersion: '2024-11-20'
