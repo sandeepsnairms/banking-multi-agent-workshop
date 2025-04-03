@@ -1,4 +1,4 @@
-# Build a Multi-Agent Workshop using LangGraph
+# Build a Multi-Agent Workshop using Semantic Kernel Agents
 
 **[Home](Home.md)** - [Prerequisites - Deployment and Setup >](./Module-00.md)
 

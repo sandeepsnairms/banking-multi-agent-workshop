@@ -1,3 +1,3 @@
-# Readme for the Semantic Kernel version of this workshop
+# Semantic Kernel Agents Workshop
 
-TBD add content here. This needs to slightly mirror the Python version but be SK and C# specific
+Navigate to the [Semantic Kernel Csharp Workshop](./csharp/workshop/Module-00.md)
