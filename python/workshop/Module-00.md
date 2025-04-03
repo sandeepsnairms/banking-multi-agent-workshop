@@ -170,7 +170,7 @@ But you will still need to install dependencies to run the solution locally.
 3. Install the required dependencies for the project.
 
    ```shell
-   pip install -r src/app/requirements.txt
+   pip install -r ../src/app/requirements.txt
    ```
 
 ## Activity 5: Compile and Run
