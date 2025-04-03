@@ -18,7 +18,7 @@ In this Module, you'll deploy the Azure Services needed to run this workshop and
 
 1. [Activity 1: Configure Workshop Environment](#activity-1-configure-workshop-environment)
 1. [Activity 2: Deploy Azure Services](#activity-2-deploy-azure-services)
-1. [Activity 3: Workshop Structure and Overview Session](#activity-3-workshop-structure-and-overview)
+1. [Activity 3: Workshop Structure and Overview Session](#activity-3-workshop-structure-and-overview-session)
 1. [Activity 4: Configure Environment Variables](#activity-4-configure-environment-variables)
 1. [Activity 5: Compile and Run](#activity-5-compile-and-run)
 
