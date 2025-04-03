@@ -19,16 +19,15 @@ https://github.com/user-attachments/assets/0e943130-13c5-4bb5-a40b-51b6c85dd58c
 
 The workshop for this sample is on the [Start branch](https://github.com/AzureCosmosDB/banking-multi-agent-workshop/tree/start) in this repository. To navigate and complete this workshop select one of the following:
 
-Navigate to the [LangGraph Python Workshop](https://github.com/AzureCosmosDB/banking-multi-agent-workshop/blob/start/python/workshop/Module-00.md)
-Navigate to the [Semantic Kernel Csharp Workshop](https://github.com/AzureCosmosDB/banking-multi-agent-workshop/blob/start/csharp/workshop/Module-00.md)
+- Navigate to the [LangGraph Python Workshop](https://github.com/AzureCosmosDB/banking-multi-agent-workshop/blob/start/python/workshop/Module-00.md)
+- Navigate to the [Semantic Kernel Csharp Workshop](https://github.com/AzureCosmosDB/banking-multi-agent-workshop/blob/start/csharp/workshop/Module-00.md)
 
 ## Explore the Complete Samples
 
 There are two completely separate implementations for this sample multi-agent application with different instructions on how to deploy and configure for use.
 
-[LangGraph Multi-Agent Sample](./python/readme.md)
-[Semantic Kernel Multi-Agent Sample](./csharp/README.md)
-
+- [LangGraph Multi-Agent Sample](./python/readme.md)
+- [Semantic Kernel Multi-Agent Sample](./csharp/README.md)
 
 ## Important Security Notice
 
