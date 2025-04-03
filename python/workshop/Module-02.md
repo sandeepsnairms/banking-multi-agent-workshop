@@ -114,8 +114,8 @@ def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coo
         if local_interactive_mode:
             update_chat_container({
                 "id": thread_id,
-                "tenantId": "T1",
-                "userId": "U1",
+                "tenantId": "Contoso",
+                "userId": "Mark",
                 "sessionId": thread_id,
                 "name": "cli-test",
                 "age": "cli-test",
@@ -153,8 +153,8 @@ def call_customer_support_agent(state: MessagesState, config) -> Command[Literal
     thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
     if local_interactive_mode:
         patch_active_agent(
-            tenantId="T1", 
-            userId="U1", 
+            tenantId="Contoso", 
+            userId="Mark", 
             sessionId=thread_id,
             activeAgent="customer_support_agent")
 
@@ -199,7 +199,7 @@ Then replace the first line immediately within the function to this:
 
 ```python
 def interactive_chat():
-    thread_config = {"configurable": {"thread_id": hardcoded_thread_id, "userId": "U1", "tenantId": "T1"}}
+    thread_config = {"configurable": {"thread_id": hardcoded_thread_id, "userId": "Mark", "tenantId": "Contoso"}}
 ```
 
 ### Ready to test
@@ -360,8 +360,8 @@ def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coo
         if local_interactive_mode:
             update_chat_container({
                 "id": thread_id,
-                "tenantId": "T1",
-                "userId": "U1",
+                "tenantId": "Contoso",
+                "userId": "Mark",
                 "sessionId": thread_id,
                 "name": "cli-test",
                 "age": "cli-test",
@@ -386,8 +386,8 @@ def call_customer_support_agent(state: MessagesState, config) -> Command[Literal
     thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
     if local_interactive_mode:
         patch_active_agent(
-            tenantId="T1", 
-            userId="U1", 
+            tenantId="Contoso", 
+            userId="Mark", 
             sessionId=thread_id,
             activeAgent="customer_support_agent")
 
