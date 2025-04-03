@@ -146,7 +146,7 @@ We already added a type of tool to the coordinator agent in the previous module,
 
 We are going to define a series of tools that allow the customer agents to perform specific actions for users including creating new accounts, balance inquiries, and varios other banking transactions.
 
-To being, In your IDE, locate the file `src/app/tools/sales.py` 
+To begin, In your IDE, locate the file `src/app/tools/sales.py` 
 
 In the empty file, add the following code:
 
