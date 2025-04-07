@@ -147,7 +147,6 @@ While the Azure Services are deploying we will have a presentation to cover on t
 
 ## Activity 4: Configure Environment Variables
 
-### Setting up local debugging
 
 When you deploy this solution it automatically injects endpoints and configuration values for the required resources into a `.env` file at root (python) folder.
 
@@ -173,6 +172,7 @@ But you will still need to install dependencies to run the solution locally.
    ```shell
    pip install -r ../src/app/requirements.txt
    ```
+   Note: If getting `requirements.txt` file not found when using GitHub codespaces, please navigate to the `src/app` folder and run the command there ` pip install -r requirements.txt`
 
 ## Activity 5: Compile and Run
 

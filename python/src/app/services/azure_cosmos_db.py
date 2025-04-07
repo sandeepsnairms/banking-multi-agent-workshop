@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 from datetime import datetime
 from typing import List, Dict
 
@@ -55,8 +56,7 @@ except Exception as e:
 
 def vector_search(vectors, accountType):
     print("accountType: ", accountType)
-    # commenting out printing vectors due to length
-    # print("vectors: ", vectors)
+    print("vectors: ", vectors)
     # Execute the query
     results = offers_container.query_items(
         query='''
@@ -159,7 +159,7 @@ def patch_active_agent(tenantId, userId, sessionId, activeAgent):
         try:
             pk = [tenantId, userId, sessionId]
             chat_container.patch_item(item=sessionId, partition_key=pk,
-                                         patch_operations=operations)
+                                      patch_operations=operations)
         except Exception as e:
             print('\nError occurred. {0}'.format(e.message))
     except Exception as e:
@@ -172,17 +172,13 @@ def patch_active_agent(tenantId, userId, sessionId, activeAgent):
 
 def patch_account_record(tenantId, account_id, balance):
     try:
-        # Remove the "A" prefix from the account_id
-        numeric_account_id = account_id[1:] if account_id.startswith("A") else account_id
-        numeric_account_id = str(numeric_account_id)  # Ensure it's a string
-        print("[DEBUG] numeric_account_id: ", numeric_account_id)
-        print("balance: ", balance)
         print("account_id: ", account_id)
+        print("balance: ", balance)
 
         operations = [{'op': 'replace', 'path': '/balance', 'value': balance}]
-        partition_key = [tenantId,account_id]
-        account_container.patch_item(item=numeric_account_id, partition_key=partition_key, patch_operations=operations)
-        print(f"[DEBUG] Account record patched: {account_id}")
+        partition_key = [tenantId, account_id]
+        account_container.patch_item(item=account_id, partition_key=partition_key, patch_operations=operations)
+        # print(f"[DEBUG] Account record patched: {account_id}")
     except Exception as e:
         print(f"[ERROR] Error patching account record: {e}")
         raise e
@@ -262,7 +258,8 @@ def fetch_latest_transaction_number(account_number):
 
         if items:
             latest_transaction_id = items[0]["id"]
-            latest_transaction_number = int(latest_transaction_id.split("-")[1])
+            numeric_part = re.sub(r'\D', '', latest_transaction_id)
+            latest_transaction_number = int(numeric_part)
             return latest_transaction_number
 
         return 0  # No transactions found
@@ -373,7 +370,7 @@ def delete_chat_history_by_session(sessionId):
 def create_transaction_record(transaction_data):
     try:
         account_container.upsert_item(transaction_data)
-        print(f"[DEBUG] Transaction record created: {transaction_data}")
+        # print(f"[DEBUG] Transaction record created: {transaction_data}")
     except Exception as e:
         print(f"[ERROR] Error creating transaction record: {e}")
         raise e

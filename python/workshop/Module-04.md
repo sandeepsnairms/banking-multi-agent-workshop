@@ -16,12 +16,12 @@ In this Module you'll learn how to implement the multi-agent orchestration to ti
 ## Module Exercises
 
 1. [Activity 1: Session on Multi-Agent Architectures](#activity-1-session-on-multi-agent-architectures)
-1. [Activity 2: Define Agents and Roles](#activity-2-define-agents-and-roles)
-1. [Activity 3: Session on Testing and Monitoring](#activity-3-session-on-testing-and-monitoring)
-1. [Activity 4: Implement Agent Tracing and Monitoring](#activity-4-implement-agent-tracing-and-monitoring)
-1. [Activity 5: Putting it all together](#activity-4-putting-it-all-together)
-1. [Activity 6: Test With Swagger](#activity-6-test-with-swagger)
-1. [Activity 7: Connect to our Frontend Application](#activity-7-connect-to-our-frontend-application)
+2. [Activity 2: Define Agents and Roles](#activity-2-define-agents-and-roles)
+3. [Activity 3: Session on Testing and Monitoring](#activity-3-session-on-testing-and-monitoring)
+4. [Activity 4: Implement Agent Tracing and Monitoring](#activity-4-implement-agent-tracing-and-monitoring)
+5. [Activity 5: Putting it all together](#activity-5-putting-it-all-together)
+6. [Activity 6: Test With Swagger](#activity-6-test-with-swagger)
+7. [Activity 7: Connect to our Frontend Application](#activity-7-connect-to-our-frontend-application)
 
 ## Activity 1: Session on Multi-Agent Architectures
 
@@ -524,8 +524,6 @@ ng serve
 Open a browser and navigate to `http://localhost:4200` to view the UI. 
 
 You should be able to create a chat session, send messages, and receive completions from the agents.
-
-**TBD this image needs to be updated. Cannot get front end to connect to python backend**
 
 ![Final User Interface](./media/module-04/frontend.png)
 

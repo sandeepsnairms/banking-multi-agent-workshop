@@ -15,10 +15,10 @@ In this Module, you'll implement your first agent as part of a multi-agent banki
 ## Module Exercises
 
 1. [Activity 1: Session on Single-agent architecture](#activity-1-session-on-single-agent-architecture)
-1. [Activity 2: Session on Semantic Kernel Agent Framework and LangGraph](#activity-2-session-on-semantic-kernel-agent-framework-and-langgraph)
-1. [Activity 3: Create Your Very First Agent](#activity-3-create-your-very-first-agent)
-1. [Activity 4: Create a Simple Customer Service Agent](#activity-4-create-a-simple-customer-service-agent)
-1. [Activity 5: Test your Work](#activity-5-test-your-work)
+2. [Activity 2: Session on Semantic Kernel Agent Framework and LangGraph](#activity-2-session-on-semantic-kernel-agent-framework-and-langgraph)
+3. [Activity 3: Create Your Very First Agent](#activity-3-create-your-very-first-agent)
+4. [Activity 4: Create a Simple Customer Service Agent](#activity-4-create-a-simple-customer-service-agent)
+5. [Activity 5: Test your Work](#activity-5-test-your-work)
 
 ## Activity 1: Session on Single-agent architecture
 

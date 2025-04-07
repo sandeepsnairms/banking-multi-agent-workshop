@@ -16,8 +16,8 @@ In this Module, you'll connect your agent to Azure Cosmos DB to provide memory f
 ## Module Exercises
 
 1. [Activity 1: Session Memory Persistence in Agent Frameworks](#activity-1-session-memory-persistence-in-agent-frameworks)
-1. [Activity 2: Connecting Agent Frameworks to Azure Cosmos DB](#activity-2-connecting-agent-frameworks-to-azure-cosmos-db)
-1. [Activity 3: Test your Work](#activity-5-test-your-work)
+2. [Activity 2: Connecting Agent Frameworks to Azure Cosmos DB](#activity-2-connecting-agent-frameworks-to-azure-cosmos-db)
+3. [Activity 3: Test your Work](#activity-5-test-your-work)
 
 
 ## Activity 1: Session Memory Persistence in Agent Frameworks
