@@ -2,6 +2,7 @@ from typing import Any
 
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
+from langsmith import traceable
 
 from src.app.services.azure_cosmos_db import vector_search, create_account_record, \
     fetch_latest_account_number
@@ -9,6 +10,7 @@ from src.app.services.azure_open_ai import generate_embedding
 
 
 @tool
+@traceable
 def get_offer_information(user_prompt: str, accountType: str) -> list[dict[str, Any]]:
     """Provide information about a product based on the user prompt.
     Takes as input the user prompt as a string."""
@@ -19,6 +21,7 @@ def get_offer_information(user_prompt: str, accountType: str) -> list[dict[str, 
 
 
 @tool
+@traceable
 def create_account(account_holder: str, balance: float, config: RunnableConfig) -> str:
     """
     Create a new bank account for a user.
@@ -69,6 +72,7 @@ def create_account(account_holder: str, balance: float, config: RunnableConfig) 
 
 
 @tool
+@traceable
 def calculate_monthly_payment(loan_amount: float, years: int) -> float:
     """Calculate the monthly payment for a loan."""
     interest_rate = 0.05  # Hardcoded annual interest rate (5%)
