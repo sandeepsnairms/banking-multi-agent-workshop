@@ -289,24 +289,25 @@ The following sections include the completed code for this Module. Copy and past
 ```python
 import logging
 import os
+import uuid
 from langchain.schema import AIMessage
 from typing import Literal
 from langgraph.graph import StateGraph, START, MessagesState
 from langgraph.prebuilt import create_react_agent
 from langgraph.types import Command, interrupt
+from langgraph.checkpoint.memory import MemorySaver
 from src.app.services.azure_open_ai import model
 from src.app.tools.coordinator import create_agent_transfer
-
 from langgraph_checkpoint_cosmosdb import CosmosDBSaver
 from src.app.services.azure_cosmos_db import DATABASE_NAME, checkpoint_container, chat_container, update_chat_container, \
-    patch_active_agent  
-
+    patch_active_agent
 
 local_interactive_mode = False
 
 logging.basicConfig(level=logging.ERROR)
 
 PROMPT_DIR = os.path.join(os.path.dirname(__file__), 'prompts')
+
 
 def load_prompt(agent_name):
     """Loads the prompt for a given agent from a file."""
@@ -319,16 +320,15 @@ def load_prompt(agent_name):
         print(f"Prompt file not found for {agent_name}, using default placeholder.")
         return "You are an AI banking assistant."  # Fallback default prompt
 
+
 coordinator_agent_tools = [
     create_agent_transfer(agent_name="customer_support_agent"),
 ]
-
 coordinator_agent = create_react_agent(
     model,
     tools=coordinator_agent_tools,
     state_modifier=load_prompt("coordinator_agent"),
 )
-
 
 customer_support_agent_tools = []
 customer_support_agent = create_react_agent(
@@ -350,9 +350,9 @@ def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coo
     activeAgent = None
     try:
         activeAgent = chat_container.read_item(
-            item=thread_id, 
-            partition_key=partition_key).get('activeAgent','unknown')
-        
+            item=thread_id,
+            partition_key=partition_key).get('activeAgent', 'unknown')
+
     except Exception as e:
         logging.debug(f"No active agent found: {e}")
 
@@ -386,8 +386,8 @@ def call_customer_support_agent(state: MessagesState, config) -> Command[Literal
     thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
     if local_interactive_mode:
         patch_active_agent(
-            tenantId="Contoso", 
-            userId="Mark", 
+            tenantId="Contoso",
+            userId="Mark",
             sessionId=thread_id,
             activeAgent="customer_support_agent")
 
@@ -412,10 +412,11 @@ builder.add_edge(START, "coordinator_agent")
 
 checkpointer = CosmosDBSaver(database_name=DATABASE_NAME, container_name=checkpoint_container)
 graph = builder.compile(checkpointer=checkpointer)
-
 hardcoded_thread_id = "hardcoded-thread-id-01"
+
+
 def interactive_chat():
-    thread_config = {"configurable": {"thread_id": hardcoded_thread_id, "userId": "cli-test", "tenantId": "cli-test"}}
+    thread_config = {"configurable": {"thread_id": hardcoded_thread_id, "userId": "Mark", "tenantId": "Contoso"}}
     global local_interactive_mode
     local_interactive_mode = True
     print("Welcome to the single-agent banking assistant.")
@@ -452,6 +453,7 @@ def interactive_chat():
 
 if __name__ == "__main__":
     interactive_chat()
+
 ```
 </details>
 
