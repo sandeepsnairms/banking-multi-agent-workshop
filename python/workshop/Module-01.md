@@ -439,7 +439,7 @@ Then paste the following code below all code in this file:
 
 ```python
 def interactive_chat():
-    thread_config = {"configurable": {"thread_id": str(uuid.uuid4()), "userId": "cli-test", "tenantId": "cli-test"}}
+    thread_config = {"configurable": {"thread_id": str(uuid.uuid4()), "userId": "Mark", "tenantId": "Contoso"}}
     global local_interactive_mode
     local_interactive_mode = True
     print("Welcome to the single-agent banking assistant.")
@@ -570,6 +570,7 @@ logging.basicConfig(level=logging.ERROR)
 
 PROMPT_DIR = os.path.join(os.path.dirname(__file__), 'prompts')
 
+
 def load_prompt(agent_name):
     """Loads the prompt for a given agent from a file."""
     file_path = os.path.join(PROMPT_DIR, f"{agent_name}.prompty")
@@ -585,7 +586,6 @@ def load_prompt(agent_name):
 coordinator_agent_tools = [
     create_agent_transfer(agent_name="customer_support_agent"),
 ]
-
 coordinator_agent = create_react_agent(
     model,
     tools=coordinator_agent_tools,
@@ -599,9 +599,11 @@ customer_support_agent = create_react_agent(
     state_modifier=load_prompt("customer_support_agent"),
 )
 
+
 def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coordinator_agent", "human"]]:
     response = coordinator_agent.invoke(state)
     return Command(update=response, goto="human")
+
 
 def call_customer_support_agent(state: MessagesState, config) -> Command[Literal["customer_support_agent", "human"]]:
     response = customer_support_agent.invoke(state)
@@ -711,6 +713,7 @@ def create_agent_transfer(*, agent_name: str):
         )
 
     return transfer_to_agent
+
 ```
 
 </details>
