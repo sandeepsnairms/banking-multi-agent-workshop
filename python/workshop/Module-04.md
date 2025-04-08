@@ -437,13 +437,13 @@ Capture the value of the new sessionId
 
 ```json
 {
-  "id": "653cc488-e9d5-4af4-9175-9410e501acb9",
+  "id": "daf31737-e5ef-479e-add3-407e0f3f746e",
   "type": "session",
-  "sessionId": "653cc488-e9d5-4af4-9175-9410e501acb9",
+  "sessionId": "daf31737-e5ef-479e-add3-407e0f3f746e",
   "tenantId": "Contoso",
   "userId": "Mark",
   "tokensUsed": 0,
-  "name": "Mark Brown",
+  "name": "Mark",
   "messages": []
 }
 ```
@@ -461,7 +461,7 @@ Here you can see the request from Swagger and the response from our agent.
   {
     "id": "1a568dff-43fe-4477-977b-9c21c8bf61f3",
     "type": "ai_response",
-    "sessionId": "653cc488-e9d5-4af4-9175-9410e501acb9",
+    "sessionId": "daf31737-e5ef-479e-add3-407e0f3f746e",
     "tenantId": "Contoso",
     "userId": "Mark",
     "timeStamp": "",
@@ -476,7 +476,7 @@ Here you can see the request from Swagger and the response from our agent.
   {
     "id": "10c6daa8-714d-41d8-b564-99a6c8ffdb5d",
     "type": "ai_response",
-    "sessionId": "653cc488-e9d5-4af4-9175-9410e501acb9",
+    "sessionId": "daf31737-e5ef-479e-add3-407e0f3f746e",
     "tenantId": "Contoso",
     "userId": "Mark",
     "timeStamp": "",
