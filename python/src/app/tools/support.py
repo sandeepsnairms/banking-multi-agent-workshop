@@ -5,11 +5,13 @@ from typing import Dict, List
 
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
+from langsmith import traceable
 
 from src.app.services.azure_cosmos_db import create_service_request_record
 
 
 @tool
+@traceable
 def service_request(config: RunnableConfig,  recipientPhone: str, recipientEmail: str,
                     requestSummary: str) -> str:
     """
@@ -58,6 +60,7 @@ def service_request(config: RunnableConfig,  recipientPhone: str, recipientEmail
 
 
 @tool
+@traceable
 def get_branch_location(state: str) -> Dict[str, List[str]]:
     """
     Get location of bank branches for a given state in the USA.

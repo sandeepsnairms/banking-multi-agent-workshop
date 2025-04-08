@@ -7,6 +7,7 @@ from langgraph.graph import StateGraph, START, MessagesState
 from langgraph.prebuilt import create_react_agent
 from langgraph.types import Command, interrupt
 from langgraph_checkpoint_cosmosdb import CosmosDBSaver
+from langsmith import traceable
 from src.app.services.azure_open_ai import model
 from src.app.services.azure_cosmos_db import DATABASE_NAME, checkpoint_container, chat_container, \
     update_chat_container, patch_active_agent
@@ -21,6 +22,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 PROMPT_DIR = os.path.join(os.path.dirname(__file__), 'prompts')
 
+
 def load_prompt(agent_name):
     """Loads the prompt for a given agent from a file."""
     file_path = os.path.join(PROMPT_DIR, f"{agent_name}.prompty")
@@ -31,6 +33,7 @@ def load_prompt(agent_name):
     except FileNotFoundError:
         print(f"Prompt file not found for {agent_name}, using default placeholder.")
         return "You are an AI banking assistant."  # Fallback default prompt
+
 
 coordinator_agent_tools = [
     create_agent_transfer(agent_name="customer_support_agent"),
@@ -82,6 +85,7 @@ sales_agent = create_react_agent(
 )
 
 
+@traceable(run_type="llm")
 def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coordinator_agent", "human"]]:
     thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
     userId = config["configurable"].get("userId", "UNKNOWN_USER_ID")
@@ -94,7 +98,7 @@ def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coo
     activeAgent = None
     try:
         activeAgent = chat_container.read_item(item=thread_id, partition_key=partition_key).get('activeAgent',
-                                                                                                   'unknown')
+                                                                                                'unknown')
     except Exception as e:
         logging.debug(f"No active agent found: {e}")
 
@@ -124,6 +128,7 @@ def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coo
         return Command(update=response, goto="human")
 
 
+@traceable(run_type="llm")
 def call_customer_support_agent(state: MessagesState, config) -> Command[Literal["customer_support_agent", "human"]]:
     thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
     if local_interactive_mode:
@@ -133,6 +138,7 @@ def call_customer_support_agent(state: MessagesState, config) -> Command[Literal
     return Command(update=response, goto="human")
 
 
+@traceable(run_type="llm")
 def call_sales_agent(state: MessagesState, config) -> Command[Literal["sales_agent", "human"]]:
     thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
     if local_interactive_mode:
@@ -142,6 +148,7 @@ def call_sales_agent(state: MessagesState, config) -> Command[Literal["sales_age
     return Command(update=response, goto="human")
 
 
+@traceable(run_type="llm")
 def call_transactions_agent(state: MessagesState, config) -> Command[Literal["transactions_agent", "human"]]:
     thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
     if local_interactive_mode:
@@ -153,6 +160,7 @@ def call_transactions_agent(state: MessagesState, config) -> Command[Literal["tr
 
 # The human_node with interrupt function serves as a mechanism to stop
 # the graph and collect user input for multi-turn conversations.
+@traceable
 def human_node(state: MessagesState, config) -> None:
     """A node for collecting user input."""
     interrupt(value="Ready for user input.")
@@ -173,7 +181,7 @@ graph = builder.compile(checkpointer=checkpointer)
 
 
 def interactive_chat():
-    thread_config = {"configurable": {"thread_id": str(uuid.uuid4()), "userId": "cli-test", "tenantId": "cli-test"}}
+    thread_config = {"configurable": {"thread_id": str(uuid.uuid4()), "userId": "Mark", "tenantId": "Contoso"}}
     global local_interactive_mode
     local_interactive_mode = True
     print("Welcome to the interactive multi-agent shopping assistant.")
