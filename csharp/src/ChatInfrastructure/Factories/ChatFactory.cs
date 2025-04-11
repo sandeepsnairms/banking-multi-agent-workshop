@@ -19,6 +19,9 @@ using Microsoft.Extensions.Logging;
 using MultiAgentCopilot.ChatInfrastructure.Logs;
 using MultiAgentCopilot.ChatInfrastructure.Models;
 using BankingServices.Interfaces;
+using Microsoft.SemanticKernel.Connectors.Ollama;
+using Microsoft.Identity.Client;
+using Newtonsoft.Json.Schema;
 
 
 namespace MultiAgentCopilot.ChatInfrastructure.Factories
@@ -40,6 +43,30 @@ namespace MultiAgentCopilot.ChatInfrastructure.Factories
             return agent;
         }
 
+        /*
+#pragma warning disable SKEXP0070 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        private OllamaPromptExecutionSettings GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStrategy strategyType)
+        {
+
+            var prompt = "Always responds in JSON format as defined in the ResponseFormat";
+            var jsonSchema = ChatResponseFormatBuilder.BuildFormat(strategyType);
+            // Create the execution settings
+            var executionSettings = new OllamaPromptExecutionSettings
+            {
+                ExtensionData = new Dictionary<string, object>
+                    {
+                        { "Prompt", prompt },
+                        { "ResponseFormat", jsonSchema }
+                    }
+            };
+
+
+
+            return executionSettings;
+        }
+        */
+
+        
         private OpenAIPromptExecutionSettings GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStrategy strategyType)
         {
             ChatResponseFormat infoFormat;
@@ -55,7 +82,7 @@ namespace MultiAgentCopilot.ChatInfrastructure.Factories
 
             return executionSettings;
         }
-
+        
         private KernelFunction GetStrategyFunction(ChatResponseFormatBuilder.ChatResponseStrategy strategyType)
         {
 

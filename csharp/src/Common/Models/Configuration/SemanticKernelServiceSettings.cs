@@ -3,7 +3,8 @@ namespace MultiAgentCopilot.Common.Models.Configuration
 {
     public record SemanticKernelServiceSettings
     {
-        public required AzureOpenAISettings AzureOpenAISettings { get; init; }
+        public OllamaSettings OllamaSettings { get; init; }
+        public AzureOpenAISettings AzureOpenAISettings { get; init; }
         public required CosmosDBSettings CosmosDBVectorStoreSettings { get; init; }
     }
 }

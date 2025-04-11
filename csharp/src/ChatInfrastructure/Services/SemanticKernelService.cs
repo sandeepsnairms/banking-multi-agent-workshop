@@ -23,6 +23,9 @@ using Microsoft.SemanticKernel.Connectors.AzureCosmosDBNoSQL;
 using MultiAgentCopilot.Common.Models.Banking;
 
 
+using  Microsoft.Extensions.AI;
+using OllamaSharp;
+
 namespace MultiAgentCopilot.ChatInfrastructure.Services;
 
 public class SemanticKernelService : ISemanticKernelService, IDisposable
@@ -68,10 +71,25 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
                 ManagedIdentityClientId = _skSettings.AzureOpenAISettings.UserAssignedIdentityClientID
             });
         }
-        builder.AddAzureOpenAIChatCompletion(
-            _skSettings.AzureOpenAISettings.CompletionsDeployment,
-            _skSettings.AzureOpenAISettings.Endpoint,
-            credential);
+
+
+        var ollamaClient = new OllamaApiClient(
+            uriString: _skSettings.OllamaSettings.Endpoint,
+            defaultModel: _skSettings.OllamaSettings.CompletionsDeployment);
+
+        var chatService = ollamaClient.AsChatCompletionService();
+
+#pragma warning disable SKEXP0070 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        builder.AddOllamaChatCompletion(ollamaClient);
+#pragma warning restore SKEXP0070 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
+        // Register your custom chat completion service (Ollama)
+        //builder.Services.AddSingleton<IChatCompletionService>(chatService);
+
+        //builder.AddAzureOpenAIChatCompletion(
+        //    _skSettings.AzureOpenAISettings.CompletionsDeployment,
+        //    _skSettings.AzureOpenAISettings.Endpoint,
+        //    credential);
 
         builder.AddAzureOpenAITextEmbeddingGeneration(
                _skSettings.AzureOpenAISettings.EmbeddingsDeployment,
