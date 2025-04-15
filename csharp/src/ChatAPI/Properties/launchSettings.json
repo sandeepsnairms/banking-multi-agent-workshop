@@ -1,6 +1,6 @@
 {
   "profiles": {
-    "ChatAPI": {
+    "MultiAgentCopilot": {
       "commandName": "Project",
       "launchBrowser": true,
       "launchUrl": "status",

@@ -1,17 +1,17 @@
-﻿using MultiAgentCopilot.ChatInfrastructure.Interfaces;
-using Microsoft.AspNetCore.Mvc;
-using MultiAgentCopilot.Common.Models.Debug;
+﻿using Microsoft.AspNetCore.Mvc;
+using  MultiAgentCopilot.Models.Debug;
 using Newtonsoft.Json.Linq;
 using System.Text.Json;
+using MultiAgentCopilot.Services;
 
 
-namespace ChatAPI
+namespace MultiAgentCopilot
 {
     public class ChatEndpoints
     {
-        private readonly IChatService _chatService;
+        private readonly ChatService _chatService;
 
-        public ChatEndpoints(IChatService chatService)
+        public ChatEndpoints(ChatService chatService)
         {
             _chatService = chatService;
         }

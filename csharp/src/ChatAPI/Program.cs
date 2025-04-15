@@ -1,7 +1,7 @@
 using MultiAgentCopilot;
 using Microsoft.Extensions.Configuration;
 
-namespace ChatAPI
+namespace MultiAgentCopilot
 {
     public class Program
     {
@@ -71,7 +71,7 @@ namespace ChatAPI
             // Map the chat REST endpoints:
             using (var scope = app.Services.CreateScope())
             {
-                var service = scope.ServiceProvider.GetService<ChatAPI.ChatEndpoints>();
+                var service = scope.ServiceProvider.GetService<MultiAgentCopilot.ChatEndpoints>();
                 service?.Map(app);
             }
 

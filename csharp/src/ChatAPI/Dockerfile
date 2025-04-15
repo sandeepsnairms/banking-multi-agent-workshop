@@ -14,22 +14,22 @@ ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["nuget.config", "."]
 COPY ["ChatInfrastructure/nuget.config", "ChatInfrastructure/"]
-COPY ["ChatAPI/ChatAPI.csproj", "ChatAPI/"]
+COPY ["MultiAgentCopilot/MultiAgentCopilot.csproj", "MultiAgentCopilot/"]
 COPY ["ChatInfrastructure/ChatInfrastructure.csproj", "ChatInfrastructure/"]
-COPY ["BankingAPI/BankingServices.csproj", "BankingAPI/"]
-COPY ["Common/Common.csproj", "Common/"]
-RUN dotnet restore "./ChatAPI/ChatAPI.csproj"
+COPY ["BankingAPI/ MultiAgentCopilot.csproj", "BankingAPI/"]
+COPY ["Common/csproj", "Common/"]
+RUN dotnet restore "./MultiAgentCopilot/MultiAgentCopilot.csproj"
 COPY . .
-WORKDIR "/src/ChatAPI"
-RUN dotnet build "./ChatAPI.csproj" -c $BUILD_CONFIGURATION -o /app/build
+WORKDIR "/src/MultiAgentCopilot"
+RUN dotnet build "./MultiAgentCopilot.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # This stage is used to publish the service project to be copied to the final stage
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./ChatAPI.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "./MultiAgentCopilot.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 # This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "ChatAPI.dll"]
+ENTRYPOINT ["dotnet", "MultiAgentCopilot.dll"]
