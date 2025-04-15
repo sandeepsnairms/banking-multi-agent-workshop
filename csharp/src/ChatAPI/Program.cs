@@ -71,7 +71,7 @@ namespace ChatAPI
             // Map the chat REST endpoints:
             using (var scope = app.Services.CreateScope())
             {
-                var service = scope.ServiceProvider.GetService<ChatEndpoints>();
+                var service = scope.ServiceProvider.GetService<ChatAPI.ChatEndpoints>();
                 service?.Map(app);
             }
 

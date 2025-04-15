@@ -25,6 +25,7 @@ using MultiAgentCopilot.Common.Models.Banking;
 
 using  Microsoft.Extensions.AI;
 using OllamaSharp;
+using System.Text;
 
 namespace MultiAgentCopilot.ChatInfrastructure.Services;
 
@@ -72,7 +73,6 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
             });
         }
 
-
         var ollamaClient = new OllamaApiClient(
             uriString: _skSettings.OllamaSettings.Endpoint,
             defaultModel: _skSettings.OllamaSettings.CompletionsDeployment);
@@ -83,22 +83,65 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
         builder.AddOllamaChatCompletion(ollamaClient);
 #pragma warning restore SKEXP0070 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
-        // Register your custom chat completion service (Ollama)
-        //builder.Services.AddSingleton<IChatCompletionService>(chatService);
-
-        //builder.AddAzureOpenAIChatCompletion(
-        //    _skSettings.AzureOpenAISettings.CompletionsDeployment,
-        //    _skSettings.AzureOpenAISettings.Endpoint,
-        //    credential);
-
+       
         builder.AddAzureOpenAITextEmbeddingGeneration(
-               _skSettings.AzureOpenAISettings.EmbeddingsDeployment,
-               _skSettings.AzureOpenAISettings.Endpoint,
-               credential);
+            _skSettings.AzureOpenAISettings.EmbeddingsDeployment,
+            _skSettings.AzureOpenAISettings.Endpoint,
+            credential);
 
         _semanticKernel = builder.Build();
 
         Task.Run(Initialize).ConfigureAwait(false);
+
+        //ServicePromptAsync().GetAwaiter().GetResult();
+
+        ChatPromptAsync().GetAwaiter().GetResult();
+    }
+
+    public async Task ChatPromptAsync()
+    {
+        Console.WriteLine("======== Ollama - Chat Completion ========");
+
+        StringBuilder chatPrompt = new("""
+                                       <message role="system">You are a librarian, expert about books</message>
+                                       <message role="user">Hi, I'm looking for book suggestions</message>
+                                       """);
+
+        var reply = await _semanticKernel.InvokePromptAsync(chatPrompt.ToString());
+        Console.WriteLine("Reply" + reply);
+    }
+
+    public async Task ServicePromptAsync()
+    {
+
+        Console.WriteLine("======== Ollama - Chat Completion ========");
+
+        using var ollamaClient = new OllamaApiClient(
+            uriString: _skSettings.OllamaSettings.Endpoint,
+            defaultModel: _skSettings.OllamaSettings.CompletionsDeployment);
+
+        var chatService = ollamaClient.AsChatCompletionService();
+
+        Console.WriteLine("Chat content:");
+        Console.WriteLine("------------------------");
+
+        var chatHistory = new ChatHistory("You are a librarian, expert about books");
+
+        // First user message
+        chatHistory.AddUserMessage("Hi, I'm looking for book suggestions");
+
+        // First assistant message
+        var reply = await chatService.GetChatMessageContentAsync(chatHistory);
+        chatHistory.Add(reply);
+
+
+        // Second user message
+        chatHistory.AddUserMessage("I love history and philosophy, I'd like to learn something new about Greece, any suggestion");
+
+        // Second assistant message
+        reply = await chatService.GetChatMessageContentAsync(chatHistory);
+        chatHistory.Add(reply);
+        Console.WriteLine("Reply" + reply);
     }
 
     private Task Initialize()
@@ -124,6 +167,10 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
     {
         try
         {
+
+            ChatPromptAsync().GetAwaiter().GetResult();
+
+
             ChatFactory multiAgentChatGeneratorService = new ChatFactory();
 
             var agentGroupChat = multiAgentChatGeneratorService.BuildAgentGroupChat(_semanticKernel, _loggerFactory, LogMessage, bankService, tenantId, userId);

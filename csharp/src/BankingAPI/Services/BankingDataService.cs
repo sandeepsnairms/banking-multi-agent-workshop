@@ -353,8 +353,8 @@ namespace BankingServices.Services
 
 
         public async Task<List<OfferTerm>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription)
-        {           
-
+        {
+            /*
             try
             {
                 // Generate Embedding
@@ -383,7 +383,8 @@ namespace BankingServices.Services
             {
                 _logger.LogError(ex.ToString());
                 return new List<OfferTerm>();
-            }           
+            } */
+            return new List<OfferTerm>();
         }
 
         public async Task<Offer> GetOfferDetailsAsync(string tenantId, string offerId)
