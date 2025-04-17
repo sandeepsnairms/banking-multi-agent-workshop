@@ -9,8 +9,8 @@ hooks:
       run: ./azd-hooks/postdeploy.ps1  # Adjust path since azure.yaml is inside /csharp
 services:
     ChatServiceWebApi:
-        project: ./src/ChatAPI   # Relative to /csharp
+        project: ./src/MultiAgentCopilot   # Relative to /csharp
         host: containerapp
         language: csharp
         docker:
-            path: ./src/ChatAPI/Dockerfile   # Ensure correct Dockerfile path
+            path: ./src/MultiAgentCopilot/Dockerfile   # Ensure correct Dockerfile path

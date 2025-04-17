@@ -13,11 +13,7 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["nuget.config", "."]
-COPY ["ChatInfrastructure/nuget.config", "ChatInfrastructure/"]
 COPY ["MultiAgentCopilot/MultiAgentCopilot.csproj", "MultiAgentCopilot/"]
-COPY ["ChatInfrastructure/ChatInfrastructure.csproj", "ChatInfrastructure/"]
-COPY ["BankingAPI/ MultiAgentCopilot.csproj", "BankingAPI/"]
-COPY ["Common/csproj", "Common/"]
 RUN dotnet restore "./MultiAgentCopilot/MultiAgentCopilot.csproj"
 COPY . .
 WORKDIR "/src/MultiAgentCopilot"
