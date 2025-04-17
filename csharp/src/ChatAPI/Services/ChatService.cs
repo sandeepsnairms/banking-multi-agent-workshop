@@ -1,13 +1,7 @@
-﻿using  MultiAgentCopilot.Models.Banking;
-using  MultiAgentCopilot.Models.Chat;
-
-using Microsoft.Extensions.Logging;
-using Microsoft.SemanticKernel.ChatCompletion;
-using  MultiAgentCopilot.Models.Debug;
-using System.Collections.Generic;
-using  MultiAgentCopilot.Services;
-using Microsoft.Extensions.Options;
-using  MultiAgentCopilot.Models.Configuration;
+﻿using Microsoft.Extensions.Options;
+using MultiAgentCopilot.Models.Debug;
+using MultiAgentCopilot.Models.Configuration;
+using MultiAgentCopilot.Models.Chat;
 using Newtonsoft.Json.Linq;
 using System.Text.Json;
 using Newtonsoft.Json;

@@ -1,13 +1,7 @@
-﻿using Microsoft.Extensions.Logging;
+﻿
 using Microsoft.SemanticKernel;
-using System;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using  MultiAgentCopilot.Models.Banking;
-using Microsoft.Identity.Client;
 using MultiAgentCopilot.Services;
 
 

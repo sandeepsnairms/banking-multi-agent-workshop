@@ -1,25 +1,17 @@
-﻿using  MultiAgentCopilot.Models.Chat;
-using  MultiAgentCopilot.Models.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
+﻿using Microsoft.Extensions.Options;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using MultiAgentCopilot.Helper;
 using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel.Embeddings;
+using Microsoft.Extensions.AI;
 
 using Azure.Identity;
 using MultiAgentCopilot.Factories;
-using Newtonsoft.Json;
-using System.Data;
-using  MultiAgentCopilot.Models.Debug;
-using Microsoft.SemanticKernel.Embeddings;
-using System.Runtime;
-using Microsoft.Azure.Cosmos;
-using Microsoft.Extensions.VectorData;
-using Microsoft.SemanticKernel.Connectors.AzureCosmosDBNoSQL;
-using  MultiAgentCopilot.Models.Banking;
-using  Microsoft.Extensions.AI;
+using MultiAgentCopilot.Models.Debug;
+using MultiAgentCopilot.Models.Chat;
+using MultiAgentCopilot.Models.Configuration;
+
 using OllamaSharp;
 using System.Text;
 

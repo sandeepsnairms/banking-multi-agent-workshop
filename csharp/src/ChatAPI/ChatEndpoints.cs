@@ -1,6 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using  MultiAgentCopilot.Models.Debug;
-using Newtonsoft.Json.Linq;
 using System.Text.Json;
 using MultiAgentCopilot.Services;
 

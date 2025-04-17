@@ -1,6 +1,3 @@
-using MultiAgentCopilot;
-using Microsoft.Extensions.Configuration;
-
 namespace MultiAgentCopilot
 {
     public class Program

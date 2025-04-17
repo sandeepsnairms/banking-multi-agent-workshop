@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace  MultiAgentCopilot.Models.Banking
+﻿namespace  MultiAgentCopilot.Models.Banking
 {
     public enum ServiceRequestType
     {

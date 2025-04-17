@@ -1,30 +1,20 @@
-﻿using System.ComponentModel;
-using System.Diagnostics;
-using System.Runtime;
+﻿using System.Diagnostics;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Fluent;
-using Microsoft.Extensions.Logging;
-using  MultiAgentCopilot.Models.Configuration;
 using Container = Microsoft.Azure.Cosmos.Container;
 using Azure.Identity;
-using  MultiAgentCopilot.Models.Banking;
-using Microsoft.Identity.Client;
 using System.Text;
-using Microsoft.VisualBasic;
-using Microsoft.Extensions.Options;
-using  MultiAgentCopilot.Helper;
-using  MultiAgentCopilot.Models.Chat;
-using Microsoft.Azure.Cosmos.Serialization.HybridRow.Schemas;
+using MultiAgentCopilot.Helper;
+using MultiAgentCopilot.Models.Configuration;
+using MultiAgentCopilot.Models.Banking;
+
 using PartitionKey = Microsoft.Azure.Cosmos.PartitionKey;
-using Microsoft.SemanticKernel.Memory;
+
 using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.SemanticKernel.Connectors.AzureCosmosDBNoSQL;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Identity.Client.Platforms.Features.DesktopOs.Kerberos;
-using Microsoft.SemanticKernel.Embeddings;
+
 using System.Text.Json;
-using Microsoft.Extensions.VectorData;
+
 using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
 
 namespace  MultiAgentCopilot.Services

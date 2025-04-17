@@ -1,25 +1,20 @@
-﻿using  MultiAgentCopilot.Models.Banking;
-using  MultiAgentCopilot.Models.Chat;
-using  MultiAgentCopilot.Models.Configuration;
-using Microsoft.Azure.Cosmos;
+﻿using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Fluent;
-using Microsoft.Extensions.Logging;
+
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
 using System.Diagnostics;
 using Azure.Identity;
-using  MultiAgentCopilot.Models.Debug;
-using System.ComponentModel;
-using Microsoft.Azure.Cosmos.Serialization.HybridRow.Schemas;
-using System.Xml.Linq;
+
 using PartitionKey = Microsoft.Azure.Cosmos.PartitionKey;
 using Container = Microsoft.Azure.Cosmos.Container;
-using  MultiAgentCopilot.Helper;
-using System.Collections.Concurrent;
+using MultiAgentCopilot.Helper;
+using MultiAgentCopilot.Models.Chat;
+using MultiAgentCopilot.Models.Configuration;
+using MultiAgentCopilot.Models.Debug;
+
 using Message =  MultiAgentCopilot.Models.Chat.Message;
-using System.Security.Principal;
-using Newtonsoft.Json;
-using System.Text.Json;
+
 namespace MultiAgentCopilot.Services
 {
     /// <summary>

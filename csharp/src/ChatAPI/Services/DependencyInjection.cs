@@ -1,15 +1,6 @@
 ﻿using  MultiAgentCopilot.Models.Configuration;
 using MultiAgentCopilot.Services;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.ApplicationInsights.AspNetCore.Extensions;
-using Microsoft.ApplicationInsights.Extensibility;
-using MultiAgentCopilot.Factories;
-using  MultiAgentCopilot.Services;
-using Azure.Identity;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging.ApplicationInsights;
+
 namespace MultiAgentCopilot
 {
     /// <summary>

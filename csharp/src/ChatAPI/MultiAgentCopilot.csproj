@@ -12,6 +12,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Models\ConfigurationOptions\**" />
+    <Content Remove="Models\ConfigurationOptions\**" />
+    <EmbeddedResource Remove="Models\ConfigurationOptions\**" />
+    <None Remove="Models\ConfigurationOptions\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <_WebToolingArtifacts Remove="Properties\launchSettings.json" />
   </ItemGroup>
 
@@ -46,7 +53,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Models\ConfigurationOptions\" />
     <Folder Include="Properties\" />
   </ItemGroup>
 

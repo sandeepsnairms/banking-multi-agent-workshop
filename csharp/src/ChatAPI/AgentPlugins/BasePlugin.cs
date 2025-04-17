@@ -1,12 +1,5 @@
-﻿using Microsoft.Azure.Cosmos;
-using Microsoft.Extensions.Logging;
-using Microsoft.SemanticKernel;
-using System;
-using System.Collections.Generic;
+﻿using Microsoft.SemanticKernel;
 using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using  MultiAgentCopilot.Models.Banking;
 using MultiAgentCopilot.Services;
 
