@@ -70,20 +70,7 @@ public class SemanticKernelService :  IDisposable
         Task.Run(Initialize).ConfigureAwait(false);
 
     }
-
-    public async Task ChatPromptAsync()
-    {
-
-        StringBuilder chatPrompt = new("""
-                                       <message role="system">You are a librarian, expert about books</message>
-                                       <message role="user">Hi, I'm looking for book suggestions</message>
-                                       """);
-
-        var reply = await _semanticKernel.InvokePromptAsync(chatPrompt.ToString());
-        Console.WriteLine("Reply" + reply);
-    }
-
-   
+      
 
     private Task Initialize()
     {
