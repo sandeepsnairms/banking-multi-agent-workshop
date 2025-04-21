@@ -101,3 +101,4 @@ __azurite_db*__.json
 /csharp/test.ps1
 /frontend/src/environments/environment.ts
 /frontend/src/environments/environment.prod.ts
+/csharp/src/MultiAgentCopilot/appsettings.development.json
