@@ -30,18 +30,18 @@ public record Message
     public bool? Rating { get; set; }
 
 
-    public Message(string tenantId, string userId,string sessionId, string author, string authorRole, string textContent, string? id = null, string? debugLogId=null)
+    public Message(string TenantId, string UserId,string SessionId, string Sender, string SenderRole, string Text, string? Id = null, string? DebugLogId = null)
     {
-        SessionId = sessionId;
-        TenantId = tenantId;
-        UserId = userId;
-        Id = id ?? Guid.NewGuid().ToString();
-        if (debugLogId != null)
-            DebugLogId = debugLogId;
+        this.SessionId = SessionId;
+        this.TenantId = TenantId;
+        this.UserId = UserId;
+        this.Id = Id ?? Guid.NewGuid().ToString();
+        if (DebugLogId != null)
+            this.DebugLogId = DebugLogId;
         Type = nameof(Message);
-        Sender = author;
-        SenderRole = authorRole;
-        Text = textContent;
-        TimeStamp = DateTime.UtcNow; 
+        this.Sender = Sender;
+        this.SenderRole = SenderRole;
+        this.Text = Text;
+        this.TimeStamp = DateTime.UtcNow; 
     }
 }

@@ -65,7 +65,7 @@ public class SemanticKernelService :  IDisposable
            _skSettings.AzureOpenAISettings.Endpoint,
            credential);
 
-
+        _semanticKernel = builder.Build();
 
         Task.Run(Initialize).ConfigureAwait(false);
 

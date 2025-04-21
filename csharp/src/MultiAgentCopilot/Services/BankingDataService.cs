@@ -309,18 +309,22 @@ namespace  MultiAgentCopilot.Services
                    )).FirstOrDefault();
 
 
+               string accountTypeString = accountType.ToString();
+
                 // filters as LINQ expression
                 Expression<Func<OfferTerm, bool>> linqFilter = term =>
                     term.TenantId == tenantId &&
                     term.Type == "Term" &&
-                    term.AccountType == accountType.ToString();
+                    term.AccountType == "Savings";
 
                 var options = new VectorSearchOptions<OfferTerm>
                 {
+                    VectorProperty = term => term.Vector, // Correctly specify the vector property as a lambda expression
                     Filter = linqFilter, // Use the LINQ expression here
                     Top = 10,
                     IncludeVectors = false
                 };
+
 
                 var searchResults = await _offerDataVectorStore.VectorizedSearchAsync(embedding, options);
 
