@@ -85,25 +85,16 @@ public class ChatService
         {
             ArgumentNullException.ThrowIfNull(sessionId);
 
-            // Retrieve conversation, including latest prompt.
-            var archivedMessages = await _cosmosDBService.GetSessionMessagesAsync(tenantId, userId, sessionId);
 
             // Add both prompt and completion to cache, then persist in Cosmos DB
-            var userMessage = new Message(tenantId,userId,sessionId, "User","User", userPrompt);
+            var userMessage = new Message(tenantId, userId, sessionId, "User", "User", "## Replay user message ## " + userPrompt);
 
-            // Generate the completion to return to the user
-            var result = await _skService.GetResponse(userMessage, archivedMessages,_bankService,tenantId,userId);
-
-            await AddPromptCompletionMessagesAsync(tenantId, userId,sessionId, userMessage, result.Item1, result.Item2);
-
-            return result.Item1;
+            return new List<Message> { userMessage };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Error getting completion in session {sessionId} for user prompt [{userPrompt}].");
-#pragma warning disable CS8603 // Possible null reference return.
-            return null;
-#pragma warning restore CS8603 // Possible null reference return.
+            return new List<Message> { new Message(tenantId, userId, sessionId!, "Error", "Error", $"Error getting completion in session {sessionId} for user prompt [{userPrompt}].") };
         }
     }
 
@@ -116,18 +107,16 @@ public class ChatService
         {
             ArgumentNullException.ThrowIfNull(sessionId);
 
-            var summary = await _skService.Summarize(sessionId, prompt);
+            var summary = "not implemented";
 
-            var session = await RenameChatSessionAsync(tenantId, userId,sessionId, summary);
+            var session = await RenameChatSessionAsync(tenantId, userId, sessionId, summary);
 
             return session.Name;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Error getting a summary in session {sessionId} for user prompt [{prompt}].");
-#pragma warning disable CS8603 // Possible null reference return.
-            return null;
-#pragma warning restore CS8603 // Possible null reference return.
+            return $"Error getting a summary in session {sessionId} for user prompt [{prompt}].";
         }
 
     }
@@ -188,8 +177,5 @@ public class ChatService
     }
 
 
-
-    public async Task ResetSemanticCache(string tenantId, string userId) =>
-        await _skService.ResetSemanticCache();
 }
 
