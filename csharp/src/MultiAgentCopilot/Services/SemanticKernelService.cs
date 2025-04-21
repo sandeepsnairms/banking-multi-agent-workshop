@@ -201,13 +201,6 @@ public class SemanticKernelService :  IDisposable
     }
 
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-    public async Task ResetSemanticCache()
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
-    {
-        // Implementation for resetting the semantic cache
-    }
-
     public void Dispose()
     {
         // Dispose resources if any
