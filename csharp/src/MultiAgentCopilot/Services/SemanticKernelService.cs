@@ -13,6 +13,8 @@ using MultiAgentCopilot.Models.Chat;
 using MultiAgentCopilot.Models.Configuration;
 
 using System.Text;
+using MultiAgentCopilot.Models;
+using Microsoft.SemanticKernel.Agents;
 
 namespace MultiAgentCopilot.Services;
 
@@ -71,19 +73,7 @@ public class SemanticKernelService :  IDisposable
 
     }
 
-    public async Task ChatPromptAsync()
-    {
-
-        StringBuilder chatPrompt = new("""
-                                       <message role="system">You are a librarian, expert about books</message>
-                                       <message role="user">Hi, I'm looking for book suggestions</message>
-                                       """);
-
-        var reply = await _semanticKernel.InvokePromptAsync(chatPrompt.ToString());
-        Console.WriteLine("Reply" + reply);
-    }
-
-   
+  
 
     private Task Initialize()
     {
@@ -108,52 +98,39 @@ public class SemanticKernelService :  IDisposable
     {
         try
         {
+            ChatFactory agentChatGeneratorService = new ChatFactory();
 
-            ChatFactory multiAgentChatGeneratorService = new ChatFactory();
+            var agent = agentChatGeneratorService.BuildAgent(_semanticKernel, AgentType.Coordinator, _loggerFactory, bankService, tenantId, userId);
 
-            var agentGroupChat = multiAgentChatGeneratorService.BuildAgentGroupChat(_semanticKernel, _loggerFactory, LogMessage, bankService, tenantId, userId);
+            ChatHistory chatHistory = new();
 
             // Load history
             foreach (var chatMessage in messageHistory)
             {
-                AuthorRole? role = AuthorRoleHelper.FromString(chatMessage.SenderRole);
-                var chatMessageContent = new ChatMessageContent
+                if (chatMessage.SenderRole == "User")
                 {
-                    Role = role ?? AuthorRole.User,
-                    Content = chatMessage.Text
-                };
-                agentGroupChat.AddChatMessage(chatMessageContent);
+                    chatHistory.AddUserMessage(chatMessage.Text);
+                }
+                else
+                {
+                    chatHistory.AddAssistantMessage(chatMessage.Text);
+                }
             }
+
+            // Create an AgentThread using the ChatHistory object
+            AgentThread agentThread = new ChatHistoryAgentThread(chatHistory);
 
             _promptDebugProperties = new List<LogProperty>();
 
             List<Message> completionMessages = new();
             List<DebugLog> completionMessagesLogs = new();
-            do
+                      
+
+            await foreach (ChatMessageContent response in agent.InvokeAsync(userMessage.Text, agentThread))
             {
-                var userResponse = new ChatMessageContent(AuthorRole.User, userMessage.Text);
-                agentGroupChat.AddChatMessage(userResponse);
-
-                agentGroupChat.IsComplete = false;
-
-                await foreach (ChatMessageContent response in agentGroupChat.InvokeAsync())
-                {
-                    string messageId = Guid.NewGuid().ToString();
-                    string debugLogId = Guid.NewGuid().ToString();
-                    completionMessages.Add(new Message(userMessage.TenantId, userMessage.UserId, userMessage.SessionId, response.AuthorName ?? string.Empty, response.Role.ToString(), response.Content ?? string.Empty, messageId, debugLogId));
-
-                    if (_promptDebugProperties.Count > 0)
-                    {
-                        var completionMessagesLog = new DebugLog(userMessage.TenantId, userMessage.UserId, userMessage.SessionId, messageId, debugLogId);
-                        completionMessagesLog.PropertyBag = _promptDebugProperties;
-                        completionMessagesLogs.Add(completionMessagesLog);
-                    }
-
-                }
+                string messageId = Guid.NewGuid().ToString();
+                completionMessages.Add(new Message(userMessage.TenantId, userMessage.UserId, userMessage.SessionId, response.AuthorName ?? string.Empty, response.Role.ToString(), response.Content ?? string.Empty, messageId));
             }
-            while (!agentGroupChat.IsComplete);
-          
-
             return new Tuple<List<Message>, List<DebugLog>>(completionMessages, completionMessagesLogs);
         }
         catch (Exception ex)
