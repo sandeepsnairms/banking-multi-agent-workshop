@@ -187,9 +187,5 @@ public class ChatService
         }
     }
 
-
-
-    public async Task ResetSemanticCache(string tenantId, string userId) =>
-        await _skService.ResetSemanticCache();
 }
 
