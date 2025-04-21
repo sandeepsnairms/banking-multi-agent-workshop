@@ -89,10 +89,6 @@ public class SemanticKernelService :  IDisposable
         return Task.CompletedTask;
     }
 
-    private void LogMessage(string key, string value)
-    {
-        _promptDebugProperties.Add(new LogProperty(key, value));
-    }
 
     public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, BankingDataService bankService, string tenantId, string userId)
     {
