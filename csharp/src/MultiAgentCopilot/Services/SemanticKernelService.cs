@@ -98,27 +98,19 @@ public class SemanticKernelService :  IDisposable
     {
         try
         {
-            ChatFactory agentChatGeneratorService = new ChatFactory();
-
-            var agent = agentChatGeneratorService.BuildAgent(_semanticKernel, _loggerFactory, bankService, tenantId, userId);
-
-            ChatHistory chatHistory = new();
-
-            // Load history
-            foreach (var chatMessage in messageHistory)
+            ChatCompletionAgent agent = new ChatCompletionAgent
             {
-                if (chatMessage.SenderRole == "User")
-                {
-                    chatHistory.AddUserMessage(chatMessage.Text);
-                }
-                else
-                {
-                    chatHistory.AddAssistantMessage(chatMessage.Text);
-                }
-            }
+                Name = "BasicAgent",
+                Instructions = "Greet the user and translate the request into French",
+                Kernel = _semanticKernel.Clone()
+            };
 
-            // Create an AgentThread using the ChatHistory object
-            AgentThread agentThread = new ChatHistoryAgentThread(chatHistory);
+            ChatHistory chatHistory = [];
+
+            chatHistory.AddUserMessage(userMessage.Text);
+
+            // Create an null AgentThread 
+            AgentThread agentThread = null;
 
             _promptDebugProperties = new List<LogProperty>();
 

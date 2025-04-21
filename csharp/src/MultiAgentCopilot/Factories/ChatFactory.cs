@@ -22,35 +22,6 @@ namespace MultiAgentCopilot.Factories
 {
     internal class ChatFactory
     {
-        public delegate void LogCallback(string key, string value);
 
-        private string GetAgentName()
-        {
-
-            return "FrontDeskAgent";
-        }
-
-
-        private string GetAgentPrompts()
-        {
-
-            string prompt = "You are a front desk agent in a bank. Respond to the user queries professionally. Provide professional and helpful responses to user queries.Use your knowledge of banking services and procedures to address user queries accurately.";
-            return prompt;
-        }
-
-
-        public ChatCompletionAgent BuildAgent(Kernel kernel, ILoggerFactory loggerFactory, BankingDataService bankService, string tenantId, string userId)
-        {
-            ChatCompletionAgent agent = new ChatCompletionAgent
-            {
-                Name = GetAgentName(),
-                Instructions = $"""{GetAgentPrompts()}""",
-                Kernel = kernel.Clone()
-            };
-
-            return agent;
-        }
-
-     
     }
 }
