@@ -26,7 +26,7 @@ public class ChatService
     {
         _cosmosDBService = cosmosDBService;
         _skService = skService;
-        _bankService = new BankingDataService(cosmosOptions.Value, skOptions.Value, loggerFactory);
+        _bankService = new BankingDataService(cosmosDBService.Database,cosmosDBService.AccountDataContainer,cosmosDBService.UserDataContainer,cosmosDBService.AccountDataContainer,cosmosDBService.OfferDataContainer, skOptions.Value, loggerFactory);
         _logger = loggerFactory.CreateLogger<ChatService>();
     }
 

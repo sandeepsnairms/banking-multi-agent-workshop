@@ -21,15 +21,6 @@ namespace MultiAgentCopilot.Plugins
         }
 
         [KernelFunction]
-        [Description("Search an offer by name")]
-        public async Task<Offer> GetOfferDetailsByName(string offerName)
-        {
-            _logger.LogTrace($"Fetching Offer by name");
-            return await _bankService.GetOfferDetailsByNameAsync(_tenantId, offerName);
-        }
-
-
-        [KernelFunction]
         [Description("Get detail for an offer")]
         public async Task<Offer> GetOfferDetails(string offerId)
         {

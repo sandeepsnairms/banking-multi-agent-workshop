@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
 using System.Diagnostics;
 using Azure.Identity;
+using System.Text.Json;
 
 using PartitionKey = Microsoft.Azure.Cosmos.PartitionKey;
 using Container = Microsoft.Azure.Cosmos.Container;
@@ -22,12 +23,13 @@ namespace MultiAgentCopilot.Services
     /// </summary>
     public class CosmosDBService 
     {
-        private readonly Container _chatData;
-        private readonly Container _userData;
-        private readonly Container _offersData;
-        private readonly Container _accountsData;
+        public  Container ChatDataContainer { get; }
+        public Container UserDataContainer { get; }
+        public Container OfferDataContainer { get; }
+        public Container AccountDataContainer { get; }
 
-        private readonly Database _database;
+        public Database Database { get; }
+
         private readonly CosmosDBSettings _settings;
         private readonly ILogger _logger;
 
@@ -69,18 +71,22 @@ namespace MultiAgentCopilot.Services
                 });
 
             }
+
+
+            var jsonSerializerOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+
             CosmosClient client = new CosmosClientBuilder(_settings.CosmosUri, credential)
-                .WithSerializerOptions(options)
+                .WithSystemTextJsonSerializerOptions(jsonSerializerOptions)
                 .WithConnectionModeGateway()
                 .Build();
 
-            _database = client?.GetDatabase(_settings.Database) ??
+            Database = client?.GetDatabase(_settings.Database) ??
                         throw new ArgumentException("Unable to connect to existing Azure Cosmos DB database.");
 
-            _chatData = _database.GetContainer(_settings.ChatDataContainer.Trim());
-            _userData = _database.GetContainer(_settings.UserDataContainer.Trim());
-            _offersData = _database.GetContainer(_settings.OfferDataContainer.Trim());
-            _accountsData = _database.GetContainer(_settings.AccountsContainer.Trim());
+            ChatDataContainer = Database.GetContainer(_settings.ChatDataContainer.Trim());
+            UserDataContainer = Database.GetContainer(_settings.UserDataContainer.Trim());
+            OfferDataContainer = Database.GetContainer(_settings.OfferDataContainer.Trim());
+            AccountDataContainer = Database.GetContainer(_settings.AccountsContainer.Trim());
 
             _logger.LogInformation("Cosmos DB service initialized.");
         }
@@ -93,7 +99,7 @@ namespace MultiAgentCopilot.Services
                     .WithParameter("@type", nameof(Session));
 
                 var partitionKey= PartitionManager.GetChatDataPartialPK(tenantId, userId);
-                FeedIterator<Session> response = _chatData.GetItemQueryIterator<Session>(query, null, new QueryRequestOptions() { PartitionKey = partitionKey });
+                FeedIterator<Session> response = ChatDataContainer.GetItemQueryIterator<Session>(query, null, new QueryRequestOptions() { PartitionKey = partitionKey });
 
                 List<Session> output = new();
                 while (response.HasMoreResults)
@@ -117,7 +123,7 @@ namespace MultiAgentCopilot.Services
             { 
                 var partitionKey = PartitionManager.GetChatDataFullPK(tenantId, userId,sessionId);
 
-                return await _chatData.ReadItemAsync<Session>(
+                return await ChatDataContainer.ReadItemAsync<Session>(
                     id: sessionId,
                     partitionKey: partitionKey);
             }
@@ -138,7 +144,7 @@ namespace MultiAgentCopilot.Services
 
                 var partitionKey = PartitionManager.GetChatDataFullPK(tenantId, userId, sessionId);
 
-                FeedIterator<Message> results = _chatData.GetItemQueryIterator<Message>(query, null, new QueryRequestOptions() { PartitionKey = partitionKey });
+                FeedIterator<Message> results = ChatDataContainer.GetItemQueryIterator<Message>(query, null, new QueryRequestOptions() { PartitionKey = partitionKey });
 
                 List<Message> output = new();
                 while (results.HasMoreResults)
@@ -162,7 +168,7 @@ namespace MultiAgentCopilot.Services
             { 
                 var partitionKey = PartitionManager.GetChatDataFullPK(session.TenantId, session.UserId,session.SessionId);
 
-                var response= await _chatData.CreateItemAsync(
+                var response= await ChatDataContainer.CreateItemAsync(
                     item: session,
                     partitionKey: partitionKey
                 );
@@ -182,7 +188,7 @@ namespace MultiAgentCopilot.Services
             { 
                 var partitionKey = PartitionManager.GetChatDataFullPK(message.TenantId, message.UserId, message.SessionId);
 
-                return await _chatData.CreateItemAsync(
+                return await ChatDataContainer.CreateItemAsync(
                     item: message,
                     partitionKey: partitionKey
                 );
@@ -200,7 +206,7 @@ namespace MultiAgentCopilot.Services
             { 
                 var partitionKey = PartitionManager.GetChatDataFullPK(message.TenantId, message.UserId, message.SessionId);
 
-                return await _chatData.ReplaceItemAsync(
+                return await ChatDataContainer.ReplaceItemAsync(
                     item: message,
                     id: message.Id,
                     partitionKey: partitionKey
@@ -219,7 +225,7 @@ namespace MultiAgentCopilot.Services
             { 
                 var partitionKey = PartitionManager.GetChatDataFullPK(tenantId, userId, sessionId);
 
-                var response = await _chatData.PatchItemAsync<Message>(
+                var response = await ChatDataContainer.PatchItemAsync<Message>(
                 id: messageId,
                 partitionKey: partitionKey,
                     patchOperations: new[]
@@ -242,7 +248,7 @@ namespace MultiAgentCopilot.Services
             { 
                 var partitionKey = PartitionManager.GetChatDataFullPK(session.TenantId, session.UserId, session.SessionId);
 
-                return await _chatData.ReplaceItemAsync(
+                return await ChatDataContainer.ReplaceItemAsync(
                     item: session,
                     id: session.Id,
                     partitionKey: partitionKey
@@ -261,7 +267,7 @@ namespace MultiAgentCopilot.Services
             {
                 var partitionKey = PartitionManager.GetChatDataFullPK(tenantId, userId, sessionId);
 
-                var response = await _chatData.PatchItemAsync<Session>(
+                var response = await ChatDataContainer.PatchItemAsync<Session>(
                     id: sessionId,
                     partitionKey: partitionKey,
                     patchOperations: new[]
@@ -297,7 +303,7 @@ namespace MultiAgentCopilot.Services
                 }
 
                 PartitionKey partitionKey = PartitionManager.GetChatDataFullPK(session.TenantId, session.UserId, session.SessionId);
-                var batch = _chatData.CreateTransactionalBatch(partitionKey);
+                var batch = ChatDataContainer.CreateTransactionalBatch(partitionKey);
                 foreach (var message in messages)
                 {
                     batch.UpsertItem(
@@ -334,9 +340,9 @@ namespace MultiAgentCopilot.Services
                 var query = new QueryDefinition("SELECT c.id FROM c WHERE c.sessionId = @sessionId")
                     .WithParameter("@sessionId", sessionId);
 
-                var response = _chatData.GetItemQueryIterator<Message>(query);
+                var response = ChatDataContainer.GetItemQueryIterator<Message>(query);
 
-                var batch = _chatData.CreateTransactionalBatch(partitionKey);
+                var batch = ChatDataContainer.CreateTransactionalBatch(partitionKey);
                 while (response.HasMoreResults)
                 {
                     var results = await response.ReadNextAsync();
@@ -363,7 +369,7 @@ namespace MultiAgentCopilot.Services
             { 
                 var partitionKey = PartitionManager.GetChatDataFullPK(tenantId, userId, sessionId);
 
-                return await _chatData.ReadItemAsync<DebugLog>(
+                return await ChatDataContainer.ReadItemAsync<DebugLog>(
                     id: debugLogId,
                     partitionKey: partitionKey);
             }
@@ -382,13 +388,13 @@ namespace MultiAgentCopilot.Services
             switch (containerName)
             {
                 case "OfferData":
-                    container = _offersData;
+                    container = OfferDataContainer;
                     break;
                 case "AccountData":
-                    container = _accountsData;
+                    container = AccountDataContainer;
                     break;
                 case "UserData":
-                    container = _userData;
+                    container = UserDataContainer;
                     break;
             }
             try
