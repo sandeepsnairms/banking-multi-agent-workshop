@@ -20,10 +20,8 @@ using MultiAgentCopilot.Plugins;
 
 namespace MultiAgentCopilot.Factories
 {
-    internal class ChatFactory
+    internal class AgentFactory
     {
-        public delegate void LogCallback(string key, string value);
-
         private string GetAgentName()
         {
 
@@ -50,7 +48,5 @@ namespace MultiAgentCopilot.Factories
 
             return agent;
         }
-
-     
     }
 }
