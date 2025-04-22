@@ -18,6 +18,7 @@ project.lock.json
 /data
 .secrets
 #appsettings.json
+appsettings.development.json
 local.settings.json
 
 node_modules
