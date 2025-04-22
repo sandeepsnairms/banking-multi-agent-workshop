@@ -17,10 +17,10 @@ using System.Text.Json;
 
 using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
 using Microsoft.Extensions.VectorData;
-using System.Linq.Expressions; 
+using System.Linq.Expressions;
 
 
-namespace  MultiAgentCopilot.Services
+namespace MultiAgentCopilot.Services
 {
     public class BankingDataService
     {
@@ -40,13 +40,13 @@ namespace  MultiAgentCopilot.Services
 
         readonly Kernel _semanticKernel;
 
-              
+
 
 
         public BankingDataService(
             Database database, Container accountData, Container userData, Container requestData, Container offerData,
             SemanticKernelServiceSettings skSettings,
-            ILoggerFactory loggerFactory )
+            ILoggerFactory loggerFactory)
         {
 
             _database = database;
@@ -58,8 +58,9 @@ namespace  MultiAgentCopilot.Services
             _logger = loggerFactory.CreateLogger<BankingDataService>();
 
             _logger.LogInformation("Initializing Banking service.");
-                                               
 
+
+            //To DO: Add vector search initialization code here
             DefaultAzureCredential credential;
             if (string.IsNullOrEmpty(skSettings.AzureOpenAISettings.UserAssignedIdentityClientID))
             {
@@ -83,10 +84,11 @@ namespace  MultiAgentCopilot.Services
             var vectorStoreOptions = new AzureCosmosDBNoSQLVectorStoreRecordCollectionOptions<OfferTerm> { PartitionKeyPropertyName = "TenantId", JsonSerializerOptions = jsonSerializerOptions };
             _offerDataVectorStore = new AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm>(_database, _offerData.Id, vectorStoreOptions);
 
+
             _logger.LogInformation("Banking service initialized.");
         }
 
-        public async Task<BankUser> GetUserAsync(string tenantId,string userId)
+        public async Task<BankUser> GetUserAsync(string tenantId, string userId)
         {
             try
             {
@@ -183,13 +185,13 @@ namespace  MultiAgentCopilot.Services
 
         public async Task<ServiceRequest> CreateFundTransferRequestAsync(string tenantId, string accountId, string userId, string requestAnnotation, string recipientEmail, string recipientPhone, decimal debitAmount)
         {
-            var req= new ServiceRequest(ServiceRequestType.FundTransfer, tenantId, accountId, userId, requestAnnotation, recipientEmail, recipientPhone, debitAmount,  DateTime.MinValue,null);
+            var req = new ServiceRequest(ServiceRequestType.FundTransfer, tenantId, accountId, userId, requestAnnotation, recipientEmail, recipientPhone, debitAmount, DateTime.MinValue, null);
             return await AddServiceRequestAsync(req);
         }
 
         public async Task<ServiceRequest> CreateTeleBankerRequestAsync(string tenantId, string accountId, string userId, string requestAnnotation, DateTime scheduledDateTime)
         {
-            var req = new ServiceRequest(ServiceRequestType.TeleBankerCallBack, tenantId, accountId, userId, requestAnnotation, string.Empty, string.Empty, 0,  scheduledDateTime,null);
+            var req = new ServiceRequest(ServiceRequestType.TeleBankerCallBack, tenantId, accountId, userId, requestAnnotation, string.Empty, string.Empty, 0, scheduledDateTime, null);
             return await AddServiceRequestAsync(req);
         }
 
@@ -200,13 +202,13 @@ namespace  MultiAgentCopilot.Services
 
         public async Task<ServiceRequest> CreateComplaintAsync(string tenantId, string accountId, string userId, string requestAnnotation)
         {
-            var req = new ServiceRequest(ServiceRequestType.Complaint, tenantId, accountId, userId, requestAnnotation, string.Empty, string.Empty, 0,  DateTime.MinValue, null);
+            var req = new ServiceRequest(ServiceRequestType.Complaint, tenantId, accountId, userId, requestAnnotation, string.Empty, string.Empty, 0, DateTime.MinValue, null);
             return await AddServiceRequestAsync(req);
         }
 
-        public async Task<ServiceRequest> CreateFulfilmentRequestAsync(string tenantId, string accountId, string userId, string requestAnnotation, Dictionary<string,string> fulfilmentDetails)
+        public async Task<ServiceRequest> CreateFulfilmentRequestAsync(string tenantId, string accountId, string userId, string requestAnnotation, Dictionary<string, string> fulfilmentDetails)
         {
-            var req = new ServiceRequest(ServiceRequestType.Fulfilment, tenantId, accountId, userId, requestAnnotation, string.Empty, string.Empty, 0,  DateTime.MinValue, fulfilmentDetails);
+            var req = new ServiceRequest(ServiceRequestType.Fulfilment, tenantId, accountId, userId, requestAnnotation, string.Empty, string.Empty, 0, DateTime.MinValue, fulfilmentDetails);
             return await AddServiceRequestAsync(req);
         }
 
@@ -215,11 +217,11 @@ namespace  MultiAgentCopilot.Services
         {
             try
             {
-                var partitionKey = PartitionManager.GetAccountsDataFullPK(req.TenantId,req.AccountId);
+                var partitionKey = PartitionManager.GetAccountsDataFullPK(req.TenantId, req.AccountId);
                 ItemResponse<ServiceRequest> response = await _accountData.CreateItemAsync(req, partitionKey);
                 return response.Resource;
             }
-            catch (CosmosException ex) 
+            catch (CosmosException ex)
             {
                 _logger.LogError(ex.ToString());
                 return null;
@@ -297,8 +299,6 @@ namespace  MultiAgentCopilot.Services
             }
         }
 
-
-
         public async Task<List<OfferTerm>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription)
         {
             try
@@ -308,23 +308,12 @@ namespace  MultiAgentCopilot.Services
                        new[] { requirementDescription }
                    )).FirstOrDefault();
 
-
-               string accountTypeString = accountType.ToString();
-
-                // filters as LINQ expression
-                Expression<Func<OfferTerm, bool>> linqFilter = term =>
-                    term.TenantId == tenantId &&
-                    term.Type == "Term" &&
-                    term.AccountType == "Savings";
-
-                var options = new VectorSearchOptions<OfferTerm>
-                {
-                    VectorProperty = term => term.Vector, // Correctly specify the vector property as a lambda expression
-                    Filter = linqFilter, // Use the LINQ expression here
-                    Top = 10,
-                    IncludeVectors = false
-                };
-
+                // perform vector search
+                var filter = new VectorSearchFilter()
+                    .EqualTo("TenantId", tenantId)
+                    .EqualTo("Type", "Term")
+                    .EqualTo("AccountType", "Savings");
+                var options = new VectorSearchOptions { VectorPropertyName = "Vector", Filter = filter, Top = 10, IncludeVectors = false };
 
                 var searchResults = await _offerDataVectorStore.VectorizedSearchAsync(embedding, options);
 
@@ -358,6 +347,5 @@ namespace  MultiAgentCopilot.Services
                 return null;
             }
         }
-       
     }
 }

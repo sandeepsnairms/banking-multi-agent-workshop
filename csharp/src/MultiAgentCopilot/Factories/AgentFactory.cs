@@ -22,8 +22,6 @@ namespace MultiAgentCopilot.Factories
 {
     internal class AgentFactory
     {
-        public delegate void LogCallback(string key, string value);
-
         private string GetAgentName(AgentType agentType)
         {
 
@@ -48,7 +46,6 @@ namespace MultiAgentCopilot.Factories
 
             return name;
         }
-
 
         private string GetAgentPrompts(AgentType agentType)
         {
@@ -78,6 +75,19 @@ namespace MultiAgentCopilot.Factories
         }
 
 
+        public ChatCompletionAgent BuildAgent(Kernel kernel, AgentType agentType, ILoggerFactory loggerFactory, BankingDataService bankService, string tenantId, string userId)
+        {
+            ChatCompletionAgent agent = new ChatCompletionAgent
+            {
+                Name = GetAgentName(agentType),
+                Instructions = $"""{GetAgentPrompts(agentType)}""",
+                Kernel = GetAgentKernel(kernel, agentType, loggerFactory, bankService, tenantId, userId),
+                Arguments = new KernelArguments(new AzureOpenAIPromptExecutionSettings() { FunctionChoiceBehavior = FunctionChoiceBehavior.Auto() })
+            };
+
+            return agent;
+        }
+
         private Kernel GetAgentKernel(Kernel kernel, AgentType agentType, ILoggerFactory loggerFactory, BankingDataService bankService, string tenantId, string userId)
         {
             Kernel agentKernel = kernel.Clone();
@@ -105,20 +115,5 @@ namespace MultiAgentCopilot.Factories
 
             return agentKernel;
         }
-
-        public ChatCompletionAgent BuildAgent(Kernel kernel, AgentType agentType, ILoggerFactory loggerFactory, BankingDataService bankService, string tenantId, string userId)
-        {
-            ChatCompletionAgent agent = new ChatCompletionAgent
-            {
-                Name = GetAgentName(agentType),
-                Instructions = $"""{GetAgentPrompts(agentType)}""",
-                Kernel = GetAgentKernel(kernel, agentType, loggerFactory, bankService, tenantId, userId),
-                Arguments = new KernelArguments(new AzureOpenAIPromptExecutionSettings() { FunctionChoiceBehavior = FunctionChoiceBehavior.Auto() })
-            };
-
-            return agent;
-        }
-
-     
     }
 }

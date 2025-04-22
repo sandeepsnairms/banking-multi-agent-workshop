@@ -25,7 +25,7 @@ namespace MultiAgentCopilot.Models.Banking
         [VectorStoreRecordData]
         public required string AccountType { get; set; }
 
-        [VectorStoreRecordVector(Dimensions: 1536, DistanceFunction: Microsoft.Extensions.VectorData.DistanceFunction.CosineSimilarity, IndexKind: Microsoft.Extensions.VectorData.IndexKind.QuantizedFlat)]
+        [VectorStoreRecordVector(Dimensions: 1536, DistanceFunction: DistanceFunction.CosineSimilarity, IndexKind: IndexKind.QuantizedFlat)]
         public ReadOnlyMemory<float>? Vector { get; set; }
 
     }

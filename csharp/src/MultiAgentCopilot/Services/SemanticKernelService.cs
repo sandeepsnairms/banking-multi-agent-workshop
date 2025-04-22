@@ -19,7 +19,7 @@ using AgentFactory = MultiAgentCopilot.Factories.AgentFactory;
 
 namespace MultiAgentCopilot.Services;
 
-public class SemanticKernelService :  IDisposable
+public class SemanticKernelService : IDisposable
 {
     readonly SemanticKernelServiceSettings _skSettings;
     readonly ILoggerFactory _loggerFactory;
@@ -70,34 +70,18 @@ public class SemanticKernelService :  IDisposable
 
         _semanticKernel = builder.Build();
 
+
         Task.Run(Initialize).ConfigureAwait(false);
-
     }
 
-  
-
-    private Task Initialize()
-    {
-        try
-        {
-            _serviceInitialized = true;
-            _logger.LogInformation("Semantic Kernel service initialized.");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Semantic Kernel service was not initialized. The following error occurred: {ErrorMessage}.", ex.ToString());
-        }
-        return Task.CompletedTask;
-    }
-
-
+    //TO DO: Add GetResponse function
     public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, BankingDataService bankService, string tenantId, string userId)
     {
         try
         {
             AgentFactory agentFactory = new AgentFactory();
 
-            var agent = agentFactory.BuildAgent(_semanticKernel, AgentType.Coordinator, _loggerFactory, bankService, tenantId, userId);
+            var agent = agentFactory.BuildAgent(_semanticKernel, AgentType.CustomerSupport, _loggerFactory, bankService, tenantId, userId);
 
             ChatHistory chatHistory = new();
 
@@ -121,7 +105,7 @@ public class SemanticKernelService :  IDisposable
 
             List<Message> completionMessages = new();
             List<DebugLog> completionMessagesLogs = new();
-                      
+
 
             await foreach (ChatMessageContent response in agent.InvokeAsync(userMessage.Text, agentThread))
             {
@@ -138,6 +122,7 @@ public class SemanticKernelService :  IDisposable
     }
 
 
+    //TO DO: Add Summarize function
     public async Task<string> Summarize(string sessionId, string userPrompt)
     {
         try
@@ -160,18 +145,18 @@ public class SemanticKernelService :  IDisposable
         }
     }
 
-
-
-    public async Task<float[]> GenerateEmbedding(string text)
+    private Task Initialize()
     {
-        // Generate Embedding
-
-        var embeddingModel = _semanticKernel.Services.GetRequiredService<ITextEmbeddingGenerationService>();
-
-        var embedding = await embeddingModel.GenerateEmbeddingAsync(text);
-
-        // Convert ReadOnlyMemory<float> to IList<float>
-        return embedding.ToArray();
+        try
+        {
+            _serviceInitialized = true;
+            _logger.LogInformation("Semantic Kernel service initialized.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Semantic Kernel service was not initialized. The following error occurred: {ErrorMessage}.", ex.ToString());
+        }
+        return Task.CompletedTask;
     }
 
     public void Dispose()
