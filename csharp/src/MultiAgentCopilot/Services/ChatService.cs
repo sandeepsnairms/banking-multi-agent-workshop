@@ -125,9 +125,7 @@ public class ChatService
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Error getting a summary in session {sessionId} for user prompt [{prompt}].");
-#pragma warning disable CS8603 // Possible null reference return.
-            return null;
-#pragma warning restore CS8603 // Possible null reference return.
+            return $"Error getting a summary in session {sessionId} for user prompt [{prompt}].";
         }
 
     }
