@@ -20,7 +20,7 @@ using MultiAgentCopilot.Plugins;
 
 namespace MultiAgentCopilot.Factories
 {
-    internal class ChatFactory
+    internal class AgentFactory
     {
 
     }

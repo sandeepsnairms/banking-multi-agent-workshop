@@ -85,10 +85,7 @@ public class SemanticKernelService : IDisposable
                 Kernel = _semanticKernel.Clone()
             };
 
-            ChatHistory chatHistory = [];
-
-            chatHistory.AddUserMessage(userMessage.Text);
-
+            
             // Create an null AgentThread 
             AgentThread agentThread = null;
 
