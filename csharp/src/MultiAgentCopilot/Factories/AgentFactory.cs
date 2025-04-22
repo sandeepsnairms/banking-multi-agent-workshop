@@ -20,7 +20,7 @@ using MultiAgentCopilot.Plugins;
 
 namespace MultiAgentCopilot.Factories
 {
-    internal class ChatFactory
+    internal class AgentFactory
     {
         public delegate void LogCallback(string key, string value);
 
@@ -234,7 +234,7 @@ namespace MultiAgentCopilot.Factories
                             if (!string.IsNullOrEmpty(resultString))
                             {
                                 var ContinuationInfo = JsonSerializer.Deserialize<ContinuationInfo>(resultString);
-                                logCallback("SELECTION - Agent", ContinuationInfo.AgentName); 
+                                logCallback("SELECTION - Agent", ContinuationInfo!.AgentName); 
                                 logCallback("SELECTION - Reason", ContinuationInfo.Reason);                       
                                 return ContinuationInfo.AgentName;
                             }
@@ -261,7 +261,7 @@ namespace MultiAgentCopilot.Factories
                             if (!string.IsNullOrEmpty(resultString))
                             {
                                 var terminationInfo = JsonSerializer.Deserialize<TerminationInfo>(resultString);
-                                logCallback("TERMINATION - Continue", terminationInfo.ShouldContinue.ToString()); 
+                                logCallback("TERMINATION - Continue", terminationInfo!.ShouldContinue.ToString()); 
                                 logCallback("TERMINATION - Reason", terminationInfo.Reason); 
                                 return !terminationInfo.ShouldContinue;
                             }

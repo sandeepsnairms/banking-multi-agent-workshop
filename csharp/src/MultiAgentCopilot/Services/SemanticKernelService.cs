@@ -96,9 +96,9 @@ public class SemanticKernelService :  IDisposable
         try
         {
 
-            ChatFactory multiAgentChatGeneratorService = new ChatFactory();
+            AgentFactory agentFactory = new AgentFactory();
 
-            var agentGroupChat = multiAgentChatGeneratorService.BuildAgentGroupChat(_semanticKernel, _loggerFactory, LogMessage, bankService, tenantId, userId);
+            var agentGroupChat = agentFactory.BuildAgentGroupChat(_semanticKernel, _loggerFactory, LogMessage, bankService, tenantId, userId);
 
             // Load history
             foreach (var chatMessage in messageHistory)
