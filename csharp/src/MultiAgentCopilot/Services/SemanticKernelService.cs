@@ -46,12 +46,19 @@ public class SemanticKernelService :  IDisposable
         _logger.LogInformation("Initializing the Semantic Kernel service...");
 
         var builder = Kernel.CreateBuilder();
-	        _semanticKernel = builder.Build();
+
+        //TO DO: Update SemanticKernelService constructor
+
+        _semanticKernel = builder.Build();
 
 
         Task.Run(Initialize).ConfigureAwait(false);
     }
-      
+
+    //TO DO: Add GetResponse function
+
+    //TO DO: Add Summarize function
+
 
     private Task Initialize()
     {
