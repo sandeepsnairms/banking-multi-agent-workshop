@@ -54,114 +54,28 @@ The following steps are completed in your IDE.
 
 ### Project Structure
 
-This solution is initially organized with the following three projects.
-
-- **BankingServices** this project provides a data service layer for core the banking functionality for our application.
-- **ChatAPI** this project wraps backend service layer for this solution. It exposes REST endpoints that are called by our frontend Angular app.
-- **ChatInfrastructure** is the backend service layer itself. It provides the core wrappers for the underlying Azure Services and the Semantic Kernel Agent Framework and defines interfaces for each of the major service layers. Within this project the key entry point for the ChatAPI service above is the *ChatService*. All user interaction enters and leaves through this service.
-- **Common** provides components that are shared across the entire solution including entity models, configuration, helpers as well as exception handling and debugging.
-
 Here is what the structure of this solution appears like in Visual Studio. Spend a few moments to familiarize yourself with the structure as it will help you navigate as we go through the activities.
 
 ![Solution Files](./media/module-01/solution-files.png)
 
 ### Implement the SemanticKernelService
 
-We are going to define an interface and the service layer for the Semantic Kernel Agent Framework that is central to our workshop. This interface defines the main functionality for our multi-agent service.
-
-There are three functions we will implement as part of our multi-agent application.
+We are going to define two functions as part of our multi-agent application.
 
 - **GetResponse()** will be the entry point called by the front end to interact with the multi-agent service. Everything happens behind this function.
 - **Summarize()** will be used to summarize the conversations users are having with the agent service.
-- **GenerateEmbedding()** will be used to generate embeddings that are used to do vector searches for product data stored in Cosmos DB.
 
-In your IDE, navigate to the **ChatInfrastructure** project in the solution.
+#### Update SemanticKernelService
 
-Then navigate to the `\Interfaces\` folder within it.
+In your IDE, within the `\Services\` folder navigate to `SemanticKernelService.cs`.
 
-Create a new class, **ISemanticKernelService.cs**
-
-Replace the contents of the new class with the code below.
+Search for **//TO DO: Update SemanticKernelService constructor** and  paste the code below.
 
 ```csharp
-using MultiAgentCopilot.Common.Models.Chat;
-using MultiAgentCopilot.Common.Models.Debug;
-
-namespace MultiAgentCopilot.ChatInfrastructure.Interfaces
-{
-    public interface ISemanticKernelService
-    {
-        Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, string tenantId, string userId);
-        Task<string> Summarize(string sessionId, string userPrompt);
-        Task<float[]> GenerateEmbedding(string text);
-    }
-}
-```
-
-Next we will create the service class itself for Semantic Kernel that implements this interface.
-
-Navigate to `ChatInfrastructure\Services\` in your solution.
-
-Create a new class, **SemanticKernelService.cs**
-
-Replace the contents of the new class with the code below.
-
-```csharp
-using System;
-using System.Runtime;
-using System.Data;
-using Newtonsoft.Json;
-using Azure.Identity;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Agents;
-using Microsoft.SemanticKernel.Connectors.OpenAI;
-using Microsoft.SemanticKernel.ChatCompletion;
-using Microsoft.SemanticKernel.Embeddings;
-
-using MultiAgentCopilot.Common.Models.Chat;
-using MultiAgentCopilot.ChatInfrastructure.Interfaces;
-using MultiAgentCopilot.Common.Models.Configuration;
-using MultiAgentCopilot.Common.Models.Debug;
-using Message = MultiAgentCopilot.Common.Models.Chat.Message;
-
-namespace MultiAgentCopilot.ChatInfrastructure.Services;
-
-public class SemanticKernelService : ISemanticKernelService, IDisposable
-{
-    readonly SemanticKernelServiceSettings _settings;
-    readonly ILoggerFactory _loggerFactory;
-    readonly ILogger<SemanticKernelService> _logger;
-    readonly Kernel _semanticKernel;
-
-    bool _serviceInitialized = false;
-    string _prompt = string.Empty;
-    string _contextSelectorPrompt = string.Empty;
-
-    List<LogProperty> _promptDebugProperties;  
-
-    public bool IsInitialized => _serviceInitialized;
-
-    public SemanticKernelService(
-        IOptions<SemanticKernelServiceSettings> options,
-        ILoggerFactory loggerFactory)
-    {
-        _settings = options.Value;
-        _loggerFactory = loggerFactory;
-        _logger = _loggerFactory.CreateLogger<SemanticKernelService>();
-        _promptDebugProperties = new List<LogProperty>();
-
-        _logger.LogInformation("Initializing the Semantic Kernel service...");
-
-        var builder = Kernel.CreateBuilder();
-
-        builder.Services.AddSingleton<ILoggerFactory>(loggerFactory);
+builder.Services.AddSingleton<ILoggerFactory>(loggerFactory);
 
         DefaultAzureCredential credential;
-        if (string.IsNullOrEmpty(_settings.AzureOpenAISettings.UserAssignedIdentityClientID))
+        if (string.IsNullOrEmpty(_skSettings.AzureOpenAISettings.UserAssignedIdentityClientID))
         {
             credential = new DefaultAzureCredential();
         }
@@ -169,64 +83,59 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
         {
             credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
             {
-                ManagedIdentityClientId = _settings.AzureOpenAISettings.UserAssignedIdentityClientID
+                ManagedIdentityClientId = _skSettings.AzureOpenAISettings.UserAssignedIdentityClientID
             });
         }
+
         builder.AddAzureOpenAIChatCompletion(
-            _settings.AzureOpenAISettings.CompletionsDeployment,
-            _settings.AzureOpenAISettings.Endpoint,
-            credential);
+           _skSettings.AzureOpenAISettings.CompletionsDeployment,
+           _skSettings.AzureOpenAISettings.Endpoint,
+           credential);
+```
 
-        builder.AddAzureOpenAITextEmbeddingGeneration(
-               _settings.AzureOpenAISettings.EmbeddingsDeployment,
-               _settings.AzureOpenAISettings.Endpoint,
-               credential);
+Search for **//TO DO: Add GetResponse function** and  paste the code below.
 
-        _semanticKernel = builder.Build();
+```csharp
+ public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, BankingDataService bankService, string tenantId, string userId)
+ {
+     try
+     {
+         ChatCompletionAgent agent = new ChatCompletionAgent
+         {
+             Name = "BasicAgent",
+             Instructions = "Greet the user and translate the request into French",
+             Kernel = _semanticKernel.Clone()
+         };
 
-        Task.Run(Initialize).ConfigureAwait(false);
-    }
+         
+         // Create an null AgentThread 
+         AgentThread agentThread = null;
 
-    public void Dispose()
-    {
-        // Dispose resources if any
-    }
+         _promptDebugProperties = new List<LogProperty>();
 
-    private Task Initialize()
-    {
-        try
-        {
-            _serviceInitialized = true;
-            _logger.LogInformation("Semantic Kernel service initialized.");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Semantic Kernel service was not initialized. The following error occurred: {ErrorMessage}.", ex.ToString());
-        }
-        return Task.CompletedTask;
-    }
+         List<Message> completionMessages = new();
+         List<DebugLog> completionMessagesLogs = new();
 
-    private void LogMessage(string key, string value)
-    {
-        _promptDebugProperties.Add(new LogProperty(key, value));
-    }
 
-    public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory,  string tenantId, string userId)
-    {
+         await foreach (ChatMessageContent response in agent.InvokeAsync(userMessage.Text, agentThread))
+         {
+             string messageId = Guid.NewGuid().ToString();
+             completionMessages.Add(new Message(userMessage.TenantId, userMessage.UserId, userMessage.SessionId, response.AuthorName ?? string.Empty, response.Role.ToString(), response.Content ?? string.Empty, messageId));
+         }
+         return new Tuple<List<Message>, List<DebugLog>>(completionMessages, completionMessagesLogs);
+     }
+     catch (Exception ex)
+     {
+         _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.ToString());
+         return new Tuple<List<Message>, List<DebugLog>>(new List<Message>(), new List<DebugLog>());
+     }
+ }
+```
 
-        try
-        {
-            //GetResponse() code goes here
+Search for **//TO DO: Add Summarize function** and  paste the code below.
 
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.ToString());
-            return new Tuple<List<Message>, List<DebugLog>>(new List<Message>(), new List<DebugLog>());
-        }
-    }
-
-    public async Task<string> Summarize(string sessionId, string userPrompt)
+```csharp
+public async Task<string> Summarize(string sessionId, string userPrompt)
     {
         try
         {
@@ -248,150 +157,42 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
         }
     }
 
-    public  async Task<float[]> GenerateEmbedding(string text)
-    {
-        // Generate Embedding
-        var embeddingModel = _semanticKernel.Services.GetRequiredService<ITextEmbeddingGenerationService>();
-
-        var embedding = await embeddingModel.GenerateEmbeddingAsync(text);
-
-        // Convert ReadOnlyMemory<float> to IList<float>
-       return embedding.ToArray();
-    }
-}
 ```
 
-## Activity 4: Create a Simple Agent
+#### Update ChatService
 
-In this activity we are going to create a simple customer service agent. This agent is going to be the key agent that will interact with users. However, right now, we are going to only implement a very simple agent that will take your user input and translate it into French. Later on we will greatly expand this customer service agent's functinality.
+In your IDE, within the `\Services\` folder navigate to `ChatService.cs`.
 
-In Semantic Kernel all agents are derived from an abstract `Agent` class. Semantic Kernel provides a few built-in Agent classes including a ChatCompletionAgent, OpenAI Assistant Agent which are both derived by the `AgentChat` class in Semantic Kernel. There are also some experimental agents such as Azure AI Agent and Agent Collaboration. You can explore these on your own.
-
-### Implement GetResponse() function
-
-In our application the GetResponse() function is the key entry point for users.
-
-In our example here we are going to implement a very simple **ChatCompletionAgent**. This is one of the built-in agents from Semantic Kernel Agent Framework and a key component for building these types of applications. The design for this agent is simple. It simply takes user input and translates the responses into French.
-
-Within the `GetResponse()` function of  **SemanticKernelService.cs**, inside the `Try..Catch` block, copy the following code:
+Replace the code for **GetChatCompletionAsync** method with code below.
 
 ```csharp
-            ChatCompletionAgent agent = new ChatCompletionAgent
-            {
-                Name = "BasicAgent",
-                Instructions = "Greet the user and translate the request into French",
-                Kernel = _semanticKernel.Clone()
-            };
+  public async Task<List<Message>> GetChatCompletionAsync(string tenantId, string userId, string? sessionId, string userPrompt)
+ {
+     try
+     {
+         ArgumentNullException.ThrowIfNull(sessionId);
 
-            ChatHistory chatHistory = [];
+         // Add both prompt and completion to cache, then persist in Cosmos DB
+         var userMessage = new Message(tenantId, userId, sessionId, "User", "User", userPrompt);
 
-            chatHistory.AddUserMessage(userMessage.Text);
+         // Generate the completion to return to the user
+         var result = await _skService.GetResponse(userMessage, new List<Message>(), _bankService, tenantId, userId);
 
-            _promptDebugProperties = new List<LogProperty>();
+         return result.Item1;
+     }
+     catch (Exception ex)
+     {
+         _logger.LogError(ex, $"Error getting completion in session {sessionId} for user prompt [{userPrompt}].");
+         return new List<Message> { new Message(tenantId, userId, sessionId!, "Error", "Error", $"Error getting completion in session {sessionId} for user prompt [{userPrompt}].") };
+     }
+ }
 
-            List<Message> completionMessages = new();
-            List<DebugLog> completionMessagesLogs = new();
-
-            ChatMessageContent message = new(AuthorRole.User, userMessage.Text);
-            chatHistory.Add(message);
-
-            await foreach (ChatMessageContent response in agent.InvokeAsync(chatHistory))
-            {
-                string messageId = Guid.NewGuid().ToString();
-                completionMessages.Add(new Message(userMessage.TenantId, userMessage.UserId, userMessage.SessionId, response.AuthorName ?? string.Empty, response.Role.ToString(), response.Content ?? string.Empty, messageId));
-            }            
-            return new Tuple<List<Message>, List<DebugLog>>(completionMessages, completionMessagesLogs);
 ```
 
-### Add Dependency Injection for SemanticKernel
-
-We next need to add some boiler plate code to our solution to support the new SemanticKernelService classes we've imlemented.
-
-Navigate to `ChatInfrastructure\Services\`
-
-Open the `DependencyInjection.cs` class. Copy the following code inside the class
+Replace the code for **SummarizeChatSessionNameAsync** method with code below.
 
 ```csharp
-        /// <summary>
-        /// Registers the <see cref="ISemanticKernelService"/> implementation with the dependency injection container.
-        /// </summary>
-        /// <param name="builder">The hosted applications and services builder.</param>
-        public static void AddSemanticKernelService(this IHostApplicationBuilder builder)
-        {
-            builder.Services.AddOptions<SemanticKernelServiceSettings>()
-                .Bind(builder.Configuration.GetSection("SemanticKernelServiceSettings"));
-            builder.Services.AddSingleton<ISemanticKernelService, SemanticKernelService>();
-        }
-```
-
-### Integrate SemanticKernelService to ChatService
-
-As described earlier, the ChatService is the entry point for all user interaction with this application. The ChatAPI exposes all of the functions implemented by the ChatService and it subsequently calls every other servic within this application. Some of the functionality for this application we will implement here but that is largely centered on the user chat elements such as managing the chat history for the agents as well as integrating it into Semantic Kernel which it will forward requests on behalf of the user.
-
-Let's begin to implement some of these elements for our application.
-
-Within the same `ChatInfrastructure\Services\` folder, open the `ChatService.cs`
-
-At the top of the `ChatService : IChatService` class, add the following line to the class declarations under `ICosmosDBService` and `ILogger`
-
-```csharp
-private readonly ISemanticKernelService _skService;
-```
-
-Next, replace the existing ChatService constructor to the following code:
-
-```csharp
-public ChatService(
-        IOptions<CosmosDBSettings> cosmosOptions,
-        IOptions<SemanticKernelServiceSettings> skOptions,
-        ICosmosDBService cosmosDBService,
-        ISemanticKernelService skService,
-        ILoggerFactory loggerFactory)
-    {
-        _cosmosDBService = cosmosDBService;
-        _skService = skService;
-        _bankService = new BankingDataService(cosmosOptions.Value, skOptions.Value, loggerFactory);
-        _logger = loggerFactory.CreateLogger<ChatService>();
-    }
-```
-
-### Integrate Semantic Kernel to Chat Service
-
-In this step, you integrate the chat service to now call the `GetResponse()` method we pasted earlier for our a simple customer service agent.
-
-Within the same `ChatService.cs` navigate to the `GetChatCompletionAsync()` function
-
-Update the code within the function to this:
-
-```csharp
-    public async Task<List<Message>> GetChatCompletionAsync(string tenantId, string userId,string? sessionId, string userPrompt)
-    {
-        try
-        {
-            ArgumentNullException.ThrowIfNull(sessionId);
-            
-            // Add both prompt and completion to cache, then persist in Cosmos DB
-            var userMessage = new Message(tenantId, userId, sessionId, "User", "User", userPrompt);
-
-            // Generate the completion to return to the user
-            var result = await _skService.GetResponse(userMessage, new List<Message>(), tenantId, userId);
-
-            return result.Item1;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, $"Error getting completion in session {sessionId} for user prompt [{userPrompt}].");
-            return new List<Message> { new Message(tenantId, userId, sessionId!, "Error", "Error", $"Error getting completion in session {sessionId} for user prompt [{userPrompt}].") };
-        }
-    }
-```
-
-This next function gets called by the service to rename chat session to give it a meaningful name. It does this by calling the semantic kernel service which passes the prompt text to an LLM and asks it to summarize the next. It then calls a second function that renames the chat and stores the new name in Cosmos DB.
-
-In the next function below, `SummarizeChatSessionNameAsync()` replace the existing code for that function with this below.
-
-```csharp
-    public async Task<string> SummarizeChatSessionNameAsync(string tenantId, string userId,string? sessionId, string prompt)
+ public async Task<string> SummarizeChatSessionNameAsync(string tenantId, string userId,string? sessionId, string prompt)
     {
         try
         {
@@ -408,20 +209,9 @@ In the next function below, `SummarizeChatSessionNameAsync()` replace the existi
             _logger.LogError(ex, $"Error getting a summary in session {sessionId} for user prompt [{prompt}].");
             return $"Error getting a summary in session {sessionId} for user prompt [{prompt}].";
         }
+
     }
-```
 
-### Final step, initialize the Semantic Kernel service
-
-We are though all of the implementation elements for this module. The last step is to initialize the new SemanticKernelService we've just created.
-
-In your IDE, navigate to the `ChatAPI` project. Then open `Program.cs`
-
-Within the file, search for `builder.AddCosmosDBService();` and paste `builder.AddSemanticKernelService();` in the line below it so the code looks like this:
-
-```csharp
-builder.AddCosmosDBService();
-builder.AddSemanticKernelService();
 ```
 
 ## Activity 5: Test your Work

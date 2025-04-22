@@ -50,7 +50,7 @@ Prompty is an asset class and file format designed to streamline the development
 
 In this activity we will review the existing Prompty files.
 
-In your IDE, navigate to the `ChatAPI` project, then the `/Prompts` folder.
+In your IDE, navigate to the `/Prompts` folder.
 
 The contents of this folder should look like this below.
 
@@ -90,30 +90,22 @@ This agent handles any account-based transactions on behalf of the user includin
 
 In our banking solution we have four agents: transactions agent, sales agent, customer support agent, and a coordinator agent to manage all of them. With the behavior of the agents defined in Prompty, we now need to implement the code that will allow the application to load the agent behavior for each of the agents.
 
-In your IDE, navigate to the `Models` folder within the `ChatInfrastructure` project.
+In your IDE, navigate to the `Models` folder and review the contents of `AgentTypes.cs`.
 
-Review the contents of `AgentTypes.cs`.
+### Implementing the Agent Factory
 
-### Implementing the System Prompt Factory
+We are now ready to complete the implementation for the **Agent Factory** created in the previous module. The `AgentFactory` will generate prompts based on the `agentType` parameter, allowing us to reuse the code and add more agents. 
 
-We are now ready to complete the implementation for the **System Prompt Factory** created in the previous module. The `SystemPromptFactory` will generate prompts based on the `agentType` parameter, allowing us to reuse the code and add more agents. To achieve this, we will first add a reference to `MultiAgentCopilot.ChatInfrastructure.Models` in `ChatInfrastructure\Factories\SystemPromptFactory.cs`, enabling it to consume the AgentType enum.
-
-In the same `ChatInfrastructure` project, navigate to the `/Factories` folder.
-
-Open the `SystemPromptFactory.cs`
+Navigate to the `/Factories` folder, open the `AgentFactory.cs`
 
 Next we need to replace our original hard-coded implementation from Module 2 to use the AgentType enum for our banking agents. It is also worth noting that it is here where the contents of the `CommonAgentsRules.prompty` are included as part of the system prompts that define our agents.
-
-Within the `SystemPromptFactory.cs`
 
 Replace the code for both `GetAgentName()` and `GetAgentPrompts()` with the code below:
 
 ```csharp
-    internal static class SystemPromptFactory
-    {
-        //Replace from here
-        public static string GetAgentName(AgentType agentType)
+        private string GetAgentName(AgentType agentType)
         {
+
             string name = string.Empty;
             switch (agentType)
             {
@@ -133,11 +125,12 @@ Replace the code for both `GetAgentName()` and `GetAgentPrompts()` with the code
                     throw new ArgumentOutOfRangeException(nameof(agentType), agentType, null);
             }
 
-            return name;//.ToUpper();
+            return name;
         }
 
-        public static string GetAgentPrompts(AgentType agentType)
+        private string GetAgentPrompts(AgentType agentType)
         {
+
             string promptFile = string.Empty;
             switch (agentType)
             {
@@ -161,137 +154,17 @@ Replace the code for both `GetAgentName()` and `GetAgentPrompts()` with the code
 
             return prompt;
         }
-        //end replace
+
     }
 ```
 
 ## Activity 4: Integrating Bank Domain Functions as Plugins
 
-All banking domain code is encapsulated in a separate `BankingServices` project. Let's add the banking domain functions to the agent plugins. For simplicity in this workshop, all functions reference BankingServices. However, kernel functions can be any managed code that enables the LLM to interact with the outside world. The Base plugin, inherited by all plugins, contains common code for all plugins. For best results the `KernelFunction` available in the agent plugin should be consistent with the agent system prompts.
+All banking domain code is encapsulated in a separate `BankingDataService` class. Let's add the banking domain functions to the agent plugins. For simplicity in this workshop, all functions reference BankingServices. However, kernel functions can be any managed code that enables the LLM to interact with the outside world. The Base plugin, inherited by all plugins, contains common code for all plugins. For best results the `KernelFunction` available in the agent plugin should be consistent with the agent system prompts.
 
-In your IDE, navigate to the `ChatInfrastructure` project in the solution.
+To save time, the code for BasePlugin, SalesPlugin, and CustomerSupportPlugin are already implemented. The code for TransactionPlugin is left for you to implement.
 
-Then navigate to the `AgentPlugins` folder.
-
-Open the `BasePlugin.cs` file
-
-Paste the following code into the class definition below the constructor.
-
-```csharp
-    [KernelFunction("GetLoggedInUser")]
-    [Description("Get the current logged-in BankUser")]
-    public async Task<BankUser> GetLoggedInUser()
-    {
-        _logger.LogTrace($"Get Logged In User for Tenant:{_tenantId}  User:{_userId}");
-        return await _bankService.GetUserAsync(_tenantId, _userId);
-    }
-
-    [KernelFunction("GetCurrentDateTime")]
-    [Description("Get the current date time in UTC")]
-    public DateTime GetCurrentDateTime()
-    {
-        _logger.LogTrace($"Get Datetime: {System.DateTime.Now.ToUniversalTime()}");
-        return System.DateTime.Now.ToUniversalTime();
-    }
-
-    [KernelFunction("GetUserRegisteredAccounts")]
-    [Description("Get user registered accounts")]
-    public async Task<List<BankAccount>> GetUserRegisteredAccounts()
-    {
-        _logger.LogTrace($"Fetching accounts for Tenant: {_tenantId} User ID: {_userId}");
-        return await _bankService.GetUserRegisteredAccountsAsync(_tenantId, _userId);
-    } 
-```
-
-Navigate and open the `SalesPlugin.cs` file.
-
-Paste the following code into the class definition below the constructor.
-
-```csharp
-    [KernelFunction]
-    [Description("Search an offer by name")]
-    public async Task<Offer> GetOfferDetailsByName(string offerName)
-    {
-        _logger.LogTrace($"Fetching Offer by name");
-        return await _bankService.GetOfferDetailsByNameAsync(_tenantId, offerName);
-    }
-
-    [KernelFunction]
-    [Description("Get the transactions history between 2 dates")]
-    public async Task<List<BankTransaction>> GetTransactionHistory(string accountId, DateTime startDate, DateTime endDate)
-    {
-        _logger.LogTrace("Fetching AccountTransaction history for Account: {AccountId}, From: {StartDate} To: {EndDate}", accountId, startDate, endDate);
-        return await _bankService.GetTransactionsAsync(_tenantId, accountId, startDate, endDate);
-    }
-
-    [KernelFunction]
-    [Description("Register a new account.")]
-    public async Task<ServiceRequest> RegisterAccount(string userId, AccountType accType, Dictionary<string,string> fulfilmentDetails)
-    {
-        _logger.LogTrace($"Registering Account. User ID: {userId}, Account Type: {accType}");
-        return await _bankService.CreateFulfilmentRequestAsync(_tenantId, string.Empty,_userId,string.Empty,fulfilmentDetails);
-    }  
-```
-
-Navigate to and open the `CustomerSupportPlugin.cs` file
-
-Paste the following code into the class definition below the constructor.
-
-```csharp
-    [KernelFunction("IsAccountRegisteredToUser")]
-    [Description("Check if account is registered to user")]
-    public async Task<bool> IsAccountRegisteredToUser(string accountId)
-    {
-        _logger.LogTrace($"Validating account for Tenant: {_tenantId} User ID: {_userId}- {accountId}");
-        var accountDetails = await _bankService.GetAccountDetailsAsync(_tenantId, _userId, accountId);
-        return accountDetails != null;
-    }
-
-    [KernelFunction]
-    [Description("Create new complaint")]
-    public async Task<ServiceRequest> CreateComplaint(string accountId, string requestAnnotation)
-    {
-        _logger.LogTrace($"Adding new service request for Tenant: {_tenantId} User: {_userId}, Account: {accountId}");
-        return await _bankService.CreateComplaintAsync(_tenantId, accountId, _userId, requestAnnotation);
-    }
-
-   [KernelFunction("CheckPendingServiceRequests")]
-   [Description("Search the database for pending requests")]
-   public async Task<List<ServiceRequest>> CheckPendingServiceRequests(string? accountId = null, ServiceRequestType? srType = null)
-   {
-      _logger.LogTrace($"Searching database for matching requests for Tenant: {_tenantId} User: {_userId}");
-
-      return await _bankService.GetServiceRequestsAsync(_tenantId, accountId ?? string.Empty, null, srType);
-   }
-
-   [KernelFunction]
-   [Description("Adds a telebanker callback request for the specified account.")]
-   public async Task<ServiceRequest> AddTeleBankerRequest(string accountId,string requestAnnotation ,DateTime callbackTime)
-   {
-      _logger.LogTrace($"Adding Tele Banker request for Tenant: {_tenantId} User: {_userId}, account: {accountId}");
-
-      return await _bankService.CreateTeleBankerRequestAsync(_tenantId, accountId,_userId, requestAnnotation, callbackTime);
-   }
-
-   [KernelFunction]
-   [Description("Get list of available slots for telebankers specializing in an account type")]
-   public async Task<string> GetTeleBankerSlots(AccountType accountType)
-   {
-      _logger.LogTrace($"Checking availability for Tele Banker for Tenant: {_tenantId} AccountType: {accountType.ToString()}");
-
-      return await _bankService.GetTeleBankerAvailabilityAsync();
-   }
-
-
-   [KernelFunction]
-   [Description("Updates an existing service request with additional details")]
-   public async Task<bool> UpdateExistingServiceRequest(string requestId, string accountId, string requestAnnotation)
-   {
-      _logger.LogTrace($"Updating service request for Request: {requestId}");
-
-      return await  _bankService.AddServiceRequestDescriptionAsync(_tenantId, accountId, requestId, requestAnnotation);
-   }
-```
+In your IDE, navigate to the `AgentPlugins` folder.
 
 Navigate to and open the `TransactionPlugin.cs` file
 
@@ -325,34 +198,16 @@ Paste the following code into the class definition below the constructor.
     }
 ```
 
-## Activity 5: Developing a Plugin Factory
+## Activity 5: Adding a Plugin to the Agent
 
-Similar to generating system prompts based on agent type, we need the plugins to be created dynamically. Next, we will create a `PluginFactory` that dynamically generates a plugin based on the agent type.
+Similar to generating system prompts based on agent type, we need the plugins to be created dynamically. Next, we will implement a  a `GetAgentKernel` function that dynamically generates a plugin based on the agent type.
 
-In the `ChatInfrastructure` project, navigate to the `/Factories` folder
+Navigate to the `/Factories` folder, open the `AgentFactory.cs`
 
-Create a new file, `PluginFactory.cs`
-
-Replace the contents of the file with the code below.
+Paste the code below to the  end of the class.
 
 ```csharp
-using Microsoft.SemanticKernel;
-using MultiAgentCopilot.ChatInfrastructure.Services;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
-using MultiAgentCopilot.ChatInfrastructure.Plugins;
-using BankingServices.Interfaces;
-using MultiAgentCopilot.ChatInfrastructure.Models;
-
-namespace MultiAgentCopilot.ChatInfrastructure.Factories
-{
-    internal static class PluginFactory
-    {
-        internal static Kernel GetAgentKernel(Kernel kernel, AgentType agentType, ILoggerFactory loggerFactory, IBankDataService bankService, string tenantId, string userId)
+        private Kernel GetAgentKernel(Kernel kernel, AgentType agentType, ILoggerFactory loggerFactory, BankingDataService bankService, string tenantId, string userId)
         {
             Kernel agentKernel = kernel.Clone();
             switch (agentType)
@@ -379,31 +234,27 @@ namespace MultiAgentCopilot.ChatInfrastructure.Factories
 
             return agentKernel;
         }
-    }
-}
 ```
 
-## Activity 6: Building an Agent Factory
+## Activity 6: Building an Agent Dynamically
 
-Now that we have `SystemPromptFactory` and `PluginFactory` that dynamically generate system prompts and plugins, we can make the agent build process dynamic based on the `agentType` parameter. Next, we will modify the `BuildAgent()` function within the `ChatFactory` class to dynamically add plugins to the agents.
-
-Within the `/Factories` folder, open the `ChatFactory.cs` file.
+Now that we have  Agent Prompt and  Agent Kernel that are dynamically generated , we can make the agent build process dynamic based on the `agentType` parameter. Next, we will modify the `BuildAgent()` function within the `AgentFactory` class to dynamically add plugins to the agents.
 
 Replace the `BuildAgent()` function with this code below.
 
 ```csharp
-    public ChatCompletionAgent BuildAgent(Kernel kernel, AgentType agentType, ILoggerFactory loggerFactory, IBankDataService bankService, string tenantId, string userId)
-    {
-        ChatCompletionAgent agent = new ChatCompletionAgent
+        public ChatCompletionAgent BuildAgent(Kernel kernel, AgentType agentType, ILoggerFactory loggerFactory, BankingDataService bankService, string tenantId, string userId)
         {
-            Name = SystemPromptFactory.GetAgentName(agentType),
-            Instructions = $"""{SystemPromptFactory.GetAgentPrompts(agentType)}""",
-            Kernel = PluginFactory.GetAgentKernel(kernel, agentType,loggerFactory, bankService, tenantId, userId),
-            Arguments = new KernelArguments(new AzureOpenAIPromptExecutionSettings() { FunctionChoiceBehavior = FunctionChoiceBehavior.Auto() })
-        };
-    
-        return agent;
-    }
+            ChatCompletionAgent agent = new ChatCompletionAgent
+            {
+                Name = GetAgentName(agentType),
+                Instructions = $"""{GetAgentPrompts(agentType)}""",
+                Kernel = GetAgentKernel(kernel, agentType, loggerFactory, bankService, tenantId, userId),
+                Arguments = new KernelArguments(new AzureOpenAIPromptExecutionSettings() { FunctionChoiceBehavior = FunctionChoiceBehavior.Auto() })
+            };
+
+            return agent;
+        }
 ```
 
 ## Activity 7: Semantic Search
@@ -414,20 +265,14 @@ In this activity, you will learn how to configure vector indexing and search in 
 
 Data Models used for Vector Search in Semantic Kernel need to be enhanced with additional attributes. We will use `OfferTerm` as vector search enabled data model.
 
-In your IDE, navigate to the `Common` project.
+In your IDE, navigate to the '/Models/Banking' folder
 
-Open the `/Models/Banking' folder
+Open `OfferTerm.cs`
 
-Create a new class, `OfferTerm.cs`
-
-Replace the code with this code below for creating an OfferTerm class
+Paste the code with this code below for creating an OfferTerm class
 
 ```csharp
-using Microsoft.Extensions.VectorData;
-namespace MultiAgentCopilot.Common.Models.Banking
-{
-    public class OfferTerm
-    {
+
         [VectorStoreRecordKey]
         public required string Id { get; set; }
 
@@ -451,71 +296,70 @@ namespace MultiAgentCopilot.Common.Models.Banking
 
         [VectorStoreRecordVector(Dimensions: 1536, DistanceFunction: DistanceFunction.CosineSimilarity, IndexKind: IndexKind.QuantizedFlat)]
         public ReadOnlyMemory<float>? Vector { get; set; }
-    }
-}
+    
 ```
 
 ### Update BankingDataService to include vector search
 
-In your IDE, navigate to the `BankingServices` project.
+In your IDE, within the '\Services' folder navigate to the `BankingDataService.cs` file.
 
-Then navigate to the `/Interface` folder.
-
-Open the `IBankDataService.cs` file.
-
-Paste the two interface definitions in the public interface defintion.
+in the constructor of the class search for **//To DO: Add vector search initialization code here** and replace  with the below code
 
 ```csharp
-    Task<List<OfferTerm>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription);
-    Task<Offer> GetOfferDetailsAsync(string tenantId, string offerId);
+      DefaultAzureCredential credential;
+     if (string.IsNullOrEmpty(skSettings.AzureOpenAISettings.UserAssignedIdentityClientID))
+     {
+         credential = new DefaultAzureCredential();
+     }
+     else
+     {
+         credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
+         {
+             ManagedIdentityClientId = skSettings.AzureOpenAISettings.UserAssignedIdentityClientID
+         });
+    
+     }
+    
+     _textEmbeddingGenerationService = new(
+             deploymentName: skSettings.AzureOpenAISettings.EmbeddingsDeployment, // Name of deployment, e.g. "text-embedding-ada-002".
+             endpoint: skSettings.AzureOpenAISettings.Endpoint,           // Name of Azure OpenAI service endpoint, e.g. https://myaiservice.openai.azure.com.
+             credential: credential);
+    
+     var jsonSerializerOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+     var vectorStoreOptions = new AzureCosmosDBNoSQLVectorStoreRecordCollectionOptions<OfferTerm> { PartitionKeyPropertyName = "TenantId", JsonSerializerOptions = jsonSerializerOptions };
+     _offerDataVectorStore = new AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm>(_database, _offerData.Id, vectorStoreOptions);
 ```
-
-Next, navigate to the `/Services` folder.
-
-Open the `BankingDataService.cs` file.
-
-Add the two class-level variables to the file.
-
-```csharp
-        private readonly AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm> _offerDataVectorStore;
-        private readonly AzureOpenAITextEmbeddingGenerationService _textEmbeddingGenerationService;
-```
-
-Scroll down in the file until you see, `_semanticKernel = builder.Build();`
-
-Paste the following code below it.
-
-```csharp
-        _textEmbeddingGenerationService = new(
-            deploymentName: skSettings.AzureOpenAISettings.EmbeddingsDeployment,
-            endpoint: skSettings.AzureOpenAISettings.Endpoint,
-            credential: credential);
-
-        var vectorStoreOptions = new AzureCosmosDBNoSQLVectorStoreRecordCollectionOptions<OfferTerm> { PartitionKeyPropertyName = "TenantId", JsonSerializerOptions = jsonSerializerOptions };
-        _offerDataVectorStore = new AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm>(_database, _settings.OfferDataContainer.Trim(), vectorStoreOptions);
-```
-
-Next, we will implement the two new functions we added to the `IBankDataService.cs` interface earlier.
 
 Below the function in which you just pasted the code above, paste the following two functions.
 
 ```csharp
         public async Task<List<OfferTerm>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription)
-        {           
+        {
             try
             {
                 // Generate Embedding
                 ReadOnlyMemory<float> embedding = (await _textEmbeddingGenerationService.GenerateEmbeddingsAsync(
                        new[] { requirementDescription }
                    )).FirstOrDefault();
-
-                // perform vector search
-                var filter = new VectorSearchFilter()
-                    .EqualTo("TenantId", tenantId)
-                    .EqualTo("Type", "Term")
-                    .EqualTo("AccountType", "Savings");
-                var options = new VectorSearchOptions { VectorPropertyName = "Vector", Filter = filter, Top = 10, IncludeVectors = false };
-                                
+        
+        
+               string accountTypeString = accountType.ToString();
+        
+                // filters as LINQ expression
+                Expression<Func<OfferTerm, bool>> linqFilter = term =>
+                    term.TenantId == tenantId &&
+                    term.Type == "Term" &&
+                    term.AccountType == "Savings";
+        
+                var options = new VectorSearchOptions<OfferTerm>
+                {
+                    VectorProperty = term => term.Vector, // Correctly specify the vector property as a lambda expression
+                    Filter = linqFilter, // Use the LINQ expression here
+                    Top = 10,
+                    IncludeVectors = false
+                };
+        
+        
                 var searchResults = await _offerDataVectorStore.VectorizedSearchAsync(embedding, options);
         
                 List<OfferTerm> offerTerms = new();
@@ -525,11 +369,11 @@ Below the function in which you just pasted the code above, paste the following 
                 }
                 return offerTerms;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex.ToString());
                 return new List<OfferTerm>();
-            }           
+            }
         }
 
         public async Task<Offer> GetOfferDetailsAsync(string tenantId, string offerId)
@@ -550,9 +394,7 @@ Below the function in which you just pasted the code above, paste the following 
         }
 ```
 
-In your IDE, navigate to the `ChatInfrastructure` project.
-
-Then navigate to the `/AgentPlugins` folder.
+In your IDE, navigate to the `/AgentPlugins` folder.
 
 Open the `SalesPlugin.cs` file.
 
@@ -576,113 +418,18 @@ Add these two functions to perform vector searches
     }
 ```
 
-## Activity 8: Bringing It All Together – Bank Domain Models, Plugins, and Agents
+### Select the Agent to get response
 
-We are nearly complete with the updates for our multi-agent application.
+In your IDE, navigate to the `/Services` folder.
 
-Within the `ChatInfrastructure` project, navigate to the `/Interfaces` folder.
+Open the `SalesPSemanticKernelService.cs` file.
 
-Open the `ISemanticKernelService.cs` file.
+Locate the `GetResponse()` function.
 
-Replace the interface definition for the `GetResponse()` function with the following code.
+Replace `var agent = agentFactory.BuildAgent(_semanticKernel, _loggerFactory, bankService, tenantId, userId);` with the line of code below.
 
-```csharp
-    Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, IBankDataService bankService, string tenantId, string userId);
-```
-
-Next, navigate to the `/Services` folder.
-
-Open the `SemanticKernelService.cs` file.
-
-Paste the two lines of code below to add a reference for MultiAgentCopilot.ChatInfrastructure.Models and BankingServices.Interfaces
-
-```csharp
-using MultiAgentCopilot.ChatInfrastructure.Models;
-using BankingServices.Interfaces;
-```
-
-Then modify the `GetResponse()` function to implement the updated interface.
-
-Replace the function with the code below.
-
-```csharp
-public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, IBankDataService bankService, string tenantId, string userId)
-    {
-        try
-        {
-            ChatFactory agentChatGeneratorService = new ChatFactory();
-
-            var agent = agentChatGeneratorService.BuildAgent(_semanticKernel,AgentType.CustomerSupport, _loggerFactory,  bankService, tenantId, userId);
-
-            ChatHistory chatHistory = [];
-
-            // Load history
-            foreach (var chatMessage in messageHistory)
-            {                
-                if(chatMessage.SenderRole == "User")
-                {
-                    chatHistory.AddUserMessage(chatMessage.Text);
-                }
-                else
-                {
-                    chatHistory.AddAssistantMessage(chatMessage.Text);
-                }
-            }
-
-            chatHistory.AddUserMessage(userMessage.Text);
-
-            _promptDebugProperties = new List<LogProperty>();
-
-            List<Message> completionMessages = new();
-            List<DebugLog> completionMessagesLogs = new();
-
-            await foreach (ChatMessageContent response in agent.InvokeAsync(chatHistory))
-            {
-                string messageId = Guid.NewGuid().ToString();
-                completionMessages.Add(new Message(userMessage.TenantId, userMessage.UserId, userMessage.SessionId, response.AuthorName ?? string.Empty, response.Role.ToString(), response.Content ?? string.Empty, messageId));
-            }            
-            return new Tuple<List<Message>, List<DebugLog>>(completionMessages, completionMessagesLogs);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.ToString());
-            return new Tuple<List<Message>, List<DebugLog>>(new List<Message>(), new List<DebugLog>());
-        }
-    }
-```
-
-Finally, we need to pass the BankingDataService object to the call to the SemanticKernelService.
-
-Within the `/Services` folder, open the `ChatService.cs` file.
-
-Update GetChatCompletionAsync in ChatInfrastructure\Services\ChatService.cs
-
-```csharp
-    public async Task<List<Message>> GetChatCompletionAsync(string tenantId, string userId,string? sessionId, string userPrompt)
-    {
-        try
-        {
-            ArgumentNullException.ThrowIfNull(sessionId);
-
-            // Retrieve conversation, including latest prompt.
-            var archivedMessages = await _cosmosDBService.GetSessionMessagesAsync(tenantId, userId, sessionId);
-
-            // Add both prompt and completion to cache, then persist in Cosmos DB
-            var userMessage = new Message(tenantId,userId,sessionId, "User","User", userPrompt);
-
-            // Generate the completion to return to the user
-            var result = await _skService.GetResponse(userMessage, archivedMessages,_bankService,tenantId,userId);
-
-            await AddPromptCompletionMessagesAsync(tenantId, userId,sessionId, userMessage, result.Item1, result.Item2);
-
-            return result.Item1;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, $"Error getting completion in session {sessionId} for user prompt [{userPrompt}].");
-            return new List<Message> { new Message(tenantId, userId, sessionId!, "Error", "Error", $"Error getting completion in session {sessionId} for user prompt [{userPrompt}].") };
-        }
-    }
+```c#
+var agent = agentFactory.BuildAgent(_semanticKernel, AgentType.CustomerSupport, _loggerFactory, bankService, tenantId, userId);
 ```
 
 ## Activity 9: Test your Work
