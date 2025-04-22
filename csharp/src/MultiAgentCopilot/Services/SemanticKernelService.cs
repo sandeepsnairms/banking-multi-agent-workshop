@@ -15,7 +15,7 @@ using MultiAgentCopilot.Models.Configuration;
 using System.Text;
 using MultiAgentCopilot.Models;
 using Microsoft.SemanticKernel.Agents;
-
+using AgentFactory = MultiAgentCopilot.Factories.AgentFactory;
 namespace MultiAgentCopilot.Services;
 
 public class SemanticKernelService : IDisposable
