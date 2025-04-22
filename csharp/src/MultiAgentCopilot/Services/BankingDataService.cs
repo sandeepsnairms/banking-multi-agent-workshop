@@ -40,13 +40,13 @@ namespace  MultiAgentCopilot.Services
 
         readonly Kernel _semanticKernel;
 
-              
+
 
 
         public BankingDataService(
-            Database database, Container accountData, Container userData, Container requestData, Container offerData,
-            SemanticKernelServiceSettings skSettings,
-            ILoggerFactory loggerFactory )
+           Database database, Container accountData, Container userData, Container requestData, Container offerData,
+           SemanticKernelServiceSettings skSettings,
+           ILoggerFactory loggerFactory)
         {
 
             _database = database;
@@ -58,30 +58,9 @@ namespace  MultiAgentCopilot.Services
             _logger = loggerFactory.CreateLogger<BankingDataService>();
 
             _logger.LogInformation("Initializing Banking service.");
-                                               
 
-            DefaultAzureCredential credential;
-            if (string.IsNullOrEmpty(skSettings.AzureOpenAISettings.UserAssignedIdentityClientID))
-            {
-                credential = new DefaultAzureCredential();
-            }
-            else
-            {
-                credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
-                {
-                    ManagedIdentityClientId = skSettings.AzureOpenAISettings.UserAssignedIdentityClientID
-                });
 
-            }
-
-            _textEmbeddingGenerationService = new(
-                    deploymentName: skSettings.AzureOpenAISettings.EmbeddingsDeployment, // Name of deployment, e.g. "text-embedding-ada-002".
-                    endpoint: skSettings.AzureOpenAISettings.Endpoint,           // Name of Azure OpenAI service endpoint, e.g. https://myaiservice.openai.azure.com.
-                    credential: credential);
-
-            var jsonSerializerOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-            var vectorStoreOptions = new AzureCosmosDBNoSQLVectorStoreRecordCollectionOptions<OfferTerm> { PartitionKeyPropertyName = "TenantId", JsonSerializerOptions = jsonSerializerOptions };
-            _offerDataVectorStore = new AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm>(_database, _offerData.Id, vectorStoreOptions);
+            //To DO: Add vector search initialization code here
 
             _logger.LogInformation("Banking service initialized.");
         }
