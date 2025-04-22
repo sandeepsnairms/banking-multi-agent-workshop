@@ -15,6 +15,7 @@ using MultiAgentCopilot.Models.Configuration;
 using System.Text;
 using MultiAgentCopilot.Models;
 using Microsoft.SemanticKernel.Agents;
+using AgentFactory = MultiAgentCopilot.Factories.AgentFactory;
 
 namespace MultiAgentCopilot.Services;
 
@@ -94,9 +95,9 @@ public class SemanticKernelService :  IDisposable
     {
         try
         {
-            ChatFactory agentChatGeneratorService = new ChatFactory();
+            AgentFactory agentFactory = new AgentFactory();
 
-            var agent = agentChatGeneratorService.BuildAgent(_semanticKernel, AgentType.Coordinator, _loggerFactory, bankService, tenantId, userId);
+            var agent = agentFactory.BuildAgent(_semanticKernel, AgentType.Coordinator, _loggerFactory, bankService, tenantId, userId);
 
             ChatHistory chatHistory = new();
 
