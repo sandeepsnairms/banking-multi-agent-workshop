@@ -275,68 +275,7 @@ namespace  MultiAgentCopilot.Services
                 return false;
             }
         }
-
-
-
-        public async Task<List<OfferTerm>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription)
-        {
-            try
-            {
-                // Generate Embedding
-                ReadOnlyMemory<float> embedding = (await _textEmbeddingGenerationService.GenerateEmbeddingsAsync(
-                       new[] { requirementDescription }
-                   )).FirstOrDefault();
-
-
-               string accountTypeString = accountType.ToString();
-
-                // filters as LINQ expression
-                Expression<Func<OfferTerm, bool>> linqFilter = term =>
-                    term.TenantId == tenantId &&
-                    term.Type == "Term" &&
-                    term.AccountType == "Savings";
-
-                var options = new VectorSearchOptions<OfferTerm>
-                {
-                    VectorProperty = term => term.Vector, // Correctly specify the vector property as a lambda expression
-                    Filter = linqFilter, // Use the LINQ expression here
-                    Top = 10,
-                    IncludeVectors = false
-                };
-
-
-                var searchResults = await _offerDataVectorStore.VectorizedSearchAsync(embedding, options);
-
-                List<OfferTerm> offerTerms = new();
-                await foreach (var result in searchResults.Results)
-                {
-                    offerTerms.Add(result.Record);
-                }
-                return offerTerms;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex.ToString());
-                return new List<OfferTerm>();
-            }
-        }
-
-        public async Task<Offer> GetOfferDetailsAsync(string tenantId, string offerId)
-        {
-            try
-            {
-                var partitionKey = new PartitionKey(tenantId);
-
-                return await _offerData.ReadItemAsync<Offer>(
-                       id: offerId,
-                       partitionKey: new PartitionKey(tenantId));
-            }
-            catch (CosmosException ex)
-            {
-                _logger.LogError(ex.ToString());
-                return null;
-            }
-        }
+       
        
     }
 }

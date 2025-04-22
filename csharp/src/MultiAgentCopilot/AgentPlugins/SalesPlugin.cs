@@ -11,23 +11,7 @@ namespace MultiAgentCopilot.Plugins
             : base(logger, bankService, tenantId, userId)
         {
         }
-
-        [KernelFunction]
-        [Description("Search offer terms of all available offers using vector search")]
-        public async Task<List<OfferTerm>> SearchOfferTerms(AccountType accountType, string requirementDescription)
-        {
-            _logger.LogTrace($"Searching terms of all available offers matching '{requirementDescription}'");
-            return await _bankService.SearchOfferTermsAsync(_tenantId, accountType, requirementDescription);
-        }
-
-        [KernelFunction]
-        [Description("Get detail for an offer")]
-        public async Task<Offer> GetOfferDetails(string offerId)
-        {
-            _logger.LogTrace($"Fetching Offer");
-            return await _bankService.GetOfferDetailsAsync(_tenantId, offerId);
-        }
-
+               
 
         [KernelFunction]
         [Description("Register a new account.")]
