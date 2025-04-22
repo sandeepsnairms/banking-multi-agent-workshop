@@ -84,7 +84,7 @@ public class ChatService
         try
         {
             ArgumentNullException.ThrowIfNull(sessionId);
-
+            await Task.Delay(1);
 
             // Add both prompt and completion to cache, then persist in Cosmos DB
             var userMessage = new Message(tenantId, userId, sessionId, "User", "User", "## Replay user message ## " + userPrompt);
@@ -161,7 +161,7 @@ public class ChatService
             var docJObject = JsonConvert.DeserializeObject<JObject>(json);
 
             // Ensure "id" exists
-            if (!docJObject.ContainsKey("id"))
+            if (!docJObject!.ContainsKey("id"))
             {
                 throw new ArgumentException("Document must contain an 'id' property.");
             }
