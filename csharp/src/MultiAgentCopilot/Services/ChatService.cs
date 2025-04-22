@@ -85,11 +85,16 @@ public class ChatService
         {
             ArgumentNullException.ThrowIfNull(sessionId);
 
+            // Retrieve conversation, including latest prompt.
+            var archivedMessages = await _cosmosDBService.GetSessionMessagesAsync(tenantId, userId, sessionId);
+
             // Add both prompt and completion to cache, then persist in Cosmos DB
             var userMessage = new Message(tenantId, userId, sessionId, "User", "User", userPrompt);
 
             // Generate the completion to return to the user
-            var result = await _skService.GetResponse(userMessage, new List<Message>(), _bankService, tenantId, userId);
+            var result = await _skService.GetResponse(userMessage, archivedMessages, _bankService, tenantId, userId);
+
+            await AddPromptCompletionMessagesAsync(tenantId, userId, sessionId, userMessage, result.Item1, result.Item2);
 
             return result.Item1;
         }
@@ -167,6 +172,17 @@ public class ChatService
             _logger.LogError(ex, $"Error adding document to container {containerName}.");
             return false;
         }
+    }
+
+    /// <summary>
+    /// Add user prompt and AI assistance response to the chat session message list object and insert into the data service as a transaction.
+    /// </summary>
+    private async Task AddPromptCompletionMessagesAsync(string tenantId, string userId, string sessionId, Message promptMessage, List<Message> completionMessages, List<DebugLog> completionMessageLogs)
+    {
+        var session = await _cosmosDBService.GetSessionAsync(tenantId, userId, sessionId);
+
+        completionMessages.Insert(0, promptMessage);
+        await _cosmosDBService.UpsertSessionBatchAsync(completionMessages, completionMessageLogs, session);
     }
 
 
