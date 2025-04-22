@@ -13,10 +13,13 @@ using MultiAgentCopilot.Models.Chat;
 using MultiAgentCopilot.Models.Configuration;
 
 using System.Text;
+using MultiAgentCopilot.Models;
+using Microsoft.SemanticKernel.Agents;
+using AgentFactory = MultiAgentCopilot.Factories.AgentFactory;
 
 namespace MultiAgentCopilot.Services;
 
-public class SemanticKernelService :  IDisposable
+public class SemanticKernelService : IDisposable
 {
     readonly SemanticKernelServiceSettings _skSettings;
     readonly ILoggerFactory _loggerFactory;
@@ -67,35 +70,23 @@ public class SemanticKernelService :  IDisposable
 
         _semanticKernel = builder.Build();
 
+
         Task.Run(Initialize).ConfigureAwait(false);
-
     }
-      
 
-    private Task Initialize()
-    {
-        try
-        {
-            _serviceInitialized = true;
-            _logger.LogInformation("Semantic Kernel service initialized.");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Semantic Kernel service was not initialized. The following error occurred: {ErrorMessage}.", ex.ToString());
-        }
-        return Task.CompletedTask;
-    }
+    //TO DO: Add GetResponse function
 
     private void LogMessage(string key, string value)
     {
         _promptDebugProperties.Add(new LogProperty(key, value));
     }
 
+
+
     public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, BankingDataService bankService, string tenantId, string userId)
     {
         try
         {
-
             AgentFactory agentFactory = new AgentFactory();
 
             var agentGroupChat = agentFactory.BuildAgentGroupChat(_semanticKernel, _loggerFactory, LogMessage, bankService, tenantId, userId);
@@ -129,6 +120,7 @@ public class SemanticKernelService :  IDisposable
                     string debugLogId = Guid.NewGuid().ToString();
                     completionMessages.Add(new Message(userMessage.TenantId, userMessage.UserId, userMessage.SessionId, response.AuthorName ?? string.Empty, response.Role.ToString(), response.Content ?? string.Empty, messageId, debugLogId));
 
+                    // TO DO : Add DebugLog code here
                     if (_promptDebugProperties.Count > 0)
                     {
                         var completionMessagesLog = new DebugLog(userMessage.TenantId, userMessage.UserId, userMessage.SessionId, messageId, debugLogId);
@@ -139,7 +131,7 @@ public class SemanticKernelService :  IDisposable
                 }
             }
             while (!agentGroupChat.IsComplete);
-          
+
 
             return new Tuple<List<Message>, List<DebugLog>>(completionMessages, completionMessagesLogs);
         }
@@ -151,6 +143,7 @@ public class SemanticKernelService :  IDisposable
     }
 
 
+    //TO DO: Add Summarize function
     public async Task<string> Summarize(string sessionId, string userPrompt)
     {
         try
@@ -173,20 +166,19 @@ public class SemanticKernelService :  IDisposable
         }
     }
 
-
-
-    public async Task<float[]> GenerateEmbedding(string text)
+    private Task Initialize()
     {
-        // Generate Embedding
-
-        var embeddingModel = _semanticKernel.Services.GetRequiredService<ITextEmbeddingGenerationService>();
-
-        var embedding = await embeddingModel.GenerateEmbeddingAsync(text);
-
-        // Convert ReadOnlyMemory<float> to IList<float>
-        return embedding.ToArray();
+        try
+        {
+            _serviceInitialized = true;
+            _logger.LogInformation("Semantic Kernel service initialized.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Semantic Kernel service was not initialized. The following error occurred: {ErrorMessage}.", ex.ToString());
+        }
+        return Task.CompletedTask;
     }
-
 
     public void Dispose()
     {

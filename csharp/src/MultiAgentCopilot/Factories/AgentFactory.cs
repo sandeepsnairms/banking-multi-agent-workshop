@@ -16,6 +16,7 @@ using MultiAgentCopilot.Models;
 using MultiAgentCopilot.Services;
 using static MultiAgentCopilot.StructuredFormats.ChatResponseFormatBuilder;
 using MultiAgentCopilot.Plugins;
+using Microsoft.Identity.Client;
 
 
 namespace MultiAgentCopilot.Factories
@@ -49,7 +50,6 @@ namespace MultiAgentCopilot.Factories
             return name;
         }
 
-
         private string GetAgentPrompts(AgentType agentType)
         {
 
@@ -77,20 +77,18 @@ namespace MultiAgentCopilot.Factories
             return prompt;
         }
 
-        private string GetStratergyPrompts(ChatResponseStrategy strategyType)
-        {
-            string prompt = string.Empty;
-            switch (strategyType)
-            {
-                case ChatResponseStrategy.Continuation:
-                    prompt = File.ReadAllText("Prompts/SelectionStrategy.prompty");
-                    break;
-                case ChatResponseStrategy.Termination:
-                    prompt = File.ReadAllText("Prompts/TerminationStrategy.prompty");
-                    break;
 
-            }
-            return prompt;
+        public ChatCompletionAgent BuildAgent(Kernel kernel, AgentType agentType, ILoggerFactory loggerFactory, BankingDataService bankService, string tenantId, string userId)
+        {
+            ChatCompletionAgent agent = new ChatCompletionAgent
+            {
+                Name = GetAgentName(agentType),
+                Instructions = $"""{GetAgentPrompts(agentType)}""",
+                Kernel = GetAgentKernel(kernel, agentType, loggerFactory, bankService, tenantId, userId),
+                Arguments = new KernelArguments(new AzureOpenAIPromptExecutionSettings() { FunctionChoiceBehavior = FunctionChoiceBehavior.Auto() })
+            };
+
+            return agent;
         }
 
         private Kernel GetAgentKernel(Kernel kernel, AgentType agentType, ILoggerFactory loggerFactory, BankingDataService bankService, string tenantId, string userId)
@@ -121,47 +119,20 @@ namespace MultiAgentCopilot.Factories
             return agentKernel;
         }
 
-        private ChatCompletionAgent BuildAgent(Kernel kernel, AgentType agentType, ILoggerFactory loggerFactory, BankingDataService bankService, string tenantId, string userId)
+        public static string GetStrategyPrompts(ChatResponseStrategy strategyType)
         {
-            ChatCompletionAgent agent = new ChatCompletionAgent
+            string prompt = string.Empty;
+            switch (strategyType)
             {
-                Name = GetAgentName(agentType),
-                Instructions = $"""{GetAgentPrompts(agentType)}""",
-                Kernel = GetAgentKernel(kernel, agentType, loggerFactory, bankService, tenantId, userId),
-                Arguments = new KernelArguments(new AzureOpenAIPromptExecutionSettings() { FunctionChoiceBehavior = FunctionChoiceBehavior.Auto() })
-            };
-
-            return agent;
+                case ChatResponseStrategy.Continuation:
+                    prompt = File.ReadAllText("Prompts/SelectionStrategy.prompty");
+                    break;
+                case ChatResponseStrategy.Termination:
+                    prompt = File.ReadAllText("Prompts/TerminationStrategy.prompty");
+                    break;
+            }
+            return prompt;
         }
-
-        /*
-#pragma warning disable SKEXP0070 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-        private OllamaPromptExecutionSettings GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStrategy strategyType)
-        {
-
-            var prompt = "Always responds in JSON format as defined in the ResponseFormat";
-            var jsonSchema = ChatResponseFormatBuilder.BuildFormat(strategyType);
-            // Create the execution settings
-            var executionSettings = new OllamaPromptExecutionSettings
-            {
-                ExtensionData = new Dictionary<string, object>
-                    {
-                        { "Prompt", prompt },
-                        { "ResponseFormat", jsonSchema }
-                    }
-            };
-
-
-
-            return executionSettings;
-        }
-        */
-
-        
-       
-
-
-       
 
         public AgentGroupChat BuildAgentGroupChat(Kernel kernel, ILoggerFactory loggerFactory, LogCallback logCallback, BankingDataService bankService, string tenantId, string userId)
         {
@@ -203,7 +174,7 @@ namespace MultiAgentCopilot.Factories
             KernelFunction function =
                 AgentGroupChat.CreatePromptFunctionForStrategy(
                     $$$"""
-                    {{{GetStratergyPrompts(strategyType)}}}
+                    {{{GetStrategyPrompts(strategyType)}}}
                     
                     RESPONSE:
                     {{$lastmessage}}
@@ -235,8 +206,8 @@ namespace MultiAgentCopilot.Factories
                             {
                                 var ContinuationInfo = JsonSerializer.Deserialize<ContinuationInfo>(resultString);
                                 logCallback("SELECTION - Agent", ContinuationInfo!.AgentName); 
-                                logCallback("SELECTION - Reason", ContinuationInfo.Reason);                       
-                                return ContinuationInfo.AgentName;
+                                logCallback("SELECTION - Reason", ContinuationInfo!.Reason);                       
+                                return ContinuationInfo!.AgentName;
                             }
                             else
                             {
@@ -262,8 +233,8 @@ namespace MultiAgentCopilot.Factories
                             {
                                 var terminationInfo = JsonSerializer.Deserialize<TerminationInfo>(resultString);
                                 logCallback("TERMINATION - Continue", terminationInfo!.ShouldContinue.ToString()); 
-                                logCallback("TERMINATION - Reason", terminationInfo.Reason); 
-                                return !terminationInfo.ShouldContinue;
+                                logCallback("TERMINATION - Reason", terminationInfo!.Reason); 
+                                return terminationInfo!.ShouldContinue;
                             }
                             else
                             {
