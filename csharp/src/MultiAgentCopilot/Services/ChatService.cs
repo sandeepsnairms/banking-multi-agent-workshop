@@ -9,14 +9,14 @@ using Newtonsoft.Json;
 
 namespace MultiAgentCopilot.Services;
 
-public class ChatService 
+public class ChatService
 {
     private readonly CosmosDBService _cosmosDBService;
     private readonly BankingDataService _bankService;
     private readonly SemanticKernelService _skService;
     private readonly ILogger _logger;
 
-    
+
     public ChatService(
         IOptions<CosmosDBSettings> cosmosOptions,
         IOptions<SemanticKernelServiceSettings> skOptions,
@@ -26,7 +26,7 @@ public class ChatService
     {
         _cosmosDBService = cosmosDBService;
         _skService = skService;
-        _bankService = new BankingDataService(cosmosDBService.Database,cosmosDBService.AccountDataContainer,cosmosDBService.UserDataContainer,cosmosDBService.AccountDataContainer,cosmosDBService.OfferDataContainer, skOptions.Value, loggerFactory);
+        _bankService = new BankingDataService(cosmosDBService.Database, cosmosDBService.AccountDataContainer, cosmosDBService.UserDataContainer, cosmosDBService.AccountDataContainer, cosmosDBService.OfferDataContainer, skOptions.Value, loggerFactory);
         _logger = loggerFactory.CreateLogger<ChatService>();
     }
 
@@ -41,10 +41,10 @@ public class ChatService
     /// <summary>
     /// Returns the chat messages related to an existing session.
     /// </summary>
-    public async Task<List<Message>> GetChatSessionMessagesAsync(string tenantId, string userId,string sessionId)
+    public async Task<List<Message>> GetChatSessionMessagesAsync(string tenantId, string userId, string sessionId)
     {
         ArgumentNullException.ThrowIfNull(sessionId);
-        return await _cosmosDBService.GetSessionMessagesAsync(tenantId,userId,sessionId);
+        return await _cosmosDBService.GetSessionMessagesAsync(tenantId, userId, sessionId);
     }
 
     /// <summary>
@@ -59,27 +59,27 @@ public class ChatService
     /// <summary>
     /// Rename the chat session from its default (eg., "New Chat") to the summary provided by OpenAI.
     /// </summary>
-    public async Task<Session> RenameChatSessionAsync(string tenantId, string userId,string sessionId, string newChatSessionName)
+    public async Task<Session> RenameChatSessionAsync(string tenantId, string userId, string sessionId, string newChatSessionName)
     {
         ArgumentNullException.ThrowIfNull(sessionId);
         ArgumentException.ThrowIfNullOrEmpty(newChatSessionName);
 
-        return await _cosmosDBService.UpdateSessionNameAsync( tenantId, userId,sessionId, newChatSessionName);
+        return await _cosmosDBService.UpdateSessionNameAsync(tenantId, userId, sessionId, newChatSessionName);
     }
 
     /// <summary>
     /// Delete a chat session and related messages.
     /// </summary>
-    public async Task DeleteChatSessionAsync(string tenantId, string userId,string sessionId)
+    public async Task DeleteChatSessionAsync(string tenantId, string userId, string sessionId)
     {
         ArgumentNullException.ThrowIfNull(sessionId);
-        await _cosmosDBService.DeleteSessionAndMessagesAsync(tenantId, userId,sessionId);
+        await _cosmosDBService.DeleteSessionAndMessagesAsync(tenantId, userId, sessionId);
     }
 
     /// <summary>
     /// Receive a prompt from a user, vectorize it from the OpenAI service, and get a completion from the OpenAI service.
     /// </summary>
-    public async Task<List<Message>> GetChatCompletionAsync(string tenantId, string userId,string? sessionId, string userPrompt)
+    public async Task<List<Message>> GetChatCompletionAsync(string tenantId, string userId, string? sessionId, string userPrompt)
     {
         try
         {
@@ -89,28 +89,26 @@ public class ChatService
             var archivedMessages = await _cosmosDBService.GetSessionMessagesAsync(tenantId, userId, sessionId);
 
             // Add both prompt and completion to cache, then persist in Cosmos DB
-            var userMessage = new Message(tenantId,userId,sessionId, "User","User", userPrompt);
+            var userMessage = new Message(tenantId, userId, sessionId, "User", "User", userPrompt);
 
             // Generate the completion to return to the user
-            var result = await _skService.GetResponse(userMessage, archivedMessages,_bankService,tenantId,userId);
+            var result = await _skService.GetResponse(userMessage, archivedMessages, _bankService, tenantId, userId);
 
-            await AddPromptCompletionMessagesAsync(tenantId, userId,sessionId, userMessage, result.Item1, result.Item2);
+            await AddPromptCompletionMessagesAsync(tenantId, userId, sessionId, userMessage, result.Item1, result.Item2);
 
             return result.Item1;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, $"Error getting completion in session {sessionId} for user prompt [{userPrompt}].");
-#pragma warning disable CS8603 // Possible null reference return.
-            return null;
-#pragma warning restore CS8603 // Possible null reference return.
+            return new List<Message> { new Message(tenantId, userId, sessionId!, "Error", "Error", $"Error getting completion in session {sessionId} for user prompt [{userPrompt}].") };
         }
     }
 
     /// <summary>
     /// Generate a name for a chat message, based on the passed in prompt.
     /// </summary>
-    public async Task<string> SummarizeChatSessionNameAsync(string tenantId, string userId,string? sessionId, string prompt)
+    public async Task<string> SummarizeChatSessionNameAsync(string tenantId, string userId, string? sessionId, string prompt)
     {
         try
         {
@@ -118,7 +116,7 @@ public class ChatService
 
             var summary = await _skService.Summarize(sessionId, prompt);
 
-            var session = await RenameChatSessionAsync(tenantId, userId,sessionId, summary);
+            var session = await RenameChatSessionAsync(tenantId, userId, sessionId, summary);
 
             return session.Name;
         }
@@ -133,31 +131,31 @@ public class ChatService
     /// <summary>
     /// Add user prompt and AI assistance response to the chat session message list object and insert into the data service as a transaction.
     /// </summary>
-    private async Task AddPromptCompletionMessagesAsync(string tenantId, string userId,string sessionId, Message promptMessage, List<Message> completionMessages, List<DebugLog> completionMessageLogs)
+    private async Task AddPromptCompletionMessagesAsync(string tenantId, string userId, string sessionId, Message promptMessage, List<Message> completionMessages, List<DebugLog> completionMessageLogs)
     {
-        var session = await _cosmosDBService.GetSessionAsync(tenantId, userId,sessionId);
+        var session = await _cosmosDBService.GetSessionAsync(tenantId, userId, sessionId);
 
         completionMessages.Insert(0, promptMessage);
-            await _cosmosDBService.UpsertSessionBatchAsync(completionMessages, completionMessageLogs, session);
+        await _cosmosDBService.UpsertSessionBatchAsync(completionMessages, completionMessageLogs, session);
     }
 
     /// <summary>
     /// Rate an assistant message. This can be used to discover useful AI responses for training, discoverability, and other benefits down the road.
     /// </summary>
-    public async Task<Message> RateChatCompletionAsync(string tenantId, string userId,string messageId, string sessionId, bool? rating)
+    public async Task<Message> RateChatCompletionAsync(string tenantId, string userId, string messageId, string sessionId, bool? rating)
     {
         ArgumentNullException.ThrowIfNull(messageId);
         ArgumentNullException.ThrowIfNull(sessionId);
 
-        return await _cosmosDBService.UpdateMessageRatingAsync(tenantId,userId, sessionId, messageId,rating);
+        return await _cosmosDBService.UpdateMessageRatingAsync(tenantId, userId, sessionId, messageId, rating);
     }
 
-    public async Task<DebugLog> GetChatCompletionDebugLogAsync(string tenantId, string userId,string sessionId, string debugLogId)
+    public async Task<DebugLog> GetChatCompletionDebugLogAsync(string tenantId, string userId, string sessionId, string debugLogId)
     {
         ArgumentException.ThrowIfNullOrEmpty(sessionId);
         ArgumentException.ThrowIfNullOrEmpty(debugLogId);
 
-        return await _cosmosDBService.GetChatCompletionDebugLogAsync(tenantId,userId, sessionId, debugLogId);
+        return await _cosmosDBService.GetChatCompletionDebugLogAsync(tenantId, userId, sessionId, debugLogId);
     }
 
 
@@ -170,11 +168,11 @@ public class ChatService
             var docJObject = JsonConvert.DeserializeObject<JObject>(json);
 
             // Ensure "id" exists
-            if (!docJObject.ContainsKey("id"))
+            if (!docJObject!.ContainsKey("id"))
             {
                 throw new ArgumentException("Document must contain an 'id' property.");
             }
-           
+
             return await _cosmosDBService.InsertDocumentAsync(containerName, docJObject);
 
         }
@@ -185,5 +183,5 @@ public class ChatService
         }
     }
 
-}
 
+}
