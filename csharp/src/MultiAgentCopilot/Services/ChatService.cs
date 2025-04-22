@@ -121,16 +121,6 @@ public class ChatService
 
     }
 
-    /// <summary>
-    /// Add user prompt and AI assistance response to the chat session message list object and insert into the data service as a transaction.
-    /// </summary>
-    private async Task AddPromptCompletionMessagesAsync(string tenantId, string userId,string sessionId, Message promptMessage, List<Message> completionMessages, List<DebugLog> completionMessageLogs)
-    {
-        var session = await _cosmosDBService.GetSessionAsync(tenantId, userId,sessionId);
-
-        completionMessages.Insert(0, promptMessage);
-            await _cosmosDBService.UpsertSessionBatchAsync(completionMessages, completionMessageLogs, session);
-    }
 
     /// <summary>
     /// Rate an assistant message. This can be used to discover useful AI responses for training, discoverability, and other benefits down the road.
