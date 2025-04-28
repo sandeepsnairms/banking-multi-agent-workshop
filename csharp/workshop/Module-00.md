@@ -4,18 +4,59 @@
 
 In this Module, you'll confirm the deployment of Azure Services needed to run this workshop.
 
-1. Open a browser locally on the VM and navigate to https://portal.azure.com
+1. Open the folder on the desktop *LabUser - Shortcut*
+1. Navigate to the *BicepScripts* folder.
+1. If the folder is not empty, proceed to the next step. If it is empty, proceed to [Lab Provisioning](#lab-provisioning)
+
+1. Open a browser locally on the VM and navigate to +++https://portal.azure.com+++
 1. Login using the credentials below
    1. User name +++@lab.CloudPortalCredential(User1).Username+++
    1. Password +++@lab.CloudPortalCredential(User1).Password+++
-l. Scroll down and look for a resource group not named resource group 1.
+1. Scroll down and look for a second resource group after *ResourceGroup1*.
 1. If the resource group does not appear wait a few moments then refresh.
 1. When the new resource group appears, expand the Overview tab and click deployments.
 1. If all resources have been deployed successfully, you are ready to begin the lab.
+1. Proceed to [Running the App](#running-the-app)
 
-### Running the ChatAPI and Frontend App
+## Lab Provisioning
 
-#### 1. Start the ChatAPI
+1. Within the terminal navigate up to the LabUser folder.
+1. Clone the GitHub repository for this lab.
+
+```shell
+cd C:\Users\LabUser
+git clone --branch hol --single-branch https://github.com/AzureCosmosDB/banking-multi-agent-workshop.git C:\Users\LabUser\BicepScripts
+cd C:\Users\LabUser\BicepScripts\
+```
+
+1. Authenticate the local user using the credentials provided here
+   1. User name +++@lab.CloudPortalCredential(User1).Username+++
+   1. Password +++@lab.CloudPortalCredential(User1).Password+++
+
+```shell
+azd auth login
+```
+
+1. Deploy the Azure services
+   1. For environment name enter: `agent-hol`
+   1. Press enter to select the subscription listed.
+   1. Press enter to select the default region listed.
+
+```shell
+azd up
+```
+
+1. Return to the Azure Portal and refresh the list of resource groups.
+1. Select the *rg-agent-hol* resource group.
+1. Find the collapsed *Essentials* section at the top of the page and expand.
+1. Click on the Deployments and watch until the status of all deployed resources shows as Succeeded.
+1. Your screen should appear as below.
+
+[deployments](./media/module-00/deployments.png)
+
+## Running the App
+
+### 1. Start the ChatAPI
 
 1. Open the folder on the desktop to the LabUser folder.
 1. Navigate to `src\MultiAgentCopilot`.
