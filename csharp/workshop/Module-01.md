@@ -1,7 +1,5 @@
 # Module 01 - Creating Your First Agent
 
-[< Deployment and Setup](./Module-00.md) - **[Home](Home.md)** - [Connecting Agents to Memory >](./Module-02.md)
-
 ## Introduction
 
 In this Module, you'll implement your first agent as part of a multi-agent banking system implemented using either Semantic Kernel Agent Framework. You will get an introduction to Semantic Kernel and their plug-in integration with OpenAI for generating completions.
@@ -14,21 +12,11 @@ In this Module, you'll implement your first agent as part of a multi-agent banki
 
 ## Module Exercises
 
-1. [Activity 1: Session on Single-agent architecture](#activity-1-session-on-single-agent-architecture)
-1. [Activity 2: Session on Semantic Kernel Agent Framework and LangGraph](#activity-2-session-on-semantic-kernel-agent-framework-and-langgraph)
-1. [Activity 3: Instantiate Agent Framework and Connect to Azure OpenAI](#activity-3-instantiate-semantic-kernel-agent-framework-and-connect-to-azure-openai)
-1. [Activity 4: Create a Simple Agent](#activity-4-create-a-simple-agent)
-1. [Activity 5: Test your Work](#activity-5-test-your-work)
+1. [Activity 1: Instantiate Agent Framework](#activity-1-instantiate-semantic-kernel-agent-framework)
+1. [Activity 2: Create a Simple Agent](#activity-2-create-a-simple-agent)
+1. [Activity 3: Test your Work](#activity-3-test-your-work)
 
-## Activity 1: Session on Single-agent architecture
-
-In this session you will get an overview of Semantic Kernel Agents and LangGraph and learn the basics for how to build a chat app that interacts with a user and generations completions using an LLM powered by Azure OpenAI.
-
-## Activity 2: Session on Semantic Kernel Agent Framework and LangGraph
-
-In this session ou will get a deeper introduction into the Semantic Kernel Agent Framework and LangGraph with details on how to implement plug-in or tool integration with Azure Open AI.
-
-## Activity 3: Instantiate Semantic Kernel Agent Framework and Connect to Azure OpenAI
+## Activity 1: Instantiate Semantic Kernel Agent Framework
 
 In this hands-on exercise, you will learn how to initialize an agent framework and integrate it with a Large Language Model(LLM).
 
@@ -93,7 +81,11 @@ builder.Services.AddSingleton<ILoggerFactory>(loggerFactory);
            credential);
 ```
 
-Search for **//TO DO: Add GetResponse function** and  paste the code below.
+## Activity 2: Create a Simple Agent
+
+Let's create a very simple agent for our workshop that is powered by an LLM. This agent will simply greet users and translate their requests into French. We will also implement a summarize function that renames the current chat session based upon the current topic from the user.
+
+Search for **//TO DO: Add GetResponse function** and paste the code below.
 
 ```csharp
  public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, BankingDataService bankService, string tenantId, string userId)
@@ -159,7 +151,7 @@ public async Task<string> Summarize(string sessionId, string userPrompt)
 
 ```
 
-#### Update ChatService
+### Update ChatService
 
 In your IDE, within the `\Services\` folder navigate to `ChatService.cs`.
 
@@ -214,7 +206,7 @@ Replace the code for **SummarizeChatSessionNameAsync** method with code below.
 
 ```
 
-## Activity 5: Test your Work
+## Activity 3: Test your Work
 
 With the activities in this module complete, it is time to test your work.
 
@@ -813,10 +805,4 @@ namespace ChatAPI
 
 ## Next Steps
 
-Proceed to [Connecting Agents to Memory](./Module-02.md)
-
-## Resources
-
-- [Semantic Kernel Agent Framework](https://learn.microsoft.com/semantic-kernel/frameworks/agent)
-- [Azure OpenAI Service documentation](https://learn.microsoft.com/azure/cognitive-services/openai/)
-- [Azure Cosmos DB Vector Database](https://learn.microsoft.com/azure/cosmos-db/vector-database)
+Proceed to Module 2: Connecting Agents to Memory

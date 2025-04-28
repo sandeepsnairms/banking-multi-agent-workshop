@@ -1,36 +1,28 @@
 # Module 03 - Agent Specialization
 
-[< Connecting Agents to Memory](./Module-02.md) - **[Home](Home.md)** - [Multi-Agent Orchestration >](./Module-04.md)
-
 ## Introduction
 
-In this Module you'll learn how to implement agent specialization by creating Semantic Kernel Functions or LangGraph Tools that provide the functionality necessary to power individual agents that comprise a multi-agent system.
+In this Module you'll learn how to implement agent specialization by creating Semantic Kernel Functions that provide the functionality necessary to power individual agents that comprise a multi-agent system.
 
 ## Learning Objectives and Activities
 
-- Learn the basics for Semantic Kernel Agent Framework Functions and LangGraph Tools
+- Learn the basics for Semantic Kernel Agent Framework Functions
 - Learn how to implement semantic and natural language features using Vector indexing and search integration from Azure Cosmos DB.
 - Learn how to define tasks and communication protocols for seamless collaboration.
 
 ## Module Exercises
 
-1. [Activity 1: Understanding Agent Specialization and Integration](#activity-1-understanding-agent-specialization-and-integration)  
-1. [Activity 2: Defining Bank Domain Data Models](#activity-2-defining-bank-domain-data-models)  
-1. [Activity 3: Defining Agent Behavior](#activity-3-defining-agent-behavior)  
-1. [Activity 4: Integrating Bank Domain Functions as Plugins](#activity-4-integrating-bank-domain-functions-as-plugins)  
-1. [Activity 5: Developing a Plugin Factory](#activity-5-developing-a-plugin-factory)  
-1. [Activity 6: Building an Agent Factory](#activity-6-building-an-agent-factory)
-1. [Activity 7: Semantic Search](#activity-7-semantic-search)
-1. [Activity 8: Bringing It All Together – Bank Domain Models, Plugins, and Agents](#activity-8-bringing-it-all-together--bank-domain-models-plugins-and-agents)
-1. [Activity 9: Test your Work](#activity-9-test-your-work)
+1. [Activity 1: Defining Bank Domain Data Models](#activity-1-defining-bank-domain-data-models)  
+1. [Activity 2: Defining Agent Behavior](#activity-2-defining-agent-behavior)  
+1. [Activity 3: Integrating Bank Domain Functions as Plugins](#activity-3-integrating-bank-domain-functions-as-plugins)  
+1. [Activity 4: Adding a Plugin to the Agent](#activity-4-adding-a-plugin-to-the-agent)  
+1. [Activity 5: Building an Agent Dynamically](#activity-5-building-an-agent-dynamically)
+1. [Activity 6: Semantic Search](#activity-6-semantic-search)
+1. [Activity 7: Test your Work](#activity-7-test-your-work)
 
-## Activity 1: Understanding Agent Specialization and Integration
+## Activity 1: Defining Bank Domain Data Models
 
-In this session we will dive into how to create Semantic Kernel Agent Framework Functions or LangGraph Tools to connect agents to external APIs, databases and third-party tools to provide special functionality. Learn the basics for vector indexing and search in Azure Cosmos DB to provide semantic search functionality to your agents. Learn how to define tasks and communication protocols for seamless collaboration between agents.
-
-## Activity 2: Defining Bank Domain Data Models
-
-After the session in Activity 1, you should understand the need and importance for agent specialization and have a basic grasp of how to build and integrate them. For the remainder of this module we will do just that for our banking scenario.
+It is important to understand the need for agent specialization and have a basic grasp of how to build and integrate them. For the remainder of this module we will do just that for our banking scenario.
 
 When working with any kind of data we need to review our data models.
 
@@ -40,7 +32,7 @@ The project and folder structure should look like the following:
 
 ![Models folder](./media/module-03/solution-models-banking-folder-start.png)
 
-## Activity 3: Defining Agent Behavior
+## Activity 2: Defining Agent Behavior
 
 Agent behavior is defined using prompts. These can be as simple as text in a string variable. However, it is often better to store these as external text files. In this solution we will use a format called, Prompty to manage our prompts.
 
@@ -158,7 +150,7 @@ Replace the code for both `GetAgentName()` and `GetAgentPrompts()` with the code
     }
 ```
 
-## Activity 4: Integrating Bank Domain Functions as Plugins
+## Activity 3: Integrating Bank Domain Functions as Plugins
 
 All banking domain code is encapsulated in a separate `BankingDataService` class. Let's add the banking domain functions to the agent plugins. For simplicity in this workshop, all functions reference BankingServices. However, kernel functions can be any managed code that enables the LLM to interact with the outside world. The Base plugin, inherited by all plugins, contains common code for all plugins. For best results the `KernelFunction` available in the agent plugin should be consistent with the agent system prompts.
 
@@ -198,7 +190,7 @@ Paste the following code into the class definition below the constructor.
     }
 ```
 
-## Activity 5: Adding a Plugin to the Agent
+## Activity 4: Adding a Plugin to the Agent
 
 Similar to generating system prompts based on agent type, we need the plugins to be created dynamically. Next, we will implement a  a `GetAgentKernel` function that dynamically generates a plugin based on the agent type.
 
@@ -236,7 +228,7 @@ Paste the code below to the  end of the class.
         }
 ```
 
-## Activity 6: Building an Agent Dynamically
+## Activity 5: Building an Agent Dynamically
 
 Now that we have  Agent Prompt and  Agent Kernel that are dynamically generated , we can make the agent build process dynamic based on the `agentType` parameter. Next, we will modify the `BuildAgent()` function within the `AgentFactory` class to dynamically add plugins to the agents.
 
@@ -257,7 +249,7 @@ Replace the `BuildAgent()` function with this code below.
         }
 ```
 
-## Activity 7: Semantic Search
+## Activity 6: Semantic Search
 
 In this activity, you will learn how to configure vector indexing and search in Azure Cosmos DB and explore the container and vector indexing policies. Then learn how to implement vector search using for Semantic Kernel.
 
@@ -432,7 +424,7 @@ Replace `var agent = agentFactory.BuildAgent(_semanticKernel, _loggerFactory, ba
 var agent = agentFactory.BuildAgent(_semanticKernel, AgentType.CustomerSupport, _loggerFactory, bankService, tenantId, userId);
 ```
 
-## Activity 9: Test your Work
+## Activity 7: Test your Work
 
 With the activities in this module complete, it is time to test your work.
 
