@@ -5,16 +5,17 @@
 In this Module, you'll confirm the deployment of Azure Services needed to run this workshop.
 
 1. Open the folder on the desktop *LabUser - Shortcut*
-1. Navigate to the *BicepScripts* folder.
-1. If the folder is not empty, proceed to the next step. If it is empty, proceed to [Lab Provisioning](#lab-provisioning)
+1. Navigate to the *multi-agent-hol* folder.
+1. If the folder is not empty, proceed to the next step. If it is empty or does not exist, proceed to [Lab Provisioning](#lab-provisioning)
 
 1. Open a browser locally on the VM and navigate to +++https://portal.azure.com+++
 1. Login using the credentials below
    1. User name +++@lab.CloudPortalCredential(User1).Username+++
    1. Password +++@lab.CloudPortalCredential(User1).Password+++
-1. Scroll down and look for a second resource group after *ResourceGroup1*.
+1. Scroll down and look for a resource group that starts with: *rg-agenthol-*.
 1. If the resource group does not appear wait a few moments then refresh.
 1. When the new resource group appears, expand the Overview tab and click deployments.
+![essentials-tab-deployments](./media/module-00/essentials-tab-deployments.png)
 1. If all resources have been deployed successfully, you are ready to begin the lab. Your screen should look like this.
 ![deployments](./media/module-00/deployments.png)
 1. Proceed to [Running the App](#running-the-app)
@@ -26,8 +27,8 @@ In this Module, you'll confirm the deployment of Azure Services needed to run th
 
 ```shell
 cd C:\Users\LabUser
-git clone --branch hol --single-branch https://github.com/AzureCosmosDB/banking-multi-agent-workshop.git C:\Users\LabUser\BicepScripts
-cd C:\Users\LabUser\BicepScripts\
+git clone --branch hol --single-branch https://github.com/AzureCosmosDB/banking-multi-agent-workshop.git C:\Users\LabUser\multi-agent-hol
+cd C:\Users\LabUser\multi-agent-hol\
 ```
 
 1. Authenticate the local user using the credentials provided here
@@ -39,7 +40,7 @@ azd auth login
 ```
 
 1. Deploy the Azure services
-   1. For environment name enter: `agent-hol`
+   1. For environment name enter: `agenthol`
    1. Press enter to select the subscription listed.
    1. Press enter to select the default region listed.
 
@@ -48,7 +49,7 @@ azd up
 ```
 
 1. Return to the Azure Portal and refresh the list of resource groups.
-1. Select the *rg-agent-hol* resource group.
+1. Select the *rg-agenthol* resource group.
 1. Find the collapsed *Essentials* section at the top of the page and expand.
 1. Click on the Deployments and watch until the status of all deployed resources shows as Succeeded.
 1. Your screen should appear as below.
@@ -60,7 +61,7 @@ azd up
 ### 1. Start the ChatAPI
 
 1. Open the folder on the desktop to the LabUser folder.
-1. Navigate to `src\MultiAgentCopilot`.
+1. Navigate to `C:\Users\LabUser\multi-agent-hol\src\MultiAgentCopilot`.
 1. Type `code .`
 1. Press **F5** or select **Run** to start the application.
 1. Copy the URL from the browser window that opens.
