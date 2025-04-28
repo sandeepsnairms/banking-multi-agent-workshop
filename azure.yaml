@@ -32,6 +32,12 @@ hooks:
               }
             }
           }" > ./csharp/src/MultiAgentCopilot/appsettings.development.json
+
+          echo "export const environment = {
+            production: false,
+            apiUrl: 'https://localhost:63279/'
+          };" > ./frontend/src/environments/environment.ts
+
       windows:
         shell: pwsh
         interactive: true
@@ -56,3 +62,8 @@ hooks:
               }
             }
           }" > ./csharp/src/MultiAgentCopilot/appsettings.development.json
+
+          echo "export const environment = {
+            production: false,
+            apiUrl: 'https://localhost:63279/'
+          };" > ./frontend/src/environments/environment.ts
