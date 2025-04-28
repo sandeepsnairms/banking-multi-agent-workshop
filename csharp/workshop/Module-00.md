@@ -4,37 +4,24 @@
 
 In this Module, you'll confirm the deployment of Azure Services needed to run this workshop.
 
-
+1. Open a browser locally on the VM and navigate to https://portal.azure.com
+1. Login using the credentials below
+   1. User name +++@lab.CloudPortalCredential(User1).Username+++
+   1. Password +++@lab.CloudPortalCredential(User1).Password+++
+l. Scroll down and look for a resource group not named resource group 1.
+1. If the resource group does not appear wait a few moments then refresh.
+1. When the new resource group appears, expand the Overview tab and click deployments.
+1. If all resources have been deployed successfully, you are ready to begin the lab.
 
 ### Running the ChatAPI and Frontend App
 
 #### 1. Start the ChatAPI
 
-##### If running on Codespaces
-
-1. Navigate to `src/ChatAPI`.
-2. Run the following command to trust the development certificate:
-
-   ```sh
-   dotnet dev-certs https --trust
-   ```
-
-3. Start the application:
-
-   ```sh
-   dotnet run
-   ```
-
-4. In the **Ports** tab, right-click and select the **Port Visibility** option to set port **63280** as **Public**.
-5. Copy the URL for **63280** port.
-
-   ![Ports Dialog for CodeSpaces](./media/module-00/ports-dialog.png)
-
-##### If running locally on Visual Studio or VS Code
-
-1. Navigate to `src\ChatAPI`.
-2. Press **F5** or select **Run** to start the application.
-3. Copy the URL from the browser window that opens.
+1. Open the folder on the desktop to the LabUser folder.
+1. Navigate to `src\MultiAgentCopilot`.
+1. Type `code .`
+1. Press **F5** or select **Run** to start the application.
+1. Copy the URL from the browser window that opens.
 
 #### 2. Run the Frontend App
 
@@ -49,8 +36,6 @@ In this Module, you'll confirm the deployment of Azure Services needed to run th
 ##### If running locally
 
 1. Open your browser and navigate to <http://localhost:4200/>.
-
-
 
 #### 3. Start a Conversation
 
@@ -86,31 +71,9 @@ Use the steps below to validate that the solution was deployed successfully.
 1. Errors during azd deployment:
    - Service principal "not found" error.
    - Rerun `azd up`
-1. Azure OpenAI deployment issues:
-   - Ensure your subscription has access to Azure OpenAI
-   - Check regional availability
 1. Frontend issues:
    - If frontend doesn't fully start, navigate to `/frontend/src/environments/environment.ts` and update `apiUrl: 'https://localhost:63279/'`
    - Frontend will restart
-   - In CodeSpaces, if frontend displays the spinning icon when starting up, double-check you have made port `ChatAPI (63280)` public. Then restart the front end.
-1. Connecting to backend running CodeSpaces
-
-   - If you cannot get the front end to connect to the backend service when running in Codespaces try the following
-
-     - Navigate to the /src/ChatAPI folder in the Terminal
-     - Run the following command to trust the development certificate:
-
-       ```sh
-       dotnet dev-certs https --trust
-       ```
-
-     - Then start the application:
-
-       ```sh
-       dotnet run
-       ```
-
-   - Copy the URL from the **Ports** tab and use this for the environments.ts file
 
 ## Success Criteria
 
@@ -122,12 +85,4 @@ To complete this Module successfully, you should be able to:
 
 ## Next Steps
 
-Proceed to [Creating Your First Agent](./Module-01.md)
-
-## Resources
-
-- [azd Command Reference](https://learn.microsoft.com/azure/developer/azure-developer-cli/reference)
-- [Semantic Kernel Agent Framework](https://learn.microsoft.com/semantic-kernel/frameworks/agent)
-- [LangGraph](https://langchain-ai.github.io/langgraph/concepts/)
-- [Azure OpenAI Service documentation](https://learn.microsoft.com/azure/cognitive-services/openai/)
-- [Azure Cosmos DB Vector Database](https://learn.microsoft.com/azure/cosmos-db/vector-database)
+Proceed to Module 1: Creating Your First Agent
