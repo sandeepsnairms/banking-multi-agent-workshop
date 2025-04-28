@@ -15,7 +15,8 @@ In this Module, you'll confirm the deployment of Azure Services needed to run th
 1. Scroll down and look for a second resource group after *ResourceGroup1*.
 1. If the resource group does not appear wait a few moments then refresh.
 1. When the new resource group appears, expand the Overview tab and click deployments.
-1. If all resources have been deployed successfully, you are ready to begin the lab.
+1. If all resources have been deployed successfully, you are ready to begin the lab. Your screen should look like this.
+![deployments](./media/module-00/deployments.png)
 1. Proceed to [Running the App](#running-the-app)
 
 ## Lab Provisioning
@@ -52,7 +53,7 @@ azd up
 1. Click on the Deployments and watch until the status of all deployed resources shows as Succeeded.
 1. Your screen should appear as below.
 
-[deployments](./media/module-00/deployments.png)
+![deployments](./media/module-00/deployments.png)
 
 ## Running the App
 
