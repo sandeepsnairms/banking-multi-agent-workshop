@@ -1,7 +1,5 @@
 # Module 02 - Connecting Agents to Memory
 
-[< Creating Your First Agent](./Module-01.md) - **[Home](Home.md)** - [Agent Specialization >](./Module-03.md)
-
 ## Introduction
 
 In this Module you'll connect your agent to Azure Cosmos DB to provide memory for chat history and state management for your agents to provide durability and context-awareness in your agent interactions.
@@ -14,16 +12,15 @@ In this Module you'll connect your agent to Azure Cosmos DB to provide memory fo
 
 ## Module Exercises
 
-1. [Activity 1: Session Memory Persistence in Agent Frameworks](#activity-1-session-memory-persistence-in-agent-frameworks)
-1. [Activity 2: Create a Simple Banking Agent](#activity-2-create-a-simple-banking-agent)
-1. [Activity 3: Connecting Agent Frameworks to Azure Cosmos DB](#activity-3-connecting-agent-frameworks-to-azure-cosmos-db)
-1. [Activity 4: Test your Work](#activity-4-test-your-work)
+1. [Activity 1: Create a Simple Banking Agent](#activity-1-create-a-simple-banking-agent)
+1. [Activity 2: Connecting Agent Frameworks to Azure Cosmos DB](#activity-2-connecting-agent-frameworks-to-azure-cosmos-db)
+1. [Activity 3: Test your Work](#activity-3-test-your-work)
 
 ## Activity 1: Session Memory Persistence in Agent Frameworks
 
 In this session you will get an overview of memory and how it works for Semantic Kernel Agents and LangGraph and learn the basics for how to configure and connect both to Azure Cosmos DB as a memory store for both chat history and/or state management.
 
-## Activity 2: Create a Simple Banking Agent
+## Activity 1: Create a Simple Banking Agent
 
 In this hands-on exercise, we will evolve the agent that translated responses into French into an agent that is intended for the banking scenario we are building here. We will also take the first step to learning about prompts here as well.
 
@@ -72,7 +69,7 @@ We now have an agent that executes instructions provided as prompts.
 
 Next lets add some memory so that the agent can remember the previous messages and doesn't loose context of the chat session.
 
-## Activity 3: Connecting Agent Frameworks to Azure Cosmos DB
+## Activity 2: Connecting Agent Frameworks to Azure Cosmos DB
 
 In this activity, you will learn how to initialize Azure Cosmos DB and integrate with an agent framework to provide persistent memory for chat history and state management.
 
@@ -170,7 +167,7 @@ Locate `GetChatCompletionAsync()`, then update the function with the code in the
             return result.Item1;
 ```
 
-## Activity 4: Test your Work
+## Activity 3: Test your Work
 
 With the activities in this module complete, it is time to test your work.
 
@@ -227,20 +224,6 @@ Your implementation is successful if:
 
 - [ ] Your app compiles with no warnings or errors.
 - [ ] Your agent successfully responds with contextually correct information.
-
-### Common Issues and Troubleshooting
-
-1. Issue 1:
-    - TBD
-    - TBD
-
-1. Issue 2:
-    - TBD
-    - TBD
-
-1. Issue 3:
-    - TBD
-    - TBD
 
 ### Module Solution
 
@@ -1274,11 +1257,4 @@ public class ChatService : IChatService
 
 ## Next Steps
 
-Proceed to [Agent Specialization](./Module-03.md)
-
-## Resources
-
-- [Semantic Kernel Agent Framework](https://learn.microsoft.com/semantic-kernel/frameworks/agent)
-- [LangGraph](https://langchain-ai.github.io/langgraph/concepts/)
-- [Azure OpenAI Service documentation](https://learn.microsoft.com/azure/cognitive-services/openai/)
-- [Azure Cosmos DB Vector Database](https://learn.microsoft.com/azure/cosmos-db/vector-database)
+Proceed to Module 3: Agent Specialization

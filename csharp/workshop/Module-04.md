@@ -1,7 +1,5 @@
 # Module 04 - Multi-Agent Orchestration
 
-[< Agent Specialization](./Module-03.md) - **[Home](Home.md)** - [Lessons Learned, Agent Futures, Q&A >](./Module-05.md)
-
 ## Introduction
 
 In this Module you'll learn how to implement the multi-agent orchestration to tie all of the agents you have created so far together into a single system. You'll also learn how to test the system as a whole is working correctly and how to debug and monitor the agents performance and behavior and troubleshoot them.
@@ -15,17 +13,11 @@ In this Module you'll learn how to implement the multi-agent orchestration to ti
 
 ## Module Exercises
 
-1. [Activity 1: Session on Multi-Agent Architectures](#activity-1-session-on-multi-agent-architectures)
-1. [Activity 2: Define Agents and Roles](#activity-2-define-agents-and-roles)
-1. [Activity 3: Session on Testing and Monitoring](#activity-3-session-on-testing-and-monitoring)
-1. [Activity 4: Implement Agent Tracing and Monitoring](#activity-4-implement-agent-tracing-and-monitoring)
-1. [Activity 5: Test your Work](#activity-5-test-your-work)
+1. [Activity 1: Define Agents and Roles](#activity-1-define-agents-and-roles)
+1. [Activity 2: Implement Agent Tracing and Monitoring](#activity-2-implement-agent-tracing-and-monitoring)
+1. [Activity 3: Test your Work](#activity-3-test-your-work)
 
-## Activity 1: Session on Multi-Agent Architectures
-
-In this session you will learn how this all comes together and get insights into how the multi-agent orchestration works and coordinates across all of the defined agents for your system.
-
-## Activity 2: Define Agents and Roles
+## Activity 1: Define Agents and Roles
 
 When dealing with multiple agents, clear agent roles is important to avoid conflicts and making sure  customer gets the most appropriate response.
 
@@ -378,11 +370,7 @@ Update the the `GetResponse()` function with the code in the `Try` block below:
             return new Tuple<List<Message>, List<DebugLog>>(completionMessages, completionMessagesLogs);
 ```
 
-## Activity 3: Session on Testing and Monitoring
-
-In this session you will learn about how to architect the service layer for a multi-agent system and how to configure and conduct testing and debugging and monitoring for these systems.
-
-## Activity 4: Implement Agent Tracing and Monitoring
+## Activity 2: Implement Agent Tracing and Monitoring
 
 In this hands-on exercise, you will learn how to define an API service layer for a multi-agent backend and learn how to configure tracing and monitoring to enable testing and debugging for agents.
 
@@ -393,7 +381,6 @@ Before executing the below steps, try chatting with the agents. Note that  you a
 To log the data used by the LLM to invoke functions, we will create a class named `AutoFunctionInvocationLoggingFilter`.
 
 Navigate  to `LogFilter` folder and review the contents of  `AutoFunctionInvocationLoggingFilter.cs`
-
 
 ```c#
 using Microsoft.SemanticKernel;
@@ -430,7 +417,6 @@ namespace MultiAgentCopilot.Logs
         }
     }
 }
-
 ```
 
 #### Update Semantic Kernel's AutoFunctionInvocationFilters
@@ -473,9 +459,7 @@ Locate `GetResponse()`, then search for **// TO DO : Add DebugLog code here**  a
 
 ```
 
-
-
-## Activity 5: Test your Work
+## Activity 3: Test your Work
 
 In the previous module we tested each agent independently. With the code changes in this module we should now be able to orchestrate a multi-agent chat where agent selection is automated based on the SelectionStrategy and agent prompts. Lets go ahead and test if the code works as expected.
 
@@ -521,12 +505,6 @@ In the previous module we tested each agent independently. With the code changes
 - [ ] Vector search  works as expected.
 
 ### Common Issues and Solutions
-
-1. Agents don't respond:
-
-   - Increase the quota for the GPT model in Azure Portal.
-   - Open the resource group, find the OpenAI account, navigate to Azure Foundry, locate the GPT model.
-   - Increase the quota amount to 30K Tokens/minute.
 
 1. Multiple agents respond together or Wrong agent responding:
 
@@ -1212,10 +1190,4 @@ namespace MultiAgentCopilot.ChatInfrastructure.Logs
 
 ## Next Steps
 
-Proceed to [Lessons Learned, Agent Futures, Q&A](./Module-04.md)
-
-## Resources
-
-- [Semantic Kernel Agent Framework](https://learn.microsoft.com/semantic-kernel/frameworks/agent)
-- [Azure OpenAI Service documentation](https://learn.microsoft.com/azure/cognitive-services/openai/)
-- [Azure Cosmos DB Vector Database](https://learn.microsoft.com/azure/cosmos-db/vector-database)
+Congratulations!!! You have completed this workshop!!!
