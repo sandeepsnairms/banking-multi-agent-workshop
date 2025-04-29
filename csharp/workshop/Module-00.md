@@ -36,7 +36,7 @@ git clone --branch hol --single-branch https://github.com/AzureCosmosDB/banking-
 
 ## Lab Provisioning
 
-1. Within the terminal navigate to the multi-agent-hol folder.
+1. Open the PowerShell terminal on the Start Bar and navigate to the multi-agent-hol folder.
 
 ```shell
 cd C:\Users\LabUser\multi-agent-hol\
@@ -50,16 +50,17 @@ cd C:\Users\LabUser\multi-agent-hol\
 azd auth login
 ```
 
-1. Deploy the Azure services
-   1. For environment name enter: `agenthol`
-   1. Press enter to select the subscription listed.
-   1. Press enter to select the default region listed.
+1. Deploy the Azure services using `azd up`
 
 ```shell
 azd up
 ```
 
-1. Return to the Azure Portal and refresh the list of resource groups.
+1. For environment name enter: `agenthol`
+1. Press enter to select the subscription listed.
+1. Press enter to select the default region listed.
+
+1. Return to the Azure Portal and refresh the list of resource groups. You may need to refresh a few times.
 1. Select the *rg-agenthol* resource group.
 1. Find the collapsed *Essentials* section at the top of the page and expand.
 1. Click on the Deployments and watch until the status of all deployed resources shows as Succeeded.
@@ -76,6 +77,7 @@ azd up
 1. Type `code .`
 1. Open the Terminal in VS Code.
 1. Type `dotnet run` to start the multi-agent service.
+1. You will notice some warnings when the app starts. You can ignore these.
 1. Leave the app running.
 
 #### 2. Run the Frontend App
@@ -108,18 +110,9 @@ azd up
 
 #### 4. Stop the Application
 
-- In the frontend terminal, press **Ctrl + C** to stop the application.
-- In your IDE press **Shift + F5** or stop the debugger.
-- If you are in CodeSpaces, go to each terminal and press **Ctrl + C**.
-
-### Deployment Validation
-
-Use the steps below to validate that the solution was deployed successfully.
-
-- [ ] All Azure resources are deployed successfully
-- [ ] You can compile the solution in CodeSpaces or locally
-- [ ] You can start the project and it runs without errors
-- [ ] You are able to launch the Chat Frontend app , create a new chat session, and get a reply when you send a message.
+- Return to VS Code.
+- In the frontend terminal, press **Ctrl + C** to stop the frontend application.
+- Select the backend terminal, press **Ctrl + C** to stop the backend application.
 
 ### Common Issues and Troubleshooting
 
@@ -129,14 +122,6 @@ Use the steps below to validate that the solution was deployed successfully.
 1. Frontend issues:
    - If frontend doesn't fully start, navigate to `/frontend/src/environments/environment.ts` and update `apiUrl: 'https://localhost:63279/'`
    - Frontend will restart
-
-## Success Criteria
-
-To complete this Module successfully, you should be able to:
-
-- Verify that all services have been deployed successfully.
-- Have an open IDE or CodeSpaces session with the source code and environment variables loaded.
-- Be able to compile and run the application with no warnings or errors.
 
 ## Next Steps
 

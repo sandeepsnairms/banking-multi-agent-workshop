@@ -459,53 +459,48 @@ Use this combination of AgentTypes and prompts for your test.
 
 Note: For each of these combinations above, you only need stop the Backend service. You can keep the front end up.
 
-#### 1. Start the ChatAPI
+### Start the Backend
 
-- Codespaces open a terminal and type `dotnet run`
-- In your IDE press **F5** or select **Run** to start the application.
+- Return to the open terminal for the backend app in VS Code and type `dotnet run`
 
-#### 2. Run the Frontend App
+### Start the Frontend
 
-- Open a new terminal or use an existing one that is open to the `/frontend` folder.
-
-    ```sh
-    ng serve
-    ```
-
+- Return to the frontend terminal and type `ng serve`
 - Navigate to, <http://localhost:4200> in your browser
 
-#### 3. Start a Chat Session
+### Start a Chat Session
 
 1. Open the frontend app.
 1. Start a new conversation.
 1. Send a message based on the prompt of the current AgentType.
 1. Expected response: The response is inline with the Agent's prompts and plugins.
 
-### 4. Stop the Application
+### Stop the Application
 
-- In the frontend terminal, press **Ctrl + C** to stop the application.
-- In your IDE press **Shift + F5** or stop the debugger.
+- Return to VS Code.
+- In the frontend terminal, press **Ctrl + C** to stop the frontend application.
+- Select the backend terminal, press **Ctrl + C** to stop the backend application.
 
 ## Validation Checklist
 
 - [ ] Each Agent response is per the corresponding prompty file contents and the plugin functions.
 - [ ] Semantic Search functions correctly
 
-### Common Issues and Solutions
+## Common Issues and Solutions
 
 1. No response to your prompt (on local):
     - Check if you are getting throttled by Azure OpenAI model.
     - Increase Azure open AI tokens if required.
 
 1. Invalid/incomplete response:
-    - Check if  the Azure Cosmos DB containers have valid data.
+    - Check if the Azure Cosmos DB containers have valid data.
 
 1. No response to your prompt (hosted):
     - Navigate to the Application Insights account.
     - Navigate to `Live metrics` blade under `Investigate` section.
-    - [Learn more] (https://learn.microsoft.com/en-us/azure/azure-monitor/app/live-stream?tabs=otel)
+    - [Learn more] (<https://learn.microsoft.com/azure/azure-monitor/app/live-stream?tabs=otel>)
 
-### Module Solution
+## Module Solution
 
 The following sections include the completed code for this Module. Copy and paste these into your project if you run into issues and cannot resolve.
 
@@ -1836,10 +1831,4 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
 
 ## Next Steps
 
-Proceed to [Multi-Agent Orchestration](./Module-04.md)
-
-## Resources
-
-- [Semantic Kernel Agent Framework](https://learn.microsoft.com/semantic-kernel/frameworks/agent)
-- [Azure OpenAI Service documentation](https://learn.microsoft.com/azure/cognitive-services/openai/)
-- [Azure Cosmos DB Vector Database](https://learn.microsoft.com/azure/cosmos-db/vector-database)
+Proceed to Module 4 - Multi-Agent Orchestration
