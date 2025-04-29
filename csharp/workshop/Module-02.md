@@ -24,12 +24,6 @@ In this session you will get an overview of memory and how it works for Semantic
 
 In this hands-on exercise, we will evolve the agent that translated responses into French into an agent that is intended for the banking scenario we are building here. We will also take the first step to learning about prompts here as well.
 
-First, navigate to the `ChatInfrastructure` project in your IDE
-
-Create `Factories` folder inside this project. Your project should look like this.
-
-![New Factories folder](./media/module-02/solution-factories-folder.png)
-
 ### Add Agent Factory
 
 Agents are autonomous systems that use LLMs to process inputs, make decisions, and generate responses based on predefined goals. They can integrate with external tools, retrieve information, and adapt dynamically to different tasks. We are next going to implement a `AgentFactory` class that enables the creation of agents for various scenarios. It uses the GetAgentPrompts to define the agent prompts.
@@ -37,7 +31,7 @@ Agents are autonomous systems that use LLMs to process inputs, make decisions, a
 In your IDE, within the `/Factories` folder, open `AgentFactory.cs` and paste the code below:
 
 ```csharp
-private string GetAgentName()
+        private string GetAgentName()
         {
 
             return "FrontDeskAgent";
@@ -86,7 +80,7 @@ In your IDE, open the `SemanticKernelService.cs` and navigate to the `GetRespons
 Replace all of the code within the `Try` block with the code below:
 
 ```csharp
-     AgentFactory agentFactory = new AgentFactory();
+            AgentFactory agentFactory = new AgentFactory();
 
             var agent = agentFactory.BuildAgent(_semanticKernel, _loggerFactory, bankService, tenantId, userId);
 
@@ -151,7 +145,7 @@ private async Task AddPromptCompletionMessagesAsync(string tenantId, string user
 Locate `GetChatCompletionAsync()`, then update the function with the code in the `Try` block below:
 
 ```csharp
-    ArgumentNullException.ThrowIfNull(sessionId);
+            ArgumentNullException.ThrowIfNull(sessionId);
 
             // Retrieve conversation, including latest prompt.
             var archivedMessages = await _cosmosDBService.GetSessionMessagesAsync(tenantId, userId, sessionId);

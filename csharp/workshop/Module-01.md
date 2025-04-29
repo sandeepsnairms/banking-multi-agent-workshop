@@ -62,7 +62,7 @@ Search for **//TO DO: Update SemanticKernelService constructor** and paste the c
 **Note:** To paste code, place your cursor exactly where you want it in the code, including any tabs or spaces, then click the `T` in the lab guide. This will paste the code directly into your app. You may need to tab or format the code a little after pasting.
 
 ```csharp
-builder.Services.AddSingleton<ILoggerFactory>(loggerFactory);
+        builder.Services.AddSingleton<ILoggerFactory>(loggerFactory);
 
         DefaultAzureCredential credential;
         if (string.IsNullOrEmpty(_skSettings.AzureOpenAISettings.UserAssignedIdentityClientID))
