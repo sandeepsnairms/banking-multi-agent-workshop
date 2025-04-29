@@ -24,7 +24,8 @@ In this Module, you'll confirm the deployment of Azure Services needed to run th
 
 ## Git Clone
 
-1. Open the PowerShell terminal on the Start bar and navigate up to the LabUser folder.
+1. Open the PowerShell terminal on the Start bar.
+1. Navigate to the LabUser folder.
 1. Clone the GitHub repository for this lab.
 
 ```shell
@@ -70,15 +71,17 @@ azd up
 
 ### 1. Start the ChatAPI
 
-1. Open the folder on the desktop to the LabUser folder.
-1. Navigate to `C:\Users\LabUser\multi-agent-hol\src\MultiAgentCopilot`.
+1. Open the PowerShell terminal on the Start bar.
+1. Navigate to `C:\Users\LabUser\multi-agent-hol\csharp\src\MultiAgentCopilot`.
 1. Type `code .`
-1. Press **F5** or select **Run** to start the application.
-1. Copy the URL from the browser window that opens.
+1. Open the Terminal in VS Code.
+1. Type `dotnet run` to start the multi-agent service.
+1. Leave the app running.
 
 #### 2. Run the Frontend App
 
-1. Open a new terminal. Navigate to the `frontend` folder.
+1. Within VS Code, open a new terminal.
+1. Navigate to the `frontend` folder, `cd C:\Users\LabUser\multi-agent-hol\frontend`
 1. Copy and run the following:
 
    ```sh
@@ -86,13 +89,12 @@ azd up
    npm start
    ```
 
-##### If running locally
-
+1. If prompted, **Allow** so the Node.js Javascript Runtime to access this app over the network.
 1. Open your browser and navigate to <http://localhost:4200/>.
 
 #### 3. Start a Conversation
 
-1. Open the frontend app.
+1. In the Login dialog, select a user and company and click, Login.
 1. Start a new conversation.
 1. Send the message:
 
