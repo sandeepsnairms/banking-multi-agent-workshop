@@ -1,5 +1,3 @@
-# Module 00 - Prerequisites - Deployment and Setup
-
 # Module 00 - Deployment and Setup
 
 ## Introduction
@@ -76,46 +74,57 @@ When you deploy this solution it automatically injects endpoints and configurati
 
 But you will still need to install dependencies to run the solution locally.
 
-1. Navigate to the python folder of the project.
-1. Create and activate a virtual environment
+1. Open a terminal and navigate to the python HOL folder.
+
+```shell
+cd C:\Users\LabUser\multi-agent-hol\python
+```
+
+1. Type `code .` to open VS Code to that folder
+1. From the menu in VS Code, open a new PowerShell Terminal
+1. Create a virtual environment
 
    ```shell
    python -m venv .venv
+   ```
+
+1. Activate the virtual environment
+
+   ```shell
    .venv\Scripts\Activate.ps1
    ```
 
 1. Install the required dependencies for the project.
 
    ```shell
-   pip install -r ../src/app/requirements.txt
+   pip install -r C:\Users\LabUser\multi-agent-hol\python\src\app\requirements.txt
    ```
 
-   Note: If getting `requirements.txt` file not found when using GitHub codespaces, please navigate to the `src/app` folder and run the command there `pip install -r requirements.txt`
-
-## Compile and Run
+## Running the app
 
 ### Run the Backend App
 
-1. Navigate to the python folder of the project.
+1. Remain in the terminal in the python folder.
 2. Start the fastapi server.
 
    ```shell
-   uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 8000
+   uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 63279
    ```
 
-The API will be available at `http://localhost:8000/docs`. This has been pre-built with boilerplate code that will create chat sessions and store the chat history in Cosmos DB.
+**Note:** If prompted, allow Python to allow public and private network access to this app.
+
+The API will be available at <http://localhost:63279/docs>. This has been pre-built with boilerplate code that will create chat sessions and store the chat history in Cosmos DB.
 
 #### Run the Frontend App
 
-1. Update the `apiUrl` values in `frontend/src/environments/environment.ts` file with the API endpoint <http://localhost:8000/>
-1. Open a new terminal, navigate to the `frontend` folder and run the following to start the application:
+1. In VS Code, open a new PowerShell terminal, navigate to the `frontend` folder and run the following to start the application:
 
-   ```sh
+   ```shell
    npm install
    npm start
    ```
 
-1. Open your browser and navigate to <http://localhost:8000/>.
+1. Open your browser and navigate to <http://localhost:4200/>.
 
 Lets try a couple of things:
 
@@ -131,7 +140,7 @@ Next, we will start building the agents that will be served by the API layer and
 Use the steps below to validate that the solution was deployed successfully.
 
 - [ ] All Azure resources are deployed successfully
-- [ ] You can compile the solution in CodeSpaces or locally
+- [ ] You can compile the solution
 - [ ] You can start the project and it runs without errors
 
 ### Common Issues and Troubleshooting
