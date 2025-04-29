@@ -107,7 +107,7 @@ The API will be available at `http://localhost:8000/docs`. This has been pre-bui
 
 #### Run the Frontend App
 
-1. Update the `apiUrl` values in `frontend/src/environments/environment.ts` file with the API endpoint (http://localhost:8000/)
+1. Update the `apiUrl` values in `frontend/src/environments/environment.ts` file with the API endpoint <http://localhost:8000/>
 1. Open a new terminal, navigate to the `frontend` folder and run the following to start the application:
 
    ```sh

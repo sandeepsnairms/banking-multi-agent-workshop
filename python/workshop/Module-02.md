@@ -179,7 +179,7 @@ I want some help
 
 You should see your query being routed to the customer support agent and a response generated:
 
-![Testing_1](./media/module-01/testing1.png)
+![Testing_1](./media/module-02/testing1.png)
 
 To prove that agent state is preserved, open your browser and find the Cosmos DB account you deployed in Module 0. 
 
