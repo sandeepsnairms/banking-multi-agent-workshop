@@ -22,7 +22,7 @@ from src.app.services.azure_cosmos_db import update_chat_container, patch_active
     fetch_chat_container_by_session, delete_userdata_item, debug_container, update_users_container, \
     update_account_container, update_offers_container, store_chat_history, update_active_agent_in_latest_message, \
     chat_container, fetch_chat_history_by_session, delete_chat_history_by_session
-from src.app.banking_agents import graph, checkpointer
+#from src.app.banking_agents import graph, checkpointer
 import logging
 
 # Setup logging
