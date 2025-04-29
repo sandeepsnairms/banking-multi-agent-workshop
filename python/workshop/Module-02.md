@@ -15,17 +15,11 @@ In this Module, you'll connect your agent to Azure Cosmos DB to provide memory f
 
 ## Module Exercises
 
-1. [Activity 1: Session Memory Persistence in Agent Frameworks](#activity-1-session-memory-persistence-in-agent-frameworks)
-2. [Activity 2: Connecting Agent Frameworks to Azure Cosmos DB](#activity-2-connecting-agent-frameworks-to-azure-cosmos-db)
-3. [Activity 3: Test your Work](#activity-5-test-your-work)
+1. [Activity 1: Connecting Agent Frameworks to Azure Cosmos DB](#activity-1-connecting-agent-frameworks-to-azure-cosmos-db)
+2. [Activity 2: Test your Work](#activity-2-test-your-work)
 
 
-## Activity 1: Session Memory Persistence in Agent Frameworks
-
-In this activity, you will get an overview of memory and how it works for Semantic Kernel Agents and LangGraph and learn the basics for how to configure and connect both to Azure Cosmos DB as a memory store for both chat history and/or state management.
-
-
-## Activity 2: Connecting Agent Frameworks to Azure Cosmos DB
+## Activity 1: Connecting Agent Frameworks to Azure Cosmos DB
 
 Here you will learn how to initialize Azure Cosmos DB and integrate with LangGraph to provide persistent memory for chat history and state management.
 
@@ -181,38 +175,11 @@ In this activity, we completed the following key steps:
 > **Note**: While it's technically possible to rely on the LLM to determine the next agent using reasoning alone, this approach is generally less reliable and may not be suitable for scenarios requiring consistency and control.
 
 
-## Activity 3: Test your Work
+## Activity 2: Test your Work
 
-With the activities in this module complete, it is time to test your work!
+With the activities in this module complete, it is time to test your work! Let's test our agents!
 
-Before testing, lets make a small amendment to your `interactive_chat()` function in our `banking_agents.py` file to hardcode the thread ID. The thread ID is the unique identifier for the conversation state. Until now, we have not made use of it. In the change below we are going to hard code it to demonstrate how the conversation can be picked up later even when the application has stopped.
-
-Within the `banking_agents.py` file locate the `def interactive_chat()` function.
-
-Immediately above the function declaration add the following line of code:
-
-```python
-hardcoded_thread_id = "hardcoded-thread-id-01"
-```
-
-Then replace the first line immediately within the function to this:
-
-```python
-def interactive_chat():
-    thread_config = {"configurable": {"thread_id": hardcoded_thread_id, "userId": "Mark", "tenantId": "Contoso"}}
-```
-
-### Ready to test
-
-Let's test our agents!
-
-In your IDE, run the following command in your terminal:
-
-```bash
-python -m src.app.banking_agents
-```
-
-Type the following text:
+Again in you browser, navigate to <http://localhost:4200/>, and type the following text.
 
 ```
 I want some help
@@ -220,24 +187,9 @@ I want some help
 
 You should see your query being routed to the customer support agent and a response generated:
 
-```bash
-You: I want some help
-transfer_to_customer_support_agent...
-customer_support_agent: Hi there! How can I assist you today? If you need help with opening a new account, taking out a loan, checking your account balance, making a transfer, or anything else, let me know!
+![Testing_1](./media/module-01/testing1.png)
 
-You: 
-```
-
-To prove that agent state is preserved we will shut down the agent. 
-
-In the terminal type *exit*.
-
-```
-You: exit
-
-```
-
-Next, open your browser and find the Cosmos DB account you deployed in Module 0. 
+To prove that agent state is preserved, open your browser and find the Cosmos DB account you deployed in Module 0. 
 
 Look for the Cosmos DB account in the resource group.
 
@@ -245,27 +197,7 @@ Navigate to Data Explorer within the Cosmos DB blade then locate the Chat contai
 
 Open the Chat container. 
 
-You should see the agent state and chat history stored there, with "customer_support_agent" as the active agent.
-
-**TODO Note: I DO NOT SEE anything in Chat History container. Only the Chat container and inside ChatContainer I don't see any messages from the chat session itself, only a single item with an empty messages array. Also why is there a ChatHistory container in this database? Does this get used?**
-
-Navigate back to your terminal and restart the application.
-
-```bash
-python -m src.app.banking_agents
-```
-
-Ask it for some help again. The coordinator agent should pick up the conversation where it left off and route straight to the customer support agent:
-
-```bash
-Welcome to the single-agent banking assistant.
-Type 'exit' to end the conversation.
-
-You: I want some help
-customer_support_agent: Of course! Please let me know what kind of help you need. Are you looking to open a new account, take out a loan, check your account balance, make a transfer, or something else? I'm here to assist!
-
-You: 
-```
+You should see the agent state and chat history stored there.
 
 You may also want to look at the checkpoints container in your Cosmos DB account. You should see the agent state stored there. There is much more data stored in this container, as it is not only maintaining the chat history, but also the state of the agent, and any other agent, including computations in between transfers. This allows for a richer conversational experience as the full agent state is remembered and checkpointed regularly. 
 

@@ -6,29 +6,11 @@
 
 In this Module, you'll implement your first agent as part of a multi-agent banking system implemented using either Semantic Kernel Agent Framework or LangGraph. You will get an introduction to Semantic Kernel and LangChain frameworks and their plug-in/tool integration with OpenAI for generating completions.
 
-## Learning Objectives and Activities
-
-- Learn the basics for Semantic Kernel Agent Framework and LangGraph
-- Learn how to integrate agent frameworks to Azure OpenAI
-- Build a simple chat agent
-
 ## Module Exercises
 
-1. [Activity 1: Session on Single-agent architecture](#activity-1-session-on-single-agent-architecture)
-2. [Activity 2: Session on Semantic Kernel Agent Framework and LangGraph](#activity-2-session-on-semantic-kernel-agent-framework-and-langgraph)
-3. [Activity 3: Create Your Very First Agent](#activity-3-create-your-very-first-agent)
-4. [Activity 4: Create a Simple Customer Service Agent](#activity-4-create-a-simple-customer-service-agent)
-5. [Activity 5: Test your Work](#activity-5-test-your-work)
-
-## Activity 1: Session on Single-agent architecture
-
-In this session you will get an overview of Semantic Kernel Agents and LangGraph and learn the basics for how to build a chat app that interacts with a user and generations completions using an LLM powered by Azure OpenAI.
-
-## Activity 2: Session on Semantic Kernel Agent Framework and LangGraph
-
-In this session, you will get a deeper introduction into the Semantic Kernel Agent Framework and LangGraph with details on how to implement plug-in or tool integration with Azure Open AI.
-
-The following steps are completed in your IDE.
+1. [Activity 1: Create Your Very First Agent](#activity-1-create-your-very-first-agent)
+2. [Activity 2: Create a Simple Customer Service Agent](#activity-2-create-a-simple-customer-service-agent)
+3. [Activity 3: Test your Work](#activity-3-test-your-work)
 
 ### Project Structure
 
@@ -48,7 +30,7 @@ Here is what the structure of this solution appears like in VS Code. Spend a few
 ![Solution Files](./media/module-01/solution-folder-files.png)
 
 
-## Activity 3: Create your very first agent
+## Activity 1: Create your very first agent
 
 In this hands-on exercise, you will learn the basic elements of a LangGraph agent application and how to define and implement them.
 
@@ -250,7 +232,7 @@ We have:
 We could run this and see it in action but before we do this, let's implement a second agent for our coorindator agent to transfer to. In this next activity, we are going to create a Customer Service Agent that our Coordinator Agent will transfer execution to on behalf of the user.
 
 
-## Activity 4: Create a Simple Customer Service Agent
+## Activity 2: Create a Simple Customer Service Agent
 
 In this activity, you will create a simple customer service agent that users interact with and generates completions using a large language model.
 
@@ -425,7 +407,7 @@ builder.add_node("customer_support_agent", call_customer_support_agent)
 ```
 
 
-## Activity 5: Test your Work
+## Activity 3: Test your Work
 
 With the activities in this module complete, it is time to test your work!
 
@@ -480,29 +462,43 @@ if __name__ == "__main__":
 
 ### Ready to test
 
+### Running the solution
 
-Try it out! 
+1. Navigate to the python folder of the project.
+2. Start the fastapi server.
 
-In your IDE, run the following command in your terminal:
+   ```shell
+   uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 8000
+   ```
 
-```bash
-python -m src.app.banking_agents
+The API will be available at `http://localhost:8000/docs`. This has been pre-built with boilerplate code that will create chat sessions and store the chat history in Cosmos DB.
+
+### Run the Frontend App locally
+
+In your IDE, navigate to the `/frontend` folder.
+
+Next, locate the `src/app/environments/environment.ts` file. 
+
+Update the `API_URL` to point to your local FastAPI server:
+
+```typescript
+export const environment = {
+    production: true,
+    apiUrl: 'http://localhost:8000/'
+  };
 ```
+Open a new terminal, navigate to the `frontend` folder and run the following to start the application:
 
-You should see the following output like below:
+   ```sh
+   npm install
+   npm start
+   ```
 
-```
-[DEBUG] Retrieved Azure AD token successfully using DefaultAzureCredential.
-[DEBUG] Azure OpenAI model initialized successfully.
-Loading prompt for coordinator_agent from prompts\coordinator_agent.prompty
-Welcome to the single-agent banking assistant.
-Type 'exit' to end the conversation.
+Open your browser and navigate to <http://localhost:4200/>.
 
-You: 
-```
+![Final User Interface](./media/module-01/frontend.png)
 
-
-Input some text to the agent. 
+Create a new conversation and input some text to the agent.
 
 Type the following text:
 
@@ -513,15 +509,9 @@ I want some help
 
 You should see your query being routed to the customer support agent and a response generated:
 
-```shell
-You: I want some help
-transfer_to_customer_support_agent...
-customer_support_agent: You are now connected to our customer support agent. How can we assist you today?
+![Testing_1](./media/module-01/testing1.png)
 
-You: 
-```
-
-End the agent session by typing `exit` to end the application.
+End the agent session by deleting the conversation.
 
 
 

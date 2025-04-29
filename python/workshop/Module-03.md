@@ -16,17 +16,12 @@ In this Module you'll learn how to implement agent specialization by creating Se
 
 ## Module Exercises
 
-1. [Activity 1: Understanding Agent Specialization and Integration](#activity-1-session-on-agent-specialization-and-integration)
-2. [Activity 2: Creating Multiple Agents](#activity-2-creating-multiple-agents)
-3. [Activity 3: Adding Agent Tools](#activity-3-adding-agent-tools)
-4. [Activity 4: Semantic Search](#activity-4-semantic-search)
+1. [Activity 1: Creating Multiple Agents](#activity-1-creating-multiple-agents)
+2. [Activity 2: Adding Agent Tools](#activity-2-adding-agent-tools)
+3. [Activity 3: Semantic Search](#activity-3-semantic-search)
 
 
-## Activity 1: Session on Agent Specialization and Integration
-
-In this session we will dive into how to create Semantic Kernel Agent Framework Functions or LangGraph Tools to connect agents to external APIs, databases and third-party tools to provide special functionality. Learn the basics for vector indexing and search in Azure Cosmos DB to provide semantic search functionality to your agents. Learn how to define tasks and communication protocols for seamless collaboration between agents.
-
-## Activity 2: Creating Multiple Agents
+## Activity 1: Creating Multiple Agents
 
 In this hands-on exercise, you will learn how to create multiple agents that specialize in different tasks. You will learn how to define the roles and responsibilities of each agent and how to define the communication protocols between them.
 
@@ -130,7 +125,7 @@ builder.add_node("sales_agent", call_sales_agent)
 We've now added two new agents, and adjusted the coordinator agent so it can transfer to all three agents.
 
 
-## Activity 3: Adding Agent Tools
+## Activity 2: Adding Agent Tools
 
 In this activity, you will learn how to add tools to your agents. You will also learn how to define the API contracts for these plugins and how to test and debug them.
 
@@ -640,14 +635,20 @@ You MUST respond with the repayment amounts before transferring to another agent
 ```
 
 
-## Activity 4: Semantic Search
+## Activity 3: Semantic Search
 
 We are going to add one more tool that is a little different from the others. This tool will allow the customer support agent to perform a semantic search for products in the bank's database. We'll use Azure Cosmos DB Vector Search capability to perform a semantic search against the OffersData container.
 
 In your IDE, locate the file `src/app/tools/sales.py`
 
-Paste the code for this following tool at the top:
+Add the below imports on the top: 
 
+```python
+from src.app.services.azure_cosmos_db import vector_search
+from src.app.services.azure_open_ai import generate_embedding
+```
+
+Paste the code for this following tool at the top:
 ```python
 @tool
 def get_offer_information(user_prompt: str, accountType: str) -> list[dict[str, Any]]:
@@ -661,83 +662,60 @@ def get_offer_information(user_prompt: str, accountType: str) -> list[dict[str, 
 
 You can implement this tool in exactly the same way as the other tools. Do you remember the steps? Go ahead and do it!
 
-- Hint: The code for the `vector_search` is in `src/app/services/azure_cosmos_db.py` and `generate_embedding` is in `src/app/services/azure_open_ai.py`
+In your IDE, locate the `banking_agents.py`
 
-- Hint: Be sure the sales agent definition in `banking_agents.py` knows about its new tool functionality.
+Update the below import on the top:
+```python
+from src.app.tools.sales import calculate_monthly_payment, create_account
+```
 
+with this:
+```python
+from src.app.tools.sales import calculate_monthly_payment, create_account, get_offer_information
+```
 
+Update the below code lines as well:
+```python
+sales_agent_tools = [
+    calculate_monthly_payment,
+    create_account,
+]
+```
+with this:
+```python
+sales_agent_tools = [
+    get_offer_information,
+    calculate_monthly_payment,
+    create_account,
+]
+```
 
-## Activity 5: Test your Work
+## Activity 4: Test your Work
 
 With the activities in this module complete, it is time to test your work!
-
-Before we begin testing, let’s make a small update to the `interactive_chat()` function in the `banking_agents.py` file. We’ll modify it to generate a unique thread ID each time the application is restarted. This thread ID serves as the unique identifier for the conversation state. 
-
-Up to this point, we’ve been using a hardcoded thread ID to demonstrate how a conversation can be resumed even after the application stops. However, going forward, we want a fresh, unique ID to be generated on each run to represent a new conversation session.
-
-
-Within the `banking_agents.py` file locate the `def interactive_chat()` function.
-
-Immediately above the function declaration remove the below line of code:
-
-```python
-hardcoded_thread_id = "hardcoded-thread-id-01"
-```
-
-Then replace the first line immediately within the function to this:
-
-```python
-def interactive_chat():
-    thread_config = {"configurable": {"thread_id": str(uuid.uuid4()), "userId": "Mark", "tenantId": "Contoso"}}
-```
 
 ### Ready to test
 
 Let's test our agents!
 
-In your IDE, run the following command in your terminal:
-
-```bash
-python -m src.app.banking_agents
-```
+Again in you browser, navigate to <http://localhost:4200/>, and start a new conversation.
 
 Try transferring money between accounts:
 
-```shell
-Welcome to the single-agent banking assistant.
-Type 'exit' to end the conversation.
-
-You: I want to transfer 500 from account Acc001 to Acc003
-transfer_to_transactions_agent...
-transactions_agent: To proceed with the transfer of $500 from account Acc001 to account Acc003, can you please confirm the following details:
-
-- **From Account:** Acc001
-- **To Account:** Acc003
-- **Amount:** $500
-
-Is this correct?
-
-You: yes
 ```
+I want to transfer 500 from account Acc001 to Acc003
+```
+
+![Testing_1](./media/module-03/testing_module3_1.png)
 
 When completed, check AccountsData container in Azure Cosmos DB to see if the transaction was successful.
 
-To start again, try changing the hardcoded thread id (or delete the chat entry in the Chat container in Cosmos DB), and restart the program. Try asking about banking offers to invoke a vector search:
+To start again, create a new conversation. Try asking about banking offers to invoke a vector search:
+ ```
+ Tell me about banking offers
+ ```
 
-```shell
-Welcome to the single-agent banking assistant.
-Type 'exit' to end the conversation.
-
-You: Tell me about banking offers
-transfer_to_sales_agent...
-sales_agent: Would you like information about Credit Card offers or Savings offers? Let me know so I can provide the most relevant details for you!
-
-You: Savings
-
-```
-
-Type `exit` to end the test.
-
+![Testing_2](./media/module-03/testing_module3_2.png)
 
 ## Validation Checklist
 
