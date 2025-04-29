@@ -57,7 +57,9 @@ We are going to define two functions as part of our multi-agent application.
 
 In your IDE, within the `\Services\` folder navigate to `SemanticKernelService.cs`.
 
-Search for **//TO DO: Update SemanticKernelService constructor** and  paste the code below.
+Search for **//TO DO: Update SemanticKernelService constructor** and paste the code below.
+
+**Note:** To paste code, place your cursor exactly where you want it in the code, including any tabs or spaces, then click the `T` in the lab guide. This will paste the code directly into your app. You may need to tab or format the code a little after pasting.
 
 ```csharp
 builder.Services.AddSingleton<ILoggerFactory>(loggerFactory);
@@ -210,24 +212,16 @@ Replace the code for **SummarizeChatSessionNameAsync** method with code below.
 
 With the activities in this module complete, it is time to test your work.
 
-### Running the ChatAPI and Frontend App
+### Start the Backend
 
-#### 1. Start the ChatAPI
+- Return to the open terminal for the backend app in VS Code and type `dotnet run`
 
-- Codespaces open a terminal and type `dotnet run`
-- In your IDE press **F5** or select **Run** to start the application.
+### Start the Frontend
 
-#### 2. Run the Frontend App
-
-- Open a new terminal or use an existing one that is open to the `/frontend` folder.
-
-    ```sh
-    ng serve
-    ```
-
+- Return to the frontend terminal and type `ng serve`
 - Navigate to, <http://localhost:4200> in your browser
 
-#### 3. Start a Chat Session
+### Start a Chat Session
 
 1. Login to the frontend app.
 1. Start a new conversation.
@@ -241,25 +235,20 @@ With the activities in this module complete, it is time to test your work.
 
     ![Test output in French](./media/module-01/test-output.png)
 
-### 4. Stop the Application
+### Stop the Application
 
-- In the frontend terminal, press **Ctrl + C** to stop the application.
-- In your IDE press **Shift + F5** or stop the debugger.
+- Return to VS Code.
+- In the frontend terminal, press **Ctrl + C** to stop the frontend application.
+- Select the backend terminal, press **Ctrl + C** to stop the backend application.
 
-### Validation Checklist
+## Validation Checklist
 
 Your implementation is successful if:
 
-- [ ] Your app compiles with no warnings or errors.
+- [ ] Your app compiles with no errors.
 - [ ] Your agent successfully processes user input and generates and appropriate response.
 
-### Common Issues and Troubleshooting
-
-1. Frontend issues:
-   - If frontend doesn't fully start, navigate to `/frontend/src/environments/environment.ts` and update `apiUrl: 'https://localhost:63279/'`
-   - Frontend will restart
-
-### Module Solution
+## Module Solution
 
 The following sections include the completed code for this Module. Copy and paste these into your project if you run into issues and cannot resolve.
 

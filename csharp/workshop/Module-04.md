@@ -88,7 +88,6 @@ Remain in the same `ChatInfoFormats` folder.
 
 Review the contents of `TerminationInfo.cs`
 
-
 ```csharp
 namespace MultiAgentCopilot.Models.ChatInfoFormats
 {
@@ -104,7 +103,6 @@ namespace MultiAgentCopilot.Models.ChatInfoFormats
 Let's define a format builder that the LLM can use to output the Continuation and Termination models as responses.
 
 In the folder `StructuredFormats`. REview the  contents of  `ChatResponseFormat.cs`
-
 
 ```csharp
 namespace MultiAgentCopilot.StructuredFormats
@@ -463,22 +461,16 @@ Locate `GetResponse()`, then search for **// TO DO : Add DebugLog code here**  a
 
 In the previous module we tested each agent independently. With the code changes in this module we should now be able to orchestrate a multi-agent chat where agent selection is automated based on the SelectionStrategy and agent prompts. Lets go ahead and test if the code works as expected.
 
-### 1. Start the ChatAPI
+### Start the Backend
 
-- Codespaces open a terminal and type `dotnet run`
-- In your IDE press **F5** or select **Run** to start the application.
+- Return to the open terminal for the backend app in VS Code and type `dotnet run`
 
-### 2. Run the Frontend App
+### Start the Frontend
 
-- Open a new terminal or use an existing one that is open to the `/frontend` folder.
-
-    ```sh
-    ng serve
-    ```
-
+- Return to the frontend terminal and type `ng serve`
 - Navigate to, <http://localhost:4200> in your browser
 
-### 3. Start a Chat Session
+### Start a Chat Session
 
 1. Open the frontend app.
 1. Start a new conversation.
@@ -492,19 +484,19 @@ In the previous module we tested each agent independently. With the code changes
     1. Provide me a statement of my account. (If prompted, give it an account number ranging from `Acc001` to `Acc009`)
 1. Expected response: The response is inline with the Agent's prompts and plugins.
 
-### 4. Stop the Application
+### Stop the Application
 
 - In the frontend terminal, press **Ctrl + C** to stop the application.
 - In your IDE press **Shift + F5** or stop the debugger.
 
-### Validation Checklist
+## Validation Checklist
 
 - [ ] Depending on the user prompt the agent selection is dynamic.
 - [ ] All the agents  context of the previous messages in teh conversation.
 - [ ] The agents are able to invoke the right plugin function to interact with `BankingService`.
 - [ ] Vector search  works as expected.
 
-### Common Issues and Solutions
+## Common Issues and Solutions
 
 1. Multiple agents respond together or Wrong agent responding:
 
