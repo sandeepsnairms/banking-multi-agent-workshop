@@ -70,7 +70,7 @@ azd up
 
 ## Running the App
 
-### 1. Start the ChatAPI
+### 1. Start the Backend App
 
 1. Open the PowerShell terminal on the Start bar.
 1. Navigate to `C:\Users\LabUser\multi-agent-hol\csharp\src\MultiAgentCopilot`.
@@ -80,7 +80,7 @@ azd up
 1. You will notice some warnings when the app starts. You can ignore these.
 1. Leave the app running.
 
-#### 2. Run the Frontend App
+### 2. Run the Frontend App
 
 1. Within VS Code, open a new terminal.
 1. Navigate to the `frontend` folder, `cd C:\Users\LabUser\multi-agent-hol\frontend`
@@ -94,7 +94,7 @@ azd up
 1. If prompted, **Allow** so the Node.js Javascript Runtime to access this app over the network.
 1. Open your browser and navigate to <http://localhost:4200/>.
 
-#### 3. Start a Conversation
+### 3. Start a Conversation
 
 1. In the Login dialog, select a user and company and click, Login.
 1. Start a new conversation.
@@ -108,13 +108,13 @@ azd up
 
    ![Test output](./media/module-00/test-output.png)
 
-#### 4. Stop the Application
+### 4. Stop the Application
 
 - Return to VS Code.
 - In the frontend terminal, press **Ctrl + C** to stop the frontend application.
 - Select the backend terminal, press **Ctrl + C** to stop the backend application.
 
-### Common Issues and Troubleshooting
+## Common Issues and Troubleshooting
 
 1. Errors during azd deployment:
    - Service principal "not found" error.

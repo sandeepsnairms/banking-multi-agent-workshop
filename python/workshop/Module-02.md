@@ -1,11 +1,8 @@
 # Module 02 - Connecting Agents to Memory
 
-[< Creating Your First Agent](./Module-01.md) - **[Home](Home.md)** - [Agent Specialization >](./Module-03.md)
-
 ## Introduction
 
 In this Module, you'll connect your agent to Azure Cosmos DB to provide memory for chat history and state management for your agents to provide durability and context-awareness in your agent interactions.
-
 
 ## Learning Objectives and Activities
 
@@ -17,7 +14,6 @@ In this Module, you'll connect your agent to Azure Cosmos DB to provide memory f
 
 1. [Activity 1: Connecting Agent Frameworks to Azure Cosmos DB](#activity-1-connecting-agent-frameworks-to-azure-cosmos-db)
 2. [Activity 2: Test your Work](#activity-2-test-your-work)
-
 
 ## Activity 1: Connecting Agent Frameworks to Azure Cosmos DB
 
@@ -38,7 +34,6 @@ Key Features of the Checkpointer Plugin:
 - **Restoration**: The plugin supports restoring the state to a previous checkpoint. This allows the system to resume operations from a known good state, reducing the need for reprocessing and minimizing downtime.
 - **Consistency**: It ensures consistency across different agents by coordinating the checkpointing process. This is crucial in distributed systems where agents might be operating on different nodes or environments.
 - **Configuration**: Developers can configure the frequency and conditions under which checkpoints are created. This flexibility allows for balancing between performance overhead and reliability.
-
 
 ### Storing Agent State
 
@@ -69,7 +64,6 @@ graph = builder.compile(checkpointer=checkpointer)
 ```
 
 From this point on, the agent will save its state to Azure Cosmos DB. The `CosmosDBSaver` class will save the state of the agent to the database represented by the global variable, `DATABASE_NAME` in the `checkpoint_container` container.
-
 
 ### Storing Agent Chat history
 
@@ -158,7 +152,6 @@ def call_customer_support_agent(state: MessagesState, config) -> Command[Literal
 
 The `patch_active_agent` function is used to log or track which agent is currently active within a multi-agent LangGraph application. It typically records metadata such as the `tenantId`, `userId`, `sessionId` (or `thread ID`), and the name of the `activeAgent`. This is especially useful in local or interactive environments where you want visibility into which agent is handling a specific part of the conversation. 
 
-
 ### Let's review
 
 In this activity, we completed the following key steps:
@@ -174,14 +167,13 @@ In this activity, we completed the following key steps:
 
 > **Note**: While it's technically possible to rely on the LLM to determine the next agent using reasoning alone, this approach is generally less reliable and may not be suitable for scenarios requiring consistency and control.
 
-
 ## Activity 2: Test your Work
 
 With the activities in this module complete, it is time to test your work! Let's test our agents!
 
 Again in you browser, navigate to <http://localhost:4200/>, and type the following text.
 
-```
+```text
 I want some help
 ```
 
@@ -195,13 +187,13 @@ Look for the Cosmos DB account in the resource group.
 
 Navigate to Data Explorer within the Cosmos DB blade then locate the Chat container.
 
-Open the Chat container. 
+Open the Chat container.
 
 You should see the agent state and chat history stored there.
 
 You may also want to look at the checkpoints container in your Cosmos DB account. You should see the agent state stored there. There is much more data stored in this container, as it is not only maintaining the chat history, but also the state of the agent, and any other agent, including computations in between transfers. This allows for a richer conversational experience as the full agent state is remembered and checkpointed regularly. 
 
-### Validation Checklist
+## Validation Checklist
 
 Your implementation is successful if:
 
