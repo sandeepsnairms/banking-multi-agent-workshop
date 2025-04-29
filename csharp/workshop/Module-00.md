@@ -2,32 +2,42 @@
 
 ## Introduction
 
-In this Module, you'll confirm the deployment of Azure Services needed to run this workshop.
+In this Module, you'll confirm the deployment of Azure Services needed to run this workshop then start the application to ensure everything has been properly configured.
 
 1. Open the folder on the desktop *LabUser - Shortcut*
 1. Navigate to the *multi-agent-hol* folder.
-1. If the folder is not empty, proceed to the next step. If it is empty or does not exist, proceed to [Lab Provisioning](#lab-provisioning)
-
+1. If it is empty or does not exist, proceed to [Git Clone](#git-clone)
+1. If the folder exists and has files within it proceed to the next step.
 1. Open a browser locally on the VM and navigate to +++https://portal.azure.com+++
 1. Login using the credentials below
    1. User name +++@lab.CloudPortalCredential(User1).Username+++
    1. Password +++@lab.CloudPortalCredential(User1).Password+++
-1. Scroll down and look for a resource group that starts with: *rg-agenthol-*.
+1. In the Search box at the top of the Azure Portal, type in resource group. Open the Resource groups blade
+1. Look for a resource group that starts with: *rg-agenthol-*.
 1. If the resource group does not appear wait a few moments then refresh.
+1. If after a few minutes, the resource group does not appear, proceed to [Lab Provisioning](#lab-provisioning)
 1. When the new resource group appears, expand the Overview tab and click deployments.
 ![essentials-tab-deployments](./media/module-00/essentials-tab-deployments.png)
 1. If all resources have been deployed successfully, you are ready to begin the lab. Your screen should look like this.
 ![deployments](./media/module-00/deployments.png)
 1. Proceed to [Running the App](#running-the-app)
 
-## Lab Provisioning
+## Git Clone
 
-1. Within the terminal navigate up to the LabUser folder.
+1. Open the PowerShell terminal on the Start bar and navigate up to the LabUser folder.
 1. Clone the GitHub repository for this lab.
 
 ```shell
-cd C:\Users\LabUser
 git clone --branch hol --single-branch https://github.com/AzureCosmosDB/banking-multi-agent-workshop.git C:\Users\LabUser\multi-agent-hol
+```
+
+1. Proceed to [Lab Provisioning](#lab-provisioning)
+
+## Lab Provisioning
+
+1. Within the terminal navigate to the multi-agent-hol folder.
+
+```shell
 cd C:\Users\LabUser\multi-agent-hol\
 ```
 
