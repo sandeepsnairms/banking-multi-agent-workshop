@@ -102,7 +102,7 @@ namespace MultiAgentCopilot.Models.ChatInfoFormats
 
 Let's define a format builder that the LLM can use to output the Continuation and Termination models as responses.
 
-In the folder `StructuredFormats`. REview the  contents of  `ChatResponseFormat.cs`
+In the folder `StructuredFormats`. Review the  contents of  `ChatResponseFormat.cs`
 
 ```csharp
 namespace MultiAgentCopilot.StructuredFormats
@@ -372,7 +372,7 @@ Update the the `GetResponse()` function with the code in the `Try` block below:
 
 In this hands-on exercise, you will learn how to define an API service layer for a multi-agent backend and learn how to configure tracing and monitoring to enable testing and debugging for agents.
 
-Before executing the below steps, try chatting with the agents. Note that  you are unable to see what what the LLM select an agent. Now lets add some code to bring visibility to behind the scene decision making process.
+Before executing the below steps, try chatting with the agents. Note that  you re unable to see which functions are invoked and why the LLM selects an agent. Now lets add some code to bring visibility to behind the scene decision making process.
 
 ### Log the kernel function selection
 
