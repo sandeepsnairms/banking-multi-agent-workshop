@@ -26,11 +26,7 @@ It is important to understand the need for agent specialization and have a basic
 
 When working with any kind of data we need to review our data models.
 
-To begin, navigate to the `Common` project and navigate to the `/Models/Banking` folder. Familiarize yourself with the models used here.
-
-The project and folder structure should look like the following:
-
-![Models folder](./media/module-03/solution-models-banking-folder-start.png)
+To begin, navigate to the `/Models/Banking` folder. Familiarize yourself with the models used here.
 
 ## Activity 2: Defining Agent Behavior
 
@@ -43,10 +39,6 @@ Prompty is an asset class and file format designed to streamline the development
 In this activity we will review the existing Prompty files.
 
 In your IDE, navigate to the `/Prompts` folder.
-
-The contents of this folder should look like this below.
-
-![Prompty files](./media/module-03/solution-prompt-folder.png)
 
 #### Common Agent Rules
 
@@ -230,7 +222,7 @@ Paste the code below to the  end of the class.
 
 ## Activity 5: Building an Agent Dynamically
 
-Now that we have  Agent Prompt and  Agent Kernel that are dynamically generated , we can make the agent build process dynamic based on the `agentType` parameter. Next, we will modify the `BuildAgent()` function within the `AgentFactory` class to dynamically add plugins to the agents.
+Now that we have dynamically generated Agent Prompt and  Agent Kernel, we can make the agent build process dynamic based on the `agentType` parameter. Next, we will modify the `BuildAgent()` function within the `AgentFactory` class to dynamically add plugins to the agents.
 
 Replace the `BuildAgent()` function with this code below.
 
