@@ -449,61 +449,47 @@ if __name__ == "__main__":
 
 ### Start the Backend
 
+If you stopped the backend, restart it.
+
 1. Navigate to the python folder of the project.
 1. Start the fastapi server.
 
-   ```shell
-   uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 8000
-   ```
+```shell
+uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 63280
+```
 
-The API will be available at `http://localhost:8000/docs`. This has been pre-built with boilerplate code that will create chat sessions and store the chat history in Cosmos DB.
+The API will be available at <http://localhost:63280/docs>. This has been pre-built with boilerplate code that will create chat sessions and store the chat history in Cosmos DB.
 
 ### Start the Frontend
 
-In your IDE, navigate to the `/frontend` folder.
+1. If you stopped the frontend, restart it.
+1. In VS Code, return to the terminal session for your frontend app.
 
-Next, locate the `src/app/environments/environment.ts` file.
-
-Update the `API_URL` to point to your local FastAPI server:
-
-```typescript
-export const environment = {
-    production: true,
-    apiUrl: 'http://localhost:63279/'
-  };
+```sh
+npm start
 ```
 
-Open a new terminal, navigate to the `frontend` folder and run the following to start the application:
+### Start a Conversation
 
-   ```sh
-   npm install
-   npm start
-   ```
+1. Open your browser and navigate to <http://localhost:4200/>.
+1. In the Login dialog, select a user and company and click, Login.
 
 Open your browser and navigate to <http://localhost:4200/>.
 
 ![Final User Interface](./media/module-01/frontend.png)
 
-Create a new conversation and input some text to the agent.
-
-Type the following text:
+1. Create a new conversation.
+1. Send the message:
 
 ```text
 I want some help
 ```
 
-You should see your query being routed to the customer support agent and a response generated:
+1. You should see your query being routed to the customer support agent and a response generated:
 
 ![Testing_1](./media/module-01/testing1.png)
 
-End the agent session by deleting the conversation.
-
-### Stop the Application
-
-- Return to VS Code.
-- In the frontend terminal, press **Ctrl + C** to stop the frontend application.
-- Select the backend terminal, press **Ctrl + C** to stop the backend application.
-
+1. End the agent session by deleting the conversation.
 
 ## Validation Checklist
 

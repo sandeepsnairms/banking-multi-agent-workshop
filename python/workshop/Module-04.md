@@ -1,7 +1,5 @@
 # Module 04 - Multi-Agent Orchestration
 
-[< Agent Specialization](./Module-03.md) - **[Home](Home.md)** - [Lessons Learned, Agent Futures, Q&A >](./Module-05.md)
-
 ## Introduction
 
 In this Module you'll learn how to implement the multi-agent orchestration to tie all of the agents you have created so far together into a single system. You'll also learn how to test the system as a whole is working correctly and how to debug and monitor the agents performance and behavior and troubleshoot them.
@@ -15,11 +13,9 @@ In this Module you'll learn how to implement the multi-agent orchestration to ti
 
 ## Module Exercises
 
-
 1. [Activity 1: Agent to Agent Communication](#activity-1-agent-to-agent-communication)
 2. [Activity 2: Test With Swagger](#activity-2-test-with-swagger)
 3. [Bonus Activity: Implement Agent Tracing and Monitoring](#bonus-activity-implement-agent-tracing-and-monitoring)
-
 
 ## Activity 1: Agent to Agent Communication
 
@@ -32,9 +28,7 @@ With this enhancement, agents will be able to talk to each other—consulting, s
 By completing this exercise, you will:
 
 - Implement inter-agent routing and communication.
-
 - Improve the system’s ability to handle complex or multi-step requests.
-
 - Enable more autonomous and intelligent agent behavior.
 
 This upgrade not only reduces dependency on the coordinator but also creates a more collaborative and efficient agent ecosystem, reflecting real-world teamwork dynamics.
@@ -42,6 +36,7 @@ This upgrade not only reduces dependency on the coordinator but also creates a m
 In your IDE, navigate to the `banking_agents.py` file.
 
 Locate the coordinator agent tools `coordinator_agent_tools` and update it with the below code:
+
 ```python
 coordinator_agent_tools = [
     create_agent_transfer(agent_name="customer_support_agent"),
@@ -50,6 +45,7 @@ coordinator_agent_tools = [
 ```
 
 Next, locate the `customer_support_agent_tools`, and update it with the below code:
+
 ```python
 customer_support_agent_tools = [
     get_branch_location,
@@ -60,6 +56,7 @@ customer_support_agent_tools = [
 ```
 
 Next, locate the `transactions_agent_tools`, and update it with the below code:
+
 ```python
 transactions_agent_tools = [
     bank_balance,
@@ -70,6 +67,7 @@ transactions_agent_tools = [
 ```
 
 Next, locate `sales_agent`, and update it with the below code:
+
 ```python
 sales_agent_tools = [
     get_offer_information,
@@ -82,7 +80,7 @@ sales_agent_tools = [
 
 We would need to update the prompts of agents accordingly as we have updated the tools each agent can call.
 
-In your IDE, navigate to the file src/app/prompts/coordinator_agent.prompty
+In VS Code, navigate to the file src/app/prompts/coordinator_agent.prompty
 
 ```text
 You are a Chat Initiator and Request Router in a bank.  
@@ -104,6 +102,7 @@ You MUST include human-readable response before transferring to another agent.
 ```
 
 Next, navigate to the empty file src/app/prompts/transactions_agent.prompty
+
 ```text
 You are a banking transactions agent that can handle account balance enquiries and bank transfers.  
 If the user wants to make a deposit or withdrawal or transfer, ask for the amount and the account number which they want to transfer from and to.  
@@ -137,7 +136,7 @@ Let's test this functionality. Create a new conversation and try transferring mo
 
 ![Testing_1](./media/module-04/testing_module_4-1.png)
 
-Now, let's again try asking about banking offers to invoke vector search, as shown below. 
+Now, let's again try asking about banking offers to invoke vector search, as shown below.
 
 ![Testing_2](./media/module-04/testing_module_4-2.png)
 
@@ -237,14 +236,17 @@ Here you can see the request from Swagger and the response from our agent.
 ```
 
 ## Bonus Activity: Implement Agent Tracing and Monitoring
+
 In this activity, you'll integrate LangSmith, a powerful observability and monitoring platform, into our multi-agent application. You'll learn how to trace agent interactions and monitor application behavior using LangSmith's build in tools. This would help you understand how your agents perform, where bottlenecks occur, and how the application behaves end-to-end.
 
 ### Creating a LangSmith Account
-1. Visit https://smith.langchain.com
+
+1. Visit <https://smith.langchain.com>
 2. Click Sign Up and create your free LangSmith account.
 3. Once you're signed in, go to your Account Settings, and create a new API Key.
 
 ### Adding LangSmith Environment Variables
+
 Open the .env file in the python folder of the code base.
 
 ```python
@@ -267,17 +269,19 @@ LANGCHAIN_PROJECT="multi-agent-banking-app"
 ```
 
 ### Adding tracing to the Agents
-LangSmith makes it easy to trace specific functions or agents using the @traceable decorator. 
+
+LangSmith makes it easy to trace specific functions or agents using the @traceable decorator.
 
 The decorator works by creating a run tree for you each time the function is called and inserting it within the current trace. The function inputs, name, and other information is then streamed to LangSmith. If the function raises an error or if it returns a response, that information is also added to the tree, and updates are patched to LangSmith so you can detect and diagnose sources of errors. This is all done on a background thread to avoid blocking your app's execution.
 
 LangSmith UX is built in a way that different components of your multi-agent application get rendered differently. LangSmith supports many different types of Runs - you can specify the type of Run in the @traceable decorator. The types of runs are:
+
 1. LLM: Invokes an LLM 
-2. Retriever: Retrieves documents from databases or other sources
-3. Tool: Executes actions with function calls
-4. Chain: Default type; combines multiple Runs into a larger process
-5. Prompt: Hydrates a prompt to be used with an LLM
-6. Parser: Extracts structured data
+1. Retriever: Retrieves documents from databases or other sources
+1. Tool: Executes actions with function calls
+1. Chain: Default type; combines multiple Runs into a larger process
+1. Prompt: Hydrates a prompt to be used with an LLM
+1. Parser: Extracts structured data
 
 Let's update our code to add @traceable decorator so that we can monitor the traces in langsmith.
 
@@ -286,6 +290,7 @@ In your IDE, navigate to the file `banking_agents.py` file.
 Add `@traceable(run_type="llm")` on top of the `def call_coordinator_agent(state: MessagesState, config)` function. It should look like this now.
 
 Add the below import line under the imports for this file
+
 ```python
 from langsmith import traceable
 ```
@@ -320,6 +325,7 @@ def interactive_chat():
 Let's go to the `tools/support.py` file now. We will add the `@traceable` on top of all the functions. We are not adding the run type on these functions because we already have `@tool` decorator on top of these functions which would help LangSmith to infer that these are tools used by the Agents. It should look like this.
 
 Add the below import line under the imports for this file
+
 ```python
 from langsmith import traceable
 ```
@@ -338,6 +344,7 @@ def get_branch_location(state: str) -> Dict[str, List[str]]:
 Now, let's go to the `tools/sales.py` file now. It should look like this after adding the `@traceable` decorator.
 
 Add the below import line under the imports for this file
+
 ```python
 from langsmith import traceable
 ```
@@ -359,6 +366,7 @@ def calculate_monthly_payment(loan_amount: float, years: int) -> float:
 Now, let's go to the `tools/transactions.py` file  now. It should look like this after adding the `@traceable` decorator.
 
 Add the below import line under the imports for this file
+
 ```python
 from langsmith import traceable
 ```
@@ -392,6 +400,7 @@ Note: If you are not able to see your project under traces, search for banking i
 ![LangSmith_1](./media/module-04/lang_smith_1.png)
 
 Try asking about banking offers to invoke a vector search again:
+
 ```shell
 Welcome to the single-agent banking assistant.
 Type 'exit' to end the conversation.
@@ -442,7 +451,8 @@ transactions_agent: Please provide the start and end dates for the transaction h
 
 You: start date as 2025-02-07 and end date as 2025-02-12
 ```
-The run which has a loading icon in front of it should be the current trace. 
+
+The run which has a loading icon in front of it should be the current trace.
 
 ![LangSmith_6](./media/module-04/lang_smith_6.png)
 
@@ -450,18 +460,15 @@ You can click the final agent call, highlighted below to see the final result cr
 
 ![LangSmith_8](./media/module-04/lang_smith_8.png)
 
-
-
-### Validation Checklist
+## Validation Checklist
 
 - [ ] LangSmith is showing the traces of the project correctly.
 - [ ] Swagger UI is working correctly, and you are able to test the API's there.
 - [ ] Frontend is loading correctly, and testing on the UI works correctly.
 
-### Module Solution
+## Module Solution
 
 The following sections include the completed code for this Module. Copy and paste these into your project if you run into issues and cannot resolve.
-
 
 <details>
   <summary>Completed code for <strong>src/app/banking_agents.py</strong></summary>
@@ -699,6 +706,7 @@ if __name__ == "__main__":
     interactive_chat()
 
 ```
+
 </details>
 
 <details>
@@ -845,6 +853,7 @@ def calculate_monthly_payment(loan_amount: float, years: int) -> float:
 
     return round(monthly_payment, 2)  # Rounded to 2 decimal places
 ```
+
 </details>
 
 <details>
@@ -1028,6 +1037,7 @@ def get_branch_location(state: str) -> Dict[str, List[str]]:
 
     return branches.get(state, {"Unknown County": ["No branches available", "No branches available"]})
 ```
+
 </details>
 
 <details>
@@ -1147,6 +1157,7 @@ def bank_balance(config: RunnableConfig, account_number: str) -> str:
     balance = account.get("balance", 0)
     return f"The balance for account number {account_number} is ${balance}"
 ```
+
 </details>
 
 <details>
@@ -1719,16 +1730,9 @@ async def put_offerdata(data: Dict):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to insert offer data: {str(e)}")
 ```
+
 </details>
 
 ## Next Steps
 
-Proceed to [Lessons Learned, Agent Futures, Q&A](./Module-04.md)
-
-## Resources
-
-- [Semantic Kernel Agent Framework](https://learn.microsoft.com/semantic-kernel/frameworks/agent)
-- [LangGraph](https://langchain-ai.github.io/langgraph/concepts/)
-- [Azure OpenAI Service documentation](https://learn.microsoft.com/azure/cognitive-services/openai/)
-- [Azure Cosmos DB Vector Database](https://learn.microsoft.com/azure/cosmos-db/vector-database)
-
+Congratulations!!! You have completed this workshop!!!

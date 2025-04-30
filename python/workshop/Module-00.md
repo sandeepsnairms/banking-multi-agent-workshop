@@ -6,7 +6,7 @@ In this Module, you'll confirm the deployment of Azure Services needed to run th
 
 1. Open the folder on the desktop *LabUser - Shortcut*
 1. Navigate to the *multi-agent-hol* folder.
-1. If it is empty or does not exist, proceed to [Git Clone](#git-clone)
+1. If it is empty or does not exist, proceed to [Clone Repository](#clone-repository)
 1. If the folder exists and has files within it proceed to the next step.
 1. Open a browser locally on the VM and navigate to +++https://portal.azure.com+++
 1. Login using the credentials below
@@ -15,14 +15,14 @@ In this Module, you'll confirm the deployment of Azure Services needed to run th
 1. In the Search box at the top of the Azure Portal, type in resource group. Open the Resource groups blade
 1. Look for a resource group that starts with: *rg-agenthol-*.
 1. If the resource group does not appear wait a few moments then refresh.
-1. If after a few minutes, the resource group does not appear, proceed to [Lab Provisioning](#lab-provisioning)
+1. If after a few minutes, the resource group does not appear, proceed to [Provision Services](#provision-services)
 1. When the new resource group appears, expand the Overview tab and click deployments.
 ![essentials-tab-deployments](./media/module-00/essentials-tab-deployments.png)
 1. If all resources have been deployed successfully, you are ready to begin the lab. Your screen should look like this.
 ![deployments](./media/module-00/deployments.png)
-1. Proceed to [Running the App](#running-the-app)
+1. Proceed to [Run the Solution](#run-the-solution)
 
-## Git Clone
+## Clone Repository
 
 1. Open the PowerShell terminal on the Start bar.
 1. Navigate to the LabUser folder.
@@ -32,9 +32,9 @@ In this Module, you'll confirm the deployment of Azure Services needed to run th
 git clone --branch hol --single-branch https://github.com/AzureCosmosDB/banking-multi-agent-workshop.git C:\Users\LabUser\multi-agent-hol
 ```
 
-1. Proceed to [Lab Provisioning](#lab-provisioning)
+1. Proceed to [Provision Services](#provision-services)
 
-## Lab Provisioning
+## Provision Services
 
 1. Open the PowerShell terminal on the Start Bar and navigate to the multi-agent-hol folder.
 
@@ -68,7 +68,9 @@ azd up
 
 ![deployments](./media/module-00/deployments.png)
 
-## Configure Environment Variables
+## Run the solution
+
+### Configure Environment Variables
 
 When you deploy this solution it automatically injects endpoints and configuration values for the required resources into a `.env` file at root (python) folder.
 
@@ -84,54 +86,70 @@ cd C:\Users\LabUser\multi-agent-hol\python
 1. From the menu in VS Code, open a new PowerShell Terminal
 1. Create a virtual environment
 
-   ```shell
-   python -m venv .venv
-   ```
+```shell
+python -m venv .venv
+```
 
 1. Activate the virtual environment
 
-   ```shell
-   .venv\Scripts\Activate.ps1
-   ```
+```shell
+.venv\Scripts\Activate.ps1
+```
 
 1. Install the required dependencies for the project.
 
-   ```shell
-   pip install -r C:\Users\LabUser\multi-agent-hol\python\src\app\requirements.txt
-   ```
+```shell
+pip install -r .\src\app\requirements.txt
+```
 
-## Running the app
-
-### Run the Backend App
+### Start the Backend App
 
 1. Remain in the terminal in the python folder.
 2. Start the fastapi server.
 
-   ```shell
-   uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 63279
-   ```
+```shell
+uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 63280
+```
 
 **Note:** If prompted, allow Python to allow public and private network access to this app.
 
-The API will be available at <http://localhost:63279/docs>. This has been pre-built with boilerplate code that will create chat sessions and store the chat history in Cosmos DB.
+The API will be available at <http://localhost:63280/docs>. This has been pre-built with boilerplate code that will create chat sessions and store the chat history in Cosmos DB.
 
-#### Run the Frontend App
+### Start the Frontend App
 
-1. In VS Code, open a new PowerShell terminal, navigate to the `frontend` folder and run the following to start the application:
+1. In VS Code, open a new PowerShell terminal.
+1. Navigate to the `multi-agent-hol\frontend` folder
+
+```shell
+cd ..
+cd frontend
+```
+
+1. Run the following to install npm and start the application:
 
    ```shell
    npm install
    npm start
    ```
 
+### Start a Conversation
+
 1. Open your browser and navigate to <http://localhost:4200/>.
+1. In the Login dialog, select a user and company and click, Login.
+1. Send the message:
 
-Lets try a couple of things:
+   ```text
+   Hello, how are you?
+   ```
 
-- Try out the API by creating a chat session in the front end. This should return a response saying "Hello, I am not yet implemented".
-- Navigate to the Cosmos DB account in the Azure portal to view the containers. You should see an entry in the `Chat` container. If you selected "yes" to the option during `azd up`, there will also be some transactional data in the `OffersData`, `AccountsData`, and `Users` containers as well.
-- Take a look at the files in the `src/app/services` folder - these are the boilerplate code for interacting with the Cosmos DB and Azure OpenAI services.
-- You will also see an empty file `src/app/banking_agents.py` as well as empty files in the `src/app/tools` and `src/app/prompts` folder. This is where you will build your multi-agent system!
+1. This should return a response saying "Hello, I am not yet implemented".
+1. Navigate to the Cosmos DB account in the Azure portal to view the containers. You should see an entry in the `Chat` container. If you selected "yes" to the option during `azd up`, there will also be some transactional data in the `OffersData`, `AccountsData`, and `Users` containers as well.
+1. Take a look at the files in the `src/app/services` folder - these are the boilerplate code for interacting with the Cosmos DB and Azure OpenAI services.
+1. You will also see an empty file `src/app/banking_agents.py` as well as empty files in the `src/app/tools` and `src/app/prompts` folder. This is where you will build your multi-agent system!
+
+### Keep the backend and frontend running
+
+Thoughout this lab we will keep the frontend and backend applications in this lab running. The backend will reload on every change we make throughout this lab. The frontend will reload when refreshed in the browser.
 
 Next, we will start building the agents that will be served by the API layer and interact with Cosmos DB and Azure OpenAI using LangGraph!
 
@@ -151,7 +169,7 @@ Use the steps below to validate that the solution was deployed successfully.
    - Rerun `azd up`
 
 1. Frontend issues:
-   - If frontend doesn't fully start, navigate to `/frontend/src/environments/environment.ts` and update `apiUrl: 'https://localhost:63279/'`
+   - If frontend doesn't fully start, navigate to `/frontend/src/environments/environment.ts` and update `apiUrl: 'http://localhost:63280/'`
    - Frontend will restart
 
 ## Success Criteria
