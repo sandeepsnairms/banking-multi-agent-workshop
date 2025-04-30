@@ -76,15 +76,15 @@ When you deploy this solution it automatically injects endpoints and configurati
 
 But you will still need to install dependencies to run the solution locally.
 
-1. Open a terminal and navigate to the python HOL folder.
+1. Open VS Code from the desktop.
+1. From the menu, select File, Open Folder, then select the *"C:\Users\LabUser\multi-agent-hol\"* folder.
+1. From the menu, select Terminal, New Terminal, then open a new PowerShell terminal and navigate to the python HOL folder.
 
 ```shell
 cd C:\Users\LabUser\multi-agent-hol\python
 ```
 
-1. Type `code .` to open VS Code to that folder
-1. From the menu in VS Code, open a new PowerShell Terminal
-1. Create a virtual environment
+1. Create a virtual environment *(If prompted, create the environement for the workspace folder.)*
 
 ```shell
 python -m venv .venv
@@ -121,16 +121,15 @@ The API will be available at <http://localhost:63280/docs>. This has been pre-bu
 1. Navigate to the `multi-agent-hol\frontend` folder
 
 ```shell
-cd ..
-cd frontend
+cd C:\Users\LabUser\multi-agent-hol\frontend
 ```
 
 1. Run the following to install npm and start the application:
 
-   ```shell
-   npm install
-   npm start
-   ```
+```shell
+npm install
+npm start
+```
 
 ### Start a Conversation
 
