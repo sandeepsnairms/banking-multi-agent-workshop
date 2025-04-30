@@ -11,6 +11,12 @@ This sample application and full-day workshop shows how to build a multi-tenant,
 
 Both are hosted on Azure Container Apps, with Azure Cosmos DB for NoSQL as the transactional database and vector store with Azure OpenAI Service for embeddings and completions. This complete sample and full-day workshop provides practical guidance on many concepts you will need to design and build these types of applications.
 
+## Architecture Diagram
+
+Here’s the deployment architecture and components of the workshop!
+
+<img src="media/mult-agent.png" alt="Multi-Agent Image">
+
 ## User Experience
 
 https://github.com/user-attachments/assets/0e943130-13c5-4bb5-a40b-51b6c85dd58c
@@ -19,8 +25,15 @@ https://github.com/user-attachments/assets/0e943130-13c5-4bb5-a40b-51b6c85dd58c
 
 The workshop for this sample is on the [Start branch](https://github.com/AzureCosmosDB/banking-multi-agent-workshop/tree/start) in this repository. To navigate and complete this workshop select one of the following:
 
-- Navigate to the [LangGraph Python Workshop](./python/workshop/Module-00.md)
-- Navigate to the [Semantic Kernel Csharp Workshop](./csharp/workshop/Module-00.md)
+- Navigate to the [LangGraph Python Workshop](https://github.com/AzureCosmosDB/banking-multi-agent-workshop/blob/start/python/workshop/Module-00.md)
+- Navigate to the [Semantic Kernel Csharp Workshop](https://github.com/AzureCosmosDB/banking-multi-agent-workshop/blob/start/csharp/workshop/Module-00.md)
+
+## Explore the Complete Samples
+
+There are two completely separate implementations for this sample multi-agent application with different instructions on how to deploy and configure for use.
+
+- [LangGraph Multi-Agent Sample](./python/readme.md)
+- [Semantic Kernel Multi-Agent Sample](./csharp/README.md)
 
 ## Important Security Notice
 

@@ -6,7 +6,6 @@ from dotenv import load_dotenv
 
 from datetime import datetime
 from fastapi import BackgroundTasks
-from azure.monitor.opentelemetry import configure_azure_monitor
 
 from azure.cosmos.exceptions import CosmosHttpResponseError
 
@@ -23,6 +22,7 @@ from src.app.services.azure_cosmos_db import update_chat_container, patch_active
     fetch_chat_container_by_session, delete_userdata_item, debug_container, update_users_container, \
     update_account_container, update_offers_container, store_chat_history, update_active_agent_in_latest_message, \
     chat_container, fetch_chat_history_by_session, delete_chat_history_by_session
+#from src.app.banking_agents import graph, checkpointer
 import logging
 
 # Setup logging
@@ -30,10 +30,12 @@ logging.basicConfig(level=logging.ERROR)
 
 load_dotenv(override=False)
 
-configure_azure_monitor()
-
 endpointTitle = "ChatEndpoints"
 dataLoadTitle = "DataLoadEndpoints"
+
+
+def get_compiled_graph():
+    return graph
 
 # Mapping for agent function names to standardized names
 agent_mapping = {
@@ -347,6 +349,7 @@ def delete_chat_session(tenantId: str, userId: str, sessionId: str, background_t
         }
     }
     delete_chat_history_by_session(sessionId)
+    background_tasks.add_task(delete_all_thread_records, checkpointer, sessionId)
 
     return {"message": "Session deleted successfully"}
 
@@ -453,25 +456,48 @@ async def get_chat_completion(
         sessionId: str,
         background_tasks: BackgroundTasks,
         request_body: str = Body(..., media_type="application/json"),
+        workflow: CompiledStateGraph = Depends(get_compiled_graph),
 
 ):
-    return [
-        {
-            "id": "string",
-            "type": "string",
-            "sessionId": "string",
-            "tenantId": "string",
-            "userId": "string",
-            "timeStamp": "string",
-            "sender": "string",
-            "senderRole": "string",
-            "text": "Hello, I am not yet implemented",
-            "debugLogId": "string",
-            "tokensUsed": 0,
-            "rating": "true",
-            "completionPromptId": "string"
-        }
-    ]
+    if not request_body.strip():
+        raise HTTPException(status_code=400, detail="Request body cannot be empty")
+
+    # Retrieve last checkpoint
+    config = {"configurable": {"thread_id": sessionId, "checkpoint_ns": "", "userId": userId, "tenantId": tenantId}}
+    checkpoints = list(checkpointer.list(config))
+    last_active_agent = "coordinator_agent"  # Default fallback
+
+    if not checkpoints:
+        # No previous state, start fresh
+        new_state = {"messages": [{"role": "user", "content": request_body}]}
+        response_data = workflow.invoke(new_state, config, stream_mode="updates")
+    else:
+        # Resume from last checkpoint
+        last_checkpoint = checkpoints[-1]
+        last_state = last_checkpoint.checkpoint
+
+        if "messages" not in last_state:
+            last_state["messages"] = []
+
+        last_state["messages"].append({"role": "user", "content": request_body})
+
+        if "channel_versions" in last_state:
+            for key in reversed(last_state["channel_versions"].keys()):
+                if "agent" in key:
+                    last_active_agent = key.split(":")[1]
+                    break
+
+        last_state["langgraph_triggers"] = [f"resume:{last_active_agent}"]
+        response_data = workflow.invoke(last_state, config, stream_mode="updates")
+
+    debug_log_id = store_debug_log(sessionId, tenantId, userId, response_data)
+    messages = extract_relevant_messages(debug_log_id, last_active_agent, response_data, tenantId, userId, sessionId)
+
+    # Schedule storing chat history and updating correct agent in last message as a background task
+    # to avoid blocking the API response as this is not needed unless retrieving the message history later.
+    background_tasks.add_task(process_messages, messages, userId, tenantId, sessionId)
+
+    return messages
 
 
 @app.post("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/summarize-name", tags=[endpointTitle],
