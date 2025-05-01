@@ -572,16 +572,14 @@ We should now be done wiring up the API layer.
 
 ### Start the Backend
 
-If you stopped the backend, restart it.
+If you stopped the backend, restart it. You can keep both running during the lab.
 
-1. Navigate to the python folder of the project.
+1. In VS Code, return to the Terminal session with the python folder.
 1. Start the fastapi server.
 
 ```shell
 uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 63280
 ```
-
-The API will be available at <http://localhost:63280/docs>. This has been pre-built with boilerplate code that will create chat sessions and store the chat history in Cosmos DB.
 
 ### Start the Frontend
 
