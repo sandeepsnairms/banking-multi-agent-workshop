@@ -15,8 +15,8 @@ In this Module you'll learn how to implement the multi-agent orchestration to ti
 
 1. [Activity 1: Agent to Agent Communication](#activity-1-agent-to-agent-communication)
 1. [Activity 2: Test your work](#activity-2-test-your-work)
-1. [Activity 3: Test with Swagger](#activity-3-test-with-swagger)
-1. [Bonus Activity: Implement Agent Tracing and Monitoring](#bonus-activity-implement-agent-tracing-and-monitoring)
+1. [Activity 3: Implement Agent Tracing and Monitoring](#activity-3-implement-agent-tracing-and-monitoring)
+1. [Bonus Activity: Test with Swagger](#bonus-activity-test-with-swagger)
 
 ## Activity 1: Agent to Agent Communication
 
@@ -177,100 +177,7 @@ credit card
 
 ![Testing_2](./media/module-04/testing_module_4-2.png)
 
-## Activity 3: Test with Swagger
-
-We've been testing using the frontend for this lab, but as you can clearly see, this solution is built as a backend that exposes API's called by the frontend. This makes it easy for us to do automated unit testing without requiring a human. With the API layer ready, let's explore simple testing against our API layer in our application.
-
-First, start the FastAPI server:
-
-In VS Code, start the backend:
-
-```shell
-uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 63280
-```
-
-Next, open a browser and navigate to `http://localhost:63280/docs` to view the swagger UI.
-
-![Swagger UI](./media/module-04/swagger_ui.png)
-
-This app comes with a few pre-created tenant and user ids that you can use to test with.
-
-| Tenant Id | User Id  |
-|-----------|----------|
-| Contoso   | Mark     |
-| Contoso   | Sandeep  |
-| Contoso   | Theo     |
-| Fabrikan  | Sajee    |
-| Fabrikan  | Abhishek |
-| Fabrikan  | David    |
-
-We will demonstrate this doing manual testing using the Swagger UI with these operations below. To automate this, you'd take the URIs you see in Swagger and write REST API calls using a testing tool.
-
-Create a new session with tenantId = `Contoso` and userId = `Mark`
-
-![Create a new session](./media/module-04/post_create_session.png)
-
-Click Execute.
-
-Capture the value of the new sessionId
-
-```json
-{
-  "id": "653cc488-e9d5-4af4-9175-9410e501acb9",
-  "type": "session",
-  "sessionId": "653cc488-e9d5-4af4-9175-9410e501acb9",
-  "tenantId": "Contoso",
-  "userId": "Mark",
-  "tokensUsed": 0,
-  "name": "Mark Brown",
-  "messages": []
-}
-```
-
-Next use the tenantId, userId, and the sessionId created above to say "Hello there!" to our agents.
-
-![Create a new completion](./media/module-04/post_create_completion.png)
-
-Fill in the values and click execute.
-
-Here you can see the request from Swagger and the response from our agent.
-
-```json
-[
-  {
-    "id": "1a568dff-43fe-4477-977b-9c21c8bf61f3",
-    "type": "ai_response",
-    "sessionId": "653cc488-e9d5-4af4-9175-9410e501acb9",
-    "tenantId": "Contoso",
-    "userId": "Mark",
-    "timeStamp": "",
-    "sender": "User",
-    "senderRole": "User",
-    "text": "Hello there!",
-    "debugLogId": "a7203518-51d3-4df8-aa43-7c041b553776",
-    "tokensUsed": 0,
-    "rating": true,
-    "completionPromptId": ""
-  },
-  {
-    "id": "10c6daa8-714d-41d8-b564-99a6c8ffdb5d",
-    "type": "ai_response",
-    "sessionId": "653cc488-e9d5-4af4-9175-9410e501acb9",
-    "tenantId": "Contoso",
-    "userId": "Mark",
-    "timeStamp": "",
-    "sender": "Coordinator",
-    "senderRole": "Assistant",
-    "text": "Hi there! Welcome to our bank. How can I assist you today? Are you looking for help with general inquiries, opening a new account or loan, or managing transactions? Let me know!",
-    "debugLogId": "a7203518-51d3-4df8-aa43-7c041b553776",
-    "tokensUsed": 265,
-    "rating": true,
-    "completionPromptId": ""
-  }
-]
-```
-
-## Bonus Activity: Implement Agent Tracing and Monitoring
+## Activity 3: Implement Agent Tracing and Monitoring
 
 In this activity, you'll integrate LangSmith, a powerful observability and monitoring platform, into our multi-agent application. You'll learn how to trace agent interactions and monitor application behavior using LangSmith's build in tools. This would help you understand how your agents perform, where bottlenecks occur, and how the application behaves end-to-end.
 
@@ -497,11 +404,104 @@ You can click the final agent call, highlighted below to see the final result cr
 
 ![LangSmith_8](./media/module-04/lang_smith_8.png)
 
+## Bonus Activity: Test with Swagger
+
+We've been testing using the frontend for this lab, but as you can clearly see, this solution is built as a backend that exposes API's called by the frontend. This makes it easy for us to do automated unit testing without requiring a human. With the API layer ready, let's explore simple testing against our API layer in our application.
+
+First, start the FastAPI server:
+
+In VS Code, start the backend:
+
+```shell
+uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 63280
+```
+
+Next, open a browser and navigate to <http://localhost:63280/docs> to view the swagger UI.
+
+![Swagger UI](./media/module-04/swagger_ui.png)
+
+This app comes with a few pre-created tenant and user ids that you can use to test with.
+
+| Tenant Id | User Id  |
+|-----------|----------|
+| Contoso   | Mark     |
+| Contoso   | Sandeep  |
+| Contoso   | Theo     |
+| Fabrikan  | Sajee    |
+| Fabrikan  | Abhishek |
+| Fabrikan  | David    |
+
+We will demonstrate this doing manual testing using the Swagger UI with these operations below. To automate this, you'd take the URIs you see in Swagger and write REST API calls using a testing tool.
+
+Create a new session with tenantId = `Contoso` and userId = `Mark`
+
+![Create a new session](./media/module-04/post_create_session.png)
+
+Click Execute.
+
+Capture the value of the new sessionId
+
+```json
+{
+  "id": "653cc488-e9d5-4af4-9175-9410e501acb9",
+  "type": "session",
+  "sessionId": "653cc488-e9d5-4af4-9175-9410e501acb9",
+  "tenantId": "Contoso",
+  "userId": "Mark",
+  "tokensUsed": 0,
+  "name": "Mark Brown",
+  "messages": []
+}
+```
+
+Next use the tenantId, userId, and the sessionId created above to say "Hello there!" to our agents.
+
+![Create a new completion](./media/module-04/post_create_completion.png)
+
+Fill in the values and click execute.
+
+Here you can see the request from Swagger and the response from our agent.
+
+```json
+[
+  {
+    "id": "1a568dff-43fe-4477-977b-9c21c8bf61f3",
+    "type": "ai_response",
+    "sessionId": "653cc488-e9d5-4af4-9175-9410e501acb9",
+    "tenantId": "Contoso",
+    "userId": "Mark",
+    "timeStamp": "",
+    "sender": "User",
+    "senderRole": "User",
+    "text": "Hello there!",
+    "debugLogId": "a7203518-51d3-4df8-aa43-7c041b553776",
+    "tokensUsed": 0,
+    "rating": true,
+    "completionPromptId": ""
+  },
+  {
+    "id": "10c6daa8-714d-41d8-b564-99a6c8ffdb5d",
+    "type": "ai_response",
+    "sessionId": "653cc488-e9d5-4af4-9175-9410e501acb9",
+    "tenantId": "Contoso",
+    "userId": "Mark",
+    "timeStamp": "",
+    "sender": "Coordinator",
+    "senderRole": "Assistant",
+    "text": "Hi there! Welcome to our bank. How can I assist you today? Are you looking for help with general inquiries, opening a new account or loan, or managing transactions? Let me know!",
+    "debugLogId": "a7203518-51d3-4df8-aa43-7c041b553776",
+    "tokensUsed": 265,
+    "rating": true,
+    "completionPromptId": ""
+  }
+]
+```
+
 ## Validation Checklist
 
+- [ ] Frontend is loading correctly, and testing on the UI works correctly.
 - [ ] LangSmith is showing the traces of the project correctly.
 - [ ] Swagger UI is working correctly, and you are able to test the API's there.
-- [ ] Frontend is loading correctly, and testing on the UI works correctly.
 
 ## Module Solution
 
