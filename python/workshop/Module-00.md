@@ -20,6 +20,7 @@ In this Module, you'll confirm the deployment of Azure Services needed to run th
 ![essentials-tab-deployments](./media/module-00/essentials-tab-deployments.png)
 1. If all resources have been deployed successfully, you are ready to begin the lab. Your screen should look like this.
 ![deployments](./media/module-00/deployments.png)
+1. Leave this browser open to the Azure Portal. We will refer to it again later in this lab.
 1. Proceed to [Run the Solution](#run-the-solution)
 
 ## Clone Repository
@@ -118,7 +119,7 @@ The API will be available at <http://localhost:63280/docs>. This has been pre-bu
 ### Start the Frontend App
 
 1. In VS Code, open a new PowerShell terminal.
-1. Navigate to the `multi-agent-hol\frontend` folder
+1. Navigate to the *multi-agent-hol\frontend* folder
 
 ```shell
 cd C:\Users\LabUser\multi-agent-hol\frontend
@@ -159,17 +160,6 @@ Use the steps below to validate that the solution was deployed successfully.
 - [ ] All Azure resources are deployed successfully
 - [ ] You can compile the solution
 - [ ] You can start the project and it runs without errors
-
-### Common Issues and Troubleshooting
-
-1. Errors during azd deployment:
-
-   - Service principal "not found" error.
-   - Rerun `azd up`
-
-1. Frontend issues:
-   - If frontend doesn't fully start, navigate to `/frontend/src/environments/environment.ts` and update `apiUrl: 'http://localhost:63280/'`
-   - Frontend will restart
 
 ## Success Criteria
 

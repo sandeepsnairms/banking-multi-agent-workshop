@@ -14,8 +14,9 @@ In this Module you'll learn how to implement the multi-agent orchestration to ti
 ## Module Exercises
 
 1. [Activity 1: Agent to Agent Communication](#activity-1-agent-to-agent-communication)
-2. [Activity 2: Test With Swagger](#activity-2-test-with-swagger)
-3. [Bonus Activity: Implement Agent Tracing and Monitoring](#bonus-activity-implement-agent-tracing-and-monitoring)
+1. [Activity 2: Test your work](#activity-2-test-your-work)
+1. [Activity 3: Test with Swagger](#activity-3-test-with-swagger)
+1. [Bonus Activity: Implement Agent Tracing and Monitoring](#bonus-activity-implement-agent-tracing-and-monitoring)
 
 ## Activity 1: Agent to Agent Communication
 
@@ -130,31 +131,65 @@ If the user wants to move ahead with the loan, advise that they need to come int
 You MUST respond with the repayment amounts before transferring to another agent.
 ```
 
+## Activity 2: Test your work
+
 With these updates, each agent is now equipped with the ability to delegate tasks and transfer control to other relevant agents when needed.
 
-Let's test this functionality. Create a new conversation and try transferring money again as shown below.
+### Start a Conversation
+
+1. In you browser, return to our frontend, <http://localhost:4200/> and hit refresh.
+1. Create a new conversation and try transferring money again as shown below.
+1. Type the following text:
+
+```text
+I want to transfer money
+```
+
+1. When prompted provide the amount and the accounts to tranfer from and to.
+
+```text
+I want to transfer 500 from Acc001 to Acc003
+```
+
+1. When prompted, confirm the transaction.
+1. The conversion should look similar to this.
 
 ![Testing_1](./media/module-04/testing_module_4-1.png)
 
 Now, let's again try asking about banking offers to invoke vector search, as shown below.
 
+1. Create a new conversation.
+1. Type the following text:
+
+```text
+Tell me something about your banking offers
+```
+
+1. The coorindator will let you know it is going to transfer you to another agent. The new agent will respond with a range of offers to choose from.
+1. Type the following text:
+
+```text
+credit card
+```
+
+1. As the agents can talk to each other, the `transactions_agent` after completing the account transfer, calls the `customer_support_agent`, which in turn calls the `sales_agent` to finally get us a result using Cosmos DB Vector Search.
+1. The conversation should look similar to this.
+
 ![Testing_2](./media/module-04/testing_module_4-2.png)
 
-Now as the agents can talk to each other, the `transactions_agent` after completing the account transfer, calls the `customer_support_agent`, which in turn calls the `sales_agent` to finally get us a result using Cosmos DB Vector Search.
+## Activity 3: Test with Swagger
 
-## Activity 2: Test with Swagger
-
-With the API layer ready, it is time to do our final testing and preparation for integration with our front-end app.
+We've been testing using the frontend for this lab, but as you can clearly see, this solution is built as a backend that exposes API's called by the frontend. This makes it easy for us to do automated unit testing without requiring a human. With the API layer ready, let's explore simple testing against our API layer in our application.
 
 First, start the FastAPI server:
 
-In your IDE, run the following command in your terminal:
+In VS Code, start the backend:
 
 ```shell
-uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 8000
+uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 63280
 ```
 
-Next, open a browser and navigate to `http://localhost:8000/docs` to view the swagger UI.
+Next, open a browser and navigate to `http://localhost:63280/docs` to view the swagger UI.
 
 ![Swagger UI](./media/module-04/swagger_ui.png)
 
@@ -169,13 +204,13 @@ This app comes with a few pre-created tenant and user ids that you can use to te
 | Fabrikan  | Abhishek |
 | Fabrikan  | David    |
 
-You can use these to test the API using the Swagger UI with these operations below.
+We will demonstrate this doing manual testing using the Swagger UI with these operations below. To automate this, you'd take the URIs you see in Swagger and write REST API calls using a testing tool.
 
 Create a new session with tenantId = `Contoso` and userId = `Mark`
 
 ![Create a new session](./media/module-04/post_create_session.png)
 
-Click Execute. 
+Click Execute.
 
 Capture the value of the new sessionId
 
@@ -244,6 +279,8 @@ In this activity, you'll integrate LangSmith, a powerful observability and monit
 1. Visit <https://smith.langchain.com>
 2. Click Sign Up and create your free LangSmith account.
 3. Once you're signed in, go to your Account Settings, and create a new API Key.
+
+**Note:** you should record the user credentials and optionally the keys for this if you'd like to keep this beyond this lab.
 
 ### Adding LangSmith Environment Variables
 
@@ -393,7 +430,7 @@ In your IDE, run the following command in your terminal.
 python -m src.app.banking_agents
 ```
 
-Let's open [LangSmith](https://smith.langchain.com/) now to make sure our project is listed under traces. The project name will be `multi-agent-banking-app` as we mentioned in our .env file.
+Let's open <https://smith.langchain.com/> now to make sure our project is listed under traces. The project name will be `multi-agent-banking-app` as we mentioned in our .env file.
 
 Note: If you are not able to see your project under traces, search for banking in the search bar, and then you should be able to see it.
 

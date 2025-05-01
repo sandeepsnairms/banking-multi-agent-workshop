@@ -173,7 +173,7 @@ With the activities in this module complete, it is time to test your work! Let's
 
 ### Start a Conversation
 
-1. In you browser, return to our frontend, <http://localhost:4200/>
+1. In you browser, return to our frontend, <http://localhost:4200/> and hit refresh.
 1. Type the following text:
 
 ```text
@@ -379,6 +379,7 @@ if __name__ == "__main__":
     interactive_chat()
 
 ```
+
 </details>
 
 ## Next Steps
