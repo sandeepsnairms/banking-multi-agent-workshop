@@ -219,7 +219,7 @@ Congratulations, you have created your first AI agent!
 
 We have:
 
-- Used the `create_react_agent` function from the `langgraph.prebuilt` module to create a simple "coordinator" agent. The function imports the Azure OpenAI model already deployed (during `azd up`) and defined in `src/app/services/azure_open_ai.py` and returns an agent that can be used to generate completions.
+- Used the `create_react_agent` function from the `langgraph.prebuilt` module to create a simple "coordinator" agent. The function imports the Azure OpenAI model already deployed and defined in `src/app/services/azure_open_ai.py` and returns an agent that can be used to generate completions.
 - Defined a `call_coordinator_agent` function that invokes the agent and a `human_node` function that collects user input.
 - Created a state graph that defines the flow of the conversation and compiles it into a langgraph object.
 - Added an in-memory checkpoint to save the state of the conversation.
@@ -398,11 +398,11 @@ builder.add_node("customer_support_agent", call_customer_support_agent)
 
 With the activities in this module complete, it is time to test your work!
 
-To do this, we are going to add this code to our `banking_agents.py` file.
+To do this, we are going to enable two ways of testing our application. 
 
-This code defines a new function, `interactive_chat()` that creates a message loop that invokes our StateGraph that we have defined in this file.
+First, we are going to add code to our `banking_agents.py` file.This code defines a new function, `interactive_chat()` that creates a message loop that invokes our StateGraph that we have defined in this file.
 
-To being, navigate to the end of the `banking_agents.py` file.
+To begin, navigate to the end of the `banking_agents.py` file.
 
 Then paste the following code below all code in this file:
 
@@ -447,7 +447,27 @@ if __name__ == "__main__":
     interactive_chat()
 ```
 
+For the rest of the lab, we're going to be testing using the front end by wiring up the API layer, so you can skip to that section below. But for reference, if you wanted bypass the front end and test the backend in a command line fashion, you could run the below:
+
+```shell
+python -m src.app.banking_agents
+```
+
+You would see the following output like below, where you can input text after "you"
+
+```shell
+[DEBUG] Retrieved Azure AD token successfully using DefaultAzureCredential.
+[DEBUG] Azure OpenAI model initialized successfully.
+Loading prompt for coordinator_agent from prompts\coordinator_agent.prompty
+Welcome to the single-agent banking assistant.
+Type 'exit' to end the conversation.
+
+You: 
+```
+
 ### Wiring up the API layer
+
+Now lets set up the API layer so that the front end can talk properly to your new agents.
 
 In your IDE, navigate to the `src/app/banking_agents_api.py` file.
 

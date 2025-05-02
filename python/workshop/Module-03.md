@@ -651,7 +651,7 @@ def get_offer_information(user_prompt: str, accountType: str) -> list[dict[str, 
     return search_results
 ```
 
-You can implement this tool in exactly the same way as the other tools. Do you remember the steps? Go ahead and do it!
+You can implement this tool in exactly the same way as the other tools.
 
 In your IDE, locate the `banking_agents.py`
 
@@ -719,7 +719,7 @@ Let's test a new scenario that will invoke a vector search in Cosmos DB on our b
  Tell me about banking offers
  ```
 
-1. You should see results like this below:
+1. You should see results like this below (you might have to specify which type of offer, e.g. "Savings"):
 
 ![Testing_2](./media/module-03/testing_module3_2.png)
 
