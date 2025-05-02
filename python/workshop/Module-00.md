@@ -59,14 +59,11 @@ npm start
 1. In the Login dialog, select a user and company and click, Login.
 1. Send the message:
 
-```text
-Hello, how are you?
-```
+  ```text
+  Hello, how are you?
+  ```
 
 1. This should return a response saying "Hello, I am not yet implemented".
-1. Navigate to the Cosmos DB account in the Azure portal to view the containers. You should see an entry in the `Chat` container. There will also be some transactional data in the `OffersData`, `AccountsData`, and `Users` containers as well.
-1. Take a look at the files in the `src/app/services` folder - these are the boilerplate code for interacting with the Cosmos DB and Azure OpenAI services.
-1. You will also see an empty file `src/app/banking_agents.py` as well as empty files in the `src/app/tools` and `src/app/prompts` folder. This is where you will build your multi-agent system!
 
 ### Keep the backend and frontend running
 
