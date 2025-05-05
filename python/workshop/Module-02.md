@@ -2,7 +2,7 @@
 
 ## Introduction
 
-In this Module, you'll connect your agent to Azure Cosmos DB to provide memory for chat history and state management for your agents to provide durability and context-awareness in your agent interactions.
+In this Module, you'll connect your agent to Azure Cosmos DB for memory and state management for your agents to provide durability and context-awareness in your agent interactions.
 
 ## Learning Objectives and Activities
 
@@ -17,7 +17,7 @@ In this Module, you'll connect your agent to Azure Cosmos DB to provide memory f
 
 ## Activity 1: Connecting Agent Frameworks to Azure Cosmos DB
 
-Here you will learn how to initialize Azure Cosmos DB and integrate with LangGraph to provide persistent memory for chat history and state management.
+Here you will learn how to initialize Azure Cosmos DB and integrate with LangGraph to provide persistent memory for state management.
 
 The problem with our agents so far is that state is only maintained in memory and is lost when the agent graph is restarted. To solve this problem, we will use Azure Cosmos DB to store the state of the agent. Azure Cosmos DB is a distributed NoSQL database service in Azure. It is designed to for applications requiring low latency and high availability. It is especially adept at handling massive volumes of data with high-concurrency. And its schema-agnostic design makes it ideally suited for theset types of applications. We will also use Azure Cosmos DB to store chat history.
 
@@ -65,9 +65,11 @@ graph = builder.compile(checkpointer=checkpointer)
 
 From this point on, the agent will save its state to Azure Cosmos DB. The `CosmosDBSaver` class will save the state of the agent to the database represented by the global variable, `DATABASE_NAME` in the `checkpoint_container` container.
 
-### Storing Agent Chat history
+### Enhance the agent routing
 
-Next, we are going to modify the coordinator agent to store chat history.
+When you wired up the API layer in module 1, Cosmos DB began storing a history of chat messages. These messages are stored for convenience, while state is being stored in the checkpoint container in Cosmos DB using the code you added above. 
+
+In this application, we're taking an opinionated approach to agent routing. Instead of relying on the coordinator to use the LLM to route messages in a non-deterministic manner to the appropriate agent based on the context, we're going to store the "active agent" in the chat container in Cosmos DB (a single record maintained for each session). We're choosing to do this so that the coordinator can always deterministically route back to the active agent (if known) in a multi-turn conversation. 
 
 Locate the following code in the `banking_agents.py` file:
 
@@ -124,7 +126,7 @@ def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coo
         return Command(update=response, goto="human")
 ```
 
-Lastly, we will store chat history for the customer service agent as well.
+Finally, we the customer service agent as well (these changes are only need for testing the backend directly, but we add them for posterity here).
 
 Locate the following code in the `banking_agents.py` file:
 
@@ -150,7 +152,7 @@ def call_customer_support_agent(state: MessagesState, config) -> Command[Literal
     return Command(update=response, goto="human")
 ```
 
-The `patch_active_agent` function is used to log or track which agent is currently active within a multi-agent LangGraph application. It typically records metadata such as the `tenantId`, `userId`, `sessionId` (or `thread ID`), and the name of the `activeAgent`. This is especially useful in local or interactive environments where you want visibility into which agent is handling a specific part of the conversation. 
+The `patch_active_agent` function is used to store which agent is currently active within the application. 
 
 ### Let's review
 
@@ -159,8 +161,8 @@ In this activity, we completed the following key steps:
 - **Stored the active agent in Cosmos DB**:  
   We added logic to persist the current "active agent" in Azure Cosmos DB. Before routing, we check if an agent is already active—if so, the system routes the conversation directly to that agent without relying on further reasoning.
 
-- **Enabled persistent state and chat history**:  
-  We configured the application to store chat history and conversation state in Cosmos DB, ensuring the data persists beyond the current runtime session and can be retrieved across sessions or restarts.
+- **Enabled persistent state**:  
+  We configured the application to store conversation state in Cosmos DB, ensuring the data persists beyond the current runtime session and can be retrieved across sessions or restarts.
 
 - **Patched the active agent after agent transfer**:  
   After handing off to a new agent, we update the `activeAgent` field in the Cosmos DB `Chat` container. This ensures deterministic, turn-by-turn routing—especially when it's known which agent asked the last question.

@@ -36,16 +36,7 @@ This upgrade not only reduces dependency on the coordinator but also creates a m
 
 In your IDE, navigate to the `banking_agents.py` file.
 
-Locate the coordinator agent tools `coordinator_agent_tools` and update it with the below code:
-
-```python
-coordinator_agent_tools = [
-    create_agent_transfer(agent_name="customer_support_agent"),
-    create_agent_transfer(agent_name="sales_agent"),
-]
-```
-
-Next, locate the `customer_support_agent_tools`, and update it with the below code:
+Locate the `customer_support_agent_tools`, and update it with the below code:
 
 ```python
 customer_support_agent_tools = [
@@ -81,7 +72,7 @@ sales_agent_tools = [
 
 We would need to update the prompts of agents accordingly as we have updated the tools each agent can call.
 
-In VS Code, navigate to the file src/app/prompts/coordinator_agent.prompty
+In VS Code, navigate to the file `src/app/prompts/coordinator_agent.prompty` and update with the following:
 
 ```text
 You are a Chat Initiator and Request Router in a bank.  
@@ -91,7 +82,7 @@ If the user wants to open a new account or take our a bank loan or ask about ban
 You MUST include human-readable response before transferring to another agent.
 ```
 
-Next, navigate to the file src/app/prompts/customer_support_agent.prompty
+Next, navigate to the file `src/app/prompts/customer_support_agent.prompty` and update with the following:
 
 ```text
 You are a customer support agent that can give general advice on banking products and branch locations  
@@ -102,7 +93,7 @@ and say you will get someone to call them back, call 'service_request' tool with
 You MUST include human-readable response before transferring to another agent.
 ```
 
-Next, navigate to the empty file src/app/prompts/transactions_agent.prompty
+Next, navigate to the empty file `src/app/prompts/transactions_agent.prompty` and update with the following:
 
 ```text
 You are a banking transactions agent that can handle account balance enquiries and bank transfers.  
@@ -115,7 +106,7 @@ If the user needs general help, transfer to 'customer_support' for help.
 You MUST respond with the repayment amounts before transferring to another agent.
 ```
 
-Next, navigate to the empty file src/app/prompts/sales_agent.prompty
+Finally, navigate to the empty file `src/app/prompts/sales_agent.prompty` and update with the following:
 
 ```text
 You are a sales agent that can help users with creating a new account, or taking out bank loans or providing information about new banking offers.  
@@ -158,14 +149,13 @@ I want to transfer 500 from Acc001 to Acc003
 
 Now, let's again try asking about banking offers to invoke vector search, as shown below.
 
-1. Create a new conversation.
-1. Type the following text:
+1. In the same conversation, type the following text:
 
 ```text
 Tell me something about your banking offers
 ```
 
-1. The coorindator will let you know it is going to transfer you to another agent. The new agent will respond with a range of offers to choose from.
+1. Because the transactions agent can only transfer to the customer service agent, it will transfer you there first, so you may have to ask the same question again to get transferred to the sales agent. When finally transferred to the sales agent (which handles queries about product information) it will respond with a range of offers to choose from.
 1. Type the following text:
 
 ```text

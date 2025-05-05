@@ -59,9 +59,9 @@ npm start
 1. In the Login dialog, select a user and company and click, Login.
 1. Send the message:
 
-```text
-Hello, how are you?
-```
+  ```text
+  Hello, how are you?
+  ```
 
 1. This should return a response saying "Hello, I am not yet implemented".
 
