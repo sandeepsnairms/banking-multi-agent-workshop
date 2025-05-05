@@ -40,12 +40,6 @@ Let's dive into the starter solution for our workshop and get started completing
 
 The following steps are completed in your IDE.
 
-### Project Structure
-
-Here is what the structure of this solution appears like in Visual Studio. Spend a few moments to familiarize yourself with the structure as it will help you navigate as we go through the activities.
-
-![Solution Files](./media/module-01/solution-files.png)
-
 ### Implement the SemanticKernelService
 
 We are going to define two functions as part of our multi-agent application.

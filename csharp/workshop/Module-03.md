@@ -406,7 +406,7 @@ Add these two functions to perform vector searches
 
 In your IDE, navigate to the `/Services` folder.
 
-Open the `SalesPSemanticKernelService.cs` file.
+Open the `SemanticKernelService.cs` file.
 
 Locate the `GetResponse()` function.
 
@@ -442,12 +442,10 @@ var agent = agentChatGeneratorService.BuildAgent(_semanticKernel, AgentType.Cust
 
 Use this combination of AgentTypes and prompts for your test.
 
-| Agent Type | User Prompt |
-|-|-|
-| AgentType.Coordinator | Hi |
-| AgentType.Transactions | How much did I spend on groceries? |
-| AgentType.Sales | Looking for a high interest savings account |
-| AgentType.CustomerSupport | File a complaint for theft in Acc001 |
+AgentType.Coordinator: Hi 
+AgentType.Transactions: How much did I spend on groceries?
+AgentType.Sales: Looking for a high interest savings account
+AgentType.CustomerSupport: File a complaint for theft in Acc001
 
 Note: For each of these combinations above, you only need stop the Backend service. You can keep the front end up.
 
@@ -487,10 +485,6 @@ Note: For each of these combinations above, you only need stop the Backend servi
 1. Invalid/incomplete response:
     - Check if the Azure Cosmos DB containers have valid data.
 
-1. No response to your prompt (hosted):
-    - Navigate to the Application Insights account.
-    - Navigate to `Live metrics` blade under `Investigate` section.
-    - [Learn more] (<https://learn.microsoft.com/azure/azure-monitor/app/live-stream?tabs=otel>)
 
 ## Module Solution
 
