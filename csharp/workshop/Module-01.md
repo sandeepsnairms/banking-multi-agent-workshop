@@ -246,314 +246,41 @@ Your implementation is successful if:
 
 The following sections include the completed code for this Module. Copy and paste these into your project if you run into issues and cannot resolve.
 
+
 <details>
-  <summary>Completed code for <strong>ChatInfrastructure/Interfaces/ISemanticKernelService.cs</strong></summary>
+  <summary>Completed code for <strong>\Services\ChatService.cs</strong></summary>
 <br>
 
 ```csharp
-using MultiAgentCopilot.Common.Models.Chat;
-using MultiAgentCopilot.Common.Models.Debug;
-
-namespace MultiAgentCopilot.ChatInfrastructure.Interfaces
-{
-    public interface ISemanticKernelService
-    {
-        Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, string tenantId, string userId);
-        Task<string> Summarize(string sessionId, string userPrompt);
-        Task<float[]> GenerateEmbedding(string text);
-    }
-}
-```
-
-</details>
-
-<details>
-  <summary>Completed code for <strong>ChatInfrastructure/Services/SemanticKernelService.cs</strong></summary>
-<br>
-
-```csharp
-using System;
-using System.Runtime;
-using System.Data;
-using Newtonsoft.Json;
-using Azure.Identity;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Agents;
-using Microsoft.SemanticKernel.Connectors.OpenAI;
-using Microsoft.SemanticKernel.ChatCompletion;
-using Microsoft.SemanticKernel.Embeddings;
-
-using MultiAgentCopilot.Common.Models.Chat;
-using MultiAgentCopilot.ChatInfrastructure.Interfaces;
-using MultiAgentCopilot.Common.Models.Configuration;
-using MultiAgentCopilot.Common.Models.Debug;
-using Message = MultiAgentCopilot.Common.Models.Chat.Message;
-
-namespace MultiAgentCopilot.ChatInfrastructure.Services;
-
-public class SemanticKernelService : ISemanticKernelService, IDisposable
-{
-    readonly SemanticKernelServiceSettings _settings;
-    readonly ILoggerFactory _loggerFactory;
-    readonly ILogger<SemanticKernelService> _logger;
-    readonly Kernel _semanticKernel;
-
-    bool _serviceInitialized = false;
-    string _prompt = string.Empty;
-    string _contextSelectorPrompt = string.Empty;
-
-    List<LogProperty> _promptDebugProperties;
-
-    public bool IsInitialized => _serviceInitialized;
-
-    public SemanticKernelService(
-        IOptions<SemanticKernelServiceSettings> options,
-        ILoggerFactory loggerFactory)
-    {
-        _settings = options.Value;
-        _loggerFactory = loggerFactory;
-        _logger = _loggerFactory.CreateLogger<SemanticKernelService>();
-        _promptDebugProperties = new List<LogProperty>();
-
-        _logger.LogInformation("Initializing the Semantic Kernel service...");
-
-        var builder = Kernel.CreateBuilder();
-
-        builder.Services.AddSingleton<ILoggerFactory>(loggerFactory);
-
-        DefaultAzureCredential credential;
-        if (string.IsNullOrEmpty(_settings.AzureOpenAISettings.UserAssignedIdentityClientID))
-        {
-            credential = new DefaultAzureCredential();
-        }
-        else
-        {
-            credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
-            {
-                ManagedIdentityClientId = _settings.AzureOpenAISettings.UserAssignedIdentityClientID
-            });
-        }
-        builder.AddAzureOpenAIChatCompletion(
-            _settings.AzureOpenAISettings.CompletionsDeployment,
-            _settings.AzureOpenAISettings.Endpoint,
-            credential);
-
-        builder.AddAzureOpenAITextEmbeddingGeneration(
-               _settings.AzureOpenAISettings.EmbeddingsDeployment,
-               _settings.AzureOpenAISettings.Endpoint,
-               credential);
-
-        _semanticKernel = builder.Build();
-
-        Task.Run(Initialize).ConfigureAwait(false);
-    }
-
-    public void Dispose()
-    {
-        // Dispose resources if any
-    }
-
-    private Task Initialize()
-    {
-        try
-        {
-            _serviceInitialized = true;
-            _logger.LogInformation("Semantic Kernel service initialized.");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Semantic Kernel service was not initialized. The following error occurred: {ErrorMessage}.", ex.ToString());
-        }
-        return Task.CompletedTask;
-    }
-
-    private void LogMessage(string key, string value)
-    {
-        _promptDebugProperties.Add(new LogProperty(key, value));
-    }
-
-    public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, string tenantId, string userId)
-    {
-
-        try
-        {
-            ChatCompletionAgent agent = new ChatCompletionAgent
-            {
-                Name = "BasicAgent",
-                Instructions = "Greet the user and translate the request into French",
-                Kernel = _semanticKernel.Clone()
-            };
-
-            ChatHistory chatHistory = [];
-
-            chatHistory.AddUserMessage(userMessage.Text);
-
-            _promptDebugProperties = new List<LogProperty>();
-
-            List<Message> completionMessages = new();
-            List<DebugLog> completionMessagesLogs = new();
-
-            ChatMessageContent message = new(AuthorRole.User, userMessage.Text);
-            chatHistory.Add(message);
-
-            await foreach (ChatMessageContent response in agent.InvokeAsync(chatHistory))
-            {
-                string messageId = Guid.NewGuid().ToString();
-                completionMessages.Add(new Message(userMessage.TenantId, userMessage.UserId, userMessage.SessionId, response.AuthorName ?? string.Empty, response.Role.ToString(), response.Content ?? string.Empty, messageId));
-            }
-            return new Tuple<List<Message>, List<DebugLog>>(completionMessages, completionMessagesLogs);
-
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.ToString());
-            return new Tuple<List<Message>, List<DebugLog>>(new List<Message>(), new List<DebugLog>());
-        }
-    }
-
-    public async Task<string> Summarize(string sessionId, string userPrompt)
-    {
-        try
-        {
-            // Use an AI function to summarize the text in 2 words
-            var summarizeFunction = _semanticKernel.CreateFunctionFromPrompt(
-                "Summarize the following text into exactly two words:\n\n{{$input}}",
-                executionSettings: new OpenAIPromptExecutionSettings { MaxTokens = 10 }
-            );
-
-            // Invoke the function
-            var summary = await _semanticKernel.InvokeAsync(summarizeFunction, new() { ["input"] = userPrompt });
-
-            return summary.GetValue<string>() ?? "No summary generated";
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.ToString());
-            return string.Empty;
-        }
-    }
-
-    public async Task<float[]> GenerateEmbedding(string text)
-    {
-        // Generate Embedding
-        var embeddingModel = _semanticKernel.Services.GetRequiredService<ITextEmbeddingGenerationService>();
-
-        var embedding = await embeddingModel.GenerateEmbeddingAsync(text);
-
-        // Convert ReadOnlyMemory<float> to IList<float>
-        return embedding.ToArray();
-    }
-}
-```
-
-</details>
-
-<details>
-  <summary>Completed code for <strong>ChatInfrastructure/Services/DependencyInjection.cs</strong></summary>
-<br>
-
-```csharp
-using MultiAgentCopilot.Common.Models.Configuration;
-using MultiAgentCopilot.ChatInfrastructure.Interfaces;
-using MultiAgentCopilot.ChatInfrastructure.Services;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.ApplicationInsights.AspNetCore.Extensions;
-using Microsoft.ApplicationInsights.Extensibility;
-using Azure.Identity;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging.ApplicationInsights;
-namespace MultiAgentCopilot
-{
-    /// <summary>
-    /// General purpose dependency injection extensions.
-    /// </summary>
-    public static partial class DependencyInjection
-    {
-        /// <summary>
-        /// Registers the <see cref="ICosmosDBService"/> implementation with the dependency injection container.
-        /// </summary>
-        /// <param name="builder">The hosted applications and services builder.</param>
-        public static void AddCosmosDBService(this IHostApplicationBuilder builder)
-        {
-            builder.Services.AddOptions<CosmosDBSettings>()
-                .Bind(builder.Configuration.GetSection("CosmosDBSettings"));
-
-            Console.WriteLine("Adding CosmosDBService:" + builder.Configuration["CosmosDBSettings:CosmosUri"]);
-            builder.Services.AddSingleton<ICosmosDBService, CosmosDBService>();
-        }
-
-
-        /// <summary>
-        /// Registers the <see cref="IChatService"/> implementation with the dependency injection container.
-        /// </summary>
-        /// <param name="builder">The hosted applications and services builder.</param>
-        public static void AddChatService(this IHostApplicationBuilder builder)
-        {
-            builder.Services.AddOptions<CosmosDBSettings>()
-                .Bind(builder.Configuration.GetSection("CosmosDBSettings"));
-            builder.Services.AddSingleton<IChatService, ChatService>();
-        }
-
-        /// <summary>
-        /// Registers the <see cref="ISemanticKernelService"/> implementation with the dependency injection container.
-        /// </summary>
-        /// <param name="builder">The hosted applications and services builder.</param>
-        public static void AddSemanticKernelService(this IHostApplicationBuilder builder)
-        {
-            builder.Services.AddOptions<SemanticKernelServiceSettings>()
-                .Bind(builder.Configuration.GetSection("SemanticKernelServiceSettings"));
-            builder.Services.AddSingleton<ISemanticKernelService, SemanticKernelService>();
-        }
-    }
-}
-```
-
-</details>
-
-<details>
-  <summary>Completed code for <strong>ChatInfrastructure/Services/ChatService.cs</strong></summary>
-<br>
-
-```csharp
-using MultiAgentCopilot.Common.Models.Chat;
-using MultiAgentCopilot.ChatInfrastructure.Interfaces;
-using Microsoft.Extensions.Logging;
-using Microsoft.SemanticKernel.ChatCompletion;
-using MultiAgentCopilot.Common.Models.Debug;
-using System.Collections.Generic;
-using Microsoft.Extensions.Options;
-using MultiAgentCopilot.Common.Models.Configuration;
+using MultiAgentCopilot.Models.Debug;
+using MultiAgentCopilot.Models.Configuration;
+using MultiAgentCopilot.Models.Chat;
 using Newtonsoft.Json.Linq;
 using System.Text.Json;
 using Newtonsoft.Json;
-using Microsoft.Identity.Client;
-using BankingServices.Interfaces;
 
 
-namespace MultiAgentCopilot.ChatInfrastructure.Services;
+namespace MultiAgentCopilot.Services;
 
-public class ChatService : IChatService
+public class ChatService 
 {
-    private readonly ICosmosDBService _cosmosDBService;
+    private readonly CosmosDBService _cosmosDBService;
+    private readonly BankingDataService _bankService;
+    private readonly SemanticKernelService _skService;
     private readonly ILogger _logger;
-    private readonly IBankDataService _bankService;
-    private readonly ISemanticKernelService _skService;
 
+    
     public ChatService(
         IOptions<CosmosDBSettings> cosmosOptions,
         IOptions<SemanticKernelServiceSettings> skOptions,
-        ICosmosDBService cosmosDBService,
-        ISemanticKernelService ragService,
+        CosmosDBService cosmosDBService,
+        SemanticKernelService skService,
         ILoggerFactory loggerFactory)
     {
         _cosmosDBService = cosmosDBService;
-        _skService = ragService;
+        _skService = skService;
+        _bankService = new BankingDataService(cosmosDBService.Database,cosmosDBService.AccountDataContainer,cosmosDBService.UserDataContainer,cosmosDBService.AccountDataContainer,cosmosDBService.OfferDataContainer, skOptions.Value, loggerFactory);
         _logger = loggerFactory.CreateLogger<ChatService>();
     }
 
@@ -616,7 +343,7 @@ public class ChatService : IChatService
             var userMessage = new Message(tenantId, userId, sessionId, "User", "User", userPrompt);
 
             // Generate the completion to return to the user
-            var result = await _skService.GetResponse(userMessage, new List<Message>(), tenantId, userId);
+            var result = await _skService.GetResponse(userMessage, new List<Message>(), _bankService, tenantId, userId);
 
             return result.Item1;
         }
@@ -626,6 +353,7 @@ public class ChatService : IChatService
             return new List<Message> { new Message(tenantId, userId, sessionId!, "Error", "Error", $"Error getting completion in session {sessionId} for user prompt [{userPrompt}].") };
         }
     }
+
 
     /// <summary>
     /// Generate a name for a chat message, based on the passed in prompt.
@@ -647,7 +375,10 @@ public class ChatService : IChatService
             _logger.LogError(ex, $"Error getting a summary in session {sessionId} for user prompt [{prompt}].");
             return $"Error getting a summary in session {sessionId} for user prompt [{prompt}].";
         }
+
     }
+
+
 
     /// <summary>
     /// Rate an assistant message. This can be used to discover useful AI responses for training, discoverability, and other benefits down the road.
@@ -668,6 +399,7 @@ public class ChatService : IChatService
         return await _cosmosDBService.GetChatCompletionDebugLogAsync(tenantId,userId, sessionId, debugLogId);
     }
 
+
     public async Task<bool> AddDocument(string containerName, JsonElement document)
     {
         try
@@ -677,7 +409,7 @@ public class ChatService : IChatService
             var docJObject = JsonConvert.DeserializeObject<JObject>(json);
 
             // Ensure "id" exists
-            if (!docJObject.ContainsKey("id"))
+            if (!docJObject!.ContainsKey("id"))
             {
                 throw new ArgumentException("Document must contain an 'id' property.");
             }
@@ -691,100 +423,185 @@ public class ChatService : IChatService
             return false;
         }
     }
+
+
 }
+
+
 ```
 
 </details>
 
+
 <details>
-  <summary>Completed code for <strong>ChatAPI/Program.cs</strong></summary>
+  <summary>Completed code for <strong>\Services\SemanticKernelService.cs</strong></summary>
 <br>
 
 ```csharp
-using MultiAgentCopilot;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
+using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
+using MultiAgentCopilot.Helper;
+using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel.Embeddings;
+using Microsoft.Extensions.AI;
 
-namespace ChatAPI
+using Azure.Identity;
+using MultiAgentCopilot.Factories;
+using MultiAgentCopilot.Models.Debug;
+using MultiAgentCopilot.Models.Chat;
+using MultiAgentCopilot.Models.Configuration;
+
+using System.Text;
+using MultiAgentCopilot.Models;
+using Microsoft.SemanticKernel.Agents;
+using AgentFactory = MultiAgentCopilot.Factories.AgentFactory;
+namespace MultiAgentCopilot.Services;
+
+public class SemanticKernelService :  IDisposable
 {
-    public class Program
+    readonly SemanticKernelServiceSettings _skSettings;
+    readonly ILoggerFactory _loggerFactory;
+    readonly ILogger<SemanticKernelService> _logger;
+    readonly Kernel _semanticKernel;
+
+
+    bool _serviceInitialized = false;
+    string _prompt = string.Empty;
+    string _contextSelectorPrompt = string.Empty;
+
+    List<LogProperty> _promptDebugProperties;
+
+    public bool IsInitialized => _serviceInitialized;
+
+    public SemanticKernelService(
+        IOptions<SemanticKernelServiceSettings> skOptions,
+        ILoggerFactory loggerFactory)
     {
-        public static void Main(string[] args)
+        _skSettings = skOptions.Value;
+        _loggerFactory = loggerFactory;
+        _logger = _loggerFactory.CreateLogger<SemanticKernelService>();
+        _promptDebugProperties = new List<LogProperty>();
+
+        _logger.LogInformation("Initializing the Semantic Kernel service...");
+
+        var builder = Kernel.CreateBuilder();
+
+        //TO DO: Update SemanticKernelService constructor
+        builder.Services.AddSingleton<ILoggerFactory>(loggerFactory);
+
+        DefaultAzureCredential credential;
+        if (string.IsNullOrEmpty(_skSettings.AzureOpenAISettings.UserAssignedIdentityClientID))
         {
-            var builder = WebApplication.CreateBuilder(args);
-
-            // Load configuration from appsettings.json and environment variables
-            builder.Configuration.SetBasePath(Directory.GetCurrentDirectory())
-                                 .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-                                 .AddJsonFile("appsettings.development.json", optional: true, reloadOnChange: true)
-                                 .AddEnvironmentVariables();
-
-            // Add CORS policy
-            builder.Services.AddCors(options =>
+            credential = new DefaultAzureCredential();
+        }
+        else
+        {
+            credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
             {
-                options.AddPolicy("AllowAllOrigins",
-                    policy =>
-                    {
-                        policy.AllowAnyOrigin()
-                              .AllowAnyMethod()
-                              .AllowAnyHeader();
-                    });
+                ManagedIdentityClientId = _skSettings.AzureOpenAISettings.UserAssignedIdentityClientID
             });
+        }
+
+        builder.AddAzureOpenAIChatCompletion(
+           _skSettings.AzureOpenAISettings.CompletionsDeployment,
+           _skSettings.AzureOpenAISettings.Endpoint,
+           credential);
+
+        _semanticKernel = builder.Build();
 
 
-            builder.Logging.ClearProviders();
-            builder.Logging.AddConsole();
+        Task.Run(Initialize).ConfigureAwait(false);
+    }
 
-            if (!builder.Environment.IsDevelopment())                
-                builder.Services.AddApplicationInsightsTelemetry();
+    //TO DO: Add GetResponse function
 
-            builder.Logging.SetMinimumLevel(LogLevel.Trace);
-            builder.Services.Configure<LoggerFilterOptions>(options =>
+    public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, BankingDataService bankService, string tenantId, string userId)
+    {
+        try
+        {
+            ChatCompletionAgent agent = new ChatCompletionAgent
             {
-                options.MinLevel = LogLevel.Trace;
-            });
+                Name = "BasicAgent",
+                Instructions = "Greet the user and translate the request into French",
+                Kernel = _semanticKernel.Clone()
+            };
 
-            //builder.AddApplicationInsightsTelemetry();
 
-            builder.AddCosmosDBService();
-            builder.AddSemanticKernelService();
+            // Create an null AgentThread 
+            AgentThread agentThread = null;
 
-            builder.AddChatService();
-            builder.Services.AddScoped<ChatEndpoints>();
+            _promptDebugProperties = new List<LogProperty>();
 
-            // Add services to the container.
-            builder.Services.AddAuthorization();
+            List<Message> completionMessages = new();
+            List<DebugLog> completionMessagesLogs = new();
 
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-            builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
 
-            var app = builder.Build();
-            app.UseCors("AllowAllOrigins");
-
-            app.UseExceptionHandler(exceptionHandlerApp
-                    => exceptionHandlerApp.Run(async context
-                        => await Results.Problem().ExecuteAsync(context)));
-
-            // Configure the HTTP request pipeline.
-            app.UseSwagger();
-            app.UseSwaggerUI();
-
-            app.UseAuthorization();
-
-            // Map the chat REST endpoints:
-            using (var scope = app.Services.CreateScope())
+            await foreach (ChatMessageContent response in agent.InvokeAsync(userMessage.Text, agentThread))
             {
-                var service = scope.ServiceProvider.GetService<ChatEndpoints>();
-                service?.Map(app);
+                string messageId = Guid.NewGuid().ToString();
+                completionMessages.Add(new Message(userMessage.TenantId, userMessage.UserId, userMessage.SessionId, response.AuthorName ?? string.Empty, response.Role.ToString(), response.Content ?? string.Empty, messageId));
             }
-
-            app.Run();
+            return new Tuple<List<Message>, List<DebugLog>>(completionMessages, completionMessagesLogs);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.ToString());
+            return new Tuple<List<Message>, List<DebugLog>>(new List<Message>(), new List<DebugLog>());
         }
     }
+
+    //TO DO: Add Summarize function
+    public async Task<string> Summarize(string sessionId, string userPrompt)
+    {
+        try
+        {
+            // Use an AI function to summarize the text in 2 words
+            var summarizeFunction = _semanticKernel.CreateFunctionFromPrompt(
+                "Summarize the following text into exactly two words:\n\n{{$input}}",
+                executionSettings: new OpenAIPromptExecutionSettings { MaxTokens = 10 }
+            );
+
+            // Invoke the function
+            var summary = await _semanticKernel.InvokeAsync(summarizeFunction, new() { ["input"] = userPrompt });
+
+            return summary.GetValue<string>() ?? "No summary generated";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.ToString());
+            return string.Empty;
+        }
+    }
+
+
+
+    private Task Initialize()
+    {
+        try
+        {
+            _serviceInitialized = true;
+            _logger.LogInformation("Semantic Kernel service initialized.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Semantic Kernel service was not initialized. The following error occurred: {ErrorMessage}.", ex.ToString());
+        }
+        return Task.CompletedTask;
+    }       
+
+    public void Dispose()
+    {
+        // Dispose resources if any
+    }
 }
+    
+    
 ```
 
 </details>
+
+
 
 ## Next Steps
 

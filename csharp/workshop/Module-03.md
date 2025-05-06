@@ -139,7 +139,6 @@ Replace the code for both `GetAgentName()` and `GetAgentPrompts()` with the code
             return prompt;
         }
 
-    }
 ```
 
 ## Activity 3: Integrating Bank Domain Functions as Plugins
@@ -490,54 +489,220 @@ Note: For each of these combinations above, you only need stop the Backend servi
 
 The following sections include the completed code for this Module. Copy and paste these into your project if you run into issues and cannot resolve.
 
-<details>
-  <summary>Completed code for <strong>ChatInfrastructure/Models/AgentTypes.cs</strong></summary>
 
+
+<details>
+  <summary>Completed code for <strong>\Services\SemanticKernelService.cs</strong></summary>
 <br>
 
 ```csharp
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Microsoft.Extensions.Options;
+using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
+using MultiAgentCopilot.Helper;
+using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel.Embeddings;
+using Microsoft.Extensions.AI;
 
-namespace MultiAgentCopilot.ChatInfrastructure.Models
+using Azure.Identity;
+using MultiAgentCopilot.Factories;
+using MultiAgentCopilot.Models.Debug;
+using MultiAgentCopilot.Models.Chat;
+using MultiAgentCopilot.Models.Configuration;
+
+using System.Text;
+using MultiAgentCopilot.Models;
+using Microsoft.SemanticKernel.Agents;
+using AgentFactory = MultiAgentCopilot.Factories.AgentFactory;
+namespace MultiAgentCopilot.Services;
+
+public class SemanticKernelService :  IDisposable
 {
-    enum AgentType
+    readonly SemanticKernelServiceSettings _skSettings;
+    readonly ILoggerFactory _loggerFactory;
+    readonly ILogger<SemanticKernelService> _logger;
+    readonly Kernel _semanticKernel;
+
+
+    bool _serviceInitialized = false;
+    string _prompt = string.Empty;
+    string _contextSelectorPrompt = string.Empty;
+
+    List<LogProperty> _promptDebugProperties;
+
+    public bool IsInitialized => _serviceInitialized;
+
+    public SemanticKernelService(
+        IOptions<SemanticKernelServiceSettings> skOptions,
+        ILoggerFactory loggerFactory)
     {
-        Transactions = 0,
-        Sales = 1,
-        CustomerSupport = 2,
-        Coordinator = 3,
+        _skSettings = skOptions.Value;
+        _loggerFactory = loggerFactory;
+        _logger = _loggerFactory.CreateLogger<SemanticKernelService>();
+        _promptDebugProperties = new List<LogProperty>();
+
+        _logger.LogInformation("Initializing the Semantic Kernel service...");
+
+        var builder = Kernel.CreateBuilder();
+
+        //TO DO: Update SemanticKernelService constructor
+        builder.Services.AddSingleton<ILoggerFactory>(loggerFactory);
+
+        DefaultAzureCredential credential;
+        if (string.IsNullOrEmpty(_skSettings.AzureOpenAISettings.UserAssignedIdentityClientID))
+        {
+            credential = new DefaultAzureCredential();
+        }
+        else
+        {
+            credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
+            {
+                ManagedIdentityClientId = _skSettings.AzureOpenAISettings.UserAssignedIdentityClientID
+            });
+        }
+
+        builder.AddAzureOpenAIChatCompletion(
+           _skSettings.AzureOpenAISettings.CompletionsDeployment,
+           _skSettings.AzureOpenAISettings.Endpoint,
+           credential);
+
+        _semanticKernel = builder.Build();
+
+
+        Task.Run(Initialize).ConfigureAwait(false);
+    }
+
+    //TO DO: Add GetResponse function
+
+    public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, BankingDataService bankService, string tenantId, string userId)
+    {
+        try
+        {
+            AgentFactory agentFactory = new AgentFactory();
+
+            var agent = agentFactory.BuildAgent(_semanticKernel, AgentType.CustomerSupport, _loggerFactory, bankService, tenantId, userId);
+
+            ChatHistory chatHistory = new();
+
+            // Load history
+            foreach (var chatMessage in messageHistory)
+            {
+                if (chatMessage.SenderRole == "User")
+                {
+                    chatHistory.AddUserMessage(chatMessage.Text);
+                }
+                else
+                {
+                    chatHistory.AddAssistantMessage(chatMessage.Text);
+                }
+            }
+
+            // Create an AgentThread using the ChatHistory object
+            AgentThread agentThread = new ChatHistoryAgentThread(chatHistory);
+
+            _promptDebugProperties = new List<LogProperty>();
+
+            List<Message> completionMessages = new();
+            List<DebugLog> completionMessagesLogs = new();
+
+
+            await foreach (ChatMessageContent response in agent.InvokeAsync(userMessage.Text, agentThread))
+            {
+                string messageId = Guid.NewGuid().ToString();
+                completionMessages.Add(new Message(userMessage.TenantId, userMessage.UserId, userMessage.SessionId, response.AuthorName ?? string.Empty, response.Role.ToString(), response.Content ?? string.Empty, messageId));
+            }
+            return new Tuple<List<Message>, List<DebugLog>>(completionMessages, completionMessagesLogs);
+
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.ToString());
+            return new Tuple<List<Message>, List<DebugLog>>(new List<Message>(), new List<DebugLog>());
+        }
+    }
+
+    //TO DO: Add Summarize function
+    public async Task<string> Summarize(string sessionId, string userPrompt)
+    {
+        try
+        {
+            // Use an AI function to summarize the text in 2 words
+            var summarizeFunction = _semanticKernel.CreateFunctionFromPrompt(
+                "Summarize the following text into exactly two words:\n\n{{$input}}",
+                executionSettings: new OpenAIPromptExecutionSettings { MaxTokens = 10 }
+            );
+
+            // Invoke the function
+            var summary = await _semanticKernel.InvokeAsync(summarizeFunction, new() { ["input"] = userPrompt });
+
+            return summary.GetValue<string>() ?? "No summary generated";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.ToString());
+            return string.Empty;
+        }
+    }
+
+
+
+    private Task Initialize()
+    {
+        try
+        {
+            _serviceInitialized = true;
+            _logger.LogInformation("Semantic Kernel service initialized.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Semantic Kernel service was not initialized. The following error occurred: {ErrorMessage}.", ex.ToString());
+        }
+        return Task.CompletedTask;
+    }       
+
+    public void Dispose()
+    {
+        // Dispose resources if any
     }
 }
+    
+    
 ```
 
 </details>
 
 <details>
-  <summary>Completed code for <strong>ChatInfrastructure/Factories/SystemPromptFactory.cs</strong></summary>
-
+  <summary>Completed code for <strong>\Factories\AgentFactory.cs</strong></summary>
 <br>
 
 ```csharp
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
+
 using Microsoft.SemanticKernel;
-using MultiAgentCopilot.ChatInfrastructure.Services;
-using MultiAgentCopilot.ChatInfrastructure.Models;
+using Microsoft.SemanticKernel.Agents;
+using Microsoft.SemanticKernel.Agents.Chat;
+using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
+using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
+
+using OpenAI.Chat;
+using System.Text.Json;
+using MultiAgentCopilot.StructuredFormats;
+using MultiAgentCopilot.Models.ChatInfoFormats;
+using MultiAgentCopilot.Logs;
+using MultiAgentCopilot.Models;
+using MultiAgentCopilot.Services;
+using static MultiAgentCopilot.StructuredFormats.ChatResponseFormatBuilder;
+using MultiAgentCopilot.Plugins;
 
 
-namespace MultiAgentCopilot.ChatInfrastructure.Factories
+namespace MultiAgentCopilot.Factories
 {
-    internal static class SystemPromptFactory
+    internal class AgentFactory
     {
-        public static string GetAgentName(AgentType agentType)
+        private string GetAgentName(AgentType agentType)
         {
+
             string name = string.Empty;
             switch (agentType)
             {
@@ -557,11 +722,12 @@ namespace MultiAgentCopilot.ChatInfrastructure.Factories
                     throw new ArgumentOutOfRangeException(nameof(agentType), agentType, null);
             }
 
-            return name;//.ToUpper();
+            return name;
         }
 
-        public static string GetAgentPrompts(AgentType agentType)
+        private string GetAgentPrompts(AgentType agentType)
         {
+
             string promptFile = string.Empty;
             switch (agentType)
             {
@@ -585,260 +751,23 @@ namespace MultiAgentCopilot.ChatInfrastructure.Factories
 
             return prompt;
         }
-    }
-}
-```
 
-</details>
 
-<details>
-  <summary>Completed code for <strong>ChatInfrastructure/Plugins/BasePlugin.cs</strong></summary>
 
-<br>
-
-```csharp
-using Microsoft.Azure.Cosmos;
-using Microsoft.Extensions.Logging;
-using Microsoft.SemanticKernel;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using MultiAgentCopilot.Common.Models.Banking;
-using BankingServices.Interfaces;
-
-namespace MultiAgentCopilot.ChatInfrastructure.Plugins
-{
-
-    public class BasePlugin
-    {
-        protected readonly ILogger<BasePlugin> _logger;
-        protected readonly IBankDataService _bankService;
-        protected readonly string _userId;
-        protected readonly string _tenantId;
-
-        public BasePlugin(ILogger<BasePlugin> logger, IBankDataService bankService, string tenantId, string userId)
+        public ChatCompletionAgent BuildAgent(Kernel kernel, AgentType agentType, ILoggerFactory loggerFactory, BankingDataService bankService, string tenantId, string userId)
         {
-            _logger = logger;
-            _tenantId = tenantId;
-            _userId = userId;
-            _bankService = bankService;
+            ChatCompletionAgent agent = new ChatCompletionAgent
+            {
+                Name = GetAgentName(agentType),
+                Instructions = $"""{GetAgentPrompts(agentType)}""",
+                Kernel = GetAgentKernel(kernel, agentType, loggerFactory, bankService, tenantId, userId),
+                Arguments = new KernelArguments(new AzureOpenAIPromptExecutionSettings() { FunctionChoiceBehavior = FunctionChoiceBehavior.Auto() })
+            };
+
+            return agent;
         }
 
-        [KernelFunction("GetLoggedInUser")]
-        [Description("Get the current logged-in BankUser")]
-        public async Task<BankUser> GetLoggedInUser()
-        {
-            _logger.LogTrace($"Get Logged In User for Tenant:{_tenantId}  User:{_userId}");
-            return await _bankService.GetUserAsync(_tenantId, _userId);
-        }
-
-        [KernelFunction("GetCurrentDateTime")]
-        [Description("Get the current date time in UTC")]
-        public DateTime GetCurrentDateTime()
-        {
-            _logger.LogTrace($"Get Datetime: {System.DateTime.Now.ToUniversalTime()}");
-            return System.DateTime.Now.ToUniversalTime();
-        }
-
-        [KernelFunction("GetUserRegisteredAccounts")]
-        [Description("Get user registered accounts")]
-        public async Task<List<BankAccount>> GetUserRegisteredAccounts()
-        {
-            _logger.LogTrace($"Fetching accounts for Tenant: {_tenantId} User ID: {_userId}");
-            return await _bankService.GetUserRegisteredAccountsAsync(_tenantId, _userId);
-        }
-    }
-}
-```
-
-</details>
-
-<details>
-  <summary>Completed code for <strong>ChatInfrastructure/Plugins/SalesPlugin.cs</strong></summary>
-
-<br>
-
-```csharp
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.SemanticKernel;
-using System.ComponentModel;
-using Microsoft.Extensions.Logging;
-using MultiAgentCopilot.Common.Models.Banking;
-using BankingServices.Interfaces;
-
-namespace MultiAgentCopilot.ChatInfrastructure.Plugins
-{
-    internal class SalesPlugin : BasePlugin
-    {
-        public SalesPlugin(ILogger<BasePlugin> logger, IBankDataService bankService, string tenantId, string userId)
-            : base(logger, bankService, tenantId, userId)
-        {
-        }
-        [KernelFunction]
-        [Description("Search an offer by name")]
-        public async Task<Offer> GetOfferDetailsByName(string offerName)
-        {
-            _logger.LogTrace($"Fetching Offer by name");
-            return await _bankService.GetOfferDetailsByNameAsync(_tenantId, offerName);
-        }
-        [KernelFunction]
-        [Description("Search offer terms of all available offers using vector search")]
-        public async Task<List<OfferTerm>> SearchOfferTerms(AccountType accountType, string requirementDescription)
-        {
-            _logger.LogTrace($"Searching terms of all available offers matching '{requirementDescription}'");
-            return await _bankService.SearchOfferTermsAsync(_tenantId, accountType, requirementDescription);
-        }
-
-        [KernelFunction]
-        [Description("Get detail for an offer")]
-        public async Task<Offer> GetOfferDetails(string offerId)
-        {
-            _logger.LogTrace($"Fetching Offer");
-            return await _bankService.GetOfferDetailsAsync(_tenantId, offerId);
-        }
-    }
-}
-```
-
-</details>
-
-<details>
-  <summary>Completed code for <strong>ChatInfrastructure/Plugins/CustomerSupportPlugin.cs</strong></summary>
-
-<br>
-
-```csharp
-using BankingServices.Interfaces;
-using Microsoft.Extensions.Logging;
-using Microsoft.SemanticKernel;
-using System.ComponentModel;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.AccessControl;
-using System.Text;
-using System.Threading.Tasks;
-using MultiAgentCopilot.Common.Models.Banking;
-
-namespace MultiAgentCopilot.ChatInfrastructure.Plugins
-{
-    public class CustomerSupportPlugin : BasePlugin
-    {
-        public CustomerSupportPlugin(ILogger<BasePlugin> logger, IBankDataService bankService, string tenantId, string userId)
-          : base(logger, bankService, tenantId, userId)
-        {
-        }
-
-        [KernelFunction("IsAccountRegisteredToUser")]
-        [Description("Check if account is registered to user")]
-        public async Task<bool> IsAccountRegisteredToUser(string accountId)
-        {
-            _logger.LogTrace($"Validating account for Tenant: {_tenantId} User ID: {_userId}- {accountId}");
-            var accountDetails = await _bankService.GetAccountDetailsAsync(_tenantId, _userId, accountId);
-            return accountDetails != null;
-        }
-
-        [KernelFunction]
-        [Description("Create new complaint")]
-        public async Task<ServiceRequest> CreateComplaint(string accountId, string requestAnnotation)
-        {
-            _logger.LogTrace($"Adding new service request for Tenant: {_tenantId} User: {_userId}, Account: {accountId}");
-            return await _bankService.CreateComplaintAsync(_tenantId, accountId, _userId, requestAnnotation);
-        }
-    }
-}
-```
-
-</details>
-
-<details>
-  <summary>Completed code for <strong>ChatInfrastructure/Plugins/TransactionPlugin.cs</strong></summary>
-
-<br>
-
-```csharp
-using Microsoft.Extensions.Logging;
-using Microsoft.SemanticKernel;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Transactions;
-using MultiAgentCopilot.Common.Models.Banking;
-using BankingServices.Interfaces;
-
-namespace MultiAgentCopilot.ChatInfrastructure.Plugins
-{
-    public class TransactionPlugin : BasePlugin
-    {
-        public TransactionPlugin(ILogger<BasePlugin> logger, IBankDataService bankService, string tenantId, string userId)
-         : base(logger, bankService, tenantId, userId)
-        {
-        }
-
-        [KernelFunction]
-        [Description("Adds a new Account Transaction request")]
-        public async Task<ServiceRequest> AddFunTransferRequest(
-           string debitAccountId,
-           decimal amount,
-           string requestAnnotation,
-           string? recipientPhoneNumber = null,
-           string? recipientEmailId = null)
-        {
-            _logger.LogTrace("Adding AccountTransaction request for User ID: {UserId}, Debit Account: {DebitAccountId}", _userId, debitAccountId);
-
-            // Ensure non-null values for recipientEmailId and recipientPhoneNumber
-            string emailId = recipientEmailId ?? string.Empty;
-            string phoneNumber = recipientPhoneNumber ?? string.Empty;
-
-            return await _bankService.CreateFundTransferRequestAsync(_tenantId, debitAccountId, _userId, requestAnnotation, emailId, phoneNumber, amount);
-        }
-
-        [KernelFunction]
-        [Description("Get the transactions history between 2 dates")]
-        public async Task<List<BankTransaction>> GetTransactionHistory(string accountId, DateTime startDate, DateTime endDate)
-        {
-            _logger.LogTrace("Fetching AccountTransaction history for Account: {AccountId}, From: {StartDate} To: {EndDate}", accountId, startDate, endDate);
-            return await _bankService.GetTransactionsAsync(_tenantId, accountId, startDate, endDate);
-        }
-    }
-}
-```
-
-</details>
-
-<details>
-  <summary>Completed code for <strong>ChatInfrastructure/Factories/PluginFactory.cs</strong></summary>
-
-<br>
-
-```csharp
-using Microsoft.SemanticKernel;
-using MultiAgentCopilot.ChatInfrastructure.Services;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
-using MultiAgentCopilot.ChatInfrastructure.Plugins;
-using BankingServices.Interfaces;
-using MultiAgentCopilot.ChatInfrastructure.Models;
-
-namespace MultiAgentCopilot.ChatInfrastructure.Factories
-{
-    internal static class PluginFactory
-    {
-        internal static Kernel GetAgentKernel(Kernel kernel, AgentType agentType, ILoggerFactory loggerFactory, IBankDataService bankService, string tenantId, string userId)
+        private Kernel GetAgentKernel(Kernel kernel, AgentType agentType, ILoggerFactory loggerFactory, BankingDataService bankService, string tenantId, string userId)
         {
             Kernel agentKernel = kernel.Clone();
             switch (agentType)
@@ -866,258 +795,124 @@ namespace MultiAgentCopilot.ChatInfrastructure.Factories
             return agentKernel;
         }
     }
-}
+}        
 ```
 
 </details>
 
 <details>
-  <summary>Completed code for <strong>ChatInfrastructure/Factories/ChatFactory.cs</strong></summary>
-
+  <summary>Completed code for <strong>\AgentPlugins\TransactionPlugin.cs</strong></summary>
 <br>
 
 ```csharp
-using BankingServices.Interfaces;
-using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Agents;
-using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
-using MultiAgentCopilot.ChatInfrastructure.Models;
+using System.ComponentModel;
+using MultiAgentCopilot.Models.Banking;
+using MultiAgentCopilot.Services;
 
-namespace MultiAgentCopilot.ChatInfrastructure.Factories
+namespace MultiAgentCopilot.Plugins
 {
-    internal class ChatFactory
+    public class TransactionPlugin : BasePlugin
     {
-        public delegate void LogCallback(string key, string value);
-
-        public ChatCompletionAgent BuildAgent(Kernel kernel, AgentType agentType, ILoggerFactory loggerFactory, IBankDataService bankService, string tenantId, string userId)
+        public TransactionPlugin(ILogger<BasePlugin> logger, BankingDataService bankService, string tenantId, string userId)
+         : base(logger, bankService, tenantId, userId)
         {
-            ChatCompletionAgent agent = new ChatCompletionAgent
-            {
-                Name = SystemPromptFactory.GetAgentName(agentType),
-                Instructions = $"""{SystemPromptFactory.GetAgentPrompts(agentType)}""",
-                Kernel = PluginFactory.GetAgentKernel(kernel, agentType, loggerFactory, bankService, tenantId, userId),
-                Arguments = new KernelArguments(new AzureOpenAIPromptExecutionSettings() { FunctionChoiceBehavior = FunctionChoiceBehavior.Auto() })
-            };
+        }
 
-            return agent;
+        [KernelFunction]
+        [Description("Adds a new Account Transaction request")]
+        public async Task<ServiceRequest> AddFunTransferRequest(
+            string debitAccountId,
+            decimal amount,
+            string requestAnnotation,
+            string? recipientPhoneNumber = null,
+            string? recipientEmailId = null)
+        {
+            _logger.LogTrace("Adding AccountTransaction request for User ID: {UserId}, Debit Account: {DebitAccountId}", _userId, debitAccountId);
+
+            // Ensure non-null values for recipientEmailId and recipientPhoneNumber
+            string emailId = recipientEmailId ?? string.Empty;
+            string phoneNumber = recipientPhoneNumber ?? string.Empty;
+
+            return await _bankService.CreateFundTransferRequestAsync(_tenantId, debitAccountId, _userId, requestAnnotation, emailId, phoneNumber, amount);
+        }
+
+        [KernelFunction]
+        [Description("Get the transactions history between 2 dates")]
+        public async Task<List<BankTransaction>> GetTransactionHistory(string accountId, DateTime startDate, DateTime endDate)
+        {
+            _logger.LogTrace("Fetching AccountTransaction history for Account: {AccountId}, From: {StartDate} To: {EndDate}", accountId, startDate, endDate);
+            return await _bankService.GetTransactionsAsync(_tenantId, accountId, startDate, endDate);
         }
     }
-}
+} 
+    
 ```
 
 </details>
 
 <details>
-  <summary>Completed code for <strong>ChatInfrastructure/Services/ChatService.cs</strong></summary>
-
+  <summary>Completed code for <strong>\AgentPlugins\SalesPlugin.cs</strong></summary>
 <br>
 
 ```csharp
-using MultiAgentCopilot.Common.Models.Chat;
-using MultiAgentCopilot.ChatInfrastructure.Interfaces;
-using Microsoft.Extensions.Logging;
-using Microsoft.SemanticKernel.ChatCompletion;
-using MultiAgentCopilot.Common.Models.Debug;
-using System.Collections.Generic;
-using Microsoft.Extensions.Options;
-using MultiAgentCopilot.Common.Models.Configuration;
-using Newtonsoft.Json.Linq;
-using System.Text.Json;
-using Newtonsoft.Json;
-using Microsoft.Identity.Client;
-using BankingServices.Interfaces;
-using BankingServices.Services;
+using Microsoft.SemanticKernel;
+using System.ComponentModel;
+using  MultiAgentCopilot.Models.Banking;
+using MultiAgentCopilot.Services;
 
-namespace MultiAgentCopilot.ChatInfrastructure.Services;
-
-public class ChatService : IChatService
+namespace MultiAgentCopilot.Plugins
 {
-    private readonly ICosmosDBService _cosmosDBService;
-    private readonly ILogger _logger;
-    private readonly IBankDataService _bankService;
-    private readonly ISemanticKernelService _skService;
-
-    public ChatService(
-        IOptions<CosmosDBSettings> cosmosOptions,
-        IOptions<SemanticKernelServiceSettings> skOptions,
-        ICosmosDBService cosmosDBService,
-        ISemanticKernelService skService,
-        ILoggerFactory loggerFactory)
+    internal class SalesPlugin : BasePlugin
     {
-        _cosmosDBService = cosmosDBService;
-        _skService = skService;
-        _bankService = new BankingDataService(cosmosOptions.Value, skOptions.Value, loggerFactory);
-        _logger = loggerFactory.CreateLogger<ChatService>();
-    }
-
-    /// <summary>
-    /// Returns list of chat session ids and names.
-    /// </summary>
-    public async Task<List<Session>> GetAllChatSessionsAsync(string tenantId, string userId)
-    {
-        return await _cosmosDBService.GetUserSessionsAsync(tenantId, userId);
-    }
-
-    /// <summary>
-    /// Returns the chat messages related to an existing session.
-    /// </summary>
-    public async Task<List<Message>> GetChatSessionMessagesAsync(string tenantId, string userId,string sessionId)
-    {
-        ArgumentNullException.ThrowIfNull(sessionId);
-        return await _cosmosDBService.GetSessionMessagesAsync(tenantId,userId,sessionId);
-    }
-
-    /// <summary>
-    /// Creates a new chat session.
-    /// </summary>
-    public async Task<Session> CreateNewChatSessionAsync(string tenantId, string userId)
-    {
-        Session session = new(tenantId, userId);
-        return await _cosmosDBService.InsertSessionAsync(session);
-    }
-
-    /// <summary>
-    /// Rename the chat session from its default (eg., "New Chat") to the summary provided by OpenAI.
-    /// </summary>
-    public async Task<Session> RenameChatSessionAsync(string tenantId, string userId,string sessionId, string newChatSessionName)
-    {
-        ArgumentNullException.ThrowIfNull(sessionId);
-        ArgumentException.ThrowIfNullOrEmpty(newChatSessionName);
-
-        return await _cosmosDBService.UpdateSessionNameAsync( tenantId, userId,sessionId, newChatSessionName);
-    }
-
-    /// <summary>
-    /// Delete a chat session and related messages.
-    /// </summary>
-    public async Task DeleteChatSessionAsync(string tenantId, string userId,string sessionId)
-    {
-        ArgumentNullException.ThrowIfNull(sessionId);
-        await _cosmosDBService.DeleteSessionAndMessagesAsync(tenantId, userId,sessionId);
-    }
-
-    /// <summary>
-    /// Receive a prompt from a user, vectorize it from the OpenAI service, and get a completion from the OpenAI service.
-    /// </summary>
-    public async Task<List<Message>> GetChatCompletionAsync(string tenantId, string userId, string? sessionId, string userPrompt)
-    {
-        try
+        public SalesPlugin(ILogger<BasePlugin> logger, BankingDataService bankService, string tenantId, string userId )
+            : base(logger, bankService, tenantId, userId)
         {
-            ArgumentNullException.ThrowIfNull(sessionId);
-
-            // Retrieve conversation, including latest prompt.
-            var archivedMessages = await _cosmosDBService.GetSessionMessagesAsync(tenantId, userId, sessionId);
-
-            // Add both prompt and completion to cache, then persist in Cosmos DB
-            var userMessage = new Message(tenantId, userId, sessionId, "User", "User", userPrompt);
-
-            // Generate the completion to return to the user
-            var result = await _skService.GetResponse(userMessage, archivedMessages, _bankService, tenantId, userId);
-
-            await AddPromptCompletionMessagesAsync(tenantId, userId, sessionId, userMessage, result.Item1, result.Item2);
-
-            return result.Item1;
         }
-        catch (Exception ex)
+               
+
+        [KernelFunction]
+        [Description("Register a new account.")]
+        public async Task<ServiceRequest> RegisterAccount(string userId, AccountType accType, Dictionary<string,string> fulfilmentDetails)
         {
-            _logger.LogError(ex, $"Error getting completion in session {sessionId} for user prompt [{userPrompt}].");
-            return new List<Message> { new Message(tenantId, userId, sessionId!, "Error", "Error", $"Error getting completion in session {sessionId} for user prompt [{userPrompt}].") };
+            _logger.LogTrace($"Registering Account. User ID: {userId}, Account Type: {accType}");
+            return await _bankService.CreateFulfilmentRequestAsync(_tenantId, string.Empty,_userId,string.Empty,fulfilmentDetails);
+        }
+
+        [KernelFunction]
+        [Description("Search offer terms of all available offers using vector search")]
+        public async Task<List<OfferTerm>> SearchOfferTerms(AccountType accountType, string requirementDescription)
+        {
+            _logger.LogTrace($"Searching terms of all available offers matching '{requirementDescription}'");
+            return await _bankService.SearchOfferTermsAsync(_tenantId, accountType, requirementDescription);
+        }
+
+        [KernelFunction]
+        [Description("Get detail for an offer")]
+        public async Task<Offer> GetOfferDetails(string offerId)
+        {
+            _logger.LogTrace($"Fetching Offer");
+            return await _bankService.GetOfferDetailsAsync(_tenantId, offerId);
         }
     }
-
-    /// <summary>
-    /// Generate a name for a chat message, based on the passed in prompt.
-    /// </summary>
-    public async Task<string> SummarizeChatSessionNameAsync(string tenantId, string userId, string? sessionId, string prompt)
-    {
-        try
-        {
-            ArgumentNullException.ThrowIfNull(sessionId);
-
-            var summary = await _skService.Summarize(sessionId, prompt);
-
-            var session = await RenameChatSessionAsync(tenantId, userId, sessionId, summary);
-
-            return session.Name;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, $"Error getting a summary in session {sessionId} for user prompt [{prompt}].");
-            return $"Error getting a summary in session {sessionId} for user prompt [{prompt}].";
-        }
-    }
-
-
-    /// <summary>
-    /// Rate an assistant message. This can be used to discover useful AI responses for training, discoverability, and other benefits down the road.
-    /// </summary>
-    public async Task<Message> RateChatCompletionAsync(string tenantId, string userId,string messageId, string sessionId, bool? rating)
-    {
-        ArgumentNullException.ThrowIfNull(messageId);
-        ArgumentNullException.ThrowIfNull(sessionId);
-
-        return await _cosmosDBService.UpdateMessageRatingAsync(tenantId,userId, sessionId, messageId,rating);
-    }
-
-    public async Task<DebugLog> GetChatCompletionDebugLogAsync(string tenantId, string userId,string sessionId, string debugLogId)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(sessionId);
-        ArgumentException.ThrowIfNullOrEmpty(debugLogId);
-
-        return await _cosmosDBService.GetChatCompletionDebugLogAsync(tenantId,userId, sessionId, debugLogId);
-    }
-
-
-    public async Task<bool> AddDocument(string containerName, JsonElement document)
-    {
-        try
-        {
-            // Extract raw JSON from JsonElement
-            var json = document.GetRawText();
-            var docJObject = JsonConvert.DeserializeObject<JObject>(json);
-
-            // Ensure "id" exists
-            if (!docJObject.ContainsKey("id"))
-            {
-                throw new ArgumentException("Document must contain an 'id' property.");
-            }
-           
-            return await _cosmosDBService.InsertDocumentAsync(containerName, docJObject);
-
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, $"Error adding document to container {containerName}.");
-            return false;
-        }
-    }
-    /// <summary>
-    /// Add user prompt and AI assistance response to the chat session message list object and insert into the data service as a transaction.
-    /// </summary>
-    private async Task AddPromptCompletionMessagesAsync(string tenantId, string userId, string sessionId, Message promptMessage, List<Message> completionMessages, List<DebugLog> completionMessageLogs)
-    {
-        var session = await _cosmosDBService.GetSessionAsync(tenantId, userId, sessionId);
-
-        completionMessages.Insert(0, promptMessage);
-        await _cosmosDBService.UpsertSessionBatchAsync(completionMessages, completionMessageLogs, session);
-    }
-}
+}   
+    
 ```
 
 </details>
 
 <details>
-  <summary>Completed code for <strong>Common/Models/Banking/OfferTerm.cs</strong></summary>
-
+  <summary>Completed code for <strong>\Models\Banking\OfferTerm.cs</strong></summary>
 <br>
 
 ```csharp
 using Microsoft.Extensions.VectorData;
-namespace MultiAgentCopilot.Common.Models.Banking
+
+namespace MultiAgentCopilot.Models.Banking
 {
     public class OfferTerm
     {
+
         [VectorStoreRecordKey]
         public required string Id { get; set; }
 
@@ -1141,133 +936,85 @@ namespace MultiAgentCopilot.Common.Models.Banking
 
         [VectorStoreRecordVector(Dimensions: 1536, DistanceFunction: DistanceFunction.CosineSimilarity, IndexKind: IndexKind.QuantizedFlat)]
         public ReadOnlyMemory<float>? Vector { get; set; }
+
     }
-}
+} 
+    
 ```
 
 </details>
 
 <details>
-  <summary>Completed code for <strong>BankingServices/Interfaces/IBankDataService.cs</strong></summary>
-
-<br>
-
-```csharp
-using Microsoft.Azure.Cosmos;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using MultiAgentCopilot.Common.Models.Banking;
-
-namespace BankingServices.Interfaces
-{
-    public interface IBankDataService
-    {
-        Task<BankUser> GetUserAsync(string tenantId, string userId);
-        Task<BankAccount> GetAccountDetailsAsync(string tenantId, string userId, string accountId);
-        Task<List<BankAccount>> GetUserRegisteredAccountsAsync(string tenantId, string userId);
-        Task<List<BankTransaction>> GetTransactionsAsync(string tenantId, string accountId, DateTime startDate, DateTime endDate);
-        Task<ServiceRequest> CreateFundTransferRequestAsync(string tenantId, string accountId, string userId, string requestAnnotation, string recipientEmail, string recipientPhone, decimal debitAmount);
-        Task<ServiceRequest> CreateTeleBankerRequestAsync(string tenantId, string accountId, string userId, string requestAnnotation, DateTime scheduledDateTime);
-        Task<ServiceRequest> CreateComplaintAsync(string tenantId, string accountId, string userId, string requestAnnotation);
-        Task<ServiceRequest> CreateFulfilmentRequestAsync(string tenantId, string accountId, string userId, string requestAnnotation, Dictionary<string, string> fulfilmentDetails);
-        Task<List<ServiceRequest>> GetServiceRequestsAsync(string tenantId, string accountId, string? userId = null, ServiceRequestType? SRType = null);
-        Task<bool> AddServiceRequestDescriptionAsync(string tenantId, string accountId, string requestId, string annotationToAdd);
-        Task<Offer> GetOfferDetailsByNameAsync(string tenantId, string offerName);
-        Task<String> GetTeleBankerAvailabilityAsync();
-        Task<List<OfferTerm>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription);
-        Task<Offer> GetOfferDetailsAsync(string tenantId, string offerId);
-    }
-}
-```
-
-</details>
-
-<details>
-  <summary>Completed code for <strong>BankingServices/Services/BankingDataService.cs</strong></summary>
-
+  <summary>Completed code for <strong>\Services\BankingDataService.cs</strong></summary>
 <br>
 
 ```csharp
 using System.Diagnostics;
-using System.Text;
-using System.Text.Json;
-using Azure.Identity;
-
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.VectorData;
-
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Fluent;
 using Container = Microsoft.Azure.Cosmos.Container;
+using Azure.Identity;
+using System.Text;
+using MultiAgentCopilot.Helper;
+using MultiAgentCopilot.Models.Configuration;
+using MultiAgentCopilot.Models.Banking;
+
 using PartitionKey = Microsoft.Azure.Cosmos.PartitionKey;
 
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Connectors.AzureCosmosDBNoSQL;
+
+using System.Text.Json;
+
 using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
+using Microsoft.Extensions.VectorData;
+using System.Linq.Expressions; 
 
-using MultiAgentCopilot.Common.Helper;
-using MultiAgentCopilot.Common.Models.Banking;
-using MultiAgentCopilot.Common.Models.Configuration;
-using BankingServices.Interfaces;
 
-namespace BankingServices.Services
+namespace  MultiAgentCopilot.Services
 {
-    public class BankingDataService: IBankDataService
+    public class BankingDataService
     {
         private readonly Container _accountData;
         private readonly Container _userData;
         private readonly Container _requestData;
         private readonly Container _offerData;
 
-        private readonly Database _database;
-        private readonly CosmosDBSettings _settings;
-        private readonly ILogger _logger;
-
         private readonly AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm> _offerDataVectorStore;
         private readonly AzureOpenAITextEmbeddingGenerationService _textEmbeddingGenerationService;
+
+        private readonly Database _database;
+
+        private readonly ILogger _logger;
 
         public bool IsInitialized { get; private set; }
 
         readonly Kernel _semanticKernel;
 
+
+
+
         public BankingDataService(
-            CosmosDBSettings settings,
-            SemanticKernelServiceSettings skSettings,
-            ILoggerFactory loggerFactory )
+           Database database, Container accountData, Container userData, Container requestData, Container offerData,
+           SemanticKernelServiceSettings skSettings,
+           ILoggerFactory loggerFactory)
         {
-            _settings = settings; 
-            ArgumentException.ThrowIfNullOrEmpty(_settings.CosmosUri);
+
+            _database = database;
+            _accountData = accountData;
+            _userData = userData;
+            _requestData = requestData;
+            _offerData = offerData;
 
             _logger = loggerFactory.CreateLogger<BankingDataService>();
 
             _logger.LogInformation("Initializing Banking service.");
 
-            if (!_settings.EnableTracing)
-            {
-                Type? defaultTrace = Type.GetType("Microsoft.Azure.Cosmos.Core.Trace.DefaultTrace,Microsoft.Azure.Cosmos.Direct");
-               
-                if (defaultTrace != null)
-                {
-                    TraceSource? traceSource = (TraceSource?)defaultTrace.GetProperty("TraceSource")?.GetValue(null);
-                    if (traceSource != null)
-                    {
-                        traceSource.Switch.Level = SourceLevels.All;
-                        traceSource.Listeners.Clear();
-                    }
-                }                 
-            }
 
-            CosmosSerializationOptions options = new()
-            {
-                PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase
-            };
+            //To DO: Add vector search initialization code here
 
             DefaultAzureCredential credential;
-            if (string.IsNullOrEmpty(_settings.UserAssignedIdentityClientID))
+            if (string.IsNullOrEmpty(skSettings.AzureOpenAISettings.UserAssignedIdentityClientID))
             {
                 credential = new DefaultAzureCredential();
             }
@@ -1275,95 +1022,24 @@ namespace BankingServices.Services
             {
                 credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
                 {
-                    ManagedIdentityClientId = _settings.UserAssignedIdentityClientID
+                    ManagedIdentityClientId = skSettings.AzureOpenAISettings.UserAssignedIdentityClientID
                 });
+
             }
 
-            var jsonSerializerOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-
-            CosmosClient client = new CosmosClientBuilder(_settings.CosmosUri, credential)
-                .WithSystemTextJsonSerializerOptions(jsonSerializerOptions)
-                .WithConnectionModeGateway()
-            .Build();
-
-            _database = client?.GetDatabase(_settings.Database) ??
-                        throw new ArgumentException("Unable to connect to existing Azure Cosmos DB database.");
-
-            _accountData = _database.GetContainer(_settings.AccountsContainer.Trim());
-            _userData = _database.GetContainer(_settings.UserDataContainer.Trim());
-            _requestData = _database.GetContainer(_settings.RequestDataContainer.Trim());
-            _offerData= _database.GetContainer(_settings.OfferDataContainer.Trim());
-
-            _logger.LogInformation("Banking service initialized for Cosmos DB.");
-
-            // Set up Semantic Kernel with Azure OpenAI and Managed Identity
-            var builder = Kernel.CreateBuilder();
-
-            builder.Services.AddSingleton<ILoggerFactory>(loggerFactory);
-
-            _semanticKernel = builder.Build();
-
             _textEmbeddingGenerationService = new(
-                deploymentName: skSettings.AzureOpenAISettings.EmbeddingsDeployment,
-                endpoint: skSettings.AzureOpenAISettings.Endpoint,
-                credential: credential);
+                    deploymentName: skSettings.AzureOpenAISettings.EmbeddingsDeployment, // Name of deployment, e.g. "text-embedding-ada-002".
+                    endpoint: skSettings.AzureOpenAISettings.Endpoint,           // Name of Azure OpenAI service endpoint, e.g. https://myaiservice.openai.azure.com.
+                    credential: credential);
 
+            var jsonSerializerOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
             var vectorStoreOptions = new AzureCosmosDBNoSQLVectorStoreRecordCollectionOptions<OfferTerm> { PartitionKeyPropertyName = "TenantId", JsonSerializerOptions = jsonSerializerOptions };
-            _offerDataVectorStore = new AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm>(_database, _settings.OfferDataContainer.Trim(), vectorStoreOptions);
+            _offerDataVectorStore = new AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm>(_database, _offerData.Id, vectorStoreOptions);
 
             _logger.LogInformation("Banking service initialized.");
         }
 
-        public async Task<List<OfferTerm>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription)
-        {
-            try
-            {
-                // Generate Embedding
-                ReadOnlyMemory<float> embedding = (await _textEmbeddingGenerationService.GenerateEmbeddingsAsync(
-                       new[] { requirementDescription }
-                   )).FirstOrDefault();
-
-                // perform vector search
-                var filter = new VectorSearchFilter()
-                    .EqualTo("TenantId", tenantId)
-                    .EqualTo("Type", "Term")
-                    .EqualTo("AccountType", "Savings");
-                var options = new VectorSearchOptions { VectorPropertyName = "Vector", Filter = filter, Top = 10, IncludeVectors = false };
-
-                var searchResults = await _offerDataVectorStore.VectorizedSearchAsync(embedding, options);
-
-                List<OfferTerm> offerTerms = new();
-                await foreach (var result in searchResults.Results)
-                {
-                    offerTerms.Add(result.Record);
-                }
-                return offerTerms;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex.ToString());
-                return new List<OfferTerm>();
-            }
-        }
-
-        public async Task<Offer> GetOfferDetailsAsync(string tenantId, string offerId)
-        {
-            try
-            {
-                var partitionKey = new PartitionKey(tenantId);
-
-                return await _offerData.ReadItemAsync<Offer>(
-                       id: offerId,
-                       partitionKey: new PartitionKey(tenantId));
-            }
-            catch (CosmosException ex)
-            {
-                _logger.LogError(ex.ToString());
-                return null;
-            }
-        }
-
-        public async Task<BankUser> GetUserAsync(string tenantId, string userId)
+        public async Task<BankUser> GetUserAsync(string tenantId,string userId)
         {
             try
             {
@@ -1379,6 +1055,7 @@ namespace BankingServices.Services
                 return null;
             }
         }
+
 
         public async Task<List<BankAccount>> GetUserRegisteredAccountsAsync(string tenantId, string userId)
         {
@@ -1406,6 +1083,7 @@ namespace BankingServices.Services
                 return null;
             }
         }
+
 
         public async Task<BankAccount> GetAccountDetailsAsync(string tenantId, string userId, string accountId)
         {
@@ -1442,7 +1120,6 @@ namespace BankingServices.Services
                 {
                     while (feedIterator.HasMoreResults)
                     {
-                        //var abc= await feedIterator.ReadNextAsync();
                         FeedResponse<BankTransaction> response = await feedIterator.ReadNextAsync();
                         transactions.AddRange(response);
                     }
@@ -1459,13 +1136,13 @@ namespace BankingServices.Services
 
         public async Task<ServiceRequest> CreateFundTransferRequestAsync(string tenantId, string accountId, string userId, string requestAnnotation, string recipientEmail, string recipientPhone, decimal debitAmount)
         {
-            var req = new ServiceRequest(ServiceRequestType.FundTransfer, tenantId, accountId, userId, requestAnnotation, recipientEmail, recipientPhone, debitAmount, DateTime.MinValue, null);
+            var req= new ServiceRequest(ServiceRequestType.FundTransfer, tenantId, accountId, userId, requestAnnotation, recipientEmail, recipientPhone, debitAmount,  DateTime.MinValue,null);
             return await AddServiceRequestAsync(req);
         }
 
         public async Task<ServiceRequest> CreateTeleBankerRequestAsync(string tenantId, string accountId, string userId, string requestAnnotation, DateTime scheduledDateTime)
         {
-            var req = new ServiceRequest(ServiceRequestType.TeleBankerCallBack, tenantId, accountId, userId, requestAnnotation, string.Empty, string.Empty, 0, scheduledDateTime, null);
+            var req = new ServiceRequest(ServiceRequestType.TeleBankerCallBack, tenantId, accountId, userId, requestAnnotation, string.Empty, string.Empty, 0,  scheduledDateTime,null);
             return await AddServiceRequestAsync(req);
         }
 
@@ -1476,36 +1153,39 @@ namespace BankingServices.Services
 
         public async Task<ServiceRequest> CreateComplaintAsync(string tenantId, string accountId, string userId, string requestAnnotation)
         {
-            var req = new ServiceRequest(ServiceRequestType.Complaint, tenantId, accountId, userId, requestAnnotation, string.Empty, string.Empty, 0, DateTime.MinValue, null);
+            var req = new ServiceRequest(ServiceRequestType.Complaint, tenantId, accountId, userId, requestAnnotation, string.Empty, string.Empty, 0,  DateTime.MinValue, null);
             return await AddServiceRequestAsync(req);
         }
 
-        public async Task<ServiceRequest> CreateFulfilmentRequestAsync(string tenantId, string accountId, string userId, string requestAnnotation, Dictionary<string, string> fulfilmentDetails)
+        public async Task<ServiceRequest> CreateFulfilmentRequestAsync(string tenantId, string accountId, string userId, string requestAnnotation, Dictionary<string,string> fulfilmentDetails)
         {
-            var req = new ServiceRequest(ServiceRequestType.Fulfilment, tenantId, accountId, userId, requestAnnotation, string.Empty, string.Empty, 0, DateTime.MinValue, fulfilmentDetails);
+            var req = new ServiceRequest(ServiceRequestType.Fulfilment, tenantId, accountId, userId, requestAnnotation, string.Empty, string.Empty, 0,  DateTime.MinValue, fulfilmentDetails);
             return await AddServiceRequestAsync(req);
         }
+
 
         private async Task<ServiceRequest> AddServiceRequestAsync(ServiceRequest req)
         {
             try
             {
-                var partitionKey = PartitionManager.GetAccountsDataFullPK(req.TenantId, req.AccountId);
+                var partitionKey = PartitionManager.GetAccountsDataFullPK(req.TenantId,req.AccountId);
                 ItemResponse<ServiceRequest> response = await _accountData.CreateItemAsync(req, partitionKey);
                 return response.Resource;
             }
-            catch (CosmosException ex)
+            catch (CosmosException ex) 
             {
                 _logger.LogError(ex.ToString());
                 return null;
             }
         }
 
+
         public async Task<List<ServiceRequest>> GetServiceRequestsAsync(string tenantId, string accountId, string? userId = null, ServiceRequestType? SRType = null)
         {
             try
             {
                 var partitionKey = PartitionManager.GetAccountsDataFullPK(tenantId, accountId);
+
                 var queryBuilder = new StringBuilder("SELECT * FROM c WHERE c.type = @type");
                 var queryDefinition = new QueryDefinition(queryBuilder.ToString())
                       .WithParameter("@type", nameof(ServiceRequest));
@@ -1521,6 +1201,7 @@ namespace BankingServices.Services
                     queryBuilder.Append(" AND c.SRType = @SRType");
                     queryDefinition = queryDefinition.WithParameter("@SRType", SRType);
                 }
+
 
                 List<ServiceRequest> reqs = new List<ServiceRequest>();
                 using (FeedIterator<ServiceRequest> feedIterator = _requestData.GetItemQueryIterator<ServiceRequest>(queryDefinition, requestOptions: new QueryRequestOptions { PartitionKey = partitionKey }))
@@ -1541,11 +1222,14 @@ namespace BankingServices.Services
             }
         }
 
+
+
         public async Task<bool> AddServiceRequestDescriptionAsync(string tenantId, string accountId, string requestId, string annotationToAdd)
         {
             try
             {
                 var partitionKey = PartitionManager.GetAccountsDataFullPK(tenantId, accountId);
+
                 var patchOperations = new List<PatchOperation>
                 {
                     PatchOperation.Add("/requestAnnotations/-", $"[{DateTime.Now.ToUniversalTime().ToString()}] : {annotationToAdd}")
@@ -1566,24 +1250,58 @@ namespace BankingServices.Services
             }
         }
 
-        public async Task<Offer> GetOfferDetailsByNameAsync(string tenantId, string offerName)
+        public async Task<List<OfferTerm>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription)
         {
             try
             {
-                QueryDefinition query = new QueryDefinition("SELECT * FROM c WHERE c.name = @offerName and c.type='Offer'")
-                     .WithParameter("@offerName", offerName);
+                // Generate Embedding
+                ReadOnlyMemory<float> embedding = (await _textEmbeddingGenerationService.GenerateEmbeddingsAsync(
+                       new[] { requirementDescription }
+                   )).FirstOrDefault();
 
-                var partitionKey = new PartitionKey(tenantId);
-                FeedIterator<Offer> response = _offerData.GetItemQueryIterator<Offer>(query, null, new QueryRequestOptions() { PartitionKey = partitionKey });
 
-                await response.ReadNextAsync();
+                string accountTypeString = accountType.ToString();
 
-                while (response.HasMoreResults)
+                // filters as LINQ expression
+                Expression<Func<OfferTerm, bool>> linqFilter = term =>
+                    term.TenantId == tenantId &&
+                    term.Type == "Term" &&
+                    term.AccountType == "Savings";
+
+                var options = new VectorSearchOptions<OfferTerm>
                 {
-                    FeedResponse<Offer> results = await response.ReadNextAsync();
-                    return results.FirstOrDefault();
+                    VectorProperty = term => term.Vector, // Correctly specify the vector property as a lambda expression
+                    Filter = linqFilter, // Use the LINQ expression here
+                    Top = 10,
+                    IncludeVectors = false
+                };
+
+
+                var searchResults = await _offerDataVectorStore.VectorizedSearchAsync(embedding, options);
+
+                List<OfferTerm> offerTerms = new();
+                await foreach (var result in searchResults.Results)
+                {
+                    offerTerms.Add(result.Record);
                 }
-                return null;
+                return offerTerms;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.ToString());
+                return new List<OfferTerm>();
+            }
+        }
+
+        public async Task<Offer> GetOfferDetailsAsync(string tenantId, string offerId)
+        {
+            try
+            {
+                var partitionKey = new PartitionKey(tenantId);
+
+                return await _offerData.ReadItemAsync<Offer>(
+                       id: offerId,
+                       partitionKey: new PartitionKey(tenantId));
             }
             catch (CosmosException ex)
             {
@@ -1591,229 +1309,15 @@ namespace BankingServices.Services
                 return null;
             }
         }
+
+
     }
-}
+}   
+    
 ```
 
 </details>
 
-<details>
-  <summary>Completed code for <strong>ChatInfrastructure/Interfaces/ISemanticKernelService.cs</strong></summary>
-
-<br>
-
-```csharp
-using BankingServices.Interfaces;
-using MultiAgentCopilot.Common.Models.Chat;
-using MultiAgentCopilot.Common.Models.Debug;
-
-namespace MultiAgentCopilot.ChatInfrastructure.Interfaces
-{
-    public interface ISemanticKernelService
-    {
-        Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, IBankDataService bankService, string tenantId, string userId);
-        Task<string> Summarize(string sessionId, string userPrompt);
-        Task<float[]> GenerateEmbedding(string text);
-    }
-}
-```
-
-</details>
-
-<details>
-  <summary>Completed code for <strong>ChatInfrastructure/Services/SemanticKernelService.cs</strong></summary>
-
-<br>
-
-```csharp
-using System;
-using System.Runtime;
-using System.Data;
-using Newtonsoft.Json;
-using Azure.Identity;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Agents;
-using Microsoft.SemanticKernel.Connectors.OpenAI;
-using Microsoft.SemanticKernel.ChatCompletion;
-using Microsoft.SemanticKernel.Embeddings;
-
-using MultiAgentCopilot.Common.Models.Chat;
-using MultiAgentCopilot.ChatInfrastructure.Interfaces;
-using MultiAgentCopilot.Common.Models.Configuration;
-using MultiAgentCopilot.Common.Models.Debug;
-using Message = MultiAgentCopilot.Common.Models.Chat.Message;
-using MultiAgentCopilot.ChatInfrastructure.Factories;
-
-using MultiAgentCopilot.ChatInfrastructure.Models;
-using BankingServices.Interfaces;
-
-namespace MultiAgentCopilot.ChatInfrastructure.Services;
-
-public class SemanticKernelService : ISemanticKernelService, IDisposable
-{
-    readonly SemanticKernelServiceSettings _settings;
-    readonly ILoggerFactory _loggerFactory;
-    readonly ILogger<SemanticKernelService> _logger;
-    readonly Kernel _semanticKernel;
-
-    bool _serviceInitialized = false;
-    string _prompt = string.Empty;
-    string _contextSelectorPrompt = string.Empty;
-
-    List<LogProperty> _promptDebugProperties;
-
-    public bool IsInitialized => _serviceInitialized;
-
-    public SemanticKernelService(
-        IOptions<SemanticKernelServiceSettings> options,
-        ILoggerFactory loggerFactory)
-    {
-        _settings = options.Value;
-        _loggerFactory = loggerFactory;
-        _logger = _loggerFactory.CreateLogger<SemanticKernelService>();
-        _promptDebugProperties = new List<LogProperty>();
-
-        _logger.LogInformation("Initializing the Semantic Kernel service...");
-
-        var builder = Kernel.CreateBuilder();
-
-        builder.Services.AddSingleton<ILoggerFactory>(loggerFactory);
-
-        DefaultAzureCredential credential;
-        if (string.IsNullOrEmpty(_settings.AzureOpenAISettings.UserAssignedIdentityClientID))
-        {
-            credential = new DefaultAzureCredential();
-        }
-        else
-        {
-            credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
-            {
-                ManagedIdentityClientId = _settings.AzureOpenAISettings.UserAssignedIdentityClientID
-            });
-        }
-        builder.AddAzureOpenAIChatCompletion(
-            _settings.AzureOpenAISettings.CompletionsDeployment,
-            _settings.AzureOpenAISettings.Endpoint,
-            credential);
-
-        builder.AddAzureOpenAITextEmbeddingGeneration(
-               _settings.AzureOpenAISettings.EmbeddingsDeployment,
-               _settings.AzureOpenAISettings.Endpoint,
-               credential);
-
-        _semanticKernel = builder.Build();
-
-        Task.Run(Initialize).ConfigureAwait(false);
-    }
-
-    public void Dispose()
-    {
-        // Dispose resources if any
-    }
-
-    private Task Initialize()
-    {
-        try
-        {
-            _serviceInitialized = true;
-            _logger.LogInformation("Semantic Kernel service initialized.");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Semantic Kernel service was not initialized. The following error occurred: {ErrorMessage}.", ex.ToString());
-        }
-        return Task.CompletedTask;
-    }
-
-    private void LogMessage(string key, string value)
-    {
-        _promptDebugProperties.Add(new LogProperty(key, value));
-    }
-
-    public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, IBankDataService bankService, string tenantId, string userId)
-    {
-        try
-        {
-            ChatFactory agentChatGeneratorService = new ChatFactory();
-
-            var agent = agentChatGeneratorService.BuildAgent(_semanticKernel, AgentType.Coordinator, _loggerFactory, bankService, tenantId, userId);
-
-            ChatHistory chatHistory = [];
-
-            // Load history
-            foreach (var chatMessage in messageHistory)
-            {
-                if (chatMessage.SenderRole == "User")
-                {
-                    chatHistory.AddUserMessage(chatMessage.Text);
-                }
-                else
-                {
-                    chatHistory.AddAssistantMessage(chatMessage.Text);
-                }
-            }
-
-            chatHistory.AddUserMessage(userMessage.Text);
-
-            _promptDebugProperties = new List<LogProperty>();
-
-            List<Message> completionMessages = new();
-            List<DebugLog> completionMessagesLogs = new();
-
-            await foreach (ChatMessageContent response in agent.InvokeAsync(chatHistory))
-            {
-                string messageId = Guid.NewGuid().ToString();
-                completionMessages.Add(new Message(userMessage.TenantId, userMessage.UserId, userMessage.SessionId, response.AuthorName ?? string.Empty, response.Role.ToString(), response.Content ?? string.Empty, messageId));
-            }
-            return new Tuple<List<Message>, List<DebugLog>>(completionMessages, completionMessagesLogs);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.ToString());
-            return new Tuple<List<Message>, List<DebugLog>>(new List<Message>(), new List<DebugLog>());
-        }
-    }
-
-    public async Task<string> Summarize(string sessionId, string userPrompt)
-    {
-        try
-        {
-            // Use an AI function to summarize the text in 2 words
-            var summarizeFunction = _semanticKernel.CreateFunctionFromPrompt(
-                "Summarize the following text into exactly two words:\n\n{{$input}}",
-                executionSettings: new OpenAIPromptExecutionSettings { MaxTokens = 10 }
-            );
-
-            // Invoke the function
-            var summary = await _semanticKernel.InvokeAsync(summarizeFunction, new() { ["input"] = userPrompt });
-
-            return summary.GetValue<string>() ?? "No summary generated";
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.ToString());
-            return string.Empty;
-        }
-    }
-
-    public async Task<float[]> GenerateEmbedding(string text)
-    {
-        // Generate Embedding
-        var embeddingModel = _semanticKernel.Services.GetRequiredService<ITextEmbeddingGenerationService>();
-
-        var embedding = await embeddingModel.GenerateEmbeddingAsync(text);
-
-        // Convert ReadOnlyMemory<float> to IList<float>
-        return embedding.ToArray();
-    }
-}
-```
-
-</details>
 
 ## Next Steps
 
