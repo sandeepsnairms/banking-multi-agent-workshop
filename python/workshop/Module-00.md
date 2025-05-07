@@ -35,7 +35,7 @@ uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 63280
 
 **Note:** If prompted, allow Python to access the public and private network for this app.
 
-The API will be available at <http://localhost:63280/docs>. This has been pre-built with boilerplate code that will create chat sessions and store the chat history in Cosmos DB.
+The API will be available at `http://localhost:63280/docs`. This has been pre-built with boilerplate code that will create chat sessions and store the chat history in Cosmos DB.
 
 ### Start the Frontend App
 
@@ -55,7 +55,7 @@ npm start
 
 ### Start a Conversation
 
-1. Open your browser and navigate to <http://localhost:4200/>.
+1. Open your browser and navigate to `http://localhost:4200/`.
 1. In the Login dialog, select a user and company and click, Login.
 1. Send the message:
 

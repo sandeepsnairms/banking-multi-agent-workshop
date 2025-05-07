@@ -455,7 +455,7 @@ Note: For each of these combinations above, you only need stop the Backend servi
 ### Start the Frontend
 
 - Return to the frontend terminal and type `ng serve`
-- Navigate to, <http://localhost:4200> in your browser
+- Navigate to, `http://localhost:4200/` in your browser
 
 ### Start a Chat Session
 

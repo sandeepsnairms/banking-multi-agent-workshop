@@ -128,7 +128,7 @@ With these updates, each agent is now equipped with the ability to delegate task
 
 ### Start a Conversation
 
-1. In you browser, return to our frontend, <http://localhost:4200/> and hit refresh.
+1. In you browser, return to our frontend, `http://localhost:4200/` and hit refresh.
 1. Create a new conversation and try transferring money again as shown below.
 1. Type the following text:
 
@@ -327,7 +327,7 @@ In your IDE, run the following command in your terminal.
 python -m src.app.banking_agents
 ```
 
-Let's open <https://smith.langchain.com/> now to make sure our project is listed under traces. The project name will be `multi-agent-banking-app` as we mentioned in our .env file.
+Let's open `https://smith.langchain.com/` now to make sure our project is listed under traces. The project name will be `multi-agent-banking-app` as we mentioned in our .env file.
 
 Note: If you are not able to see your project under traces, search for banking in the search bar, and then you should be able to see it.
 
@@ -406,7 +406,7 @@ In VS Code, start the backend:
 uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 63280
 ```
 
-Next, open a browser and navigate to <http://localhost:63280/docs> to view the swagger UI.
+Next, open a browser and navigate to `http://localhost:63280/docs` to view the swagger UI.
 
 ![Swagger UI](./media/module-04/swagger_ui.png)
 

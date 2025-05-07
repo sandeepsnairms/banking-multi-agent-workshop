@@ -172,7 +172,7 @@ With the activities in this module complete, it is time to test your work.
 ### Start the Frontend
 
 - Return to the frontend terminal and type `ng serve`
-- Navigate to, <http://localhost:4200> in your browser
+- Navigate to, `http://localhost:4200/` in your browser
 
 ### Start a Chat Session
 
@@ -215,7 +215,6 @@ Your implementation is successful if:
 ## Module Solution
 
 The following sections include the completed code for this Module. Copy and paste these into your project if you run into issues and cannot resolve.
-
 
 <details>
   <summary>Completed code for <strong>\Services\ChatService.cs</strong></summary>
@@ -417,7 +416,6 @@ public class ChatService
 ```
 
 </details>
-
 
 <details>
   <summary>Completed code for <strong>\Services\SemanticKernelService.cs</strong></summary>

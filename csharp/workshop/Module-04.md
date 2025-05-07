@@ -468,7 +468,7 @@ In the previous module we tested each agent independently. With the code changes
 ### Start the Frontend
 
 - Return to the frontend terminal and type `ng serve`
-- Navigate to, <http://localhost:4200> in your browser
+- Navigate to, `http://localhost:4200/` in your browser
 
 ### Start a Chat Session
 
@@ -512,7 +512,6 @@ In the previous module we tested each agent independently. With the code changes
 ## Module Solution
 
 The following sections include the completed code for this Module. Copy and paste these into your project if you run into issues and cannot resolve.
-
 
 <details>
   <summary>Completed code for <strong>\Services\SemanticKernelService.cs</strong></summary>
