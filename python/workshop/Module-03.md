@@ -694,7 +694,7 @@ With the activities in this module complete, it is time to test your work!
 
 Let's test our agents!
 
-1. In you browser, return to our frontend, <http://localhost:4200/>, hit refresh.
+1. In you browser, return to our frontend, `http://localhost:4200/`, hit refresh.
 1. Start a new conversation.
 1. Type the following text to try transferring money between accounts:
 

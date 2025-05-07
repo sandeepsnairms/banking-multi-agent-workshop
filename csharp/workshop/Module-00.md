@@ -49,7 +49,7 @@ cd csharp\src\MultiAgentCopilot
    ```
 
 1. If prompted, **Allow** so the Node.js Javascript Runtime to access this app over the network.
-1. Open your browser and navigate to <http://localhost:4200/>.
+1. Open your browser and navigate to `http://localhost:4200/`.
 
 ### Start a Conversation
 

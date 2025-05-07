@@ -495,7 +495,7 @@ Here we need to add a background task that will delete checkpoints in the graph,
 Locate the return statement for this function, `return {"message": "Session deleted successfully"}`
 
 Then add this line of code immediately above it:
-    
+
 ```python
 background_tasks.add_task(delete_all_thread_records, checkpointer, sessionId)
 ```
@@ -612,10 +612,8 @@ npm start
 
 ### Start a Conversation
 
-1. Open your browser and navigate to <http://localhost:4200/>.
+1. Open your browser and navigate to `http://localhost:4200/`.
 1. In the Login dialog, select a user and company and click, Login.
-
-Open your browser and navigate to <http://localhost:4200/>.
 
 ![Final User Interface](./media/module-01/frontend.png)
 
