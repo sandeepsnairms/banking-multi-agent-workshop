@@ -16,9 +16,6 @@ In this Module you'll connect your agent to Azure Cosmos DB to provide memory fo
 1. [Activity 2: Connecting Agent Frameworks to Azure Cosmos DB](#activity-2-connecting-agent-frameworks-to-azure-cosmos-db)
 1. [Activity 3: Test your Work](#activity-3-test-your-work)
 
-## Activity 1: Session Memory Persistence in Agent Frameworks
-
-In this session you will get an overview of memory and how it works for Semantic Kernel Agents and LangGraph and learn the basics for how to configure and connect both to Azure Cosmos DB as a memory store for both chat history and/or state management.
 
 ## Activity 1: Create a Simple Banking Agent
 
@@ -142,7 +139,7 @@ private async Task AddPromptCompletionMessagesAsync(string tenantId, string user
 
 #### Utilize and Store History in GetChatCompletionAsync
 
-Locate `GetChatCompletionAsync()`, then update the function with the code in the `Try` block below:
+Locate GetChatCompletionAsync(), then update the function by replacing the code within the Try block with the below:
 
 ```csharp
             ArgumentNullException.ThrowIfNull(sessionId);

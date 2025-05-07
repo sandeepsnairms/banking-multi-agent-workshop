@@ -313,7 +313,7 @@ in the constructor of the class search for **//To DO: Add vector search initiali
      _offerDataVectorStore = new AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm>(_database, _offerData.Id, vectorStoreOptions);
 ```
 
-Below the function in which you just pasted the code above, paste the following two functions.
+Below the constructor in which you just pasted the code above, paste the following two functions.
 
 ```csharp
         public async Task<List<OfferTerm>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription)
@@ -407,7 +407,7 @@ In your IDE, navigate to the `/Services` folder.
 
 Open the `SemanticKernelService.cs` file.
 
-Locate the `GetResponse()` function.
+Locate the GetResponse() function.
 
 Replace `var agent = agentFactory.BuildAgent(_semanticKernel, _loggerFactory, bankService, tenantId, userId);` with the line of code below.
 
@@ -427,9 +427,9 @@ So far, we have created four agents, each with its own specialized role. However
 
 To perform the tests, we will repeat the steps below for each agent type.
 
-To begin, navigate to the `ChatInfrastructure` project.
+To begin, navigate to the `/Services` folder.
 
-Open the `Services` folder.
+Open the `SemanticKernelService.cs` file.
 
 Locate the `GetResponse()` function.
 
@@ -441,10 +441,10 @@ var agent = agentChatGeneratorService.BuildAgent(_semanticKernel, AgentType.Cust
 
 Use this combination of AgentTypes and prompts for your test.
 
-AgentType.Coordinator: Hi 
-AgentType.Transactions: How much did I spend on groceries?
-AgentType.Sales: Looking for a high interest savings account
-AgentType.CustomerSupport: File a complaint for theft in Acc001
+- AgentType.Coordinator: Hi 
+- AgentType.Transactions: How much did I spend on groceries?
+- AgentType.Sales: Looking for a high interest savings account
+- AgentType.CustomerSupport: File a complaint for theft in Acc001
 
 Note: For each of these combinations above, you only need stop the Backend service. You can keep the front end up.
 
