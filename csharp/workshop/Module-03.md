@@ -26,7 +26,7 @@ It is important to understand the need for agent specialization and have a basic
 
 When working with any kind of data we need to review our data models.
 
-To begin, navigate to the `/Models/Banking` folder. Familiarize yourself with the models used here.
+To begin, navigate to the **/Models/Banking** folder. Familiarize yourself with the models used here.
 
 ## Activity 2: Defining Agent Behavior
 
@@ -38,35 +38,35 @@ Prompty is an asset class and file format designed to streamline the development
 
 In this activity we will review the existing Prompty files.
 
-In your IDE, navigate to the `/Prompts` folder.
+In your IDE, navigate to the **/Prompts** folder.
 
 #### Common Agent Rules
 
-Review the contents of `CommonAgentRules.prompty`.
+Review the contents of **CommonAgentRules.prompty**.
 
 The contents of this file doesn't define a single agent's behavior but provides a baseline for how all agents are supposed to behave. Think of it like a set of global rules for agents. All agents import the text from this prompt to govern their responses.
 
 #### Coordinator Agent
 
-Review the contents of `Coordinator.prompty`.
+Review the contents of **Coordinator.prompty**.
 
 This agent is the coordinator for the entire multi-agent system we are building. Its purpose is own the entire experience for users with the banking agent system. It starts by greeting new users when they initiate a new session, then routes user requests to the correct agent(s) to handle on their behalf. Finally it asks for feedback on how it did its job.
 
 #### Customer Support Agent
 
-Review the contents of `CustomerSupport.prompty`.
+Review the contents of **CustomerSupport.prompty**.
 
 This agent handles anything that appears to be a customer support request by a user. It can create, find and update services requests for users. It can also take certain action on behalf of users too.
 
 #### Sales Agent
 
-Review the contents of `Sales.prompty`.
+Review the contents of **Sales.prompty**.
 
 This agent is used when customers ask questions about what kinds of services a bank offers. The data on the products the bank has are stored in Cosmos DB. This agent performs a vector search in Cosmos DB to find the most suitable products for a customer's request.
 
 #### Transaction Agent
 
-Review the contents of `Transactions.prompty`.
+Review the contents of **Transactions.prompty**.
 
 This agent handles any account-based transactions on behalf of the user including getting account balances, generating statements and doing fund transfers between accounts.
 
@@ -74,17 +74,17 @@ This agent handles any account-based transactions on behalf of the user includin
 
 In our banking solution we have four agents: transactions agent, sales agent, customer support agent, and a coordinator agent to manage all of them. With the behavior of the agents defined in Prompty, we now need to implement the code that will allow the application to load the agent behavior for each of the agents.
 
-In your IDE, navigate to the `Models` folder and review the contents of `AgentTypes.cs`.
+In your IDE, navigate to the **/Models** folder and review the contents of **AgentTypes.cs**.
 
 ### Implementing the Agent Factory
 
-We are now ready to complete the implementation for the **Agent Factory** created in the previous module. The `AgentFactory` will generate prompts based on the `agentType` parameter, allowing us to reuse the code and add more agents. 
+We are now ready to complete the implementation for the **Agent Factory** created in the previous module. The **AgentFactory** will generate prompts based on the **agentType** parameter, allowing us to reuse the code and add more agents. 
 
-Navigate to the `/Factories` folder, open the `AgentFactory.cs`
+Navigate to the **/Factories** folder, open the **AgentFactory.cs**
 
-Next we need to replace our original hard-coded implementation from Module 2 to use the AgentType enum for our banking agents. It is also worth noting that it is here where the contents of the `CommonAgentsRules.prompty` are included as part of the system prompts that define our agents.
+Next we need to replace our original hard-coded implementation from Module 2 to use the AgentType enum for our banking agents. It is also worth noting that it is here where the contents of the **CommonAgentsRules.prompty** are included as part of the system prompts that define our agents.
 
-Replace the code for both `GetAgentName()` and `GetAgentPrompts()` with the code below:
+Replace the code for both **GetAgentName()** and **GetAgentPrompts()** with the code below:
 
 ```csharp
         private string GetAgentName(AgentType agentType)
@@ -143,13 +143,13 @@ Replace the code for both `GetAgentName()` and `GetAgentPrompts()` with the code
 
 ## Activity 3: Integrating Bank Domain Functions as Plugins
 
-All banking domain code is encapsulated in a separate `BankingDataService` class. Let's add the banking domain functions to the agent plugins. For simplicity in this workshop, all functions reference BankingServices. However, kernel functions can be any managed code that enables the LLM to interact with the outside world. The Base plugin, inherited by all plugins, contains common code for all plugins. For best results the `KernelFunction` available in the agent plugin should be consistent with the agent system prompts.
+All banking domain code is encapsulated in a separate **BankingDataService** class. Let's add the banking domain functions to the agent plugins. For simplicity in this workshop, all functions reference BankingServices. However, kernel functions can be any managed code that enables the LLM to interact with the outside world. The Base plugin, inherited by all plugins, contains common code for all plugins. For best results the **KernelFunction** available in the agent plugin should be consistent with the agent system prompts.
 
 To save time, the code for BasePlugin, SalesPlugin, and CustomerSupportPlugin are already implemented. The code for TransactionPlugin is left for you to implement.
 
-In your IDE, navigate to the `AgentPlugins` folder.
+In your IDE, navigate to the **/AgentPlugins** folder.
 
-Navigate to and open the `TransactionPlugin.cs` file
+Navigate to and open the **TransactionPlugin.cs** file
 
 Paste the following code into the class definition below the constructor.
 
@@ -183,9 +183,9 @@ Paste the following code into the class definition below the constructor.
 
 ## Activity 4: Adding a Plugin to the Agent
 
-Similar to generating system prompts based on agent type, we need the plugins to be created dynamically. Next, we will implement a  a `GetAgentKernel` function that dynamically generates a plugin based on the agent type.
+Similar to generating system prompts based on agent type, we need the plugins to be created dynamically. Next, we will implement a **GetAgentKernel** function that dynamically generates a plugin based on the agent type.
 
-Navigate to the `/Factories` folder, open the `AgentFactory.cs`
+Navigate to the **/Factories** folder, open the **AgentFactory.cs**
 
 Paste the code below to the  end of the class.
 
@@ -221,9 +221,9 @@ Paste the code below to the  end of the class.
 
 ## Activity 5: Building an Agent Dynamically
 
-Now that we have dynamically generated Agent Prompt and  Agent Kernel, we can make the agent build process dynamic based on the `agentType` parameter. Next, we will modify the `BuildAgent()` function within the `AgentFactory` class to dynamically add plugins to the agents.
+Now that we have dynamically generated Agent Prompt and  Agent Kernel, we can make the agent build process dynamic based on the **agentType** parameter. Next, we will modify the **BuildAgent()** function within the **AgentFactory** class to dynamically add plugins to the agents.
 
-Replace the `BuildAgent()` function with this code below.
+Replace the **BuildAgent()** function with this code below.
 
 ```csharp
         public ChatCompletionAgent BuildAgent(Kernel kernel, AgentType agentType, ILoggerFactory loggerFactory, BankingDataService bankService, string tenantId, string userId)
@@ -246,11 +246,11 @@ In this activity, you will learn how to configure vector indexing and search in 
 
 ### Create Data Model for Vector Search
 
-Data Models used for Vector Search in Semantic Kernel need to be enhanced with additional attributes. We will use `OfferTerm` as vector search enabled data model.
+Data Models used for Vector Search in Semantic Kernel need to be enhanced with additional attributes. We will use **OfferTerm** as vector search enabled data model.
 
-In your IDE, navigate to the '/Models/Banking' folder
+In your IDE, navigate to the **/Models/Banking** folder
 
-Open `OfferTerm.cs`
+Open **OfferTerm.cs**
 
 Paste the code with this code below for creating an OfferTerm class
 
@@ -284,7 +284,7 @@ Paste the code with this code below for creating an OfferTerm class
 
 ### Update BankingDataService to include vector search
 
-In your IDE, within the '\Services' folder navigate to the `BankingDataService.cs` file.
+In your IDE, within the '\Services' folder navigate to the **BankingDataService.cs** file.
 
 in the constructor of the class search for **//To DO: Add vector search initialization code here** and replace  with the below code
 
@@ -377,9 +377,9 @@ Below the constructor in which you just pasted the code above, paste the followi
         }
 ```
 
-In your IDE, navigate to the `/AgentPlugins` folder.
+In your IDE, navigate to the **/AgentPlugins** folder.
 
-Open the `SalesPlugin.cs` file.
+Open the **SalesPlugin.cs** file.
 
 Add these two functions to perform vector searches
 
@@ -403,13 +403,13 @@ Add these two functions to perform vector searches
 
 ### Select the Agent to get response
 
-In your IDE, navigate to the `/Services` folder.
+In your IDE, navigate to the **/Services** folder.
 
-Open the `SemanticKernelService.cs` file.
+Open the **SemanticKernelService.cs** file.
 
 Locate the GetResponse() function.
 
-Replace `var agent = agentFactory.BuildAgent(_semanticKernel, _loggerFactory, bankService, tenantId, userId);` with the line of code below.
+Replace *var agent = agentFactory.BuildAgent(_semanticKernel, _loggerFactory, bankService, tenantId, userId);* with the line of code below.
 
 ```c#
 var agent = agentFactory.BuildAgent(_semanticKernel, AgentType.CustomerSupport, _loggerFactory, bankService, tenantId, userId);
@@ -427,13 +427,13 @@ So far, we have created four agents, each with its own specialized role. However
 
 To perform the tests, we will repeat the steps below for each agent type.
 
-To begin, navigate to the `/Services` folder.
+To begin, navigate to the **/Services** folder.
 
-Open the `SemanticKernelService.cs` file.
+Open the **SemanticKernelService.cs** file.
 
-Locate the `GetResponse()` function.
+Locate the **GetResponse()** function.
 
-Within this function update `AgentType` on this line of code below to see how different agents work.
+Within this function update **AgentType** on this line of code below to see how different agents work.
 
 ```c#
 var agent = agentChatGeneratorService.BuildAgent(_semanticKernel, AgentType.CustomerSupport, _loggerFactory, bankService, tenantId, userId);

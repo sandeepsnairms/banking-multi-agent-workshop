@@ -49,7 +49,8 @@ We are going to define two functions as part of our multi-agent application.
 
 #### Update SemanticKernelService
 
-In your IDE, within the `\Services\` folder navigate to `SemanticKernelService.cs`.
+In VS Code, use the explorer on the left-hand side of the IDE to open the **csharp\src\MultiAgentCopilot\Services** folder.
+Within the **\Services** folder navigate to **SemanticKernelService.cs**.
 
 Search for **//TO DO: Update SemanticKernelService constructor** and paste the code below.
 
@@ -149,7 +150,7 @@ public async Task<string> Summarize(string sessionId, string userPrompt)
 
 ### Update ChatService
 
-In your IDE, within the `\Services\` folder navigate to `ChatService.cs`.
+In your IDE, within the **\Services** folder navigate to **ChatService.cs**.
 
 Replace the code for **GetChatCompletionAsync** method with code below.
 
