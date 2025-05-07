@@ -25,7 +25,7 @@ When dealing with multiple agents, clear agent roles is important to avoid confl
 
 SelectionStrategy is the mechanism in SemanticKernel that determines the next participant. By using the SelectionStrategy, we can identify the available agents and guide the LLM by defining the selection rule in natural language.
 
-Navigate to the `/Prompts` folder and review the contents of `SelectionStrategy.prompty`
+Navigate to the **/Prompts** folder and review the contents of **SelectionStrategy.prompty**
 
 ```text
 Examine RESPONSE and choose the next participant.
@@ -48,7 +48,7 @@ Always follow these rules when choosing the next participant:
 
 Similar to how SelectionStrategy selects an agent, TerminationStrategy decides when agents should stop responding. This is crucial to prevent multiple unwanted agent chatter in response to a user prompt. TerminationStrategy is the mechanism in SemanticKernel that determines when to stop. It is defined in natural language and instructs the LLM to return YES if more agent participation is required, otherwise it should return NO.
 
-Navigate to the `/Prompts` folder and review the contents of `TerminationStrategy.prompty`
+Navigate to the **/Prompts** folder and review the contents of **TerminationStrategy.prompty**
 
 ```text
 Determine if agent has requested user input or has responded to the user's query.
@@ -67,9 +67,9 @@ Lets define the models for the response
 
 #### ContinuationInfo
 
-Navigate to the `/Models/ChatInfoFormats` folder.
+Navigate to the **/Models/ChatInfoFormats** folder.
 
-Review the contents of `ContinuationInfo.cs`
+Review the contents of **ContinuationInfo.cs**
 
 ```c#
 namespace MultiAgentCopilot.Models.ChatInfoFormats
@@ -84,9 +84,9 @@ namespace MultiAgentCopilot.Models.ChatInfoFormats
 
 ### TerminationInfo
 
-Remain in the same `ChatInfoFormats` folder.
+Remain in the same **ChatInfoFormats** folder.
 
-Review the contents of `TerminationInfo.cs`
+Review the contents of **TerminationInfo.cs**
 
 ```csharp
 namespace MultiAgentCopilot.Models.ChatInfoFormats
@@ -102,7 +102,7 @@ namespace MultiAgentCopilot.Models.ChatInfoFormats
 
 Let's define a format builder that the LLM can use to output the Continuation and Termination models as responses.
 
-In the folder `StructuredFormats`. Review the  contents of  `ChatResponseFormat.cs`
+In the folder **/StructuredFormats**. Review the contents of **ChatResponseFormat.cs**
 
 ```csharp
 namespace MultiAgentCopilot.StructuredFormats
@@ -168,9 +168,9 @@ namespace MultiAgentCopilot.StructuredFormats
 
 Just like Agent System Prompts lets return StrategyPrompts based on strategyType.
 
-Navigate to the `/Factories` folder, open the `AgentFactory.cs`
+Navigate to the **/Factories** folder, open the **AgentFactory.cs**
 
-Navigate to the bottom of the file and locate the end of the `GetAgentKernel()` function.
+Navigate to the bottom of the file and locate the end of the **GetAgentKernel()** function.
 
 Add the following code as five new functions to the bottom of the class.
 
@@ -310,9 +310,9 @@ Add the following code as five new functions to the bottom of the class.
 
 Until now the responses we received were from a single agent, lets us use AgentGroupChat to orchestrate a chat were multiple agents participate.
 
-Navigate to `Services\SemanticKernelService.cs`
+Navigate to **Services/SemanticKernelService.cs**
 
-Locate `GetResponse()`. Add the below code after the `GetResponse()` function
+Locate **GetResponse()**. Add the below code after the **GetResponse()** function
 
 ```csharp
     private void LogMessage(string key, string value)
@@ -322,7 +322,7 @@ Locate `GetResponse()`. Add the below code after the `GetResponse()` function
 
 ```
 
-Update the the `GetResponse()` function with the code in the `Try` block below:
+Update the the **GetResponse()** function with the code in the **Try** block below:
 
 ```csharp
             AgentFactory agentFactory = new AgentFactory();
@@ -376,9 +376,9 @@ Before executing the below steps, try chatting with the agents. Note that  you r
 
 ### Log the kernel function selection
 
-To log the data used by the LLM to invoke functions, we will create a class named `AutoFunctionInvocationLoggingFilter`.
+To log the data used by the LLM to invoke functions, we will create a class named **AutoFunctionInvocationLoggingFilter**.
 
-Navigate  to `LogFilter` folder and review the contents of  `AutoFunctionInvocationLoggingFilter.cs`
+Navigate to **LogFilter** folder and review the contents of **AutoFunctionInvocationLoggingFilter.cs**
 
 ```c#
 using Microsoft.SemanticKernel;
@@ -419,9 +419,9 @@ namespace MultiAgentCopilot.Logs
 
 #### Update Semantic Kernel's AutoFunctionInvocationFilters
 
-Navigate to `AgentFactory.cs`
+Navigate to **AgentFactory.cs**
 
-Uncomment the following line in the `BuildAgentGroupChat` function.
+Uncomment the following line in the **BuildAgentGroupChat()** function.
 
 ```csharp
     //kernel.AutoFunctionInvocationFilters.Add(new AutoFunctionInvocationLoggingFilter(loggerFactory.CreateLogger<AutoFunctionInvocationLoggingFilter>()));
@@ -436,15 +436,15 @@ public delegate void LogCallback(string key, string value);
 
 ```
 
-Search for `\\logCallback` inside `GetAgentGroupChatSettings()` function uncomment it at 4 places.
+Search for **\\logCallback** inside **GetAgentGroupChatSettings()** function uncomment it at 4 places.
 
 ### Store the log information along with the chat response
 
 Now that we have log information for AgentSelection and Termination, we also need to persist these logs for later retrieval. Storing these DebugLogs in the ChatData container of Cosmos DB along with the other chat data will help us view the logs in the context of the conversation.
 
-Navigate to `Services\SemanticKernelService.cs`
+Navigate to **Services/SemanticKernelService.cs**
 
-Locate `GetResponse()`, then search for **// TO DO : Add DebugLog code here**  and add the code below:
+Locate **GetResponse()**, then search for **// TO DO : Add DebugLog code here**  and add the code below:
 
 ```csharp
 
@@ -477,11 +477,11 @@ In the previous module we tested each agent independently. With the code changes
 1. Try the below prompts and respond according to the AI response. For each response use the Debug log to understand the agent selection and termination strategy.
    ![Debug Log](./media/module-04/view-debuglog.png)
     1. Who can help me here?
-    1. Transfer $50 to my friend. (When prompted, give it an account number ranging from `Acc001` to `Acc009` and any email address)
+    1. Transfer $50 to my friend. (When prompted, give it an account number ranging from *Acc001* to *Acc009* and any email address)
     1. Looking for a Savings account with high interest rate.
     1. File a complaint about theft from my account.
     1. How much did I spend on groceries? (If prompted, say over the last 6 months)
-    1. Provide me a statement of my account. (If prompted, give it an account number ranging from `Acc001` to `Acc009`)
+    1. Provide me a statement of my account. (If prompted, give it an account number ranging from *Acc001* to *Acc009*)
 1. Expected response: The response is inline with the Agent's prompts and plugins.
 
 ### Stop the Application
@@ -493,7 +493,7 @@ In the previous module we tested each agent independently. With the code changes
 
 - [ ] Depending on the user prompt the agent selection is dynamic.
 - [ ] All the agents  context of the previous messages in teh conversation.
-- [ ] The agents are able to invoke the right plugin function to interact with `BankingService`.
+- [ ] The agents are able to invoke the right plugin function to interact with **BankingService**.
 - [ ] Vector search  works as expected.
 
 ## Common Issues and Solutions
