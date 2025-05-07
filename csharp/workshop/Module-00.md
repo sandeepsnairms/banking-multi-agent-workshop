@@ -19,7 +19,7 @@ In this Module, you'll configure the lab resources then start the application to
 ### Start the Backend App
 
 1. Open VS Code from the desktop.
-1. This should open this folder by default, *"C:\Users\LabUser\multi-agent-hol\"*. If not, navigate to an open this folder.
+1. This should open this folder by default, *"C:\Users\LabUser\multi-agent-hol\"*. If not, navigate to and open this folder.
 1. From the menu, select Terminal, New Terminal, then open a new PowerShell terminal.
 1. Navigate to *csharp\src\MultiAgentCopilot*.
 
@@ -48,7 +48,7 @@ cd csharp\src\MultiAgentCopilot
    npm start
    ```
 
-1. If prompted, **Allow** so the Node.js Javascript Runtime to access this app over the network.
+1. If prompted, **Allow** so the Node.js Javascript Runtime can access this app over the network.
 1. Open your browser and navigate to `http://localhost:4200/`.
 
 ### Start a Conversation
