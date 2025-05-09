@@ -151,6 +151,12 @@ public class SemanticKernelService : ISemanticKernelService, IDisposable
             while (!agentGroupChat.IsComplete);
             //_promptDebugProperties.Clear();
 
+            IList<ChatMessageContent> history = await agentGroupChat.GetChatMessagesAsync().ToArrayAsync();
+            // With this corrected line:
+            string historyJson = JsonConvert.SerializeObject(history);
+            File.AppendAllText("c:\\temp\\log.txt", $"***** {System.DateTime.Now.ToString()} ***********************************************");
+            File.AppendAllText("c:\\temp\\log.txt", historyJson);
+
             return new Tuple<List<Message>, List<DebugLog>>(completionMessages, completionMessagesLogs);
         }
         catch (Exception ex)
