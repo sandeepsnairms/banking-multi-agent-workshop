@@ -78,8 +78,21 @@ namespace MultiAgentCopilot.Factories
         }
 
 
-
+        /*
         public ChatCompletionAgent BuildAgent(Kernel kernel, AgentType agentType, ILoggerFactory loggerFactory, BankingDataService bankService, string tenantId, string userId)
+        {
+            ChatCompletionAgent agent = new ChatCompletionAgent
+            {
+                Name = GetAgentName(agentType),
+                Instructions = $"""{GetAgentPrompts(agentType)}""",
+                Kernel = GetAgentKernel(kernel, agentType, loggerFactory, bankService, tenantId, userId),
+                Arguments = new KernelArguments(new AzureOpenAIPromptExecutionSettings() { FunctionChoiceBehavior = FunctionChoiceBehavior.Auto() })
+            };
+
+            return agent;
+        }*/
+
+        private ChatCompletionAgent BuildAgent(Kernel kernel, AgentType agentType, ILoggerFactory loggerFactory, BankingDataService bankService, string tenantId, string userId)
         {
             ChatCompletionAgent agent = new ChatCompletionAgent
             {
