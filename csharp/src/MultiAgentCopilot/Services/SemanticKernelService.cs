@@ -82,7 +82,7 @@ public class SemanticKernelService : IDisposable
     }
 
     //TO DO: Add GetResponse function
-
+    /*
     public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, BankingDataService bankService, string tenantId, string userId)
     {
         try
@@ -136,7 +136,7 @@ public class SemanticKernelService : IDisposable
             while (!agentGroupChat.IsComplete);
 
 
-            IList<ChatMessageContent> history = await agentGroupChat.GetChatMessagesAsync().ToArrayAsync();  
+            IList<ChatMessageContent> history = await agentGroupChat.GetChatMessagesAsync().ToArrayAsync();
             // With this corrected line:
             string historyJson = JsonConvert.SerializeObject(history);
             File.AppendAllText("c:\\temp\\log.txt", $"***** {System.DateTime.Now.ToString()} ***********************************************");
@@ -151,8 +151,75 @@ public class SemanticKernelService : IDisposable
             _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.ToString());
             return new Tuple<List<Message>, List<DebugLog>>(new List<Message>(), new List<DebugLog>());
         }
-    }
+    }*/
 
+    
+    public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, BankingDataService bankService, string tenantId, string userId)
+    {
+        try
+        {
+            AgentFactory multiAgentChatGeneratorService = new AgentFactory();
+
+            var agentGroupChat = multiAgentChatGeneratorService.BuildAgentGroupChat(_semanticKernel, _loggerFactory, LogMessage, bankService, tenantId, userId);
+
+            // Load history
+            foreach (var chatMessage in messageHistory)
+            {
+                AuthorRole? role = AuthorRoleHelper.FromString(chatMessage.SenderRole);
+                var chatMessageContent = new ChatMessageContent
+                {
+                    Role = role ?? AuthorRole.User,
+                    Content = chatMessage.Text
+                };
+                agentGroupChat.AddChatMessage(chatMessageContent);
+            }
+
+            _promptDebugProperties = new List<LogProperty>();
+
+            List<Message> completionMessages = new();
+            List<DebugLog> completionMessagesLogs = new();
+            do
+            {
+                var userResponse = new ChatMessageContent(AuthorRole.User, userMessage.Text);
+                agentGroupChat.AddChatMessage(userResponse);
+
+                agentGroupChat.IsComplete = false;
+
+                await foreach (ChatMessageContent response in agentGroupChat.InvokeAsync())
+                {
+                    string messageId = Guid.NewGuid().ToString();
+                    string debugLogId = Guid.NewGuid().ToString();
+                    completionMessages.Add(new Message(userMessage.TenantId, userMessage.UserId, userMessage.SessionId, response.AuthorName ?? string.Empty, response.Role.ToString(), response.Content ?? string.Empty, messageId, debugLogId));
+
+                    if (_promptDebugProperties.Count > 0)
+                    {
+                        var completionMessagesLog = new DebugLog(userMessage.TenantId, userMessage.UserId, userMessage.SessionId, messageId, debugLogId);
+                        completionMessagesLog.PropertyBag = _promptDebugProperties;
+                        completionMessagesLogs.Add(completionMessagesLog);
+                    }
+
+                }
+            }
+            while (!agentGroupChat.IsComplete);
+
+            IList<ChatMessageContent> history = await agentGroupChat.GetChatMessagesAsync().ToArrayAsync();
+            // With this corrected line:
+            string historyJson = JsonConvert.SerializeObject(history);
+            File.AppendAllText("c:\\temp\\log.txt", $"***** {System.DateTime.Now.ToString()} ***********************************************");
+            File.AppendAllText("c:\\temp\\log.txt", historyJson);
+
+
+            //_promptDebugProperties.Clear();
+
+            return new Tuple<List<Message>, List<DebugLog>>(completionMessages, completionMessagesLogs);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.ToString());
+            return new Tuple<List<Message>, List<DebugLog>>(new List<Message>(), new List<DebugLog>());
+        }
+    }
+    
     //TO DO: Add Summarize function
     public async Task<string> Summarize(string sessionId, string userPrompt)
     {
