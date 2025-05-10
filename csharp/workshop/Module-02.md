@@ -8,7 +8,7 @@ In this Module you'll connect your agent to Azure Cosmos DB to provide memory fo
 
 - Learn the basics for Azure Cosmos DB for storing state and chat history
 - Learn how to integrate agent frameworks to Azure Cosmos DB
-- Test connectivity to Azure Cosmos DB works
+- Test connectivity to Azure Cosmos DB
 
 ## Module Exercises
 
@@ -18,7 +18,7 @@ In this Module you'll connect your agent to Azure Cosmos DB to provide memory fo
 
 ## Activity 1: Create a Simple Banking Agent
 
-In this hands-on exercise, we will evolve the agent that translated responses into French into an agent that is intended for the banking scenario we are building here. We will also take the first step to learning about prompts here as well.
+In this hands-on exercise, we will evolve the agent that translated responses into French into an agent that is intended for the banking scenario we are building here. We will also take the first step to learning about prompts.
 
 ### Add Agent Factory
 
@@ -26,7 +26,7 @@ Agents are autonomous systems that use LLMs to process inputs, make decisions, a
 
 1. In VS Code, navigate to the **/Factories** folder.
 1. Next, open **AgentFactory.cs**.
-1. Within the class definition for **AgentFactory** paste the code below:
+1. Within the internal class definition for **AgentFactory** paste the code below:
 
 ```csharp
         private string GetAgentName()
@@ -65,18 +65,15 @@ Next lets add some memory so that the agent can remember the previous messages a
 
 In this activity, you will learn how to initialize Azure Cosmos DB and integrate with an agent framework to provide persistent memory for chat history and state management.
 
-1. Within VS Code, navigate to the **\Services** folder.
-1. Next, open **SemanticKernelService.cs**.
-
 ### Update GetResponse() function in SemanticKernelService
 
 The **GetResponse()** function is the main entry point for our multi-agent application. Within that function, a variable named, **messageHistory** stores a list of historical messages from the chat session. The **chatHistory** object is used to construct this history and passed to the Semantic Kernel Chat Completion Agent object. The **completionMessages** list is used to store the response received from the agent which then needs to be persisted in Cosmos DB for the next iteration of the agent.
 
 We're going to modify this function to provide that persistence with Cosmos DB.
 
-1. In VS Code, open the **SemanticKernelService.cs**
+1. In VS Code, return to the **SemanticKernelService.cs** in the **/Services** folder.
 1. Navigate to the **GetResponse()** function.
-1. Replace all of the code within the **Try** block with the code below:
+1. Replace all of the code **within** the **Try** block with the code below:
 
 ```csharp
             AgentFactory agentFactory = new AgentFactory();
@@ -122,13 +119,13 @@ We can now update our Chat Service to store the messages generated between users
 
 Let's view the data model for our chat session object.
 
-1. In VS Code, navigate to the **\Models\Chat** folder.
+1. In VS Code, navigate to the **/Models/Chat** folder.
 1. Open the **Session.cs** class.
 
-With a reference to the current session returned from the CosmosDBService, this function then calls our newly implemented function to update the messages within the session object with any new or updated messages. Typically, this would include a single user prompt, followed by one or more responses from the agents.
+With a reference to the current session returned from the CosmosDBService, this function calls our newly implemented function to update the messages within the session object with any new or updated messages. Typically, this would include a single user prompt, followed by one or more responses from the agents.
 
-1. To begin, navigate to the **\Services** folder and open the **ChatService.cs** class.
-1. Paste the the below code within the class
+1. In VS Code, navigate to the **/Services** folder and open the **ChatService.cs** class.
+1. Paste the the below code as a new function within the class.
 
 ```csharp
 /// <summary>
@@ -146,7 +143,7 @@ private async Task AddPromptCompletionMessagesAsync(string tenantId, string user
 #### Utilize and Store History in GetChatCompletionAsync
 
 1. Next, locate the **GetChatCompletionAsync()** function.
-1. Update the function by replacing the code within the *Try* block with the below:
+1. Update the function by replacing the code **within** the **Try** block with the below:
 
 ```csharp
             ArgumentNullException.ThrowIfNull(sessionId);
@@ -178,19 +175,18 @@ With the activities in this module complete, it is time to test your work.
 We have a new agent now that thinks it works for a bank. So in our test here we are going to ask it banking-related questions.
 
 1. Return to the frontend application in your browser.
-1. Start a new conversation.
 1. Send the following message:
 
-   ```text
-   Can a senior citizen open a savings account?
-   ```
+```text
+Can a senior citizen open a savings account?
+```
 
 1. Wait for the Agent response.
 1. Send another message:
 
-   ```text
-   Does the interest rate vary?
-   ```
+```text
+Does the interest rate vary?
+```
 
 1. Expected response: The Agent's response is contextually correct for the  whole chat session.
 1. You should see something like the output below.

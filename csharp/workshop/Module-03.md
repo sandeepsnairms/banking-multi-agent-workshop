@@ -39,19 +39,18 @@ Prompty is an asset class and file format designed to streamline the development
 
 In this activity we will review the existing Prompty files.
 
-1. In VS Code, navigate to the **/Prompts** folder.
-
 #### Common Agent Rules
 
+1. In VS Code, navigate to the **/Prompts** folder.
 1. Review the contents of **CommonAgentRules.prompty**.
 
-The contents of this file doesn't define a single agent's behavior but provides a baseline for how all agents are supposed to behave. Think of it like a set of global rules for agents. All agents import the text from this prompt to govern their responses.
+The contents of this file doesn't define a single agent's behavior but provides a baseline for how all agents will behave. Think of it like a set of global rules for agents. All agents import the text from this prompt to govern their responses.
 
 #### Coordinator Agent
 
 1. Review the contents of **Coordinator.prompty**.
 
-This agent is the coordinator for the entire multi-agent system we are building. Its purpose is own the entire experience for users with the banking agent system. It starts by greeting new users when they initiate a new session, then routes user requests to the correct agent(s) to handle on their behalf. Finally it asks for feedback on how it did its job.
+This agent is the coordinator for the entire multi-agent system we are building. Its purpose is to own the experience for users. It starts by greeting new users when they initiate a new session, then routes user requests to the correct agent(s) to handle on their behalf. Finally it asks for feedback on how it did its job.
 
 #### Customer Support Agent
 
@@ -184,7 +183,7 @@ To save time, the code for BasePlugin, SalesPlugin, and CustomerSupportPlugin ar
 
 ## Activity 4: Adding a Plugin to the Agent
 
-Similar to generating system prompts based on agent type, we need the plugins to be created dynamically. Next, we will implement a **GetAgentKernel** function that dynamically generates a plugin based on the agent type.
+Similar to generating system prompts based on agent type, we need the plugins to be created dynamically. Next, we will implement a **GetAgentKernel()** function that dynamically generates a plugin based on the agent type.
 
 1. In VS Code, navigate to the **/Factories** folder
 1. Open the **AgentFactory.cs** class.
@@ -224,7 +223,7 @@ Similar to generating system prompts based on agent type, we need the plugins to
 
 Now that we have dynamically generated Agent Prompt and  Agent Kernel, we can make the agent build process dynamic based on the **agentType** parameter. Next, we will modify the **BuildAgent()** function within the **AgentFactory** class to dynamically add plugins to the agents.
 
-1. Return to the **AgentFactory** class.
+1. Remain in the **AgentFactory** class.
 1. Replace the **BuildAgent()** function with this code below.
 
 ```csharp
@@ -244,7 +243,7 @@ Now that we have dynamically generated Agent Prompt and  Agent Kernel, we can ma
 
 ## Activity 6: Semantic Search
 
-In this activity, you will learn how to configure vector indexing and search in Azure Cosmos DB and explore the container and vector indexing policies. Then learn how to implement vector search using for Semantic Kernel.
+The Sales Agent in this banking application performs a vector search in Cosmos DB to search for banking products and services for users. In this activity, you will learn how to configure vector indexing and search in Azure Cosmos DB and explore the container and vector indexing policies. Then learn how to implement vector search using for Semantic Kernel.
 
 ### Create Data Model for Vector Search
 
@@ -290,28 +289,28 @@ Data Models used for Vector Search in Semantic Kernel need to be enhanced with a
 1. Replace with the below code.
 
 ```csharp
-      DefaultAzureCredential credential;
-     if (string.IsNullOrEmpty(skSettings.AzureOpenAISettings.UserAssignedIdentityClientID))
-     {
-         credential = new DefaultAzureCredential();
-     }
-     else
-     {
-         credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
-         {
-             ManagedIdentityClientId = skSettings.AzureOpenAISettings.UserAssignedIdentityClientID
-         });
-    
-     }
-    
-     _textEmbeddingGenerationService = new(
-             deploymentName: skSettings.AzureOpenAISettings.EmbeddingsDeployment, // Name of deployment, e.g. "text-embedding-ada-002".
-             endpoint: skSettings.AzureOpenAISettings.Endpoint,           // Name of Azure OpenAI service endpoint, e.g. https://myaiservice.openai.azure.com.
-             credential: credential);
-    
-     var jsonSerializerOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-     var vectorStoreOptions = new AzureCosmosDBNoSQLVectorStoreRecordCollectionOptions<OfferTerm> { PartitionKeyPropertyName = "TenantId", JsonSerializerOptions = jsonSerializerOptions };
-     _offerDataVectorStore = new AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm>(_database, _offerData.Id, vectorStoreOptions);
+DefaultAzureCredential credential;
+        if (string.IsNullOrEmpty(skSettings.AzureOpenAISettings.UserAssignedIdentityClientID))
+        {
+            credential = new DefaultAzureCredential();
+        }
+        else
+        {
+            credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
+            {
+                ManagedIdentityClientId = skSettings.AzureOpenAISettings.UserAssignedIdentityClientID
+            });
+
+        }
+
+        _textEmbeddingGenerationService = new(
+                deploymentName: skSettings.AzureOpenAISettings.EmbeddingsDeployment,
+                endpoint: skSettings.AzureOpenAISettings.Endpoint,
+                credential: credential);
+
+        var jsonSerializerOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+        var vectorStoreOptions = new AzureCosmosDBNoSQLVectorStoreRecordCollectionOptions<OfferTerm> { PartitionKeyPropertyName = "TenantId", JsonSerializerOptions = jsonSerializerOptions };
+        _offerDataVectorStore = new AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm>(_database, _offerData.Id, vectorStoreOptions);
 ```
 
 1. Within the same file, navigate below the constructor in which you just pasted the code above.
@@ -379,8 +378,11 @@ Data Models used for Vector Search in Semantic Kernel need to be enhanced with a
         }
 ```
 
+Next, we need to then connect the Sales Agent to our new functions.
+
 1. In VS Code, navigate to the **/AgentPlugins** folder.
 1. Open the **SalesPlugin.cs** file.
+1. Navigate below the constructor.
 1. Add these two functions to perform vector searches.
 
 ```csharp
@@ -407,10 +409,11 @@ Data Models used for Vector Search in Semantic Kernel need to be enhanced with a
 1. Open the **SemanticKernelService.cs** file.
 1. Locate the **GetResponse()** function.
 1. Locate this line of code, *var agent = agentFactory.BuildAgent(_semanticKernel, _loggerFactory, bankService, tenantId, userId);*
+1. It should be easy to spot as *.BuildAgent* should have a red squiggly line below it.
 1. Replace it with the line of code below.
 
 ```c#
-var agent = agentFactory.BuildAgent(_semanticKernel, AgentType.CustomerSupport, _loggerFactory, bankService, tenantId, userId);
+var agent = agentFactory.BuildAgent(_semanticKernel, AgentType.Coordinator, _loggerFactory, bankService, tenantId, userId);
 ```
 
 ## Activity 7: Test your Work
@@ -421,23 +424,16 @@ With the activities in this module complete, it is time to test your work.
 
 So far, we have created four agents, each with its own specialized role. However, we don't have any code to decide which agent to invoke in what scenario. That's something we will do in the next module. For now, let's test each agent independently and make sure all agents are functional.
 
-1. In VS Code, navigate to the **/Services** folder.
-1. Open the **SemanticKernelService.cs** file.
-1. Locate the **GetResponse()** function.
-1. Within this function update **AgentType** on this line of code below to see how different agents work.
-
-```c#
-var agent = agentChatGeneratorService.BuildAgent(_semanticKernel, AgentType.CustomerSupport, _loggerFactory, bankService, tenantId, userId);
-```
-
-For this line of code above, replace the value of the **AgentType** enumerator with one below, then enter the corresponding prompt. Use this combination of AgentTypes and prompts for your test.
+1. Remain on the **GetResponse()** function.
+1. We are going to modify the line we just pasted in our tests below and update the **AgentType** enumerator on this line of code below to see how the different agents respond.
+1. We will then test a different prompt and look at the responses from each agent.
 
 **Note:** To perform the tests, we will repeat the steps below for each agent type. We will start and stop the Backend service for each AgentType that we test. As you test each of these prompts be sure to look at the terminal output for the Backend service as it shows the actions the agents are taking in response to your prompts.
 
-|Agent Type | Prompt |
+| Agent Type | Prompt |
 |-|-|
 | AgentType.Coordinator | Hi |
-| AgentType.Transactions | How much did I spend on groceries? |
+| AgentType.Transactions | How much did I spend on groceries in last 6 months? |
 | AgentType.Sales | Looking for a high interest savings account |
 | AgentType.CustomerSupport | File a complaint for theft in Acc001 |
 
@@ -448,13 +444,16 @@ For this line of code above, replace the value of the **AgentType** enumerator w
 ### Start a Chat Session
 
 1. Return to the frontend application in your browser.
-1. Start a new conversation.
 1. Send a message based on the prompt of the current AgentType.
-1. Expected response: The response is inline with the Agent's prompts and plugins.
-1. Select the backend terminal, press **Ctrl + C** to stop the backend application.
-1. Repeat the steps with a new value for AgentType and Prompt in the table above.
-1. Return to the open terminal for the backend app in VS Code and type `dotnet run`
-1. After testing all of the AgentType enum values, continue with the next step below.
+1. View the response in the frontend.
+1. View the output of the terminal for the backend.
+1. Press **Ctrl + C** to stop the backend application.
+1. Replace the value for AgentType on the line of code above.
+1. Restart the backend.
+1. Return to the frontend and enter the corresponding Prompt.
+1. Repeat
+
+After testing all of the AgentType enum values, continue with the next step below.
 
 ### Stop the Application
 

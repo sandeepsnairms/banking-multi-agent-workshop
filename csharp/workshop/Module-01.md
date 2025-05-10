@@ -2,7 +2,7 @@
 
 ## Introduction
 
-In this Module, you'll implement your first agent as part of a multi-agent banking system implemented using either Semantic Kernel Agent Framework. You will get an introduction to Semantic Kernel and their plug-in integration with OpenAI for generating completions.
+In this Module, you'll implement your first agent as part of a multi-agent banking system implemented using Semantic Kernel Agent Framework. You will get an introduction to Semantic Kernel and their plug-in integration with OpenAI for generating completions.
 
 ## Learning Objectives and Activities
 
@@ -20,7 +20,7 @@ In this Module, you'll implement your first agent as part of a multi-agent banki
 
 In this hands-on exercise, you will learn how to initialize an agent framework and integrate it with a Large Language Model(LLM).
 
-The Semantic Kernel Agent Framework is a platform within Microsoft's Semantic Kernel ecosystem designed to facilitate the creation and orchestration of AI agents. It enables developers to incorporate agentic patterns into applications, leveraging the core features of the Semantic Kernel framework. Agents built using this framework can collaborate, manage multiple concurrent conversations, and integrate human input, making it suitable for complex, multi-agent workflows.
+The Semantic Kernel Agent Framework is a platform within Microsoft's Semantic Kernel ecosystem designed to facilitate the creation and orchestration of AI agents. It enables developers to incorporate agentic patterns into applications. Agents built using this framework can collaborate, manage multiple concurrent conversations, and integrate human input, making it suitable for complex, multi-agent workflows.
 
 There are a few key components and concepts necessary to build multi-agent apps using this framework.
 
@@ -52,7 +52,7 @@ We are going to define two functions as part of our multi-agent application.
 **Note:** To paste code, place your cursor exactly where you want it in the code, including any tabs or spaces, then click the `T` in the lab guide. This will paste the code directly into your app. You may need to tab or format the code a little after pasting.
 
 ```csharp
-        builder.Services.AddSingleton<ILoggerFactory>(loggerFactory);
+    builder.Services.AddSingleton<ILoggerFactory>(loggerFactory);
 
         DefaultAzureCredential credential;
         if (string.IsNullOrEmpty(_skSettings.AzureOpenAISettings.UserAssignedIdentityClientID))
@@ -80,7 +80,7 @@ Let's create a very simple agent for our workshop that is powered by an LLM. Thi
 1. Search for **//TO DO: Add GetResponse function** and paste the code below.
 
 ```csharp
-    public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, BankingDataService bankService, string tenantId, string userId)
+public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, BankingDataService bankService, string tenantId, string userId)
     {
         try
         {
@@ -145,9 +145,9 @@ public async Task<string> Summarize(string sessionId, string userPrompt)
 
 ### Update ChatService
 
-In your IDE, within the **\Services** folder navigate to **ChatService.cs**.
-
-Replace the code for **GetChatCompletionAsync** method with code below.
+1. Remain in the **/Services** folder
+1. Navigate to **ChatService.cs**.
+1. Replace the code for **GetChatCompletionAsync()** method with code below.
 
 ```csharp
     public async Task<List<Message>> GetChatCompletionAsync(string tenantId, string userId, string? sessionId, string userPrompt)
@@ -200,7 +200,7 @@ public async Task<string> SummarizeChatSessionNameAsync(string tenantId, string 
 
 ## Activity 3: Test your Work
 
-With the activities in this module complete, it is time to test your work.
+With the activities in this module complete, it is time to test your work. The agent should respond and greet you then translate your request into French.
 
 ### Start the Backend
 
@@ -209,12 +209,11 @@ With the activities in this module complete, it is time to test your work.
 ### Start a Chat Session
 
 1. Return to the still running frontend application in your browser.
-1. Start a new conversation.
 1. Send the message:  
 
-   ```text
-   Hello, how are you?
-   ```
+```text
+Hello, how are you?
+```
 
 1. You should see something like the output below.
 
