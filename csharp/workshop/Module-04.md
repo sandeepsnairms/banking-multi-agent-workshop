@@ -312,7 +312,7 @@ Until now the responses we received were from a single agent, lets use AgentGrou
 
 ```
 
-1. Next, update the the **GetResponse()** function with the code in the **Try** block below:
+1. Next, update the the **GetResponse()** function with the code **within** the **Try** block below:
 
 ```csharp
             AgentFactory agentFactory = new AgentFactory();
@@ -458,22 +458,24 @@ In the previous module we tested each agent independently. With the code changes
 
 ### Start a Chat Session
 
+For each response in our testing below, click on the *Bug* icon to see the Debug log to understand the agent selection and termination strategy.
+![Debug Log](./media/module-04/view-debuglog.png)
+
 1. Return to the frontend application in your browser.
 1. Start a new conversation.
-1. Try the below prompts and respond according to the AI response. For each response use the Debug log to understand the agent selection and termination strategy.
-   ![Debug Log](./media/module-04/view-debuglog.png)
+1. Try the below prompts. Provide more infomration if prompted.
     1. Who can help me here?
-    1. Transfer $50 to my friend. (When prompted, give it an account number ranging from *Acc001* to *Acc009* and any email address)
+    1. Transfer $50 to my friend.
+    1. When prompted for account and email, enter, "Account is Acc001 and Email is Sandeep@contoso.com"
     1. Looking for a Savings account with high interest rate.
     1. File a complaint about theft from my account.
+    1. When prompted confirm its the same account or enter a new account (Acc001 to Acc009) and provide any details it asks for.
     1. How much did I spend on groceries? (If prompted, say over the last 6 months)
     1. Provide me a statement of my account. (If prompted, give it an account number ranging from *Acc001* to *Acc009*)
-1. Expected response: The response is inline with the Agent's prompts and plugins.
 
 ### Stop the Application
 
-- In the frontend terminal, press **Ctrl + C** to stop the application.
-- In your IDE press **Shift + F5** or stop the debugger.
+1. In the backend terminal, press **Ctrl + C** to stop the application.
 
 ## Validation Checklist
 

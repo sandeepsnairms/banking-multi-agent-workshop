@@ -39,15 +39,15 @@ cd csharp\src\MultiAgentCopilot
 1. Navigate to the *frontend* folder.
 
 ```shell
-   cd frontend
-   ```
+cd frontend
+```
 
 1. Copy and run the following:
 
-   ```shell
-   npm install
-   npm start
-   ```
+```shell
+npm install
+npm start
+```
 
 1. If prompted, **Allow** so the Node.js Javascript Runtime can access this app over the network.
 1. Open your browser and navigate to `http://localhost:4200/`.
@@ -58,9 +58,9 @@ cd csharp\src\MultiAgentCopilot
 1. Start a new conversation.
 1. Send the message:
 
-   ```text
-   Hello, how are you?
-   ```
+```text
+Hello, how are you?
+```
 
 1. You should see something like the output below.
 
