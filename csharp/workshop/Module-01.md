@@ -38,8 +38,6 @@ There are a few key components and concepts necessary to build multi-agent apps 
 
 Let's dive into the starter solution for our workshop and get started completing the implementation for our multi-agent application.
 
-The following steps are completed in your IDE.
-
 ### Implement the SemanticKernelService
 
 We are going to define two functions as part of our multi-agent application.
@@ -47,12 +45,9 @@ We are going to define two functions as part of our multi-agent application.
 - **GetResponse()** will be the entry point called by the front end to interact with the multi-agent service. Everything happens behind this function.
 - **Summarize()** will be used to summarize the conversations users are having with the agent service.
 
-#### Update SemanticKernelService
-
-In VS Code, use the explorer on the left-hand side of the IDE to open the **csharp\src\MultiAgentCopilot\Services** folder.
-Within the **\Services** folder navigate to **SemanticKernelService.cs**.
-
-Search for **//TO DO: Update SemanticKernelService constructor** and paste the code below.
+1. In VS Code, use the explorer on the left-hand side of the IDE to open the **csharp\src\MultiAgentCopilot\Services** folder.
+1. Within the **\Services** folder navigate to **SemanticKernelService.cs**.
+1. Search for **//TO DO: Update SemanticKernelService constructor** and paste the code below.
 
 **Note:** To paste code, place your cursor exactly where you want it in the code, including any tabs or spaces, then click the `T` in the lab guide. This will paste the code directly into your app. You may need to tab or format the code a little after pasting.
 
@@ -82,46 +77,46 @@ Search for **//TO DO: Update SemanticKernelService constructor** and paste the c
 
 Let's create a very simple agent for our workshop that is powered by an LLM. This agent will simply greet users and translate their requests into French. We will also implement a summarize function that renames the current chat session based upon the current topic from the user.
 
-Search for **//TO DO: Add GetResponse function** and paste the code below.
+1. Search for **//TO DO: Add GetResponse function** and paste the code below.
 
 ```csharp
- public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, BankingDataService bankService, string tenantId, string userId)
- {
-     try
-     {
-         ChatCompletionAgent agent = new ChatCompletionAgent
-         {
-             Name = "BasicAgent",
-             Instructions = "Greet the user and translate the request into French",
-             Kernel = _semanticKernel.Clone()
-         };
+    public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, BankingDataService bankService, string tenantId, string userId)
+    {
+        try
+        {
+            ChatCompletionAgent agent = new ChatCompletionAgent
+            {
+                Name = "BasicAgent",
+                Instructions = "Greet the user and translate the request into French",
+                Kernel = _semanticKernel.Clone()
+            };
 
-         
-         // Create an null AgentThread 
-         AgentThread agentThread = null;
+            
+            // Create an null AgentThread 
+            AgentThread agentThread = null;
 
-         _promptDebugProperties = new List<LogProperty>();
+            _promptDebugProperties = new List<LogProperty>();
 
-         List<Message> completionMessages = new();
-         List<DebugLog> completionMessagesLogs = new();
+            List<Message> completionMessages = new();
+            List<DebugLog> completionMessagesLogs = new();
 
 
-         await foreach (ChatMessageContent response in agent.InvokeAsync(userMessage.Text, agentThread))
-         {
-             string messageId = Guid.NewGuid().ToString();
-             completionMessages.Add(new Message(userMessage.TenantId, userMessage.UserId, userMessage.SessionId, response.AuthorName ?? string.Empty, response.Role.ToString(), response.Content ?? string.Empty, messageId));
-         }
-         return new Tuple<List<Message>, List<DebugLog>>(completionMessages, completionMessagesLogs);
-     }
-     catch (Exception ex)
-     {
-         _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.ToString());
-         return new Tuple<List<Message>, List<DebugLog>>(new List<Message>(), new List<DebugLog>());
-     }
- }
+            await foreach (ChatMessageContent response in agent.InvokeAsync(userMessage.Text, agentThread))
+            {
+                string messageId = Guid.NewGuid().ToString();
+                completionMessages.Add(new Message(userMessage.TenantId, userMessage.UserId, userMessage.SessionId, response.AuthorName ?? string.Empty, response.Role.ToString(), response.Content ?? string.Empty, messageId));
+            }
+            return new Tuple<List<Message>, List<DebugLog>>(completionMessages, completionMessagesLogs);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.ToString());
+            return new Tuple<List<Message>, List<DebugLog>>(new List<Message>(), new List<DebugLog>());
+        }
+    }
 ```
 
-Search for **//TO DO: Add Summarize function** and  paste the code below.
+1. Search for **//TO DO: Add Summarize function** and  paste the code below.
 
 ```csharp
 public async Task<string> Summarize(string sessionId, string userPrompt)
@@ -155,33 +150,33 @@ In your IDE, within the **\Services** folder navigate to **ChatService.cs**.
 Replace the code for **GetChatCompletionAsync** method with code below.
 
 ```csharp
-  public async Task<List<Message>> GetChatCompletionAsync(string tenantId, string userId, string? sessionId, string userPrompt)
- {
-     try
-     {
-         ArgumentNullException.ThrowIfNull(sessionId);
+    public async Task<List<Message>> GetChatCompletionAsync(string tenantId, string userId, string? sessionId, string userPrompt)
+    {
+        try
+        {
+            ArgumentNullException.ThrowIfNull(sessionId);
 
-         // Add both prompt and completion to cache, then persist in Cosmos DB
-         var userMessage = new Message(tenantId, userId, sessionId, "User", "User", userPrompt);
+            // Add both prompt and completion to cache, then persist in Cosmos DB
+            var userMessage = new Message(tenantId, userId, sessionId, "User", "User", userPrompt);
 
-         // Generate the completion to return to the user
-         var result = await _skService.GetResponse(userMessage, new List<Message>(), _bankService, tenantId, userId);
+            // Generate the completion to return to the user
+            var result = await _skService.GetResponse(userMessage, new List<Message>(), _bankService, tenantId, userId);
 
-         return result.Item1;
-     }
-     catch (Exception ex)
-     {
-         _logger.LogError(ex, $"Error getting completion in session {sessionId} for user prompt [{userPrompt}].");
-         return new List<Message> { new Message(tenantId, userId, sessionId!, "Error", "Error", $"Error getting completion in session {sessionId} for user prompt [{userPrompt}].") };
-     }
- }
+            return result.Item1;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Error getting completion in session {sessionId} for user prompt [{userPrompt}].");
+            return new List<Message> { new Message(tenantId, userId, sessionId!, "Error", "Error", $"Error getting completion in session {sessionId} for user prompt [{userPrompt}].") };
+        }
+    }
 
 ```
 
 Replace the code for **SummarizeChatSessionNameAsync** method with code below.
 
 ```csharp
- public async Task<string> SummarizeChatSessionNameAsync(string tenantId, string userId,string? sessionId, string prompt)
+public async Task<string> SummarizeChatSessionNameAsync(string tenantId, string userId,string? sessionId, string prompt)
     {
         try
         {
@@ -209,16 +204,11 @@ With the activities in this module complete, it is time to test your work.
 
 ### Start the Backend
 
-- Return to the open terminal for the backend app in VS Code and type `dotnet run`
-
-### Start the Frontend
-
-- Return to the frontend terminal and type `ng serve`
-- Navigate to, `http://localhost:4200/` in your browser
+1. Return to the open terminal for the backend app in VS Code and type `dotnet run`
 
 ### Start a Chat Session
 
-1. Login to the frontend app.
+1. Return to the still running frontend application in your browser.
 1. Start a new conversation.
 1. Send the message:  
 
@@ -232,9 +222,8 @@ With the activities in this module complete, it is time to test your work.
 
 ### Stop the Application
 
-- Return to VS Code.
-- In the frontend terminal, press **Ctrl + C** to stop the frontend application.
-- Select the backend terminal, press **Ctrl + C** to stop the backend application.
+1. Return to VS Code.
+1. Select the backend terminal, press **Ctrl + C** to stop the backend application.
 
 ## Validation Checklist
 
