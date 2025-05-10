@@ -292,7 +292,7 @@ Add the following code as five new functions to the bottom of the class.
                                 var terminationInfo = JsonSerializer.Deserialize<TerminationInfo>(resultString);
                                 //logCallback("TERMINATION - Continue", terminationInfo!.ShouldContinue.ToString()); 
                                 //logCallback("TERMINATION - Reason", terminationInfo!.Reason); 
-                                return terminationInfo!.ShouldContinue;
+                                return !terminationInfo!.ShouldContinue;
                             }
                             else
                             {
@@ -959,7 +959,7 @@ namespace MultiAgentCopilot.Factories
                                 var terminationInfo = JsonSerializer.Deserialize<TerminationInfo>(resultString);
                                 logCallback("TERMINATION - Continue", terminationInfo!.ShouldContinue.ToString()); 
                                 logCallback("TERMINATION - Reason", terminationInfo!.Reason); 
-                                return terminationInfo!.ShouldContinue;
+                                return !terminationInfo!.ShouldContinue;
                             }
                             else
                             {
