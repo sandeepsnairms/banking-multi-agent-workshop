@@ -26,11 +26,12 @@ It is important to understand the need for agent specialization and have a basic
 
 When working with any kind of data we need to review our data models.
 
-To begin, navigate to the **/Models/Banking** folder. Familiarize yourself with the models used here.
+1. In VS Code, navigate to the **/Models/Banking** folder.
+1. Take a look at the names of the models here. These are the domain-specific functions for this bank we will create specialized agents for.
 
 ## Activity 2: Defining Agent Behavior
 
-Agent behavior is defined using prompts. These can be as simple as text in a string variable. However, it is often better to store these as external text files. In this solution we will use a format called, Prompty to manage our prompts.
+Agent behavior is defined using prompts. These can be as simple as text in a string variable. However, it is often better to store these as external text files. In this solution we will use a format called, *Prompty* to manage our prompts.
 
 Prompty is an asset class and file format designed to streamline the development and management of prompts for Large Language Models (LLMs). By combining configuration settings, sample data, and prompt templates into a single .prompty file, Prompty enhances observability, understandability, and portability for developers, thereby accelerating the prompt engineering process.
 
@@ -38,35 +39,35 @@ Prompty is an asset class and file format designed to streamline the development
 
 In this activity we will review the existing Prompty files.
 
-In your IDE, navigate to the **/Prompts** folder.
+1. In VS Code, navigate to the **/Prompts** folder.
 
 #### Common Agent Rules
 
-Review the contents of **CommonAgentRules.prompty**.
+1. Review the contents of **CommonAgentRules.prompty**.
 
 The contents of this file doesn't define a single agent's behavior but provides a baseline for how all agents are supposed to behave. Think of it like a set of global rules for agents. All agents import the text from this prompt to govern their responses.
 
 #### Coordinator Agent
 
-Review the contents of **Coordinator.prompty**.
+1. Review the contents of **Coordinator.prompty**.
 
 This agent is the coordinator for the entire multi-agent system we are building. Its purpose is own the entire experience for users with the banking agent system. It starts by greeting new users when they initiate a new session, then routes user requests to the correct agent(s) to handle on their behalf. Finally it asks for feedback on how it did its job.
 
 #### Customer Support Agent
 
-Review the contents of **CustomerSupport.prompty**.
+1. Review the contents of **CustomerSupport.prompty**.
 
 This agent handles anything that appears to be a customer support request by a user. It can create, find and update services requests for users. It can also take certain action on behalf of users too.
 
 #### Sales Agent
 
-Review the contents of **Sales.prompty**.
+1. Review the contents of **Sales.prompty**.
 
 This agent is used when customers ask questions about what kinds of services a bank offers. The data on the products the bank has are stored in Cosmos DB. This agent performs a vector search in Cosmos DB to find the most suitable products for a customer's request.
 
 #### Transaction Agent
 
-Review the contents of **Transactions.prompty**.
+1. Review the contents of **Transactions.prompty**.
 
 This agent handles any account-based transactions on behalf of the user including getting account balances, generating statements and doing fund transfers between accounts.
 
@@ -74,17 +75,19 @@ This agent handles any account-based transactions on behalf of the user includin
 
 In our banking solution we have four agents: transactions agent, sales agent, customer support agent, and a coordinator agent to manage all of them. With the behavior of the agents defined in Prompty, we now need to implement the code that will allow the application to load the agent behavior for each of the agents.
 
-In your IDE, navigate to the **/Models** folder and review the contents of **AgentTypes.cs**.
+1. In VS Code, navigate to the **/Models** folder.
+1. Review the contents of **AgentTypes.cs**.
 
 ### Implementing the Agent Factory
 
-We are now ready to complete the implementation for the **Agent Factory** created in the previous module. The **AgentFactory** will generate prompts based on the **agentType** parameter, allowing us to reuse the code and add more agents. 
+We are now ready to complete the implementation for the **Agent Factory** created in the previous module. The **AgentFactory** will generate prompts based on the **agentType** parameter, allowing us to reuse the code and add more agents.
 
-Navigate to the **/Factories** folder, open the **AgentFactory.cs**
+1. In VS Code, navigate to the **/Factories** folder.
+1. Next, open the **AgentFactory.cs** class.
 
 Next we need to replace our original hard-coded implementation from Module 2 to use the AgentType enum for our banking agents. It is also worth noting that it is here where the contents of the **CommonAgentsRules.prompty** are included as part of the system prompts that define our agents.
 
-Replace the code for both **GetAgentName()** and **GetAgentPrompts()** with the code below:
+1. Replace the code for both **GetAgentName()** and **GetAgentPrompts()** with the code below:
 
 ```csharp
         private string GetAgentName(AgentType agentType)
@@ -147,11 +150,9 @@ All banking domain code is encapsulated in a separate **BankingDataService** cla
 
 To save time, the code for BasePlugin, SalesPlugin, and CustomerSupportPlugin are already implemented. The code for TransactionPlugin is left for you to implement.
 
-In your IDE, navigate to the **/AgentPlugins** folder.
-
-Navigate to and open the **TransactionPlugin.cs** file
-
-Paste the following code into the class definition below the constructor.
+1. In VS Code, navigate to the **/AgentPlugins** folder.
+1. Open the **TransactionPlugin.cs** file.
+1. Paste the following code into the class below the constructor.
 
 ```csharp
     [KernelFunction]
@@ -185,9 +186,9 @@ Paste the following code into the class definition below the constructor.
 
 Similar to generating system prompts based on agent type, we need the plugins to be created dynamically. Next, we will implement a **GetAgentKernel** function that dynamically generates a plugin based on the agent type.
 
-Navigate to the **/Factories** folder, open the **AgentFactory.cs**
-
-Paste the code below to the  end of the class.
+1. In VS Code, navigate to the **/Factories** folder
+1. Open the **AgentFactory.cs** class.
+1. Paste the code below at the end of the class.
 
 ```csharp
         private Kernel GetAgentKernel(Kernel kernel, AgentType agentType, ILoggerFactory loggerFactory, BankingDataService bankService, string tenantId, string userId)
@@ -223,7 +224,8 @@ Paste the code below to the  end of the class.
 
 Now that we have dynamically generated Agent Prompt and  Agent Kernel, we can make the agent build process dynamic based on the **agentType** parameter. Next, we will modify the **BuildAgent()** function within the **AgentFactory** class to dynamically add plugins to the agents.
 
-Replace the **BuildAgent()** function with this code below.
+1. Return to the **AgentFactory** class.
+1. Replace the **BuildAgent()** function with this code below.
 
 ```csharp
         public ChatCompletionAgent BuildAgent(Kernel kernel, AgentType agentType, ILoggerFactory loggerFactory, BankingDataService bankService, string tenantId, string userId)
@@ -248,11 +250,9 @@ In this activity, you will learn how to configure vector indexing and search in 
 
 Data Models used for Vector Search in Semantic Kernel need to be enhanced with additional attributes. We will use **OfferTerm** as vector search enabled data model.
 
-In your IDE, navigate to the **/Models/Banking** folder
-
-Open **OfferTerm.cs**
-
-Paste the code with this code below for creating an OfferTerm class
+1. In VS Code, navigate to the **/Models/Banking** folder.
+1. Open the **OfferTerm.cs** class.
+1. Paste this code within the class.
 
 ```csharp
 
@@ -284,9 +284,10 @@ Paste the code with this code below for creating an OfferTerm class
 
 ### Update BankingDataService to include vector search
 
-In your IDE, within the '\Services' folder navigate to the **BankingDataService.cs** file.
-
-in the constructor of the class search for **//To DO: Add vector search initialization code here** and replace  with the below code
+1. In VS Code, navigate to the **/Services** folder.
+1. Open the the **BankingDataService.cs** file.
+1. In the constructor of the class search for **//To DO: Add vector search initialization code here**.
+1. Replace with the below code.
 
 ```csharp
       DefaultAzureCredential credential;
@@ -313,7 +314,8 @@ in the constructor of the class search for **//To DO: Add vector search initiali
      _offerDataVectorStore = new AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm>(_database, _offerData.Id, vectorStoreOptions);
 ```
 
-Below the constructor in which you just pasted the code above, paste the following two functions.
+1. Within the same file, navigate below the constructor in which you just pasted the code above.
+1. Then paste the following two functions.
 
 ```csharp
         public async Task<List<OfferTerm>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription)
@@ -377,11 +379,9 @@ Below the constructor in which you just pasted the code above, paste the followi
         }
 ```
 
-In your IDE, navigate to the **/AgentPlugins** folder.
-
-Open the **SalesPlugin.cs** file.
-
-Add these two functions to perform vector searches
+1. In VS Code, navigate to the **/AgentPlugins** folder.
+1. Open the **SalesPlugin.cs** file.
+1. Add these two functions to perform vector searches.
 
 ```csharp
     [KernelFunction]
@@ -403,13 +403,11 @@ Add these two functions to perform vector searches
 
 ### Select the Agent to get response
 
-In your IDE, navigate to the **/Services** folder.
-
-Open the **SemanticKernelService.cs** file.
-
-Locate the GetResponse() function.
-
-Replace *var agent = agentFactory.BuildAgent(_semanticKernel, _loggerFactory, bankService, tenantId, userId);* with the line of code below.
+1. In VS Code, navigate to the **/Services** folder.
+1. Open the **SemanticKernelService.cs** file.
+1. Locate the **GetResponse()** function.
+1. Locate this line of code, *var agent = agentFactory.BuildAgent(_semanticKernel, _loggerFactory, bankService, tenantId, userId);*
+1. Replace it with the line of code below.
 
 ```c#
 var agent = agentFactory.BuildAgent(_semanticKernel, AgentType.CustomerSupport, _loggerFactory, bankService, tenantId, userId);
@@ -419,77 +417,58 @@ var agent = agentFactory.BuildAgent(_semanticKernel, AgentType.CustomerSupport, 
 
 With the activities in this module complete, it is time to test your work.
 
-Execute the below steps to check the behavior for each agent.
-
 ### Test the Response for Each AgentType
 
 So far, we have created four agents, each with its own specialized role. However, we don't have any code to decide which agent to invoke in what scenario. That's something we will do in the next module. For now, let's test each agent independently and make sure all agents are functional.
 
-To perform the tests, we will repeat the steps below for each agent type.
-
-To begin, navigate to the **/Services** folder.
-
-Open the **SemanticKernelService.cs** file.
-
-Locate the **GetResponse()** function.
-
-Within this function update **AgentType** on this line of code below to see how different agents work.
+1. In VS Code, navigate to the **/Services** folder.
+1. Open the **SemanticKernelService.cs** file.
+1. Locate the **GetResponse()** function.
+1. Within this function update **AgentType** on this line of code below to see how different agents work.
 
 ```c#
 var agent = agentChatGeneratorService.BuildAgent(_semanticKernel, AgentType.CustomerSupport, _loggerFactory, bankService, tenantId, userId);
 ```
 
-Use this combination of AgentTypes and prompts for your test.
+For this line of code above, replace the value of the **AgentType** enumerator with one below, then enter the corresponding prompt. Use this combination of AgentTypes and prompts for your test.
 
-- AgentType.Coordinator: Hi 
-- AgentType.Transactions: How much did I spend on groceries?
-- AgentType.Sales: Looking for a high interest savings account
-- AgentType.CustomerSupport: File a complaint for theft in Acc001
+**Note:** To perform the tests, we will repeat the steps below for each agent type. We will start and stop the Backend service for each AgentType that we test. As you test each of these prompts be sure to look at the terminal output for the Backend service as it shows the actions the agents are taking in response to your prompts.
 
-Note: For each of these combinations above, you only need stop the Backend service. You can keep the front end up.
+|Agent Type | Prompt |
+|-|-|
+| AgentType.Coordinator | Hi |
+| AgentType.Transactions | How much did I spend on groceries? |
+| AgentType.Sales | Looking for a high interest savings account |
+| AgentType.CustomerSupport | File a complaint for theft in Acc001 |
 
 ### Start the Backend
 
-- Return to the open terminal for the backend app in VS Code and type `dotnet run`
-
-### Start the Frontend
-
-- Return to the frontend terminal and type `ng serve`
-- Navigate to, `http://localhost:4200/` in your browser
+1. Return to the open terminal for the backend app in VS Code and type `dotnet run`
 
 ### Start a Chat Session
 
-1. Open the frontend app.
+1. Return to the frontend application in your browser.
 1. Start a new conversation.
 1. Send a message based on the prompt of the current AgentType.
 1. Expected response: The response is inline with the Agent's prompts and plugins.
+1. Select the backend terminal, press **Ctrl + C** to stop the backend application.
+1. Repeat the steps with a new value for AgentType and Prompt in the table above.
+1. Return to the open terminal for the backend app in VS Code and type `dotnet run`
+1. After testing all of the AgentType enum values, continue with the next step below.
 
 ### Stop the Application
 
-- Return to VS Code.
-- In the frontend terminal, press **Ctrl + C** to stop the frontend application.
-- Select the backend terminal, press **Ctrl + C** to stop the backend application.
+1. Return to VS Code.
+1. Select the backend terminal, press **Ctrl + C** to stop the backend application.
 
 ## Validation Checklist
 
 - [ ] Each Agent response is per the corresponding prompty file contents and the plugin functions.
 - [ ] Semantic Search functions correctly
 
-## Common Issues and Solutions
-
-1. No response to your prompt (on local):
-    - Check if you are getting throttled by Azure OpenAI model.
-    - Increase Azure open AI tokens if required.
-
-1. Invalid/incomplete response:
-    - Check if the Azure Cosmos DB containers have valid data.
-
-
 ## Module Solution
 
 The following sections include the completed code for this Module. Copy and paste these into your project if you run into issues and cannot resolve.
-
-
 
 <details>
   <summary>Completed code for <strong>\Services\SemanticKernelService.cs</strong></summary>
@@ -1317,7 +1296,6 @@ namespace  MultiAgentCopilot.Services
 ```
 
 </details>
-
 
 ## Next Steps
 

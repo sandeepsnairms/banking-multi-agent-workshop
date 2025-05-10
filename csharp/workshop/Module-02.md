@@ -16,7 +16,6 @@ In this Module you'll connect your agent to Azure Cosmos DB to provide memory fo
 1. [Activity 2: Connecting Agent Frameworks to Azure Cosmos DB](#activity-2-connecting-agent-frameworks-to-azure-cosmos-db)
 1. [Activity 3: Test your Work](#activity-3-test-your-work)
 
-
 ## Activity 1: Create a Simple Banking Agent
 
 In this hands-on exercise, we will evolve the agent that translated responses into French into an agent that is intended for the banking scenario we are building here. We will also take the first step to learning about prompts here as well.
@@ -25,7 +24,9 @@ In this hands-on exercise, we will evolve the agent that translated responses in
 
 Agents are autonomous systems that use LLMs to process inputs, make decisions, and generate responses based on predefined goals. They can integrate with external tools, retrieve information, and adapt dynamically to different tasks. We are next going to implement a **AgentFactory** class that enables the creation of agents for various scenarios. It uses the GetAgentPrompts to define the agent prompts.
 
-In your IDE, within the **/Factories** folder, open **AgentFactory.cs** and paste the code below:
+1. In VS Code, navigate to the **/Factories** folder.
+1. Next, open **AgentFactory.cs**.
+1. Within the class definition for **AgentFactory** paste the code below:
 
 ```csharp
         private string GetAgentName()
@@ -64,7 +65,8 @@ Next lets add some memory so that the agent can remember the previous messages a
 
 In this activity, you will learn how to initialize Azure Cosmos DB and integrate with an agent framework to provide persistent memory for chat history and state management.
 
-In your IDE navigate to the **/Services** folder. Open **SemanticKernelService.cs**
+1. Within VS Code, navigate to the **\Services** folder.
+1. Next, open **SemanticKernelService.cs**.
 
 ### Update GetResponse() function in SemanticKernelService
 
@@ -72,9 +74,9 @@ The **GetResponse()** function is the main entry point for our multi-agent appli
 
 We're going to modify this function to provide that persistence with Cosmos DB.
 
-In your IDE, open the **SemanticKernelService.cs** and navigate to the **GetResponse()** function.
-
-Replace all of the code within the **Try** block with the code below:
+1. In VS Code, open the **SemanticKernelService.cs**
+1. Navigate to the **GetResponse()** function.
+1. Replace all of the code within the **Try** block with the code below:
 
 ```csharp
             AgentFactory agentFactory = new AgentFactory();
@@ -116,13 +118,17 @@ Replace all of the code within the **Try** block with the code below:
 
 #### Update Chat Service
 
-We can now update our Chat Service to store the messages generated between users and agents. In this step, we will add a new function that first calls the Cosmos DB service to get a Session object from our database. The Session object is part of an object hierarchy that defines the conversations between users and agents. A session has a name and also an array of messages for that conversation topic. You can view this hierarchy by navigating to its definition stored in **/Models/Chat/Session.cs**
+We can now update our Chat Service to store the messages generated between users and agents. In this step, we will add a new function that first calls the Cosmos DB service to get a Session object from our database. The Session object is part of an object hierarchy that defines the conversations between users and agents. A session has a name and also an array of messages for that conversation topic.
+
+Let's view the data model for our chat session object.
+
+1. In VS Code, navigate to the **\Models\Chat** folder.
+1. Open the **Session.cs** class.
 
 With a reference to the current session returned from the CosmosDBService, this function then calls our newly implemented function to update the messages within the session object with any new or updated messages. Typically, this would include a single user prompt, followed by one or more responses from the agents.
 
-To begin, navigate to the **/Services** folder and open the **ChatService.cs** class.
-
-Paste the the below code within the class
+1. To begin, navigate to the **\Services** folder and open the **ChatService.cs** class.
+1. Paste the the below code within the class
 
 ```csharp
 /// <summary>
@@ -139,7 +145,8 @@ private async Task AddPromptCompletionMessagesAsync(string tenantId, string user
 
 #### Utilize and Store History in GetChatCompletionAsync
 
-Locate **GetChatCompletionAsync()**, then update the function by replacing the code within the Try block with the below:
+1. Next, locate the **GetChatCompletionAsync()** function.
+1. Update the function by replacing the code within the *Try* block with the below:
 
 ```csharp
             ArgumentNullException.ThrowIfNull(sessionId);
@@ -164,18 +171,13 @@ With the activities in this module complete, it is time to test your work.
 
 ### Start the Backend
 
-- Return to the open terminal for the backend app in VS Code and type `dotnet run`
-
-### Start the Frontend
-
-- Return to the frontend terminal and type `ng serve`
-- Navigate to, `http://localhost:4200/` in your browser
+1. Return to the open terminal for the backend app in VS Code and type `dotnet run`
 
 ### Start a Chat Session
 
 We have a new agent now that thinks it works for a bank. So in our test here we are going to ask it banking-related questions.
 
-1. Open the frontend app.
+1. Return to the frontend application in your browser.
 1. Start a new conversation.
 1. Send the following message:
 
@@ -191,16 +193,14 @@ We have a new agent now that thinks it works for a bank. So in our test here we 
    ```
 
 1. Expected response: The Agent's response is contextually correct for the  whole chat session.
-
 1. You should see something like the output below.
 
     ![Test output Module 2](./media/module-02/test-output.png)
 
 ### Stop the Application
 
-- Return to VS Code.
-- In the frontend terminal, press **Ctrl + C** to stop the frontend application.
-- Select the backend terminal, press **Ctrl + C** to stop the backend application.
+1. Return to VS Code.
+1. Press **Ctrl + C** to stop the backend application.
 
 ## Validation Checklist
 

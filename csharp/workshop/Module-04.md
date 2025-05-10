@@ -14,7 +14,7 @@ In this Module you'll learn how to implement the multi-agent orchestration to ti
 ## Module Exercises
 
 1. [Activity 1: Define Agents and Roles](#activity-1-define-agents-and-roles)
-1. [Activity 2: Implement Agent Tracing and Monitoring](#activity-2-implement-agent-tracing-and-monitoring)
+1. [Optional Activity 2: Implement Agent Tracing and Monitoring](#activity-2-implement-agent-tracing-and-monitoring)
 1. [Activity 3: Test your Work](#activity-3-test-your-work)
 
 ## Activity 1: Define Agents and Roles
@@ -25,7 +25,8 @@ When dealing with multiple agents, clear agent roles is important to avoid confl
 
 SelectionStrategy is the mechanism in SemanticKernel that determines the next participant. By using the SelectionStrategy, we can identify the available agents and guide the LLM by defining the selection rule in natural language.
 
-Navigate to the **/Prompts** folder and review the contents of **SelectionStrategy.prompty**
+1. In VS Code, navigate to the **/Prompts** folder
+1. Review the contents of **SelectionStrategy.prompty**
 
 ```text
 Examine RESPONSE and choose the next participant.
@@ -48,7 +49,8 @@ Always follow these rules when choosing the next participant:
 
 Similar to how SelectionStrategy selects an agent, TerminationStrategy decides when agents should stop responding. This is crucial to prevent multiple unwanted agent chatter in response to a user prompt. TerminationStrategy is the mechanism in SemanticKernel that determines when to stop. It is defined in natural language and instructs the LLM to return YES if more agent participation is required, otherwise it should return NO.
 
-Navigate to the **/Prompts** folder and review the contents of **TerminationStrategy.prompty**
+1. In VS Code, navigate to the **/Prompts** folder.
+1. Review the contents of **TerminationStrategy.prompty**
 
 ```text
 Determine if agent has requested user input or has responded to the user's query.
@@ -63,13 +65,12 @@ Otherwise, respond with the word YES (without explanation) if any the following 
 
 By default, the LLM responds to user prompts in natural language. However, we can enforce a structured format in its responses. A structured format allows us to parse the response and utilize it in our code for decision-making.
 
-Lets define the models for the response
+Lets define the models for the response.
 
 #### ContinuationInfo
 
-Navigate to the **/Models/ChatInfoFormats** folder.
-
-Review the contents of **ContinuationInfo.cs**
+1. In VS Code, navigate to the **/Models/ChatInfoFormats** folder.
+1. Review the contents of **ContinuationInfo.cs**.
 
 ```c#
 namespace MultiAgentCopilot.Models.ChatInfoFormats
@@ -84,9 +85,8 @@ namespace MultiAgentCopilot.Models.ChatInfoFormats
 
 ### TerminationInfo
 
-Remain in the same **ChatInfoFormats** folder.
-
-Review the contents of **TerminationInfo.cs**
+1. Remain in the same **ChatInfoFormats** folder.
+1. Review the contents of **TerminationInfo.cs**
 
 ```csharp
 namespace MultiAgentCopilot.Models.ChatInfoFormats
@@ -97,12 +97,12 @@ namespace MultiAgentCopilot.Models.ChatInfoFormats
         public string Reason { get; set; } = string.Empty;
     }
 }
-
 ```
 
 Let's define a format builder that the LLM can use to output the Continuation and Termination models as responses.
 
-In the folder **/StructuredFormats**. Review the contents of **ChatResponseFormat.cs**
+1. In VS Code, navigate to the **/StructuredFormats** folder.
+1. Review the contents of **ChatResponseFormat.cs**.
 
 ```csharp
 namespace MultiAgentCopilot.StructuredFormats
@@ -123,7 +123,6 @@ namespace MultiAgentCopilot.StructuredFormats
                 case ChatResponseStrategy.Continuation:
                     string jsonSchemaFormat_Continuation = """
                     {
-
                         "type": "object", 
                             "properties": {
                                 "AgentName": { "type": "string", "description":"name of the selected agent" },
@@ -131,7 +130,6 @@ namespace MultiAgentCopilot.StructuredFormats
                             },
                             "required": ["AgentName", "Reason"],
                             "additionalProperties": false
-
                     }
                     """;
 
@@ -139,7 +137,6 @@ namespace MultiAgentCopilot.StructuredFormats
                 case ChatResponseStrategy.Termination:
                     string jsonSchemaFormat_termination = """
                     {
-
                         "type": "object", 
                             "properties": {
                                 "ShouldContinue": { "type": "boolean", "description":"Does conversation require further agent participation" },
@@ -147,7 +144,6 @@ namespace MultiAgentCopilot.StructuredFormats
                             },
                             "required": ["ShouldContinue", "Reason"],
                             "additionalProperties": false
-
                     }
                     """;
 
@@ -155,28 +151,22 @@ namespace MultiAgentCopilot.StructuredFormats
                 default:
                     return "";
             }
-
         }
     }
-
-
 }
-
 ```
 
 ### StrategyPrompts
 
 Just like Agent System Prompts lets return StrategyPrompts based on strategyType.
 
-Navigate to the **/Factories** folder, open the **AgentFactory.cs**
-
-Navigate to the bottom of the file and locate the end of the **GetAgentKernel()** function.
-
-Add the following code as five new functions to the bottom of the class.
+1. In VS Code, navigate to the **/Factories** folder.
+1. Open the **AgentFactory.cs**.
+1. Navigate to the bottom of the file and locate the end of the **GetAgentKernel()** function.
+1. Add the following code as five new functions to the bottom of the class.
 
 ```csharp
     
-
        public static string GetStrategyPrompts(ChatResponseStrategy strategyType)
        {
           string prompt = string.Empty;
@@ -308,11 +298,11 @@ Add the following code as five new functions to the bottom of the class.
 
 ### Replace Agent with AgentGroupChat in SemanticKernel
 
-Until now the responses we received were from a single agent, lets us use AgentGroupChat to orchestrate a chat were multiple agents participate.
+Until now the responses we received were from a single agent, lets use AgentGroupChat to orchestrate a chat where multiple agents participate.
 
-Navigate to **Services/SemanticKernelService.cs**
-
-Locate **GetResponse()**. Add the below code after the **GetResponse()** function
+1. In VS Code, navigate to **Services/SemanticKernelService.cs**
+1. Locate the **GetResponse()** function.
+1. Add the below code after the **GetResponse()** function.
 
 ```csharp
     private void LogMessage(string key, string value)
@@ -322,7 +312,7 @@ Locate **GetResponse()**. Add the below code after the **GetResponse()** functio
 
 ```
 
-Update the the **GetResponse()** function with the code in the **Try** block below:
+1. Next, update the the **GetResponse()** function with the code in the **Try** block below:
 
 ```csharp
             AgentFactory agentFactory = new AgentFactory();
@@ -370,15 +360,18 @@ Update the the **GetResponse()** function with the code in the **Try** block bel
 
 ## Activity 2: Implement Agent Tracing and Monitoring
 
-In this hands-on exercise, you will learn how to define an API service layer for a multi-agent backend and learn how to configure tracing and monitoring to enable testing and debugging for agents.
+**Note:** This activity is optional. If you are running short on time during this lab, skip to [Activity 3: Test your work](#activity-3-test-your-work).
 
-Before executing the below steps, try chatting with the agents. Note that  you re unable to see which functions are invoked and why the LLM selects an agent. Now lets add some code to bring visibility to behind the scene decision making process.
+In this activity, you will learn how to define an API service layer for a multi-agent backend and learn how to configure tracing and monitoring to enable testing and debugging for agents.
+
+You may have noticed when chatting with the agents you are unable to see which functions are invoked and why the LLM selects an agent. Lets add some code to bring visibility to behind the scene decision making process.
 
 ### Log the kernel function selection
 
 To log the data used by the LLM to invoke functions, we will create a class named **AutoFunctionInvocationLoggingFilter**.
 
-Navigate to **LogFilter** folder and review the contents of **AutoFunctionInvocationLoggingFilter.cs**
+1. In VS Code, navigate to **LogFilter** folder.
+1. Review the contents of **AutoFunctionInvocationLoggingFilter.cs**.
 
 ```c#
 using Microsoft.SemanticKernel;
@@ -393,12 +386,10 @@ namespace MultiAgentCopilot.Logs
         public AutoFunctionInvocationLoggingFilter(ILogger<AutoFunctionInvocationLoggingFilter> logger)
         {
             _logger = logger;
-
         }
 
         public async Task OnAutoFunctionInvocationAsync(AutoFunctionInvocationContext context, Func<AutoFunctionInvocationContext, Task> next)
         {
-
             var functionCalls = FunctionCallContent.GetFunctionCalls(context.ChatHistory.Last()).ToList();
 
             if (_logger.IsEnabled(LogLevel.Trace))
@@ -419,9 +410,8 @@ namespace MultiAgentCopilot.Logs
 
 #### Update Semantic Kernel's AutoFunctionInvocationFilters
 
-Navigate to **AgentFactory.cs**
-
-Uncomment the following line in the **BuildAgentGroupChat()** function.
+1. In VS Code, navigate to the **AgentFactory.cs** class.
+1. Uncomment the following line in the **BuildAgentGroupChat()** function.
 
 ```csharp
     //kernel.AutoFunctionInvocationFilters.Add(new AutoFunctionInvocationLoggingFilter(loggerFactory.CreateLogger<AutoFunctionInvocationLoggingFilter>()));
@@ -429,22 +419,24 @@ Uncomment the following line in the **BuildAgentGroupChat()** function.
 
 #### Logging the Termination and selection Strategy
 
-Add the below declaration to the AgentFactory class
+1. Next, add the below declaration to the **AgentFactory.cs** class.
 
 ```csharp
 public delegate void LogCallback(string key, string value);
 
 ```
 
-Search for **\\logCallback** inside **GetAgentGroupChatSettings()** function uncomment it at 4 places.
+1. Search for **\\logCallback** inside **GetAgentGroupChatSettings()** function.
+1. Uncomment it in 4 places it appears.
 
 ### Store the log information along with the chat response
 
 Now that we have log information for AgentSelection and Termination, we also need to persist these logs for later retrieval. Storing these DebugLogs in the ChatData container of Cosmos DB along with the other chat data will help us view the logs in the context of the conversation.
 
-Navigate to **Services/SemanticKernelService.cs**
-
-Locate **GetResponse()**, then search for **// TO DO : Add DebugLog code here**  and add the code below:
+1. In VS Code, navigate to **Services/SemanticKernelService.cs**.
+1. Locate the **GetResponse()** function.
+1. Search for **// TO DO : Add DebugLog code here**
+1. Add the code below:
 
 ```csharp
 
@@ -454,7 +446,6 @@ Locate **GetResponse()**, then search for **// TO DO : Add DebugLog code here** 
         completionMessagesLog.PropertyBag = _promptDebugProperties;
         completionMessagesLogs.Add(completionMessagesLog);
     }
-
 ```
 
 ## Activity 3: Test your Work
@@ -465,14 +456,9 @@ In the previous module we tested each agent independently. With the code changes
 
 - Return to the open terminal for the backend app in VS Code and type `dotnet run`
 
-### Start the Frontend
-
-- Return to the frontend terminal and type `ng serve`
-- Navigate to, `http://localhost:4200/` in your browser
-
 ### Start a Chat Session
 
-1. Open the frontend app.
+1. Return to the frontend application in your browser.
 1. Start a new conversation.
 1. Try the below prompts and respond according to the AI response. For each response use the Debug log to understand the agent selection and termination strategy.
    ![Debug Log](./media/module-04/view-debuglog.png)
@@ -708,9 +694,7 @@ public class SemanticKernelService :  IDisposable
     {
         // Dispose resources if any
     }
-}
-    
-    
+} 
 ```
 
 </details>
@@ -720,8 +704,6 @@ public class SemanticKernelService :  IDisposable
 <br>
 
 ```csharp
-
-
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.Agents.Chat;

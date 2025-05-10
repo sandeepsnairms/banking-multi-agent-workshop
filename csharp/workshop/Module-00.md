@@ -32,8 +32,9 @@ cd csharp\src\MultiAgentCopilot
 1. When you see *Semantic Kernel service initialized* the app has started.
 1. Leave the app running.
 
-### Run the Frontend App
+### Start the Frontend App
 
+1. Next we will start the frontend application. We will leave this running for the duration of the lab.
 1. Within VS Code, open a new terminal.
 1. Navigate to the *frontend* folder.
 
@@ -67,9 +68,10 @@ cd csharp\src\MultiAgentCopilot
 
 ### Stop the Application
 
-- Return to VS Code.
-- In the frontend terminal, press **Ctrl + C** to stop the frontend application.
-- Select the backend terminal, press **Ctrl + C** to stop the backend application.
+1. Return to VS Code.
+1. Select the backend terminal, press **Ctrl + C** to stop the backend application.
+
+**Note:** Leave the front-end application running for the duration of the lab.
 
 ## Next Steps
 
