@@ -88,6 +88,8 @@ Next we need to replace our original hard-coded implementation from Module 2 to 
 
 1. Replace the code for both **GetAgentName()** and **GetAgentPrompts()** with the code below:
 
+**Note:** You will notice build errors for some of the updates you make during the activities in this module. These will be fixed in subsequent Activities.
+
 ```csharp
         private string GetAgentName(AgentType agentType)
         {
