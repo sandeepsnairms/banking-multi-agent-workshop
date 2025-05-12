@@ -413,7 +413,7 @@ Next, we need to then connect the Sales Agent to our new functions.
 1. Replace it with the line of code below.
 
 ```c#
-var agent = agentFactory.BuildAgent(_semanticKernel, AgentType.Coordinator, _loggerFactory, bankService, tenantId, userId);
+var agent = agentFactory.BuildAgent(_semanticKernel, AgentType.Sales, _loggerFactory, bankService, tenantId, userId);
 ```
 
 ## Activity 7: Test your Work
@@ -444,21 +444,19 @@ So far, we have created four agents, each with its own specialized role. However
 ### Start a Chat Session
 
 1. Return to the frontend application in your browser.
-1. Send a message based on the prompt of the current AgentType.
+1. Send a message to test the current *Sales* AgentType.
 1. View the response in the frontend.
-1. View the output of the terminal for the backend.
-1. Press **Ctrl + C** to stop the backend application.
-1. Replace the value for AgentType on the line of code above.
-1. Restart the backend.
-1. Return to the frontend and enter the corresponding Prompt.
-1. Repeat
 
-After testing all of the AgentType enum values, continue with the next step below.
+```text
+I'm looking for a high interest savings account
+```
+
+1. Return to VS Code.
+1. Notice the output in the terminal showing the action taken by the Sales Agent to your prompt.
 
 ### Stop the Application
 
-1. Return to VS Code.
-1. Select the backend terminal, press **Ctrl + C** to stop the backend application.
+1. Within the backend terminal, press **Ctrl + C** to stop the backend application.
 
 ## Validation Checklist
 
