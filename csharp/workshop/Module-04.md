@@ -314,7 +314,7 @@ Until now the responses we received were from a single agent, lets use AgentGrou
 
 ```
 
-1. Next, update the the **GetResponse()** function with the code **within** the **Try** block below:
+1. Next, update the the **GetResponse()** function. Inside, the **Try** block, replace with the code below:
 
 ```csharp
             AgentFactory agentFactory = new AgentFactory();
