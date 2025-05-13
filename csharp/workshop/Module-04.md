@@ -166,7 +166,9 @@ Just like Agent System Prompts lets return StrategyPrompts based on strategyType
 1. Add the following code as five new functions to the bottom of the class.
 
 ```csharp
-    
+       
+       public delegate void LogCallback(string key, string value);
+  
        public static string GetStrategyPrompts(ChatResponseStrategy strategyType)
        {
           string prompt = string.Empty;
@@ -418,13 +420,6 @@ namespace MultiAgentCopilot.Logs
 ```
 
 #### Logging the Termination and selection Strategy
-
-1. Next, add the below declaration to the **AgentFactory.cs** class.
-
-```csharp
-public delegate void LogCallback(string key, string value);
-
-```
 
 1. Search for **\\logCallback** inside **GetAgentGroupChatSettings()** function.
 1. Uncomment it in 4 places it appears.
