@@ -422,23 +422,6 @@ var agent = agentFactory.BuildAgent(_semanticKernel, AgentType.Sales, _loggerFac
 
 With the activities in this module complete, it is time to test your work.
 
-### Test the Response for Each AgentType
-
-So far, we have created four agents, each with its own specialized role. However, we don't have any code to decide which agent to invoke in what scenario. That's something we will do in the next module. For now, let's test each agent independently and make sure all agents are functional.
-
-1. Remain on the **GetResponse()** function.
-1. We are going to modify the line we just pasted in our tests below and update the **AgentType** enumerator on this line of code below to see how the different agents respond.
-1. We will then test a different prompt and look at the responses from each agent.
-
-**Note:** To perform the tests, we will repeat the steps below for each agent type. We will start and stop the Backend service for each AgentType that we test. As you test each of these prompts be sure to look at the terminal output for the Backend service as it shows the actions the agents are taking in response to your prompts.
-
-| Agent Type | Prompt |
-|-|-|
-| AgentType.Coordinator | Hi |
-| AgentType.Transactions | How much did I spend on groceries in last 6 months? |
-| AgentType.Sales | Looking for a high interest savings account |
-| AgentType.CustomerSupport | File a complaint for theft in Acc001 |
-
 ### Start the Backend
 
 1. Return to the open terminal for the backend app in VS Code and type `dotnet run`
