@@ -619,7 +619,7 @@ npm start
 
 ### Start a Conversation
 
-1. Open your browser and navigate to `http://localhost:4200/`.
+1. Return to the frontend app in your browser and hit refresh. If you closed it, open a new tab and navigate to <http://localhost:4200/>.
 1. In the Login dialog, select a user and company and click, Login.
 
 ![Final User Interface](./media/module-01/frontend.png)

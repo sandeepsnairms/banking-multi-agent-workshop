@@ -10,7 +10,11 @@ In this Module, you'll configure the lab resources then start the application to
 1. Password +++@lab.CloudPortalCredential(User1).Password+++
 1. In the Search box at the top of the Azure Portal, type in `resource group`. Open the Resource groups blade
 1. Open the resource group that starts with: *rg-agenthol-*.
-1. Open the Cosmos DB account and navigate to Data Explorer.
+1. If the resource group does not appear wait a few moments then refresh.
+1. When the new resource group appears, expand the Overview tab and click deployments.
+![essentials-tab-deployments](./media/module-00/essentials-tab-deployments.png)
+1. If all resources have been deployed successfully, you are ready to begin the lab. Your screen should look like this.
+![deployments](./media/module-00/deployments.png)
 1. Leave this browser open to the Azure Portal.
 1. Proceed to [Running the App](#running-the-app)
 

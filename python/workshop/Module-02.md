@@ -39,9 +39,8 @@ Key Features of the Checkpointer Plugin:
 
 Let's add the Checkpointer Plugin to our application.
 
-To begin, navigate to the `banking_Agents.py` file.
-
-Copy the code below to the top of the file with the other imports:
+1. To begin, open the **banking_Agents.py** file.
+1. Copy the code below to the top of the file with the other imports:
 
 ```python
 from langgraph_checkpoint_cosmosdb import CosmosDBSaver
@@ -49,29 +48,30 @@ from src.app.services.azure_cosmos_db import DATABASE_NAME, checkpoint_container
     patch_active_agent
 ```
 
-In the same `banking_agents.py` file, scroll down to locate the following lines:
+1. In the same **banking_agents.py** file, scroll down to locate the following lines:
 
 ```python
 checkpointer = MemorySaver()
 graph = builder.compile(checkpointer=checkpointer)
 ```
 
-Then replace those two lines with the code below:
+1. Replace those two lines with the code below:
 
 ```python
 checkpointer = CosmosDBSaver(database_name=DATABASE_NAME, container_name=checkpoint_container)
 graph = builder.compile(checkpointer=checkpointer)
 ```
 
-From this point on, the agent will save its state to Azure Cosmos DB. The `CosmosDBSaver` class will save the state of the agent to the database represented by the global variable, `DATABASE_NAME` in the `checkpoint_container` container.
+From this point on, the agent will save its state to Azure Cosmos DB. The *CosmosDBSaver* class will save the state of the agent to the database represented by the global variable, `DATABASE_NAME` in the *checkpoint_container* container.
 
 ### Enhance the agent routing
 
-When you wired up the API layer in module 1, Cosmos DB began storing a history of chat messages. These messages are stored for convenience, while state is being stored in the checkpoint container in Cosmos DB using the code you added above. 
+When you wired up the API layer in Module 1, Cosmos DB began storing a history of chat messages. These messages are stored for convenience, while state is being stored in the checkpoint container in Cosmos DB using the code you added above.
 
 In this application, we're taking an opinionated approach to agent routing. Instead of relying on the coordinator to use the LLM to route messages in a non-deterministic manner to the appropriate agent based on the context, we're going to store the "active agent" in the chat container in Cosmos DB (a single record maintained for each session). We're choosing to do this so that the coordinator can always deterministically route back to the active agent (if known) in a multi-turn conversation. 
 
-Locate the following code in the `banking_agents.py` file:
+1. Remain in the **banking_agents.py** file.
+1. Locate the following code.
 
 ```python
 def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coordinator_agent", "human"]]:
@@ -79,7 +79,7 @@ def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coo
     return Command(update=response, goto="human")
 ```
 
-Replace it with the following code:
+1. Replace it with the following code.
 
 ```python
 def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coordinator_agent", "human"]]:
@@ -128,7 +128,7 @@ def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coo
 
 Finally, we the customer service agent as well (these changes are only need for testing the backend directly, but we add them for posterity here).
 
-Locate the following code in the `banking_agents.py` file:
+1. Locate the following code in the **banking_agents.py** file.
 
 ```python
 def call_customer_support_agent(state: MessagesState, config) -> Command[Literal["customer_support_agent", "human"]]:
@@ -136,7 +136,7 @@ def call_customer_support_agent(state: MessagesState, config) -> Command[Literal
     return Command(update=response, goto="human")
 ```
 
-Replace it with the following code:
+1. Replace it with the following code.
 
 ```python
 def call_customer_support_agent(state: MessagesState, config) -> Command[Literal["customer_support_agent", "human"]]:
@@ -152,7 +152,7 @@ def call_customer_support_agent(state: MessagesState, config) -> Command[Literal
     return Command(update=response, goto="human")
 ```
 
-The `patch_active_agent` function is used to store which agent is currently active within the application. 
+The *patch_active_agent* function is used to store which agent is currently active within the application.
 
 ### Let's review
 
@@ -175,7 +175,7 @@ With the activities in this module complete, it is time to test your work! Let's
 
 ### Start a Conversation
 
-1. In you browser, return to our frontend, `http://localhost:4200/` and hit refresh.
+1. In you browser, return to the frontend and hit refresh.
 1. Type the following text:
 
 ```text
@@ -188,9 +188,9 @@ You should see your query being routed to the customer support agent and a respo
 
 Let's prove that agent state is preserved.
 
-1. In your browser, return to the Azure Portal.
+1. Stay in your browser, and return to the Azure Portal.
 1. Open the Cosmos DB account deployed with this lab.
-1. Navigate to Data Explorer within the Cosmos DB blade
+1. Navigate to Data Explorer within the Cosmos DB blade.
 1. Locate and open the Chat container.
 1. You should see the agent state and chat history stored there.
 
