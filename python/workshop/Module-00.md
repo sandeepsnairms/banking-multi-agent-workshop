@@ -10,6 +10,11 @@ In this Module, you'll configure the lab resources then start the application to
 1. Password +++@lab.CloudPortalCredential(User1).Password+++
 1. In the Search box at the top of the Azure Portal, type in `resource group`. Open the Resource groups blade
 1. Open the resource group that starts with: *rg-agenthol-*.
+1. If the resource group does not appear wait a few moments then refresh.
+1. When the new resource group appears, expand the Overview tab and click deployments.
+![essentials-tab-deployments](./media/module-00/essentials-tab-deployments.png)
+1. If all resources have been deployed successfully, you are ready to begin the lab. Your screen should look like this.
+![deployments](./media/module-00/deployments.png)
 1. Open the Cosmos DB account and navigate to Data Explorer.
 1. Leave this browser open to the Azure Portal. We will refer to it again later in this lab.
 1. Proceed to [Run the Solution](#run-the-solution)
@@ -35,7 +40,7 @@ uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 63280
 
 **Note:** If prompted, allow Python to access the public and private network for this app.
 
-The API will be available at `http://localhost:63280/docs`. This has been pre-built with boilerplate code that will create chat sessions and store the chat history in Cosmos DB.
+The API will be available at <http://localhost:63280/docs>. This has been pre-built with boilerplate code that will create chat sessions and store the chat history in Cosmos DB.
 
 ### Start the Frontend App
 
@@ -55,7 +60,7 @@ npm start
 
 ### Start a Conversation
 
-1. Open your browser and navigate to `http://localhost:4200/`.
+1. Open your browser and navigate to <http://localhost:4200/>.
 1. In the Login dialog, select a user and company and click, Login.
 1. Send the message:
 

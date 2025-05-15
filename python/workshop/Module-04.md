@@ -34,9 +34,9 @@ By completing this exercise, you will:
 
 This upgrade not only reduces dependency on the coordinator but also creates a more collaborative and efficient agent ecosystem, reflecting real-world teamwork dynamics.
 
-In your IDE, navigate to the `banking_agents.py` file.
-
-Locate the `customer_support_agent_tools`, and update it with the below code:
+1. In VS Code, open the **banking_agents.py** file.
+1. Locate the **customer_support_agent_tools**.
+1. Update it with the below code.
 
 ```python
 customer_support_agent_tools = [
@@ -47,7 +47,8 @@ customer_support_agent_tools = [
 ]
 ```
 
-Next, locate the `transactions_agent_tools`, and update it with the below code:
+1. Next, locate the **transactions_agent_tools**.
+1. Update it with the below code.
 
 ```python
 transactions_agent_tools = [
@@ -58,7 +59,7 @@ transactions_agent_tools = [
 ]
 ```
 
-Next, locate `sales_agent`, and update it with the below code:
+1. Next, locate **sales_agent**, and update it with the below code:
 
 ```python
 sales_agent_tools = [
@@ -70,9 +71,10 @@ sales_agent_tools = [
 ]
 ```
 
-We would need to update the prompts of agents accordingly as we have updated the tools each agent can call.
+We need to update the prompts of agents accordingly as we have updated the tools each agent can call.
 
-In VS Code, navigate to the file `src/app/prompts/coordinator_agent.prompty` and update with the following:
+1. In VS Code, open the file **src/app/prompts/coordinator_agent.prompty**
+1. Update with the following text.
 
 ```text
 You are a Chat Initiator and Request Router in a bank.  
@@ -82,7 +84,8 @@ If the user wants to open a new account or take our a bank loan or ask about ban
 You MUST include human-readable response before transferring to another agent.
 ```
 
-Next, navigate to the file `src/app/prompts/customer_support_agent.prompty` and update with the following:
+1. Next, open the file **src/app/prompts/customer_support_agent.prompty**
+1. Update with the following text.
 
 ```text
 You are a customer support agent that can give general advice on banking products and branch locations  
@@ -93,7 +96,8 @@ and say you will get someone to call them back, call 'service_request' tool with
 You MUST include human-readable response before transferring to another agent.
 ```
 
-Next, navigate to the empty file `src/app/prompts/transactions_agent.prompty` and update with the following:
+1. Next, open the empty file **src/app/prompts/transactions_agent.prompty**
+1. Update with the following text.
 
 ```text
 You are a banking transactions agent that can handle account balance enquiries and bank transfers.  
@@ -106,7 +110,8 @@ If the user needs general help, transfer to 'customer_support' for help.
 You MUST respond with the repayment amounts before transferring to another agent.
 ```
 
-Finally, navigate to the empty file `src/app/prompts/sales_agent.prompty` and update with the following:
+1. Finally, navigate to the empty file **src/app/prompts/sales_agent.prompty**
+1. Update with the following text:
 
 ```text
 You are a sales agent that can help users with creating a new account, or taking out bank loans or providing information about new banking offers.  
@@ -128,7 +133,7 @@ With these updates, each agent is now equipped with the ability to delegate task
 
 ### Start a Conversation
 
-1. In you browser, return to our frontend, `http://localhost:4200/` and hit refresh.
+1. In you browser, return to our frontend, <http://localhost:4200/> and hit refresh.
 1. Create a new conversation and try transferring money again as shown below.
 1. Type the following text:
 
@@ -162,7 +167,7 @@ Tell me something about your banking offers
 credit card
 ```
 
-1. As the agents can talk to each other, the `transactions_agent` after completing the account transfer, calls the `customer_support_agent`, which in turn calls the `sales_agent` to finally get us a result using Cosmos DB Vector Search.
+1. As the agents can talk to each other, the `transactions_agent` after completing the account transfer, calls the *customer_support_agent*, which in turn calls the *sales_agent* to finally get us a result using Cosmos DB Vector Search.
 1. The conversation should look similar to this.
 
 ![Testing_2](./media/module-04/testing_module_4-2.png)
@@ -181,7 +186,7 @@ In this activity, you'll integrate LangSmith, a powerful observability and monit
 
 ### Adding LangSmith Environment Variables
 
-Open the .env file in the python folder of the code base.
+1. Open the **.env** file in the python folder of the code base.
 
 ```python
 LANGCHAIN_API_KEY="<your_langsmith_api_key>"
@@ -189,7 +194,7 @@ LANGCHAIN_TRACING_V2="true"
 LANGCHAIN_PROJECT="multi-agent-banking-app"
 ```
 
-Your .env file should look like this after adding the above lines.
+1. Your .env file should look like this after adding the above lines.
 
 ```python
 COSMOSDB_ENDPOINT="<your_cosmos_db_uri>"
@@ -210,7 +215,7 @@ The decorator works by creating a run tree for you each time the function is cal
 
 LangSmith UX is built in a way that different components of your multi-agent application get rendered differently. LangSmith supports many different types of Runs - you can specify the type of Run in the @traceable decorator. The types of runs are:
 
-1. LLM: Invokes an LLM 
+1. LLM: Invokes an LLM
 1. Retriever: Retrieves documents from databases or other sources
 1. Tool: Executes actions with function calls
 1. Chain: Default type; combines multiple Runs into a larger process
@@ -219,22 +224,24 @@ LangSmith UX is built in a way that different components of your multi-agent app
 
 Let's update our code to add @traceable decorator so that we can monitor the traces in langsmith.
 
-In your IDE, navigate to the file `banking_agents.py` file.
-
-Add `@traceable(run_type="llm")` on top of the `def call_coordinator_agent(state: MessagesState, config)` function. It should look like this now.
-
-Add the below import line under the imports for this file
+1. In VS Code, navigate to the file **banking_agents.py** file.
+1. At the top of this file, add the import shown below.
 
 ```python
 from langsmith import traceable
 ```
+
+1. Locate the function call, **def call_coordinator_agent(state: MessagesState, config)**
+1. Add `@traceable(run_type="llm")` on top of the function.
+1. It should look like this now.
 
 ```python
 @traceable(run_type="llm")
 def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coordinator_agent", "human"]]:
 ```
 
-Now, let's do this for other functions in the `banking_agents.py` file. Finally, your functions should look like this.
+1. Next, do this for other functions in the **banking_agents.py** file. 
+1. Your functions should all look like this.
 
 ```python
 @traceable(run_type="llm")
@@ -256,13 +263,16 @@ def human_node(state: MessagesState, config) -> None:
 def interactive_chat():
 ```
 
-Let's go to the `tools/support.py` file now. We will add the `@traceable` on top of all the functions. We are not adding the run type on these functions because we already have `@tool` decorator on top of these functions which would help LangSmith to infer that these are tools used by the Agents. It should look like this.
-
-Add the below import line under the imports for this file
+1. Next, open the **tools/support.py** file.
+1. Add the import below to the imports at the top of this file.
 
 ```python
 from langsmith import traceable
 ```
+
+1. Next, add `@traceable` on top of all the functions in this file. 
+
+**Note:** We are not adding the run type on these functions because we already have `@tool` decorator on top of these functions which would help LangSmith to infer that these are tools used by the Agents. It should look like this.
 
 ```python
 @tool
@@ -275,13 +285,15 @@ def service_request(config: RunnableConfig,  recipientPhone: str, recipientEmail
 def get_branch_location(state: str) -> Dict[str, List[str]]:
 ```
 
-Now, let's go to the `tools/sales.py` file now. It should look like this after adding the `@traceable` decorator.
-
-Add the below import line under the imports for this file
+1. Open the **tools/sales.py** file.
+1. Add the below import line under the imports for this file.
 
 ```python
 from langsmith import traceable
 ```
+
+1. Add the `@traceable` decorator to every function in this file.
+1. It should look like this now.
 
 ```python
 @tool
@@ -297,13 +309,15 @@ def create_account(account_holder: str, balance: float, config: RunnableConfig) 
 def calculate_monthly_payment(loan_amount: float, years: int) -> float:
 ```
 
-Now, let's go to the `tools/transactions.py` file  now. It should look like this after adding the `@traceable` decorator.
-
-Add the below import line under the imports for this file
+1. Fionally, open the **tools/transactions.py** file.
+1. Add the below import line under the imports for this file.
 
 ```python
 from langsmith import traceable
 ```
+
+1. Add the *@traceable* decorator to every function.
+1. It should look like this now.
 
 ```python
 @tool
@@ -321,15 +335,16 @@ def bank_balance(config: RunnableConfig, account_number: str) -> str:
 
 ### Let's monitor traces in LangSmith
 
-In your IDE, run the following command in your terminal.
+1. In VS Code, run the following command in your terminal.
 
 ```bash
 python -m src.app.banking_agents
 ```
 
-Let's open `https://smith.langchain.com/` now to make sure our project is listed under traces. The project name will be `multi-agent-banking-app` as we mentioned in our .env file.
+1. Next, open a new tab in your browser and navigate to, <https://smith.langchain.com/> to make sure our project is listed under traces. 
+1. The project name will be `multi-agent-banking-app` as we mentioned in our .env file.
 
-Note: If you are not able to see your project under traces, search for banking in the search bar, and then you should be able to see it.
+**Note:** If you are not able to see your project under traces, search for banking in the search bar, and then you should be able to see it.
 
 ![LangSmith_1](./media/module-04/lang_smith_1.png)
 
@@ -398,15 +413,15 @@ You can click the final agent call, highlighted below to see the final result cr
 
 We've been testing using the frontend for this lab, but as you can clearly see, this solution is built as a backend that exposes API's called by the frontend. This makes it easy for us to do automated unit testing without requiring a human. With the API layer ready, let's explore simple testing against our API layer in our application.
 
-First, start the FastAPI server:
+Start the FastAPI server:
 
-In VS Code, start the backend:
+1. If the backend is closed, restart the backend:
 
 ```shell
 uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 63280
 ```
 
-Next, open a browser and navigate to `http://localhost:63280/docs` to view the swagger UI.
+Next, open a new browser tab and navigate to <http://localhost:63280/docs> to view the swagger UI.
 
 ![Swagger UI](./media/module-04/swagger_ui.png)
 
