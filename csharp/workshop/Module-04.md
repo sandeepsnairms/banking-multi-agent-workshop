@@ -960,4 +960,6 @@ namespace MultiAgentCopilot.Factories
 
 ## Next Steps
 
-Congratulations!!! You have completed this workshop!!!
+Congratulations!!! You have completed this hands-on-lab!!!
+
+You can see the full source code for this lab for both Semantic Kernel and LangGraph at <https://github.com/AzureCosmosDB/banking-multi-agent-workshop/>. You can also take this lab again or the LangGraph one at <https://github.com/AzureCosmosDB/banking-multi-agent-workshop/tree/hol>. We hope you enjoyed this lab.

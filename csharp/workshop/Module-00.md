@@ -11,7 +11,7 @@ In this Module, you'll configure the lab resources then start the application to
 1. In the Search box at the top of the Azure Portal, type in `resource group`. Open the Resource groups blade
 1. Open the resource group that starts with: *rg-agenthol-*.
 1. Open the Cosmos DB account and navigate to Data Explorer.
-1. Leave this browser open to the Azure Portal. We will refer to it again later in this lab.
+1. Leave this browser open to the Azure Portal.
 1. Proceed to [Running the App](#running-the-app)
 
 ## Running the App
