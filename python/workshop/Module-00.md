@@ -60,7 +60,7 @@ npm start
 
 ### Start a Conversation
 
-1. Open your browser and navigate to <http://localhost:4200/>.
+1. Open your browser and navigate to `http://localhost:4200/`
 1. In the Login dialog, select a user and company and click, Login.
 1. Send the message:
 
