@@ -7,18 +7,10 @@ using System.Text;
 using MultiAgentCopilot.Helper;
 using MultiAgentCopilot.Models.Configuration;
 using MultiAgentCopilot.Models.Banking;
-
 using PartitionKey = Microsoft.Azure.Cosmos.PartitionKey;
-
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Connectors.AzureCosmosDBNoSQL;
-
 using System.Text.Json;
-
-using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
-using Microsoft.Extensions.VectorData;
 using System.Linq.Expressions;
-
+using Azure.AI.OpenAI;
 
 namespace MultiAgentCopilot.Services
 {
@@ -29,19 +21,16 @@ namespace MultiAgentCopilot.Services
         private readonly Container _requestData;
         private readonly Container _offerData;
 
-        private readonly AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm> _offerDataVectorStore;
-        private readonly AzureOpenAITextEmbeddingGenerationService _textEmbeddingGenerationService;
+        // For now, we'll comment out the vector store functionality until we migrate it properly
+        // private readonly AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm> _offerDataVectorStore;
+        private readonly AzureOpenAIClient _openAIClient;
+        private readonly string _embeddingsDeployment;
 
         private readonly Database _database;
 
         private readonly ILogger _logger;
 
         public bool IsInitialized { get; private set; }
-
-        readonly Kernel _semanticKernel;
-
-
-
 
         public BankingDataService(
            Database database, Container accountData, Container userData, Container requestData, Container offerData,
@@ -59,9 +48,6 @@ namespace MultiAgentCopilot.Services
 
             _logger.LogInformation("Initializing Banking service.");
 
-
-            //To DO: Add vector search initialization code here
-
             DefaultAzureCredential credential;
             if (string.IsNullOrEmpty(skSettings.AzureOpenAISettings.UserAssignedIdentityClientID))
             {
@@ -73,17 +59,14 @@ namespace MultiAgentCopilot.Services
                 {
                     ManagedIdentityClientId = skSettings.AzureOpenAISettings.UserAssignedIdentityClientID
                 });
-
             }
 
-            _textEmbeddingGenerationService = new(
-                    deploymentName: skSettings.AzureOpenAISettings.EmbeddingsDeployment, // Name of deployment, e.g. "text-embedding-ada-002".
-                    endpoint: skSettings.AzureOpenAISettings.Endpoint,           // Name of Azure OpenAI service endpoint, e.g. https://myaiservice.openai.azure.com.
-                    credential: credential);
+            // Initialize Azure OpenAI client for embeddings
+            _openAIClient = new AzureOpenAIClient(new Uri(skSettings.AzureOpenAISettings.Endpoint), credential);
+            _embeddingsDeployment = skSettings.AzureOpenAISettings.EmbeddingsDeployment;
 
-            var jsonSerializerOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-            var vectorStoreOptions = new AzureCosmosDBNoSQLVectorStoreRecordCollectionOptions<OfferTerm> { PartitionKeyPropertyName = "TenantId", JsonSerializerOptions = jsonSerializerOptions };
-            _offerDataVectorStore = new AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm>(_database, _offerData.Id, vectorStoreOptions);
+            // TODO: Re-implement vector store functionality using Microsoft.Extensions.AI approach
+            // For now, we'll use a basic search approach
 
             _logger.LogInformation("Banking service initialized.");
         }
@@ -104,7 +87,6 @@ namespace MultiAgentCopilot.Services
                 return null;
             }
         }
-
 
         public async Task<List<BankAccount>> GetUserRegisteredAccountsAsync(string tenantId, string userId)
         {
@@ -132,7 +114,6 @@ namespace MultiAgentCopilot.Services
                 return null;
             }
         }
-
 
         public async Task<BankAccount> GetAccountDetailsAsync(string tenantId, string userId, string accountId)
         {
@@ -212,7 +193,6 @@ namespace MultiAgentCopilot.Services
             return await AddServiceRequestAsync(req);
         }
 
-
         private async Task<ServiceRequest> AddServiceRequestAsync(ServiceRequest req)
         {
             try
@@ -227,7 +207,6 @@ namespace MultiAgentCopilot.Services
                 return null;
             }
         }
-
 
         public async Task<List<ServiceRequest>> GetServiceRequestsAsync(string tenantId, string accountId, string? userId = null, ServiceRequestType? SRType = null)
         {
@@ -251,7 +230,6 @@ namespace MultiAgentCopilot.Services
                     queryDefinition = queryDefinition.WithParameter("@SRType", SRType);
                 }
 
-
                 List<ServiceRequest> reqs = new List<ServiceRequest>();
                 using (FeedIterator<ServiceRequest> feedIterator = _requestData.GetItemQueryIterator<ServiceRequest>(queryDefinition, requestOptions: new QueryRequestOptions { PartitionKey = partitionKey }))
                 {
@@ -270,8 +248,6 @@ namespace MultiAgentCopilot.Services
                 return new List<ServiceRequest>();
             }
         }
-
-
 
         public async Task<bool> AddServiceRequestDescriptionAsync(string tenantId, string accountId, string requestId, string annotationToAdd)
         {
@@ -303,37 +279,29 @@ namespace MultiAgentCopilot.Services
         {
             try
             {
-                // Generate Embedding
-                ReadOnlyMemory<float> embedding = (await _textEmbeddingGenerationService.GenerateEmbeddingsAsync(
-                       new[] { requirementDescription }
-                   )).FirstOrDefault();
-
+                // For now, return a simplified search using regular Cosmos DB query
+                // TODO: Implement vector search using the new Microsoft.Extensions.AI approach
 
                 string accountTypeString = accountType.ToString();
 
-                // filters as LINQ expression
-                Expression<Func<OfferTerm, bool>> linqFilter = term =>
-                    term.TenantId == tenantId &&
-                    term.Type == "Term" &&
-                    term.AccountType == "Savings";
-
-                var options = new VectorSearchOptions<OfferTerm>
-                {
-                    VectorProperty = term => term.Vector, // Correctly specify the vector property as a lambda expression
-                    Filter = linqFilter, // Use the LINQ expression here
-                    Top = 10,
-                    IncludeVectors = false
-                };
-
-
-                var searchResults = await _offerDataVectorStore.VectorizedSearchAsync(embedding, options);
+                QueryDefinition queryDefinition = new QueryDefinition(
+                    "SELECT * FROM c WHERE c.tenantId = @tenantId AND c.type = @type AND c.accountType = @accountType")
+                    .WithParameter("@tenantId", tenantId)
+                    .WithParameter("@type", "Term")
+                    .WithParameter("@accountType", "Savings");
 
                 List<OfferTerm> offerTerms = new();
-                await foreach (var result in searchResults.Results)
+                using (FeedIterator<OfferTerm> feedIterator = _offerData.GetItemQueryIterator<OfferTerm>(queryDefinition))
                 {
-                    offerTerms.Add(result.Record);
+                    while (feedIterator.HasMoreResults)
+                    {
+                        FeedResponse<OfferTerm> response = await feedIterator.ReadNextAsync();
+                        offerTerms.AddRange(response);
+                    }
                 }
-                return offerTerms;
+
+                // Take only top 10 results for now
+                return offerTerms.Take(10).ToList();
             }
             catch (Exception ex)
             {
@@ -358,7 +326,5 @@ namespace MultiAgentCopilot.Services
                 return null;
             }
         }
-
-
     }
 }

@@ -1,5 +1,4 @@
-﻿using Microsoft.SemanticKernel;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using MultiAgentCopilot.Models.Banking;
 using MultiAgentCopilot.Services;
 
@@ -12,7 +11,6 @@ namespace MultiAgentCopilot.Plugins
         {
         }
 
-        [KernelFunction]
         [Description("Adds a new Account Transaction request")]
         public async Task<ServiceRequest> AddFunTransferRequest(
             string debitAccountId,
@@ -30,7 +28,6 @@ namespace MultiAgentCopilot.Plugins
             return await _bankService.CreateFundTransferRequestAsync(_tenantId, debitAccountId, _userId, requestAnnotation, emailId, phoneNumber, amount);
         }
 
-        [KernelFunction]
         [Description("Get the transactions history between 2 dates")]
         public async Task<List<BankTransaction>> GetTransactionHistory(string accountId, DateTime startDate, DateTime endDate)
         {

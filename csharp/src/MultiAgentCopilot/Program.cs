@@ -6,11 +6,20 @@ namespace MultiAgentCopilot
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Load configuration from appsettings.json and environment variables
-            builder.Configuration.SetBasePath(Directory.GetCurrentDirectory())
-                                 .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-                                 .AddJsonFile("appsettings.development.json", optional: true, reloadOnChange: true)
-                                 .AddEnvironmentVariables();
+            // The WebApplication.CreateBuilder automatically sets up configuration
+            // but let's ensure the development file is loaded properly
+            var environment = builder.Environment.EnvironmentName;
+            Console.WriteLine($"Running in environment: {environment}");
+            
+            // WebApplication.CreateBuilder already adds appsettings.json and appsettings.{Environment}.json
+            // but we can verify configuration values are loaded
+            builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+            builder.Configuration.AddJsonFile($"appsettings.{environment}.json", optional: true, reloadOnChange: true);
+            builder.Configuration.AddEnvironmentVariables();
+
+            // Debug configuration loading
+            Console.WriteLine($"CosmosDBSettings:CosmosUri = {builder.Configuration["CosmosDBSettings:CosmosUri"]}");
+            Console.WriteLine($"SemanticKernelServiceSettings:AzureOpenAISettings:Endpoint = {builder.Configuration["SemanticKernelServiceSettings:AzureOpenAISettings:Endpoint"]}");
 
             // Add CORS policy
             builder.Services.AddCors(options =>
@@ -24,7 +33,6 @@ namespace MultiAgentCopilot
                     });
             });
 
-
             builder.Logging.ClearProviders();
             builder.Logging.AddConsole();
 
@@ -36,8 +44,6 @@ namespace MultiAgentCopilot
             {
                 options.MinLevel = LogLevel.Trace;
             });
-
-            //builder.AddApplicationInsightsTelemetry();
 
             builder.AddCosmosDBService();
             builder.AddSemanticKernelService();

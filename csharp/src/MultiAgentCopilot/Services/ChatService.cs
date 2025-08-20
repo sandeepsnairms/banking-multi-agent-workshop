@@ -13,15 +13,14 @@ public class ChatService
 {
     private readonly CosmosDBService _cosmosDBService;
     private readonly BankingDataService _bankService;
-    private readonly SemanticKernelService _skService;
+    private readonly AgentOrchestrationService _skService;
     private readonly ILogger _logger;
 
-    
     public ChatService(
         IOptions<CosmosDBSettings> cosmosOptions,
         IOptions<SemanticKernelServiceSettings> skOptions,
         CosmosDBService cosmosDBService,
-        SemanticKernelService skService,
+        AgentOrchestrationService skService,
         ILoggerFactory loggerFactory)
     {
         _cosmosDBService = cosmosDBService;
@@ -84,12 +83,26 @@ public class ChatService
         try
         {
             ArgumentNullException.ThrowIfNull(sessionId);
-            await Task.Delay(1);
 
-            // Add both prompt and completion to cache, then persist in Cosmos DB
-            var userMessage = new Message(tenantId, userId, sessionId, "User", "User", "## Replay user message ## " + userPrompt);
+            // Get message history
+            var messageHistory = await _cosmosDBService.GetSessionMessagesAsync(tenantId, userId, sessionId);
 
-            return new List<Message> { userMessage };
+            // Create user message
+            var userMessage = new Message(tenantId, userId, sessionId, "User", "User", userPrompt);
+
+            // Generate the completion using the new AgentOrchestrationService
+            var result = await _skService.GetResponse(userMessage, messageHistory, _bankService, tenantId, userId);
+
+            // Save messages to database
+            var allMessages = new List<Message> { userMessage };
+            allMessages.AddRange(result.Item1);
+
+            foreach (var message in allMessages)
+            {
+                await _cosmosDBService.InsertMessageAsync(message);
+            }
+
+            return result.Item1;
         }
         catch (Exception ex)
         {
@@ -107,7 +120,7 @@ public class ChatService
         {
             ArgumentNullException.ThrowIfNull(sessionId);
 
-            var summary = "not implemented";
+            var summary = await _skService.Summarize(sessionId, prompt);
 
             var session = await RenameChatSessionAsync(tenantId, userId, sessionId, summary);
 
@@ -118,9 +131,7 @@ public class ChatService
             _logger.LogError(ex, $"Error getting a summary in session {sessionId} for user prompt [{prompt}].");
             return $"Error getting a summary in session {sessionId} for user prompt [{prompt}].";
         }
-
     }
-
 
     /// <summary>
     /// Rate an assistant message. This can be used to discover useful AI responses for training, discoverability, and other benefits down the road.
