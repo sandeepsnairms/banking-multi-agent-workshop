@@ -57,6 +57,9 @@ namespace MultiAgentCopilot
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+            
+            // Add controllers for API endpoints including monitoring
+            builder.Services.AddControllers();
 
             var app = builder.Build();
             app.UseCors("AllowAllOrigins");
@@ -70,6 +73,9 @@ namespace MultiAgentCopilot
             app.UseSwaggerUI();
 
             app.UseAuthorization();
+
+            // Map controllers for API endpoints
+            app.MapControllers();
 
             // Map the chat REST endpoints:
             using (var scope = app.Services.CreateScope())

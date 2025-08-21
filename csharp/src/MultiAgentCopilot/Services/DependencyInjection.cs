@@ -1,5 +1,6 @@
 ﻿using  MultiAgentCopilot.Models.Configuration;
 using MultiAgentCopilot.Services;
+using MultiAgentCopilot.Monitoring;
 
 namespace MultiAgentCopilot
 {
@@ -30,6 +31,9 @@ namespace MultiAgentCopilot
                 .ValidateOnStart();
                 
             builder.Services.AddSingleton<AgentOrchestrationService>();
+            
+            // Add OrchestrationMonitor for monitoring multi-agent conversations
+            builder.Services.AddSingleton<OrchestrationMonitor>();
         }
 
         public static void AddCosmosDBService(this IHostApplicationBuilder builder)

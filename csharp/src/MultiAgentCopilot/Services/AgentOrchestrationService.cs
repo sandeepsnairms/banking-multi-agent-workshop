@@ -6,6 +6,7 @@ using MultiAgentCopilot.Factories;
 using MultiAgentCopilot.Models.Debug;
 using MultiAgentCopilot.Models.Chat;
 using MultiAgentCopilot.Models.Configuration;
+using MultiAgentCopilot.Monitoring;
 using Azure.AI.OpenAI;
 using System.Text;
 using MultiAgentCopilot.Models;
@@ -20,6 +21,7 @@ public class AgentOrchestrationService : IDisposable
     readonly ILogger<AgentOrchestrationService> _logger;
     readonly AzureOpenAIClient _aoClient;
     readonly string _completionsDeploymentName;
+    readonly OrchestrationMonitor _orchestrationMonitor;
 
     bool _serviceInitialized = false;
     List<LogProperty> _promptDebugProperties;
@@ -34,6 +36,7 @@ public class AgentOrchestrationService : IDisposable
         _loggerFactory = loggerFactory;
         _logger = _loggerFactory.CreateLogger<AgentOrchestrationService>();
         _promptDebugProperties = new List<LogProperty>();
+        _orchestrationMonitor = new OrchestrationMonitor(_loggerFactory.CreateLogger<OrchestrationMonitor>());
 
         _logger.LogInformation("Initializing the Agent Orchestration service...");
 
@@ -67,8 +70,8 @@ public class AgentOrchestrationService : IDisposable
         {
             AgentFactory agentFactory = new AgentFactory();
 
-            // Build the multi-agent orchestration system
-            var agentOrchestration = agentFactory.BuildAgentGroupChat(_aoClient, _completionsDeploymentName, _loggerFactory, LogMessage, bankService, tenantId, userId);
+            // Build the multi-agent orchestration system with monitoring
+            var agentOrchestration = agentFactory.BuildAgentOrchestration(_aoClient, _completionsDeploymentName, _loggerFactory, LogMessage, bankService, tenantId, userId, _orchestrationMonitor);
 
             _promptDebugProperties = new List<LogProperty>();
 
@@ -94,19 +97,46 @@ public class AgentOrchestrationService : IDisposable
             // Add current user message
             conversationHistory.Add(new Microsoft.Extensions.AI.ChatMessage(ChatRole.User, userMessage.Text));
 
-            // Process the conversation through the multi-agent system
-            var responses = await agentOrchestration.ProcessConversationAsync(conversationHistory);
+            _logger.LogInformation("Starting multi-agent conversation processing for user {UserId} in session {SessionId}", userId, userMessage.SessionId);
 
-            // Convert responses to Message objects
-            for (int i = 0; i < responses.Count; i++)
+            // Process the conversation through the multi-agent system and get detailed information
+            var (agentResponses, selectionInfo, terminationInfo) = await agentOrchestration.ProcessConversationAsync(conversationHistory, userMessage.SessionId);
+
+            _logger.LogInformation("Multi-agent conversation completed with {ResponseCount} responses from agents: {AgentNames}", 
+                agentResponses.Count, 
+                string.Join(", ", agentResponses.Select(r => r.AgentName)));
+
+            // Log orchestration summary
+            _logger.LogInformation("Orchestration Summary - Selections: {SelectionCount}, Terminations: {TerminationCount}, Agent Flow: {AgentFlow}",
+                selectionInfo.Count,
+                terminationInfo.Count,
+                string.Join(" -> ", agentResponses.Select(r => r.AgentName)));
+
+            if (selectionInfo.Any())
+            {
+                _logger.LogDebug("Selection Details: {SelectionDetails}", 
+                    string.Join(" | ", selectionInfo.Select((s, i) => $"{i + 1}. {s.AgentName}: {s.Reason}")));
+            }
+
+            if (terminationInfo.Any())
+            {
+                _logger.LogDebug("Termination Details: {TerminationDetails}", 
+                    string.Join(" | ", terminationInfo.Select((t, i) => $"{i + 1}. Continue={t.ShouldContinue}: {t.Reason}")));
+            }
+
+            // Convert responses to Message objects with specific agent names and enhanced debug info
+            for (int i = 0; i < agentResponses.Count; i++)
             {
                 string messageId = Guid.NewGuid().ToString();
                 string debugLogId = Guid.NewGuid().ToString();
 
-                // For multi-agent responses, we'll use "MultiAgent" as the author name
-                // In a more sophisticated implementation, you could track which agent provided each response
-                string authorName = "MultiAgent";
+                // Use the specific agent name that provided the response
+                string authorName = agentResponses[i].AgentName;
                 string responseRole = ChatRole.Assistant.ToString();
+                string responseText = agentResponses[i].Response;
+
+                _logger.LogTrace("Creating message from agent {AgentName} with content length {ContentLength}", 
+                    authorName, responseText.Length);
 
                 completionMessages.Add(new Message(
                     userMessage.TenantId, 
@@ -114,24 +144,85 @@ public class AgentOrchestrationService : IDisposable
                     userMessage.SessionId, 
                     authorName, 
                     responseRole, 
-                    responses[i], 
+                    responseText, 
                     messageId, 
                     debugLogId
                 ));
 
-                // Create debug log if we have debug properties
-                if (_promptDebugProperties.Count > 0)
+                // Create debug log with enhanced agent and orchestration information
+                var completionMessagesLog = new DebugLog(
+                    userMessage.TenantId, 
+                    userMessage.UserId, 
+                    userMessage.SessionId, 
+                    messageId, 
+                    debugLogId
+                );
+
+                // Start with basic debug properties
+                var debugProperties = new List<LogProperty>(_promptDebugProperties)
                 {
-                    var completionMessagesLog = new DebugLog(
-                        userMessage.TenantId, 
-                        userMessage.UserId, 
-                        userMessage.SessionId, 
-                        messageId, 
-                        debugLogId
-                    );
-                    completionMessagesLog.PropertyBag = new List<LogProperty>(_promptDebugProperties);
-                    completionMessagesLogs.Add(completionMessagesLog);
+                    new LogProperty("AgentName", authorName),
+                    new LogProperty("ResponseIndex", i.ToString()),
+                    new LogProperty("ResponseLength", responseText.Length.ToString())
+                };
+
+                // Add Selection details if available for this response
+                if (i < selectionInfo.Count)
+                {
+                    var selection = selectionInfo[i];
+                    debugProperties.AddRange(new[]
+                    {
+                        new LogProperty("Selection_AgentName", selection.AgentName),
+                        new LogProperty("Selection_Reason", selection.Reason),
+                        new LogProperty("Selection_Timestamp", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")),
+                        new LogProperty("Selection_Index", i.ToString())
+                    });
                 }
+
+                // Add Termination details if available for this response
+                if (i < terminationInfo.Count)
+                {
+                    var termination = terminationInfo[i];
+                    debugProperties.AddRange(new[]
+                    {
+                        new LogProperty("Termination_ShouldContinue", termination.ShouldContinue.ToString()),
+                        new LogProperty("Termination_Reason", termination.Reason),
+                        new LogProperty("Termination_Timestamp", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")),
+                        new LogProperty("Termination_Index", i.ToString())
+                    });
+                }
+
+                // Add orchestration summary and agent flow information
+                debugProperties.AddRange(new[]
+                {
+                    new LogProperty("TotalSelections", selectionInfo.Count.ToString()),
+                    new LogProperty("TotalTerminationChecks", terminationInfo.Count.ToString()),
+                    new LogProperty("ConversationCompleted", (i == agentResponses.Count - 1).ToString()),
+                    new LogProperty("AgentSequence", string.Join(" -> ", agentResponses.Take(i + 1).Select(r => r.AgentName))),
+                    new LogProperty("IsFirstResponse", (i == 0).ToString()),
+                    new LogProperty("IsLastResponse", (i == agentResponses.Count - 1).ToString())
+                });
+
+                // Add selection summary for all agents chosen in this conversation
+                if (selectionInfo.Any())
+                {
+                    debugProperties.Add(new LogProperty("AllSelectedAgents", 
+                        string.Join(", ", selectionInfo.Select(s => s.AgentName).Distinct())));
+                    debugProperties.Add(new LogProperty("SelectionReasons", 
+                        string.Join(" | ", selectionInfo.Select((s, idx) => $"{idx + 1}: {s.Reason}"))));
+                }
+
+                // Add termination summary
+                if (terminationInfo.Any())
+                {
+                    debugProperties.Add(new LogProperty("TerminationHistory", 
+                        string.Join(" | ", terminationInfo.Select((t, idx) => $"{idx + 1}: Continue={t.ShouldContinue}"))));
+                    debugProperties.Add(new LogProperty("FinalTerminationReason", 
+                        terminationInfo.LastOrDefault()?.Reason ?? "Unknown"));
+                }
+
+                completionMessagesLog.PropertyBag = debugProperties;
+                completionMessagesLogs.Add(completionMessagesLog);
             }
 
             return new Tuple<List<Message>, List<DebugLog>>(completionMessages, completionMessagesLogs);
@@ -191,5 +282,21 @@ public class AgentOrchestrationService : IDisposable
     public void Dispose()
     {
         // Dispose resources if any
+    }
+
+    /// <summary>
+    /// Get real-time session analytics for monitoring
+    /// </summary>
+    public SessionAnalytics? GetSessionAnalytics(string sessionId)
+    {
+        return _orchestrationMonitor.GetSessionAnalytics(sessionId);
+    }
+
+    /// <summary>
+    /// Get overall orchestration statistics for monitoring
+    /// </summary>
+    public OrchestrationStatistics GetOrchestrationStatistics()
+    {
+        return _orchestrationMonitor.GetOverallStatistics();
     }
 }
