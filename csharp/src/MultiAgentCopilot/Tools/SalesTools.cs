@@ -12,44 +12,25 @@ namespace MultiAgentCopilot.Tools
         {
         }
 
-        public override IList<AIFunction> GetTools()
+        [Description("Register a new account.")]
+        public async Task<ServiceRequest> RegisterAccount(string userId, AccountType accType, Dictionary<string, string> fulfilmentDetails)
         {
-            return new List<AIFunction>
-            {
-                CreateGetLoggedInUserTool(),
-                CreateGetCurrentDateTimeTool(),
-                CreateGetUserRegisteredAccountsTool(),
-                CreateRegisterAccountTool(),
-                CreateSearchOfferTermsTool(),
-                CreateGetOfferDetailsTool()
-            };
+            _logger.LogTrace($"Registering Account. User ID: {userId}, Account Type: {accType}");
+            return await _bankService.CreateFulfilmentRequestAsync(_tenantId, string.Empty, _userId, string.Empty, fulfilmentDetails);
         }
 
-        private AIFunction CreateRegisterAccountTool()
+        [Description("Search offer terms of all available offers using vector search")]
+        public async Task<List<OfferTerm>> SearchOfferTerms(AccountType accountType, string requirementDescription)
         {
-            return AIFunctionFactory.Create(async (string userId, AccountType accType, Dictionary<string, string> fulfilmentDetails) =>
-            {
-                _logger.LogTrace($"Registering Account. User ID: {userId}, Account Type: {accType}");
-                return await _bankService.CreateFulfilmentRequestAsync(_tenantId, string.Empty, _userId, string.Empty, fulfilmentDetails);
-            }, "RegisterAccount", "Register a new account.");
+            _logger.LogTrace($"Searching terms of all available offers matching '{requirementDescription}'");
+            return await _bankService.SearchOfferTermsAsync(_tenantId, accountType, requirementDescription);
         }
 
-        private AIFunction CreateSearchOfferTermsTool()
+        [Description("Get detail for an offer")]
+        public async Task<Offer> GetOfferDetails(string offerId)
         {
-            return AIFunctionFactory.Create(async (AccountType accountType, string requirementDescription) =>
-            {
-                _logger.LogTrace($"Searching terms of all available offers matching '{requirementDescription}'");
-                return await _bankService.SearchOfferTermsAsync(_tenantId, accountType, requirementDescription);
-            }, "SearchOfferTerms", "Search offer terms of all available offers using vector search");
-        }
-
-        private AIFunction CreateGetOfferDetailsTool()
-        {
-            return AIFunctionFactory.Create(async (string offerId) =>
-            {
-                _logger.LogTrace($"Fetching Offer");
-                return await _bankService.GetOfferDetailsAsync(_tenantId, offerId);
-            }, "GetOfferDetails", "Get detail for an offer");
+            _logger.LogTrace($"Fetching Offer");
+            return await _bankService.GetOfferDetailsAsync(_tenantId, offerId);
         }
     }
 }

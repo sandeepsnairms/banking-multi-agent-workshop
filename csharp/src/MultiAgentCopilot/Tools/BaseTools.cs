@@ -20,34 +20,26 @@ namespace MultiAgentCopilot.Tools
             _bankService = bankService;
         }
 
-        public abstract IList<AIFunction> GetTools();
-
-        protected AIFunction CreateGetLoggedInUserTool()
+        [Description("Get the current logged-in BankUser")]
+        public async Task<BankUser> GetLoggedInUser()
         {
-            return AIFunctionFactory.Create(async () =>
-            {
-                _logger.LogTrace($"Get Logged In User for Tenant:{_tenantId} User:{_userId}");
-                return await _bankService.GetUserAsync(_tenantId, _userId);
-            }, "GetLoggedInUser", "Get the current logged-in BankUser");
+            _logger.LogTrace($"Get Logged In User for Tenant:{_tenantId} User:{_userId}");
+            return await _bankService.GetUserAsync(_tenantId, _userId);
         }
 
-        protected AIFunction CreateGetCurrentDateTimeTool()
+        [Description("Get the current date time in UTC")]
+        public DateTime GetCurrentDateTime()
         {
-            return AIFunctionFactory.Create(() =>
-            {
-                var now = DateTime.Now.ToUniversalTime();
-                _logger.LogTrace($"Get Datetime: {now}");
-                return now;
-            }, "GetCurrentDateTime", "Get the current date time in UTC");
+            var now = DateTime.Now.ToUniversalTime();
+            _logger.LogTrace($"Get Datetime: {now}");
+            return now;
         }
 
-        protected AIFunction CreateGetUserRegisteredAccountsTool()
+        [Description("Get user registered accounts")]
+        public async Task<List<BankAccount>> GetUserRegisteredAccounts()
         {
-            return AIFunctionFactory.Create(async () =>
-            {
-                _logger.LogTrace($"Fetching accounts for Tenant: {_tenantId} User ID: {_userId}");
-                return await _bankService.GetUserRegisteredAccountsAsync(_tenantId, _userId);
-            }, "GetUserRegisteredAccounts", "Get user registered accounts");
+            _logger.LogTrace($"Fetching accounts for Tenant: {_tenantId} User ID: {_userId}");
+            return await _bankService.GetUserRegisteredAccountsAsync(_tenantId, _userId);
         }
     }
 }

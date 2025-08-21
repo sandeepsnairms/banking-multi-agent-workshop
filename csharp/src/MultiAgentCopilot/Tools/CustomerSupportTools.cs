@@ -12,75 +12,47 @@ namespace MultiAgentCopilot.Tools
         {
         }
 
-        public override IList<AIFunction> GetTools()
+        [Description("Check if account is registered to user")]
+        public async Task<bool> IsAccountRegisteredToUser(string accountId)
         {
-            return new List<AIFunction>
-            {
-                CreateGetLoggedInUserTool(),
-                CreateGetCurrentDateTimeTool(),
-                CreateGetUserRegisteredAccountsTool(),
-                CreateIsAccountRegisteredToUserTool(),
-                CreateCheckPendingServiceRequestsTool(),
-                CreateAddTeleBankerRequestTool(),
-                CreateGetTeleBankerSlotsTool(),
-                CreateCreateComplaintTool(),
-                CreateUpdateExistingServiceRequestTool()
-            };
+            _logger.LogTrace($"Validating account for Tenant: {_tenantId} User ID: {_userId}- {accountId}");
+            var accountDetails = await _bankService.GetAccountDetailsAsync(_tenantId, _userId, accountId);
+            return accountDetails != null;
         }
 
-        private AIFunction CreateIsAccountRegisteredToUserTool()
+        [Description("Search the database for pending requests")]
+        public async Task<List<ServiceRequest>> CheckPendingServiceRequests(string? accountId = null, ServiceRequestType? srType = null)
         {
-            return AIFunctionFactory.Create(async (string accountId) =>
-            {
-                _logger.LogTrace($"Validating account for Tenant: {_tenantId} User ID: {_userId}- {accountId}");
-                var accountDetails = await _bankService.GetAccountDetailsAsync(_tenantId, _userId, accountId);
-                return accountDetails != null;
-            }, "IsAccountRegisteredToUser", "Check if account is registered to user");
+            _logger.LogTrace($"Searching database for matching requests for Tenant: {_tenantId} User: {_userId}");
+            return await _bankService.GetServiceRequestsAsync(_tenantId, accountId ?? string.Empty, null, srType);
         }
 
-        private AIFunction CreateCheckPendingServiceRequestsTool()
+        [Description("Adds a telebanker callback request for the specified account.")]
+        public async Task<ServiceRequest> AddTeleBankerRequest(string accountId, string requestAnnotation, DateTime callbackTime)
         {
-            return AIFunctionFactory.Create(async (string? accountId = null, ServiceRequestType? srType = null) =>
-            {
-                _logger.LogTrace($"Searching database for matching requests for Tenant: {_tenantId} User: {_userId}");
-                return await _bankService.GetServiceRequestsAsync(_tenantId, accountId ?? string.Empty, null, srType);
-            }, "CheckPendingServiceRequests", "Search the database for pending requests");
+            _logger.LogTrace($"Adding Tele Banker request for Tenant: {_tenantId} User: {_userId}, account: {accountId}");
+            return await _bankService.CreateTeleBankerRequestAsync(_tenantId, accountId, _userId, requestAnnotation, callbackTime);
         }
 
-        private AIFunction CreateAddTeleBankerRequestTool()
+        [Description("Get list of available slots for telebankers specializing in an account type")]
+        public async Task<string> GetTeleBankerSlots(AccountType accountType)
         {
-            return AIFunctionFactory.Create(async (string accountId, string requestAnnotation, DateTime callbackTime) =>
-            {
-                _logger.LogTrace($"Adding Tele Banker request for Tenant: {_tenantId} User: {_userId}, account: {accountId}");
-                return await _bankService.CreateTeleBankerRequestAsync(_tenantId, accountId, _userId, requestAnnotation, callbackTime);
-            }, "AddTeleBankerRequest", "Adds a telebanker callback request for the specified account.");
+            _logger.LogTrace($"Checking availability for Tele Banker for Tenant: {_tenantId} AccountType: {accountType}");
+            return await _bankService.GetTeleBankerAvailabilityAsync();
         }
 
-        private AIFunction CreateGetTeleBankerSlotsTool()
+        [Description("Create new complaint")]
+        public async Task<ServiceRequest> CreateComplaint(string accountId, string requestAnnotation)
         {
-            return AIFunctionFactory.Create(async (AccountType accountType) =>
-            {
-                _logger.LogTrace($"Checking availability for Tele Banker for Tenant: {_tenantId} AccountType: {accountType}");
-                return await _bankService.GetTeleBankerAvailabilityAsync();
-            }, "GetTeleBankerSlots", "Get list of available slots for telebankers specializing in an account type");
+            _logger.LogTrace($"Adding new service request for Tenant: {_tenantId} User: {_userId}, Account: {accountId}");
+            return await _bankService.CreateComplaintAsync(_tenantId, accountId, _userId, requestAnnotation);
         }
 
-        private AIFunction CreateCreateComplaintTool()
+        [Description("Updates an existing service request with additional details")]
+        public async Task<bool> UpdateExistingServiceRequest(string requestId, string accountId, string requestAnnotation)
         {
-            return AIFunctionFactory.Create(async (string accountId, string requestAnnotation) =>
-            {
-                _logger.LogTrace($"Adding new service request for Tenant: {_tenantId} User: {_userId}, Account: {accountId}");
-                return await _bankService.CreateComplaintAsync(_tenantId, accountId, _userId, requestAnnotation);
-            }, "CreateComplaint", "Create new complaint");
-        }
-
-        private AIFunction CreateUpdateExistingServiceRequestTool()
-        {
-            return AIFunctionFactory.Create(async (string requestId, string accountId, string requestAnnotation) =>
-            {
-                _logger.LogTrace($"Updating service request for Request: {requestId}");
-                return await _bankService.AddServiceRequestDescriptionAsync(_tenantId, accountId, requestId, requestAnnotation);
-            }, "UpdateExistingServiceRequest", "Updates an existing service request with additional details");
+            _logger.LogTrace($"Updating service request for Request: {requestId}");
+            return await _bankService.AddServiceRequestDescriptionAsync(_tenantId, accountId, requestId, requestAnnotation);
         }
     }
 }

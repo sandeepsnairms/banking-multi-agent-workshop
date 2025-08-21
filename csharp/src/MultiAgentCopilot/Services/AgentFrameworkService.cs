@@ -21,7 +21,7 @@ public class AgentFrameworkService : IDisposable
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<AgentFrameworkService> _logger;
     private readonly ChatClient _chatClient;
-    private readonly AgentFactory _agentFactory;
+    private readonly AgentFrameworkOrchestration _orchestration;
     
     private bool _serviceInitialized = false;
     private List<LogProperty> _promptDebugProperties;
@@ -39,7 +39,8 @@ public class AgentFrameworkService : IDisposable
 
         _logger.LogInformation("Initializing the Agent Framework service...");
 
-        // Create Azure OpenAI chat client
+        // Create Azure OpenAI chat client with improved credential handling
+
         DefaultAzureCredential credential;
         if (string.IsNullOrEmpty(_settings.AzureOpenAISettings.UserAssignedIdentityClientID))
         {
@@ -53,13 +54,17 @@ public class AgentFrameworkService : IDisposable
             });
         }
 
+
         var endpoint = new Uri(_settings.AzureOpenAISettings.Endpoint);
         var openAIClient = new AzureOpenAIClient(endpoint, credential);
         
         // Use ChatClient directly from OpenAI SDK
         _chatClient = openAIClient.GetChatClient(_settings.AzureOpenAISettings.CompletionsDeployment);
 
-        _agentFactory = new AgentFactory(_chatClient, _loggerFactory);
+        // Initialize the placeholder orchestration (should be REAL Agent Framework)
+        _orchestration = new AgentFrameworkOrchestration(_chatClient, _loggerFactory);
+        
+        _logger.LogWarning("Using placeholder orchestration. Microsoft Agent Framework GroupChatOrchestration is needed.");
 
         Task.Run(Initialize).ConfigureAwait(false);
     }
@@ -154,164 +159,145 @@ public class AgentFrameworkService : IDisposable
         string tenantId, 
         string userId)
     {
-        const int maxIterations = 10;
-        var iteration = 0;
-        var lastResponse = string.Empty;
-        var selectedAgentType = AgentType.Coordinator; // Start with coordinator
-        
-        // Group chat conversation history
-        var groupChatHistory = new List<OpenAI.Chat.ChatMessage>(chatHistory);
-        
-        while (iteration < maxIterations)
-        {
-            iteration++;
-            
-            // OPTIMIZATION: Pre-compute conversation contexts once to avoid duplicate processing
-            // SelectNextAgent needs full conversation context for better agent selection
-            var fullConversationContext = CreateConversationContext(groupChatHistory);
-            
-            // 1. Agent Selection Strategy - Use AI to select next agent with reasoning
-            selectedAgentType = await SelectNextAgent(fullConversationContext, selectedAgentType);
-            var selectedAgentName = _agentFactory.GetAgentName(selectedAgentType);
-            
-            LogMessage("SELECTION - Iteration", iteration.ToString());
-            
-            // 2. Execute the selected agent
-            var agentResponse = await _agentFactory.InvokeAgentAsync(selectedAgentType, groupChatHistory, bankService, tenantId, userId);
-            
-            // Add agent response to group chat history
-            groupChatHistory.Add(new AssistantChatMessage($"[{selectedAgentName}]: {agentResponse}"));
-            lastResponse = agentResponse;
-            
-            // OPTIMIZATION: Only compute recent context for termination decision
-            // ShouldTerminateConversation only needs recent messages (last 3) for decision making
-            var recentConversationContext = CreateConversationContext(groupChatHistory.TakeLast(3).ToList());
-            
-            // 3. Termination Strategy - Use AI to determine if conversation should continue with reasoning
-            var shouldTerminate = await ShouldTerminateConversation(recentConversationContext);
-                        
-            if (shouldTerminate)
-            {
-                return (agentResponse, selectedAgentName);
-            }
-        }
-        
-        // If we reach max iterations, return the last response
-        _logger.LogWarning("Group chat orchestration reached maximum iterations ({MaxIterations})", maxIterations);
-        return (lastResponse, _agentFactory.GetAgentName(selectedAgentType));
-    }
-
-    private async Task<AgentType> SelectNextAgent(string conversationContext, AgentType currentAgent)
-    {
         try
         {
-            // Load selection strategy prompt
-            var selectionPrompt = File.ReadAllText("Prompts/SelectionStrategy.prompty");
+            _logger.LogInformation("Starting Agent Framework orchestration");
             
-            var selectionMessages = new List<OpenAI.Chat.ChatMessage>
-            {
-                new SystemChatMessage(selectionPrompt),
-                new UserChatMessage($"RESPONSE: {conversationContext}")
-            };
-
-            // Use structured output for agent selection
-            var chatOptions = new ChatCompletionOptions
-            {
-                ResponseFormat = OpenAI.Chat.ChatResponseFormat.CreateJsonSchemaFormat(
-                    "agent_selection",
-                    BinaryData.FromString(ChatResponseFormatBuilder.BuildFormat(ChatResponseFormatBuilder.ChatResponseStrategy.Continuation)),
-                    "Select the next agent and provide reasoning"
-                )
-            };
-
-            var result = await _chatClient.CompleteChatAsync(selectionMessages, chatOptions);
-            var responseContent = result.Value.Content.FirstOrDefault()?.Text ?? "{}";
+            var result = await _orchestration.RunGroupChatOrchestration(chatHistory, bankService, tenantId, userId);
+            string responseText = result.responseText;
+            string selectedAgentName = result.selectedAgentName;
             
-            // Parse the structured response
-            var selectionInfo = JsonSerializer.Deserialize<AgentSelectionInfo>(responseContent);
+            _logger.LogInformation("Agent Framework orchestration completed with agent: {AgentName}", selectedAgentName);
             
-            // Log the selection details
-            LogMessage("SELECTION - Agent", selectionInfo?.AgentName ?? "Coordinator");
-            LogMessage("SELECTION - Reason", selectionInfo?.Reason ?? "Default selection");
-            
-            // Parse agent name to AgentType
-            return ParseAgentName(selectionInfo?.AgentName ?? "Coordinator");
+            return (responseText, selectedAgentName);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in agent selection, defaulting to Coordinator");
-            return AgentType.Coordinator;
+            _logger.LogError(ex, "Error in Agent Framework orchestration");
+            return ("Sorry, I encountered an error while processing your request. Please try again.", "Error");
         }
     }
 
-    private async Task<bool> ShouldTerminateConversation(string conversationContext)
+    private void LogDebugInfo(string prefix, object info)
     {
-        try
+        foreach (var prop in info.GetType().GetProperties())
         {
-            // Load termination strategy prompt
-            var terminationPrompt = File.ReadAllText("Prompts/TerminationStrategy.prompty");
-            
-            var terminationMessages = new List<OpenAI.Chat.ChatMessage>
-            {
-                new SystemChatMessage(terminationPrompt),
-                new UserChatMessage($"RESPONSE: {conversationContext}")
-            };
-
-            // Use structured output for termination decision
-            var chatOptions = new ChatCompletionOptions
-            {
-                ResponseFormat = OpenAI.Chat.ChatResponseFormat.CreateJsonSchemaFormat(
-                    "termination_decision",
-                    BinaryData.FromString(ChatResponseFormatBuilder.BuildFormat(ChatResponseFormatBuilder.ChatResponseStrategy.Termination)),
-                    "Determine if conversation should continue and provide reasoning"
-                )
-            };
-
-            var result = await _chatClient.CompleteChatAsync(terminationMessages, chatOptions);
-            var responseContent = result.Value.Content.FirstOrDefault()?.Text ?? "{}";
-            
-            // Parse the structured response
-            var terminationInfo = JsonSerializer.Deserialize<TerminationInfo>(responseContent);
-            
-            // Log the termination details
-            LogMessage("TERMINATION - Should Continue", terminationInfo?.ShouldContinue.ToString() ?? "true");
-            LogMessage("TERMINATION - Reason", terminationInfo?.Reason ?? "Default continuation");
-            
-            // Return the inverse of ShouldContinue (if should continue = false, then terminate = true)
-            return !(terminationInfo?.ShouldContinue ?? true);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error in termination decision, defaulting to continue");
-            return false;
+            var value = prop.GetValue(info, null);
+            LogMessage($"{prefix} - {prop.Name}", value?.ToString() ?? "null");
         }
     }
 
-    private string CreateConversationContext(List<OpenAI.Chat.ChatMessage> messages)
-    {
-        var context = string.Join("\n", messages.TakeLast(5).Select(m => 
-        {
-            var role = m switch
-            {
-                UserChatMessage => "User",
-                AssistantChatMessage => "Assistant",
-                SystemChatMessage => "System",
-                _ => "Unknown"
-            };
+    //private async Task<AgentType> SelectNextAgent(string conversationContext, AgentType currentAgent)
+    //{
+    //    try
+    //    {
+    //        // Load selection strategy prompt
+    //        var selectionPrompt = File.ReadAllText("Prompts/SelectionStrategy.prompty");
             
-            var content = m switch
-            {
-                UserChatMessage userMsg => userMsg.Content.FirstOrDefault()?.Text ?? "",
-                AssistantChatMessage assistantMsg => assistantMsg.Content.FirstOrDefault()?.Text ?? "",
-                SystemChatMessage systemMsg => systemMsg.Content.FirstOrDefault()?.Text ?? "",
-                _ => ""
-            };
+    //        var selectionMessages = new List<OpenAI.Chat.ChatMessage>
+    //        {
+    //            new SystemChatMessage(selectionPrompt),
+    //            new UserChatMessage($"RESPONSE: {conversationContext}")
+    //        };
+
+    //        // Use structured output for agent selection
+    //        var chatOptions = new ChatCompletionOptions
+    //        {
+    //            ResponseFormat = OpenAI.Chat.ChatResponseFormat.CreateJsonSchemaFormat(
+    //                "agent_selection",
+    //                BinaryData.FromString(ChatResponseFormatBuilder.BuildFormat(ChatResponseFormatBuilder.ChatResponseStrategy.Continuation)),
+    //                "Select the next agent and provide reasoning"
+    //            )
+    //        };
+
+    //        var result = await _chatClient.CompleteChatAsync(selectionMessages, chatOptions);
+    //        var responseContent = result.Value.Content.FirstOrDefault()?.Text ?? "{}";
             
-            return $"{role}: {content}";
-        }));
+    //        // Parse the structured response
+    //        var selectionInfo = JsonSerializer.Deserialize<AgentSelectionInfo>(responseContent);
+            
+    //        // Log the selection details
+    //        LogMessage("SELECTION - Agent", selectionInfo?.AgentName ?? "Coordinator");
+    //        LogMessage("SELECTION - Reason", selectionInfo?.Reason ?? "Default selection");
+            
+    //        // Parse agent name to AgentType
+    //        return ParseAgentName(selectionInfo?.AgentName ?? "Coordinator");
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        _logger.LogError(ex, "Error in agent selection, defaulting to Coordinator");
+    //        return AgentType.Coordinator;
+    //    }
+    //}
+
+    //private async Task<bool> ShouldTerminateConversation(string conversationContext)
+    //{
+    //    try
+    //    {
+    //        // Load termination strategy prompt
+    //        var terminationPrompt = File.ReadAllText("Prompts/TerminationStrategy.prompty");
+            
+    //        var terminationMessages = new List<OpenAI.Chat.ChatMessage>
+    //        {
+    //            new SystemChatMessage(terminationPrompt),
+    //            new UserChatMessage($"RESPONSE: {conversationContext}")
+    //        };
+
+    //        // Use structured output for termination decision
+    //        var chatOptions = new ChatCompletionOptions
+    //        {
+    //            ResponseFormat = OpenAI.Chat.ChatResponseFormat.CreateJsonSchemaFormat(
+    //                "termination_decision",
+    //                BinaryData.FromString(ChatResponseFormatBuilder.BuildFormat(ChatResponseFormatBuilder.ChatResponseStrategy.Termination)),
+    //                "Determine if conversation should continue and provide reasoning"
+    //            )
+    //        };
+
+    //        var result = await _chatClient.CompleteChatAsync(terminationMessages, chatOptions);
+    //        var responseContent = result.Value.Content.FirstOrDefault()?.Text ?? "{}";
+            
+    //        // Parse the structured response
+    //        var terminationInfo = JsonSerializer.Deserialize<TerminationInfo>(responseContent);
+            
+    //        // Log the termination details
+    //        LogMessage("TERMINATION - Should Continue", terminationInfo?.ShouldContinue.ToString() ?? "true");
+    //        LogMessage("TERMINATION - Reason", terminationInfo?.Reason ?? "Default continuation");
+            
+    //        // Return the inverse of ShouldContinue (if should continue = false, then terminate = true)
+    //        return !(terminationInfo?.ShouldContinue ?? true);
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        _logger.LogError(ex, "Error in termination decision, defaulting to continue");
+    //        return false;
+    //    }
+    //}
+
+    //private string CreateConversationContext(List<OpenAI.Chat.ChatMessage> messages)
+    //{
+    //    var context = string.Join("\n", messages.TakeLast(5).Select(m => 
+    //    {
+    //        var role = m switch
+    //        {
+    //            UserChatMessage => "User",
+    //            AssistantChatMessage => "Assistant",
+    //            SystemChatMessage => "System",
+    //            _ => "Unknown"
+    //        };
+            
+    //        var content = m switch
+    //        {
+    //            UserChatMessage userMsg => userMsg.Content.FirstOrDefault()?.Text ?? "",
+    //            AssistantChatMessage assistantMsg => assistantMsg.Content.FirstOrDefault()?.Text ?? "",
+    //            SystemChatMessage systemMsg => systemMsg.Content.FirstOrDefault()?.Text ?? "",
+    //            _ => ""
+    //        };
+            
+    //        return $"{role}: {content}";
+    //    }));
         
-        return context;
-    }
+    //    return context;
+    //}
 
     private AgentType ParseAgentName(string agentName)
     {
@@ -364,5 +350,5 @@ public class AgentFrameworkService : IDisposable
     public void Dispose()
     {
         // Dispose resources if any
-    }
+    }   
 }

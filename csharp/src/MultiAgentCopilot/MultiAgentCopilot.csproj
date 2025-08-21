@@ -29,11 +29,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Azure.AI.OpenAI" Version="2.3.0-beta.1" />
+    <PackageReference Include="Azure.AI.OpenAI" Version="2.2.0-beta.5"  VersionOverride="2.1.0"/>
     <PackageReference Include="Azure.Identity" Version="1.14.2" />
     <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.23.0" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.0" />
     <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.48.1" />
+    <PackageReference Include="Microsoft.Extensions.AI" Version="9.8.0-preview.1.25412.6" />
+    <PackageReference Include="Microsoft.Extensions.AI.Abstractions" Version="9.8.0-preview.1.25412.6" />
     <PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="9.8.0-preview.1.25412.6" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.17.2" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
@@ -50,6 +52,24 @@
 
   <ItemGroup>
     <Folder Include="Properties\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Microsoft.Agents.Orchestration">
+      <HintPath>..\..\..\..\agent-framework\dotnet\src\Microsoft.Agents.Orchestration\bin\Debug\net9.0\Microsoft.Agents.Orchestration.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.AI.Agents">
+      <HintPath>..\..\..\..\agent-framework\dotnet\src\Microsoft.Agents.Orchestration\bin\Debug\net9.0\Microsoft.Extensions.AI.Agents.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.AI.Agents.Abstractions">
+      <HintPath>..\..\..\..\agent-framework\dotnet\src\Microsoft.Agents.Orchestration\bin\Debug\net9.0\Microsoft.Extensions.AI.Agents.Abstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.AI.Agents.OpenAI">
+      <HintPath>..\..\..\..\agent-framework\dotnet\src\Microsoft.Extensions.AI.Agents.OpenAI\bin\Debug\net9.0\Microsoft.Extensions.AI.Agents.OpenAI.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.AI.Agents.Runtime.Abstractions">
+      <HintPath>..\..\..\..\agent-framework\dotnet\src\Microsoft.Agents.Orchestration\bin\Debug\net9.0\Microsoft.Extensions.AI.Agents.Runtime.Abstractions.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
   <ItemGroup>

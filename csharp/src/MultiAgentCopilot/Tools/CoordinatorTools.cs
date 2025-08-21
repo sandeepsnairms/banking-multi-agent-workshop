@@ -1,5 +1,6 @@
 using Microsoft.Extensions.AI;
 using MultiAgentCopilot.Services;
+using System.ComponentModel;
 
 namespace MultiAgentCopilot.Tools
 {
@@ -10,14 +11,7 @@ namespace MultiAgentCopilot.Tools
         {
         }
 
-        public override IList<AIFunction> GetTools()
-        {
-            return new List<AIFunction>
-            {
-                CreateGetLoggedInUserTool(),
-                CreateGetCurrentDateTimeTool(),
-                CreateGetUserRegisteredAccountsTool()
-            };
-        }
+        // Coordinator uses only the base tools for general coordination
+        // GetLoggedInUser, GetCurrentDateTime, and GetUserRegisteredAccounts are inherited from BaseTools
     }
 }
