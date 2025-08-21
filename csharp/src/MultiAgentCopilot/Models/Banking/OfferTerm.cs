@@ -1,33 +1,31 @@
-﻿using Microsoft.Extensions.VectorData;
+﻿using System.Text.Json.Serialization;
 
 namespace MultiAgentCopilot.Models.Banking
 {
     public class OfferTerm
     {
-
-        [VectorStoreKey]
+        [JsonPropertyName("id")]
         public required string Id { get; set; }
 
-        [VectorStoreData]
+        [JsonPropertyName("tenantId")]
         public required string TenantId { get; set; }
 
-        [VectorStoreData]
+        [JsonPropertyName("offerId")]
         public required string OfferId { get; set; }
 
-        [VectorStoreData]
+        [JsonPropertyName("name")]
         public required string Name { get; set; }
 
-        [VectorStoreData]
+        [JsonPropertyName("text")]
         public required string Text { get; set; }
 
-        [VectorStoreData]
+        [JsonPropertyName("type")]
         public required string Type { get; set; }
 
-        [VectorStoreData]
+        [JsonPropertyName("accountType")]
         public required string AccountType { get; set; }
 
-        [VectorStoreVector(Dimensions: 1536, DistanceFunction = DistanceFunction.CosineSimilarity, IndexKind: IndexKind.QuantizedFlat)]
+        [JsonPropertyName("vector")]
         public ReadOnlyMemory<float>? Vector { get; set; }
-
     }
 }

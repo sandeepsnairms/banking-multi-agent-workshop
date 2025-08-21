@@ -1,253 +1,398 @@
-﻿using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Agents;
-//using Microsoft.SemanticKernel.Agents.Chat;
-using Microsoft.SemanticKernel.Agents.Orchestration.GroupChat;
-using Microsoft.SemanticKernel.ChatCompletion;
-using Microsoft.SemanticKernel.Connectors.OpenAI;
-using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
-
 using OpenAI.Chat;
-using System.Text.Json;
-using MultiAgentCopilot.StructuredFormats;
-using MultiAgentCopilot.Models.ChatInfoFormats;
-using MultiAgentCopilot.Logs;
 using MultiAgentCopilot.Models;
 using MultiAgentCopilot.Services;
-using static MultiAgentCopilot.StructuredFormats.ChatResponseFormatBuilder;
-using MultiAgentCopilot.Plugins;
-using Microsoft.Identity.Client;
-
+using MultiAgentCopilot.Tools;
+using System.Text.Json;
+using MultiAgentCopilot.Models.Banking;
+using Microsoft.Extensions.AI;
 
 namespace MultiAgentCopilot.Factories
 {
-    internal class AgentFactory
+    public class AgentFactory
     {
-        public delegate void LogCallback(string key, string value);
+        private readonly ChatClient _chatClient;
+        private readonly ILoggerFactory _loggerFactory;
 
-        private string GetAgentName(AgentType agentType)
+        public AgentFactory(ChatClient chatClient, ILoggerFactory loggerFactory)
         {
-
-            string name = string.Empty;
-            switch (agentType)
-            {
-                case AgentType.Sales:
-                    name = "Sales";
-                    break;
-                case AgentType.Transactions:
-                    name = "Transactions";
-                    break;
-                case AgentType.CustomerSupport:
-                    name = "CustomerSupport";
-                    break;
-                case AgentType.Coordinator:
-                    name = "Coordinator";
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(agentType), agentType, null);
-            }
-
-            return name;
+            _chatClient = chatClient;
+            _loggerFactory = loggerFactory;
         }
 
-        private string GetAgentPrompts(AgentType agentType)
+        public async Task<string> InvokeAgentAsync(
+            AgentType agentType, 
+            IList<OpenAI.Chat.ChatMessage> messages, 
+            BankingDataService bankService, 
+            string tenantId, 
+            string userId)
         {
+            var prompt = GetAgentPrompt(agentType);
+            var tools = GetAgentTools(agentType, bankService, tenantId, userId);
+            var aiFunctionMap = CreateAIFunctionMap(agentType, bankService, tenantId, userId);
+            var logger = _loggerFactory.CreateLogger<AgentFactory>();
 
-            string promptFile = string.Empty;
-            switch (agentType)
+            var systemMessage = new SystemChatMessage(prompt);
+            var allMessages = new List<OpenAI.Chat.ChatMessage> { systemMessage };
+            allMessages.AddRange(messages);
+
+            var chatOptions = new ChatCompletionOptions();
+            
+            // Add tools to the options
+            foreach (var tool in tools)
             {
-                case AgentType.Sales:
-                    promptFile = "Sales.prompty";
-                    break;
-                case AgentType.Transactions:
-                    promptFile = "Transactions.prompty";
-                    break;
-                case AgentType.CustomerSupport:
-                    promptFile = "CustomerSupport.prompty";
-                    break;
-                case AgentType.Coordinator:
-                    promptFile = "Coordinator.prompty";
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(agentType), agentType, null);
+                chatOptions.Tools.Add(tool);
             }
 
-            string prompt = $"{File.ReadAllText("Prompts/" + promptFile)}{File.ReadAllText("Prompts/CommonAgentRules.prompty")}";
+            var result = await _chatClient.CompleteChatAsync(allMessages, chatOptions);
+            
+            // Handle function calls if any
+            var response = result.Value;
+            var responseMessages = new List<OpenAI.Chat.ChatMessage>(allMessages);
+            responseMessages.Add(new AssistantChatMessage(response));
 
+            // Check if the model wants to call functions
+            while (response.FinishReason == OpenAI.Chat.ChatFinishReason.ToolCalls && response.ToolCalls?.Count > 0)
+            {
+                // Execute each function call
+                foreach (var toolCall in response.ToolCalls)
+                {
+                    if (toolCall is ChatToolCall functionCall)
+                    {
+                        try
+                        {
+                            var functionResult = await ExecuteFunctionAsync(functionCall.FunctionName, functionCall.FunctionArguments.ToString(), aiFunctionMap, logger);
+                            responseMessages.Add(new ToolChatMessage(toolCall.Id, functionResult));
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.LogError(ex, "Error executing function {FunctionName}", functionCall.FunctionName);
+                            responseMessages.Add(new ToolChatMessage(toolCall.Id, $"Error: {ex.Message}"));
+                        }
+                    }
+                }
+
+                // Get another response with the function results
+                result = await _chatClient.CompleteChatAsync(responseMessages, chatOptions);
+                response = result.Value;
+                responseMessages.Add(new AssistantChatMessage(response));
+            }
+
+            return response.Content.FirstOrDefault()?.Text ?? string.Empty;
+        }
+
+        public string GetAgentName(AgentType agentType)
+        {
+            return agentType switch
+            {
+                AgentType.Sales => "Sales",
+                AgentType.Transactions => "Transactions",
+                AgentType.CustomerSupport => "CustomerSupport",
+                AgentType.Coordinator => "Coordinator",
+                _ => throw new ArgumentOutOfRangeException(nameof(agentType), agentType, null)
+            };
+        }
+
+        private string GetAgentPrompt(AgentType agentType)
+        {
+            string promptFile = agentType switch
+            {
+                AgentType.Sales => "Sales.prompty",
+                AgentType.Transactions => "Transactions.prompty",
+                AgentType.CustomerSupport => "CustomerSupport.prompty",
+                AgentType.Coordinator => "Coordinator.prompty",
+                _ => throw new ArgumentOutOfRangeException(nameof(agentType), agentType, null)
+            };
+
+            string prompt = $"{File.ReadAllText($"Prompts/{promptFile}")}{File.ReadAllText("Prompts/CommonAgentRules.prompty")}";
             return prompt;
         }
 
-
-
-        public ChatCompletionAgent BuildAgent(Kernel kernel, AgentType agentType, ILoggerFactory loggerFactory, BankingDataService bankService, string tenantId, string userId)
+        private List<ChatTool> GetAgentTools(AgentType agentType, BankingDataService bankService, string tenantId, string userId)
         {
-            ChatCompletionAgent agent = new ChatCompletionAgent
+            // Create the appropriate tools class based on agent type
+            BaseTools toolsClass = agentType switch
             {
-                Name = GetAgentName(agentType),
-                Instructions = $"""{GetAgentPrompts(agentType)}""",
-                Kernel = GetAgentKernel(kernel, agentType, loggerFactory, bankService, tenantId, userId),
-                Arguments = new KernelArguments(new AzureOpenAIPromptExecutionSettings() { FunctionChoiceBehavior = FunctionChoiceBehavior.Auto() })
+                AgentType.Sales => new SalesTools(_loggerFactory.CreateLogger<SalesTools>(), bankService, tenantId, userId),
+                AgentType.Transactions => new TransactionTools(_loggerFactory.CreateLogger<TransactionTools>(), bankService, tenantId, userId),
+                AgentType.CustomerSupport => new CustomerSupportTools(_loggerFactory.CreateLogger<CustomerSupportTools>(), bankService, tenantId, userId),
+                AgentType.Coordinator => new CoordinatorTools(_loggerFactory.CreateLogger<CoordinatorTools>(), bankService, tenantId, userId),
+                _ => throw new ArgumentOutOfRangeException(nameof(agentType), agentType, null)
             };
 
-            return agent;
-        }
-
-        private Kernel GetAgentKernel(Kernel kernel, AgentType agentType, ILoggerFactory loggerFactory, BankingDataService bankService, string tenantId, string userId)
-        {
-            Kernel agentKernel = kernel.Clone();
-            switch (agentType)
+            // Get AIFunctions from the tools class
+            var aiFunctions = toolsClass.GetTools();
+            
+            // Convert AIFunctions to ChatTools
+            var chatTools = new List<ChatTool>();
+            foreach (var aiFunction in aiFunctions)
             {
-                case AgentType.Sales:
-                    var salesPlugin = new SalesPlugin(loggerFactory.CreateLogger<SalesPlugin>(), bankService, tenantId, userId);
-                    agentKernel.Plugins.AddFromObject(salesPlugin);
-                    break;
-                case AgentType.Transactions:
-                    var transactionsPlugin = new TransactionPlugin(loggerFactory.CreateLogger<TransactionPlugin>(), bankService, tenantId, userId);
-                    agentKernel.Plugins.AddFromObject(transactionsPlugin);
-                    break;
-                case AgentType.CustomerSupport:
-                    var customerSupportPlugin = new CustomerSupportPlugin(loggerFactory.CreateLogger<CustomerSupportPlugin>(), bankService, tenantId, userId);
-                    agentKernel.Plugins.AddFromObject(customerSupportPlugin);
-                    break;
-                case AgentType.Coordinator:
-                    var CoordinatorPlugin = new CoordinatorPlugin(loggerFactory.CreateLogger<CoordinatorPlugin>(), bankService, tenantId, userId);
-                    agentKernel.Plugins.AddFromObject(CoordinatorPlugin);
-                    break;
-                default:
-                    throw new ArgumentException("Invalid plugin name");
+                var chatTool = ConvertAIFunctionToChatTool(aiFunction);
+                if (chatTool != null)
+                {
+                    chatTools.Add(chatTool);
+                }
             }
 
-            return agentKernel;
+            return chatTools;
         }
 
-
-
-        public static string GetStrategyPrompts(ChatResponseStrategy strategyType)
+        private Dictionary<string, AIFunction> CreateAIFunctionMap(AgentType agentType, BankingDataService bankService, string tenantId, string userId)
         {
-            string prompt = string.Empty;
-            switch (strategyType)
+            var map = new Dictionary<string, AIFunction>();
+            
+            // Create the appropriate tools class based on agent type
+            BaseTools toolsClass = agentType switch
             {
-                case ChatResponseStrategy.Continuation:
-                    prompt = File.ReadAllText("Prompts/SelectionStrategy.prompty");
-                    break;
-                case ChatResponseStrategy.Termination:
-                    prompt = File.ReadAllText("Prompts/TerminationStrategy.prompty");
-                    break;
-            }
-            return prompt;
-        }
-
-        public AgentGroupChat BuildAgentGroupChat(Kernel kernel, ILoggerFactory loggerFactory, LogCallback logCallback, BankingDataService bankService, string tenantId, string userId)
-        {
-            AgentGroupChat agentGroupChat = new AgentGroupChat();
-            var chatModel = kernel.GetRequiredService<IChatCompletionService>();
-
-            kernel.AutoFunctionInvocationFilters.Add(new AutoFunctionInvocationLoggingFilter(loggerFactory.CreateLogger<AutoFunctionInvocationLoggingFilter>()));
-
-            foreach (AgentType agentType in Enum.GetValues(typeof(AgentType)))
-            {
-                agentGroupChat.AddAgent(BuildAgent(kernel, agentType, loggerFactory, bankService, tenantId, userId));
-            }
-
-            agentGroupChat.ExecutionSettings = GetAgentGroupChatSettings(kernel, logCallback);
-
-
-            return agentGroupChat;
-        }
-
-        private OpenAIPromptExecutionSettings GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStrategy strategyType)
-        {
-            ChatResponseFormat infoFormat;
-            infoFormat = ChatResponseFormat.CreateJsonSchemaFormat(
-            jsonSchemaFormatName: $"agent_result_{strategyType.ToString()}",
-            jsonSchema: BinaryData.FromString($"""
-                {ChatResponseFormatBuilder.BuildFormat(strategyType)}
-                """));
-            var executionSettings = new OpenAIPromptExecutionSettings
-            {
-                ResponseFormat = infoFormat
+                AgentType.Sales => new SalesTools(_loggerFactory.CreateLogger<SalesTools>(), bankService, tenantId, userId),
+                AgentType.Transactions => new TransactionTools(_loggerFactory.CreateLogger<TransactionTools>(), bankService, tenantId, userId),
+                AgentType.CustomerSupport => new CustomerSupportTools(_loggerFactory.CreateLogger<CustomerSupportTools>(), bankService, tenantId, userId),
+                AgentType.Coordinator => new CoordinatorTools(_loggerFactory.CreateLogger<CoordinatorTools>(), bankService, tenantId, userId),
+                _ => throw new ArgumentOutOfRangeException(nameof(agentType), agentType, null)
             };
 
-            return executionSettings;
+            var functions = toolsClass.GetTools();
+            foreach (var function in functions)
+            {
+                map[function.Name] = function;
+            }
+
+            return map;
         }
 
-        private KernelFunction GetStrategyFunction(ChatResponseFormatBuilder.ChatResponseStrategy strategyType)
+        private ChatTool? ConvertAIFunctionToChatTool(AIFunction aiFunction)
         {
+            try
+            {
+                var functionName = aiFunction.Name;
+                var functionDescription = aiFunction.Description ?? string.Empty;
+                
+                // Generate specific parameter schemas for known functions
+                var parametersSchema = GenerateParametersSchemaForFunction(functionName);
+                
+                return ChatTool.CreateFunctionTool(
+                    functionName: functionName,
+                    functionDescription: functionDescription,
+                    functionParameters: BinaryData.FromString(parametersSchema)
+                );
+            }
+            catch (Exception ex)
+            {
+                _loggerFactory.CreateLogger<AgentFactory>().LogWarning(ex, "Failed to convert AIFunction {FunctionName} to ChatTool", aiFunction.Name);
+                return null;
+            }
+        }
 
-            KernelFunction function =
-                AgentGroupChat.CreatePromptFunctionForStrategy(
-                    $$$"""
-                    {{{GetStrategyPrompts(strategyType)}}}
+        private string GenerateParametersSchemaForFunction(string functionName)
+        {
+            object schema = functionName switch
+            {
+                "GetTeleBankerSlots" => new
+                {
+                    type = "object",
+                    properties = new Dictionary<string, object>
+                    {
+                        ["accountType"] = new
+                        {
+                            type = "string",
+                            description = "The type of account",
+                            @enum = new[] { "Checking", "Savings", "CreditCard", "Mortgage", "Investment" }
+                        }
+                    },
+                    required = new[] { "accountType" }
+                },
+                "SearchOfferTerms" => new
+                {
+                    type = "object",
+                    properties = new Dictionary<string, object>
+                    {
+                        ["accountType"] = new
+                        {
+                            type = "string",
+                            description = "The type of account",
+                            @enum = new[] { "Checking", "Savings", "CreditCard", "Mortgage", "Investment" }
+                        },
+                        ["requirementDescription"] = new
+                        {
+                            type = "string",
+                            description = "Description of requirements to search for"
+                        }
+                    },
+                    required = new[] { "accountType", "requirementDescription" }
+                },
+                "RegisterAccount" => new
+                {
+                    type = "object",
+                    properties = new Dictionary<string, object>
+                    {
+                        ["userId"] = new { type = "string", description = "User ID" },
+                        ["accType"] = new
+                        {
+                            type = "string",
+                            description = "Account type",
+                            @enum = new[] { "Checking", "Savings", "CreditCard", "Mortgage", "Investment" }
+                        },
+                        ["fulfilmentDetails"] = new
+                        {
+                            type = "object",
+                            description = "Fulfilment details",
+                            additionalProperties = new { type = "string" }
+                        }
+                    },
+                    required = new[] { "userId", "accType", "fulfilmentDetails" }
+                },
+                "IsAccountRegisteredToUser" => new
+                {
+                    type = "object",
+                    properties = new Dictionary<string, object>
+                    {
+                        ["accountId"] = new { type = "string", description = "Account ID to check" }
+                    },
+                    required = new[] { "accountId" }
+                },
+                "CheckPendingServiceRequests" => new
+                {
+                    type = "object",
+                    properties = new Dictionary<string, object>
+                    {
+                        ["accountId"] = new { type = "string", description = "Account ID (optional)" },
+                        ["srType"] = new
+                        {
+                            type = "string",
+                            description = "Service request type (optional)",
+                            @enum = new[] { "FundTransfer", "TeleBankerCallBack", "Complaint", "Fulfilment" }
+                        }
+                    }
+                },
+                "AddTeleBankerRequest" => new
+                {
+                    type = "object",
+                    properties = new Dictionary<string, object>
+                    {
+                        ["accountId"] = new { type = "string", description = "Account ID" },
+                        ["requestAnnotation"] = new { type = "string", description = "Request annotation" },
+                        ["callbackTime"] = new { type = "string", description = "Callback time in ISO format" }
+                    },
+                    required = new[] { "accountId", "requestAnnotation", "callbackTime" }
+                },
+                "CreateComplaint" => new
+                {
+                    type = "object",
+                    properties = new Dictionary<string, object>
+                    {
+                        ["accountId"] = new { type = "string", description = "Account ID" },
+                        ["requestAnnotation"] = new { type = "string", description = "Complaint details" }
+                    },
+                    required = new[] { "accountId", "requestAnnotation" }
+                },
+                "UpdateExistingServiceRequest" => new
+                {
+                    type = "object",
+                    properties = new Dictionary<string, object>
+                    {
+                        ["requestId"] = new { type = "string", description = "Service request ID" },
+                        ["accountId"] = new { type = "string", description = "Account ID" },
+                        ["requestAnnotation"] = new { type = "string", description = "Additional details" }
+                    },
+                    required = new[] { "requestId", "accountId", "requestAnnotation" }
+                },
+                "AddFunTransferRequest" => new
+                {
+                    type = "object",
+                    properties = new Dictionary<string, object>
+                    {
+                        ["debitAccountId"] = new { type = "string", description = "Debit account ID" },
+                        ["amount"] = new { type = "number", description = "Transfer amount" },
+                        ["requestAnnotation"] = new { type = "string", description = "Transfer details" },
+                        ["recipientPhoneNumber"] = new { type = "string", description = "Recipient phone (optional)" },
+                        ["recipientEmailId"] = new { type = "string", description = "Recipient email (optional)" }
+                    },
+                    required = new[] { "debitAccountId", "amount", "requestAnnotation" }
+                },
+                "GetTransactionHistory" => new
+                {
+                    type = "object",
+                    properties = new Dictionary<string, object>
+                    {
+                        ["accountId"] = new { type = "string", description = "Account ID" },
+                        ["startDate"] = new { type = "string", description = "Start date in ISO format" },
+                        ["endDate"] = new { type = "string", description = "End date in ISO format" }
+                    },
+                    required = new[] { "accountId", "startDate", "endDate" }
+                },
+                "GetOfferDetails" => new
+                {
+                    type = "object",
+                    properties = new Dictionary<string, object>
+                    {
+                        ["offerId"] = new { type = "string", description = "Offer ID" }
+                    },
+                    required = new[] { "offerId" }
+                },
+                _ => new
+                {
+                    type = "object",
+                    properties = new Dictionary<string, object>(),
+                    additionalProperties = true
+                }
+            };
+
+            var options = new JsonSerializerOptions
+            {
+                WriteIndented = false,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            };
+
+            return JsonSerializer.Serialize(schema, options);
+        }
+
+        private async Task<string> ExecuteFunctionAsync(string functionName, string functionArguments, Dictionary<string, AIFunction> aiFunctionMap, ILogger logger)
+        {
+            if (aiFunctionMap.TryGetValue(functionName, out var aiFunction))
+            {
+                try
+                {
+                    // Parse arguments and convert to proper types
+                    var argumentsDict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(functionArguments);
+                    var aiArguments = new AIFunctionArguments();
                     
-                    RESPONSE:
-                    {{$lastmessage}}
-                    """,
-                    safeParameterNames: "lastmessage");
+                    if (argumentsDict != null)
+                    {
+                        foreach (var kvp in argumentsDict)
+                        {
+                            aiArguments[kvp.Key] = ConvertJsonElementToObject(kvp.Value);
+                        }
+                    }
+                    
+                    var result = await aiFunction.InvokeAsync(aiArguments);
+                    return JsonSerializer.Serialize(result);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Failed to invoke AIFunction {FunctionName}", functionName);
+                    return JsonSerializer.Serialize(new { error = ex.Message });
+                }
+            }
 
-            return function;
+            return JsonSerializer.Serialize(new { error = $"Unknown function: {functionName}" });
         }
-        /*
-        private AgentGroupChatSettings GetAgentGroupChatSettings(Kernel kernel, LogCallback logCallback)
+
+        private object? ConvertJsonElementToObject(JsonElement element)
         {
-            ChatHistoryTruncationReducer historyReducer = new(5);
-
-            AgentGroupChatSettings ExecutionSettings = new AgentGroupChatSettings
+            return element.ValueKind switch
             {
-                SelectionStrategy =
-                    new KernelFunctionSelectionStrategy(GetStrategyFunction(ChatResponseFormatBuilder.ChatResponseStrategy.Continuation), kernel)
-                    {
-                        Arguments = new KernelArguments(GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStrategy.Continuation)),
-                        // Save tokens by only including the final few responses
-                        HistoryReducer = historyReducer,
-                        // The prompt variable name for the history argument.
-                        HistoryVariableName = "lastmessage",
-                        // Returns the entire result value as a string.
-                        ResultParser = (result) =>
-                        {
-                            var resultString = result.GetValue<string>();
-                            if (!string.IsNullOrEmpty(resultString))
-                            {
-                                var ContinuationInfo = JsonSerializer.Deserialize<ContinuationInfo>(resultString);
-                                logCallback("SELECTION - Agent", ContinuationInfo!.AgentName);
-                                logCallback("SELECTION - Reason", ContinuationInfo!.Reason);
-                                return ContinuationInfo!.AgentName;
-                            }
-                            else
-                            {
-                                return string.Empty;
-                            }
-                        }
-                    },
-                TerminationStrategy =
-                    new KernelFunctionTerminationStrategy(GetStrategyFunction(ChatResponseFormatBuilder.ChatResponseStrategy.Termination), kernel)
-                    {
-                        Arguments = new KernelArguments(GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStrategy.Termination)),
-                        // Save tokens by only including the final response
-                        HistoryReducer = historyReducer,
-                        // The prompt variable name for the history argument.
-                        HistoryVariableName = "lastmessage",
-                        // Limit total number of turns
-                        MaximumIterations = 8,
-                        // user result parser to determine if the response is "yes"
-                        ResultParser = (result) =>
-                        {
-                            var resultString = result.GetValue<string>();
-                            if (!string.IsNullOrEmpty(resultString))
-                            {
-                                var terminationInfo = JsonSerializer.Deserialize<TerminationInfo>(resultString);
-                                logCallback("TERMINATION - Continue", terminationInfo!.ShouldContinue.ToString());
-                                logCallback("TERMINATION - Reason", terminationInfo!.Reason);
-                                return !terminationInfo!.ShouldContinue;
-                            }
-                            else
-                            {
-                                return false;
-                            }
-                        }
-                    },
+                JsonValueKind.String => element.GetString(),
+                JsonValueKind.Number => element.TryGetInt32(out var intVal) ? intVal : 
+                                       element.TryGetInt64(out var longVal) ? longVal :
+                                       element.TryGetDecimal(out var decVal) ? decVal : 
+                                       element.GetDouble(),
+                JsonValueKind.True or JsonValueKind.False => element.GetBoolean(),
+                JsonValueKind.Array => element.EnumerateArray().Select(ConvertJsonElementToObject).ToArray(),
+                JsonValueKind.Object => element.EnumerateObject().ToDictionary(
+                    prop => prop.Name, 
+                    prop => ConvertJsonElementToObject(prop.Value)),
+                JsonValueKind.Null => null,
+                _ => element.GetRawText()
             };
-
-            return ExecutionSettings;
-        }*/
+        }
     }
 }
-

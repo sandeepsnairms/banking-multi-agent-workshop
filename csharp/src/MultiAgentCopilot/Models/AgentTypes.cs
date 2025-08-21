@@ -1,6 +1,6 @@
 ﻿namespace MultiAgentCopilot.Models
 {
-    enum AgentType
+    public enum AgentType
     {
         Transactions = 0,
         Sales = 1,

@@ -3,21 +3,13 @@ using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Fluent;
 using Container = Microsoft.Azure.Cosmos.Container;
 using Azure.Identity;
+using Azure.AI.OpenAI;
 using System.Text;
 using MultiAgentCopilot.Helper;
 using MultiAgentCopilot.Models.Configuration;
 using MultiAgentCopilot.Models.Banking;
-
 using PartitionKey = Microsoft.Azure.Cosmos.PartitionKey;
-
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Connectors.AzureCosmosDBNoSQL;
-
 using System.Text.Json;
-
-using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
-using Microsoft.Extensions.VectorData;
-using System.Linq.Expressions;
 
 
 namespace MultiAgentCopilot.Services
@@ -28,27 +20,16 @@ namespace MultiAgentCopilot.Services
         private readonly Container _userData;
         private readonly Container _requestData;
         private readonly Container _offerData;
-
-        private readonly AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm> _offerDataVectorStore;
-        private readonly AzureOpenAITextEmbeddingGenerationService _textEmbeddingGenerationService;
-
         private readonly Database _database;
-
         private readonly ILogger _logger;
 
         public bool IsInitialized { get; private set; }
 
-        readonly Kernel _semanticKernel;
-
-
-
-
         public BankingDataService(
            Database database, Container accountData, Container userData, Container requestData, Container offerData,
-           SemanticKernelServiceSettings skSettings,
+           AgentFrameworkServiceSettings skSettings,
            ILoggerFactory loggerFactory)
         {
-
             _database = database;
             _accountData = accountData;
             _userData = userData;
@@ -58,32 +39,6 @@ namespace MultiAgentCopilot.Services
             _logger = loggerFactory.CreateLogger<BankingDataService>();
 
             _logger.LogInformation("Initializing Banking service.");
-
-
-            //To DO: Add vector search initialization code here
-
-            DefaultAzureCredential credential;
-            if (string.IsNullOrEmpty(skSettings.AzureOpenAISettings.UserAssignedIdentityClientID))
-            {
-                credential = new DefaultAzureCredential();
-            }
-            else
-            {
-                credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
-                {
-                    ManagedIdentityClientId = skSettings.AzureOpenAISettings.UserAssignedIdentityClientID
-                });
-
-            }
-
-            _textEmbeddingGenerationService = new(
-                    deploymentName: skSettings.AzureOpenAISettings.EmbeddingsDeployment, // Name of deployment, e.g. "text-embedding-ada-002".
-                    endpoint: skSettings.AzureOpenAISettings.Endpoint,           // Name of Azure OpenAI service endpoint, e.g. https://myaiservice.openai.azure.com.
-                    credential: credential);
-
-            var jsonSerializerOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-            var vectorStoreOptions = new AzureCosmosDBNoSQLVectorStoreRecordCollectionOptions<OfferTerm> { PartitionKeyPropertyName = "TenantId", JsonSerializerOptions = jsonSerializerOptions };
-            _offerDataVectorStore = new AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm>(_database, _offerData.Id, vectorStoreOptions);
 
             _logger.LogInformation("Banking service initialized.");
         }
@@ -101,10 +56,9 @@ namespace MultiAgentCopilot.Services
             catch (CosmosException ex)
             {
                 _logger.LogError(ex.ToString());
-                return null;
+                return null!;
             }
         }
-
 
         public async Task<List<BankAccount>> GetUserRegisteredAccountsAsync(string tenantId, string userId)
         {
@@ -129,10 +83,9 @@ namespace MultiAgentCopilot.Services
             catch (CosmosException ex)
             {
                 _logger.LogError(ex.ToString());
-                return null;
+                return null!;
             }
         }
-
 
         public async Task<BankAccount> GetAccountDetailsAsync(string tenantId, string userId, string accountId)
         {
@@ -147,7 +100,7 @@ namespace MultiAgentCopilot.Services
             catch (CosmosException ex)
             {
                 _logger.LogError(ex.ToString());
-                return null;
+                return null!;
             }
         }
 
@@ -212,7 +165,6 @@ namespace MultiAgentCopilot.Services
             return await AddServiceRequestAsync(req);
         }
 
-
         private async Task<ServiceRequest> AddServiceRequestAsync(ServiceRequest req)
         {
             try
@@ -224,10 +176,9 @@ namespace MultiAgentCopilot.Services
             catch (CosmosException ex)
             {
                 _logger.LogError(ex.ToString());
-                return null;
+                return null!;
             }
         }
-
 
         public async Task<List<ServiceRequest>> GetServiceRequestsAsync(string tenantId, string accountId, string? userId = null, ServiceRequestType? SRType = null)
         {
@@ -251,7 +202,6 @@ namespace MultiAgentCopilot.Services
                     queryDefinition = queryDefinition.WithParameter("@SRType", SRType);
                 }
 
-
                 List<ServiceRequest> reqs = new List<ServiceRequest>();
                 using (FeedIterator<ServiceRequest> feedIterator = _requestData.GetItemQueryIterator<ServiceRequest>(queryDefinition, requestOptions: new QueryRequestOptions { PartitionKey = partitionKey }))
                 {
@@ -270,8 +220,6 @@ namespace MultiAgentCopilot.Services
                 return new List<ServiceRequest>();
             }
         }
-
-
 
         public async Task<bool> AddServiceRequestDescriptionAsync(string tenantId, string accountId, string requestId, string annotationToAdd)
         {
@@ -303,41 +251,44 @@ namespace MultiAgentCopilot.Services
         {
             try
             {
-                // Generate Embedding
-                ReadOnlyMemory<float> embedding = (await _textEmbeddingGenerationService.GenerateEmbeddingsAsync(
-                       new[] { requirementDescription }
-                   )).FirstOrDefault();
-
-
-                string accountTypeString = accountType.ToString();
-
-                // filters as LINQ expression
-                Expression<Func<OfferTerm, bool>> linqFilter = term =>
-                    term.TenantId == tenantId &&
-                    term.Type == "Term" &&
-                    term.AccountType == "Savings";
-
-                var options = new VectorSearchOptions<OfferTerm>
-                {
-                    VectorProperty = term => term.Vector, // Correctly specify the vector property as a lambda expression
-                    Filter = linqFilter, // Use the LINQ expression here
-                    Top = 10,
-                    IncludeVectors = false
-                };
-
-
-                var searchResults = await _offerDataVectorStore.VectorizedSearchAsync(embedding, options);
-
-                List<OfferTerm> offerTerms = new();
-                await foreach (var result in searchResults.Results)
-                {
-                    offerTerms.Add(result.Record);
-                }
-                return offerTerms;
+                // Since embedding generator is not available, use simple text search
+                return await GetOfferTermsByTextSearchAsync(tenantId, accountType, requirementDescription);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex.ToString());
+                _logger.LogError(ex, "Error in SearchOfferTermsAsync");
+                return new List<OfferTerm>();
+            }
+        }
+
+        private async Task<List<OfferTerm>> GetOfferTermsByTextSearchAsync(string tenantId, AccountType accountType, string requirementDescription)
+        {
+            try
+            {
+                var partitionKey = new PartitionKey(tenantId);
+                
+                QueryDefinition queryDefinition = new QueryDefinition(
+                    "SELECT * FROM c WHERE c.tenantId = @tenantId AND c.type = @type AND c.accountType = @accountType AND CONTAINS(LOWER(c.text), LOWER(@searchText))")
+                    .WithParameter("@tenantId", tenantId)
+                    .WithParameter("@type", "Term")
+                    .WithParameter("@accountType", accountType.ToString())
+                    .WithParameter("@searchText", requirementDescription);
+
+                List<OfferTerm> offerTerms = new List<OfferTerm>();
+                using (FeedIterator<OfferTerm> feedIterator = _offerData.GetItemQueryIterator<OfferTerm>(queryDefinition, requestOptions: new QueryRequestOptions { PartitionKey = partitionKey }))
+                {
+                    while (feedIterator.HasMoreResults)
+                    {
+                        FeedResponse<OfferTerm> response = await feedIterator.ReadNextAsync();
+                        offerTerms.AddRange(response);
+                    }
+                }
+
+                return offerTerms.Take(10).ToList(); // Limit to top 10 results
+            }
+            catch (CosmosException ex)
+            {
+                _logger.LogError(ex, "Error in GetOfferTermsByTextSearchAsync");
                 return new List<OfferTerm>();
             }
         }
@@ -355,10 +306,8 @@ namespace MultiAgentCopilot.Services
             catch (CosmosException ex)
             {
                 _logger.LogError(ex.ToString());
-                return null;
+                return null!;
             }
         }
-
-
     }
 }

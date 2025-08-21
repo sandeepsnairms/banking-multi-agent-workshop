@@ -9,11 +9,11 @@ namespace MultiAgentCopilot
     public static partial class DependencyInjection
     {
         
-        public static void AddSemanticKernelService(this IHostApplicationBuilder builder)
+        public static void AddAgentFrameworkService(this IHostApplicationBuilder builder)
         {
-            builder.Services.AddOptions<SemanticKernelServiceSettings>()
-                .Bind(builder.Configuration.GetSection("SemanticKernelServiceSettings"));
-            builder.Services.AddSingleton<SemanticKernelService>();
+            builder.Services.AddOptions<AgentFrameworkServiceSettings>()
+                .Bind(builder.Configuration.GetSection("AgentFrameworkServiceSettings"));
+            builder.Services.AddSingleton<AgentFrameworkService>();
         }
 
         public static void AddCosmosDBService(this IHostApplicationBuilder builder)
@@ -29,6 +29,8 @@ namespace MultiAgentCopilot
         {
             builder.Services.AddOptions<CosmosDBSettings>()
                 .Bind(builder.Configuration.GetSection("CosmosDBSettings"));
+            builder.Services.AddOptions<AgentFrameworkServiceSettings>()
+                .Bind(builder.Configuration.GetSection("AgentFrameworkServiceSettings"));
             builder.Services.AddSingleton<ChatService>();
         }
 

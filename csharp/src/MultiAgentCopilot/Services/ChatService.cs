@@ -13,19 +13,19 @@ public class ChatService
 {
     private readonly CosmosDBService _cosmosDBService;
     private readonly BankingDataService _bankService;
-    private readonly SemanticKernelService _skService;
+    private readonly AgentFrameworkService _agentService;
     private readonly ILogger _logger;
 
     
     public ChatService(
         IOptions<CosmosDBSettings> cosmosOptions,
-        IOptions<SemanticKernelServiceSettings> skOptions,
+        IOptions<AgentFrameworkServiceSettings> skOptions,
         CosmosDBService cosmosDBService,
-        SemanticKernelService skService,
+        AgentFrameworkService agentService,
         ILoggerFactory loggerFactory)
     {
         _cosmosDBService = cosmosDBService;
-        _skService = skService;
+        _agentService = agentService;
         _bankService = new BankingDataService(cosmosDBService.Database,cosmosDBService.AccountDataContainer,cosmosDBService.UserDataContainer,cosmosDBService.AccountDataContainer,cosmosDBService.OfferDataContainer, skOptions.Value, loggerFactory);
         _logger = loggerFactory.CreateLogger<ChatService>();
     }
@@ -77,19 +77,45 @@ public class ChatService
     }
 
     /// <summary>
-    /// Receive a prompt from a user, vectorize it from the OpenAI service, and get a completion from the OpenAI service.
+    /// Receive a prompt from a user, and get a completion from the Agent Framework service.
     /// </summary>
     public async Task<List<Message>> GetChatCompletionAsync(string tenantId, string userId,string? sessionId, string userPrompt)
     {
         try
         {
             ArgumentNullException.ThrowIfNull(sessionId);
-            await Task.Delay(1);
 
-            // Add both prompt and completion to cache, then persist in Cosmos DB
-            var userMessage = new Message(tenantId, userId, sessionId, "User", "User", "## Replay user message ## " + userPrompt);
+            // Get message history for the session
+            var messageHistory = await GetChatSessionMessagesAsync(tenantId, userId, sessionId);
 
-            return new List<Message> { userMessage };
+            // Create user message
+            var userMessage = new Message(tenantId, userId, sessionId, "User", "User", userPrompt);
+
+            // Get response from agent framework
+            var result = await _agentService.GetResponse(userMessage, messageHistory, _bankService, tenantId, userId);
+            
+            var completionMessages = result.Item1;
+            var debugLogs = result.Item2;
+
+            // Save user message
+            await _cosmosDBService.InsertMessageAsync(userMessage);
+            
+            // Save completion messages and debug logs
+            foreach (var message in completionMessages)
+            {
+                await _cosmosDBService.InsertMessageAsync(message);
+            }
+
+            foreach (var debugLog in debugLogs)
+            {
+                await _cosmosDBService.InsertDebugLogAsync(debugLog);
+            }
+
+            // Return all messages (user + completions)
+            var allMessages = new List<Message> { userMessage };
+            allMessages.AddRange(completionMessages);
+            
+            return allMessages;
         }
         catch (Exception ex)
         {
@@ -107,7 +133,7 @@ public class ChatService
         {
             ArgumentNullException.ThrowIfNull(sessionId);
 
-            var summary = "not implemented";
+            var summary = await _agentService.Summarize(sessionId, prompt);
 
             var session = await RenameChatSessionAsync(tenantId, userId, sessionId, summary);
 

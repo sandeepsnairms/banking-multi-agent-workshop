@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>30330e17-47e4-4441-b37c-b4962fdec4c4</UserSecretsId>
@@ -29,15 +29,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Azure.Identity" Version="1.13.2" />
+    <PackageReference Include="Azure.AI.OpenAI" Version="2.3.0-beta.1" />
+    <PackageReference Include="Azure.Identity" Version="1.14.2" />
     <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.23.0" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.0" />
     <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.48.1" />
-    <PackageReference Include="Microsoft.SemanticKernel" Version="1.54.0" />
-    <PackageReference Include="Microsoft.SemanticKernel.Agents.Core" Version="1.54.0" />
-    <PackageReference Include="Microsoft.SemanticKernel.Agents.Orchestration" Version="1.54.0-preview" />
-    <PackageReference Include="Microsoft.SemanticKernel.Connectors.CosmosNoSql" Version="1.54.0-preview" />
-    <PackageReference Include="Microsoft.SemanticKernel.Core" Version="1.54.0" />
+    <PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="9.8.0-preview.1.25412.6" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.17.2" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="8.1.1" />

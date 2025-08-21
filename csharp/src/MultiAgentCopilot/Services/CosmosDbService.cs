@@ -363,6 +363,24 @@ namespace MultiAgentCopilot.Services
             }
         }
 
+        public async Task<DebugLog> InsertDebugLogAsync(DebugLog debugLog)
+        {
+            try
+            { 
+                var partitionKey = PartitionManager.GetChatDataFullPK(debugLog.TenantId, debugLog.UserId, debugLog.SessionId);
+
+                return await ChatDataContainer.CreateItemAsync(
+                    item: debugLog,
+                    partitionKey: partitionKey
+                );
+            }
+            catch (CosmosException ex)
+            {
+                _logger.LogError(ex.ToString());
+                throw;
+            }
+        }
+
         public async Task<DebugLog> GetChatCompletionDebugLogAsync(string tenantId, string userId,string sessionId, string debugLogId)
         {
             try

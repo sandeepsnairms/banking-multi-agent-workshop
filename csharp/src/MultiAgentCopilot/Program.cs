@@ -40,7 +40,7 @@ namespace MultiAgentCopilot
             //builder.AddApplicationInsightsTelemetry();
 
             builder.AddCosmosDBService();
-            builder.AddSemanticKernelService();
+            builder.AddAgentFrameworkService();
 
             builder.AddChatService();
             builder.Services.AddScoped<ChatEndpoints>();
