@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import List, Dict
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
+from langsmith import traceable
 
 from src.app.services.azure_cosmos_db import fetch_latest_transaction_number, fetch_account_by_number, \
     create_transaction_record, \
@@ -10,6 +11,7 @@ from src.app.services.azure_cosmos_db import fetch_latest_transaction_number, fe
 
 
 @tool
+@traceable
 def bank_transfer(config: RunnableConfig, toAccount: str, fromAccount: str, amount: float) -> str:
     """Wrapper function to handle the transfer of funds between two accounts."""
     # Debit the amount from the fromAccount
@@ -74,6 +76,7 @@ def bank_transaction(config: RunnableConfig, account_number: str, amount: float,
 
 
 @tool
+@traceable
 def get_transaction_history(accountId: str, startDate: datetime, endDate: datetime) -> List[Dict]:
     """
     Retrieve the transaction history for a specific account between two dates.
@@ -92,6 +95,7 @@ def get_transaction_history(accountId: str, startDate: datetime, endDate: dateti
 
 
 @tool
+@traceable
 def bank_balance(config: RunnableConfig, account_number: str) -> str:
     """Retrieve the balance for a specific bank account."""
     tenantId = config["configurable"].get("tenantId", "UNKNOWN_TENANT_ID")

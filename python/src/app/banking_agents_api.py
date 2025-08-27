@@ -554,7 +554,15 @@ async def get_chat_completion(
         response_data = workflow.invoke(last_state, config, stream_mode="updates")
 
     debug_log_id = store_debug_log(sessionId, tenantId, userId, response_data)
+
     messages = extract_relevant_messages(debug_log_id, last_active_agent, response_data, tenantId, userId, sessionId)
+
+    partition_key = [tenantId, userId, sessionId]
+    # Get the active agent from Cosmos DB with a point lookup
+    activeAgent = chat_container.read_item(item=sessionId, partition_key=partition_key).get('activeAgent', 'unknown')
+
+    # update last sender in messages to the active agent
+    messages[-1].sender = agent_mapping.get(activeAgent, activeAgent)
 
     # Schedule storing chat history and updating correct agent in last message as a background task
     # to avoid blocking the API response as this is not needed unless retrieving the message history later.

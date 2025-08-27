@@ -16,7 +16,7 @@ In this Module we will wrap up what you have learned during this workshop. We wi
 ## Module Exercises
 
 1. [Activity 1: Session Lessons Learned Building This Workshop](#activity-1-session-lessons-learned-building-this-workshop)
-1. [Activity 2: Q&A](#activity-2-q-and-a)
+2. [Activity 2: Q&A](#activity-2-q-and-a)
 
 
 ## Activity 1: Session Lessons Learned Building This Workshop
