@@ -24,6 +24,7 @@ using System.ComponentModel;
 using System.Reflection;
 using System.Text.Json;
 
+
 namespace MultiAgentCopilot.Factories
 {
     /// <summary>
@@ -33,352 +34,256 @@ namespace MultiAgentCopilot.Factories
     /// </summary>
     public class BankingGroupChatManager : GroupChatManager
     {
-        private readonly ChatClient _chatClient;
+        private readonly IChatClient _chatClient;
         private readonly ILogger<BankingGroupChatManager> _logger;
         private readonly string _selectionPrompt;
         private readonly string _terminationPrompt;
+        private readonly string _filterPrompt;
+        private readonly string _topic;
 
-        public BankingGroupChatManager(ChatClient chatClient, ILoggerFactory loggerFactory)
+        public BankingGroupChatManager(IChatClient chatClient, ILoggerFactory loggerFactory)
         {
             _chatClient = chatClient;
             _logger = loggerFactory.CreateLogger<BankingGroupChatManager>();
-            
+            //_topic=topic;
+
             // Load strategy prompts
             _selectionPrompt = File.ReadAllText("Prompts/SelectionStrategy.prompty");
             _terminationPrompt = File.ReadAllText("Prompts/TerminationStrategy.prompty");
-            
-            _logger.LogInformation("Initialized BankingGroupChatManager with AI-based selection and termination strategies");
+            _filterPrompt= File.ReadAllText("Prompts/FilterStrategy.prompty");
+
+            _logger.LogInformation("Initialized BankingGroupChatManager with AI-based selection, filter, and termination strategies");
+        }
+
+        private async ValueTask<GroupChatManagerResult<TValue>> GetResponseAsync<TValue>(IReadOnlyCollection<Microsoft.Extensions.AI.ChatMessage> history, string prompt, CancellationToken cancellationToken = default)
+        {
+            ChatResponse<GroupChatManagerResult<TValue>> response = await _chatClient.GetResponseAsync<GroupChatManagerResult<TValue>>([.. history, new Microsoft.Extensions.AI.ChatMessage(ChatRole.System, prompt)], new ChatOptions { ToolMode = ChatToolMode.Auto }, useJsonSchemaResponseFormat: true, cancellationToken);
+            return response.Result;
+        }
+
+        private static class Prompts
+        {
+            public static string Termination(string topic) =>
+                $"""
+                You are mediator that guides a discussion on the topic of '{topic}'. 
+                You need to determine if the discussion has reached a conclusion. 
+                If you would like to end the discussion, please respond with True. Otherwise, respond with False.
+                """;
+
+            public static string Selection(string topic, string participants) =>
+                $"""
+                You are mediator that guides a discussion on the topic of '{topic}'. 
+                You need to select the next participant to speak. 
+                Here are the names and descriptions of the participants: 
+                {participants}\n
+                Please respond with only the name of the participant you would like to select.
+                """;
+
+            public static string Filter(string topic) =>
+                $"""
+                You are mediator that guides a discussion on the topic of '{topic}'. 
+                You have just concluded the discussion. 
+                Please summarize the discussion and provide a closing statement.
+                """;
         }
 
         /// <summary>
-        /// AI-based agent selection using SelectionStrategy.prompty
+        /// Unified AI-based agent selection with integrated content filter protection
+        /// Combines SelectNextAgent, SelectNextAgentAsync, and SelectAgentUsingAI into a single method
         /// </summary>
         protected override ValueTask<GroupChatManagerResult<string>> SelectNextAgent(
-            IReadOnlyCollection<Microsoft.Extensions.AI.ChatMessage> history, 
+            IReadOnlyCollection<Microsoft.Extensions.AI.ChatMessage> history,
             GroupChatTeam team,
             CancellationToken cancellationToken = default)
         {
-            return new ValueTask<GroupChatManagerResult<string>>(SelectNextAgentAsync(history, team, cancellationToken));
+            //return new ValueTask<GroupChatManagerResult<string>>(ProcessAgentSelectionWithAIAsync(history, team, cancellationToken));
+            return this.GetResponseAsync<string>(history, Prompts.Selection(_topic, team.FormatList()), cancellationToken);
         }
 
-        private async Task<GroupChatManagerResult<string>> SelectNextAgentAsync(
-            IReadOnlyCollection<Microsoft.Extensions.AI.ChatMessage> history, 
-            GroupChatTeam team,
-            CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                _logger.LogDebug("Selecting next agent from available agents");
-                
-                // Create conversation context from recent messages
-                var conversationContext = CreateConversationContext(history);
-                
-                // Use AI to select the next agent
-                var selectedAgentName = await SelectAgentUsingAI(conversationContext);
-                
-                _logger.LogInformation("AI selected agent: {AgentName}", selectedAgentName);
-                
-                // Return the selected agent name as the result
-                return new GroupChatManagerResult<string>(selectedAgentName);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error in agent selection, using fallback");
-                
-                // Return coordinator as fallback
-                _logger.LogInformation("Using fallback agent: Coordinator");
-                return new GroupChatManagerResult<string>("Coordinator");
-            }
-        }
+        /// <summary>
+        /// Unified agent selection method with comprehensive AI decision making and content filter protection
+        /// </summary>
+        //private async Task<GroupChatManagerResult<string>> ProcessAgentSelectionWithAIAsync(
+        //    IReadOnlyCollection<Microsoft.Extensions.AI.ChatMessage> history,
+        //    GroupChatTeam team,
+        //    CancellationToken cancellationToken = default)
+        //{
+            
+
+        //    try
+        //    {
+        //        _logger.LogDebug("Processing agent selection using unified AI approach with content filter protection");
+
+        //        // Create conversation context from recent messages
+        //        var conversationContext = CreateConversationContext(history);
+
+        //        var selectionMessages = new List<OpenAI.Chat.ChatMessage>
+        //        {
+        //            new SystemChatMessage(_selectionPrompt),
+        //            new UserChatMessage($"CONVERSATION: {conversationContext}")
+        //        };
+
+        //        // Use structured output for agent selection
+        //        var chatOptions = new ChatCompletionOptions
+        //        {
+        //            ResponseFormat = OpenAI.Chat.ChatResponseFormat.CreateJsonSchemaFormat(
+        //                "agent_selection",
+        //                BinaryData.FromString(ChatResponseFormatBuilder.BuildFormat(ChatResponseFormatBuilder.ChatResponseStrategy.Continuation)),
+        //                "Select the next agent and provide reasoning"
+        //            )
+        //        };
+
+        //        var result = await _chatClient.CompleteChatAsync(selectionMessages, chatOptions);
+        //        var responseContent = result.Value.Content.FirstOrDefault()?.Text ?? "{}";
+
+        //        _logger.LogDebug("AI agent selection raw response: {Response}", responseContent);
+
+        //        // Parse the structured response
+        //        var selectionInfo = JsonSerializer.Deserialize<AgentSelectionInfo>(responseContent);
+
+        //        var selectedAgentName = selectionInfo?.AgentName ?? "Coordinator";
+        //        var reason = selectionInfo?.Reason ?? "Default selection";
+
+        //        _logger.LogInformation("AI selected agent: {AgentName}, Reason: {Reason}", selectedAgentName, reason);
+
+        //        return new GroupChatManagerResult<string>(selectedAgentName) { Reason = reason };
+        //    }           
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, "Error in unified agent selection, using fallback");
+
+        //        // Fallback to coordinator
+        //        _logger.LogInformation("Using fallback agent selection: Coordinator");
+        //        return new GroupChatManagerResult<string>("Coordinator") { Reason = "Error in selection - using Coordinator fallback" };
+        //    }
+        //}       
 
         /// <summary>
         /// The AI group chat manager does not request user input.
         /// </summary>
-        //protected override ValueTask<GroupChatManagerResult<bool>> ShouldRequestUserInput(IReadOnlyCollection<Microsoft.Extensions.AI.ChatMessage> history, CancellationToken cancellationToken = default) =>
-        //    new(new GroupChatManagerResult<bool>(false) { Reason = "The AI group chat manager does not request user input." });
-
-        protected override ValueTask<GroupChatManagerResult<bool>> ShouldRequestUserInput(IReadOnlyCollection<Microsoft.Extensions.AI.ChatMessage> history, CancellationToken cancellationToken = default)
-        {
-            return new ValueTask<GroupChatManagerResult<bool>>(ShouldTerminateAsync(history, cancellationToken));
-        }
-
+        protected override ValueTask<GroupChatManagerResult<bool>> ShouldRequestUserInput(IReadOnlyCollection<Microsoft.Extensions.AI.ChatMessage> history, CancellationToken cancellationToken = default) =>
+            new(new GroupChatManagerResult<bool>(false) { Reason = "The AI group chat manager does not request user input." });
 
         /// <summary>
-        /// AI-based termination decision using TerminationStrategy.prompty
+        /// Unified AI-based termination decision with integrated content filter protection
+        /// Combines ShouldTerminate, ShouldTerminateAsync, and ShouldTerminateUsingAI into a single method
         /// </summary>
-        protected override ValueTask<GroupChatManagerResult<bool>> ShouldTerminate(
-    IReadOnlyCollection<Microsoft.Extensions.AI.ChatMessage> history,
-    CancellationToken cancellationToken = default)
-        {
-           return new ValueTask<GroupChatManagerResult<bool>>(ShouldTerminateAsync(history, cancellationToken));
-        }
-
-        private async Task<GroupChatManagerResult<bool>> ShouldTerminateAsync(
+        protected override async ValueTask<GroupChatManagerResult<bool>> ShouldTerminate(
             IReadOnlyCollection<Microsoft.Extensions.AI.ChatMessage> history,
             CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                _logger.LogDebug("Evaluating if conversation should be terminated");
 
-                // Create conversation context from recent messages
-                var conversationContext = CreateConversationContext(history);
-                
-                // Use AI to determine if conversation should terminate
-                var shouldTerminate = await ShouldTerminateUsingAI(conversationContext);
-                
-                _logger.LogInformation("Should terminate: {ShouldTerminate}", shouldTerminate);
-                
-                return new GroupChatManagerResult<bool>(shouldTerminate);
-            }
-            catch (Exception ex)
+        {
+            GroupChatManagerResult<bool> result = await base.ShouldTerminate(history, cancellationToken);
+            if (!result.Value)
             {
-                _logger.LogError(ex, "Error in termination decision, defaulting to continue");
-                return new GroupChatManagerResult<bool>(false); // Default to continue conversation on error
+                result = await this.GetResponseAsync<bool>(history, Prompts.Termination(_topic), cancellationToken);
             }
+            return result;
         }
+        //{
+        //    return new ValueTask<GroupChatManagerResult<bool>>(EvaluateTerminationWithAIAsync(history, cancellationToken));
+        //}
 
         /// <summary>
-        /// Filter and process results
+        /// Unified termination evaluation method with comprehensive AI decision making and content filter protection
         /// </summary>
-        protected override ValueTask<GroupChatManagerResult<string>> FilterResults(
-            IReadOnlyCollection<Microsoft.Extensions.AI.ChatMessage> history,
-            CancellationToken cancellationToken = default)
-        {
-            return new ValueTask<GroupChatManagerResult<string>>(FilterResultsAsync(history, cancellationToken));
-        }
+        //private async Task<GroupChatManagerResult<bool>> EvaluateTerminationWithAIAsync(
+        //    IReadOnlyCollection<Microsoft.Extensions.AI.ChatMessage> history,
+        //    CancellationToken cancellationToken = default)
+        //{
+        //    try
+        //    {
+        //        _logger.LogDebug("Evaluating conversation termination using unified AI approach with content filter protection");
 
+        //        // Create conversation context from recent messages
+        //        var conversationContext = CreateConversationContext(history);
 
-        private async Task<GroupChatManagerResult<string>> FilterResultsAsync(
-            IReadOnlyCollection<Microsoft.Extensions.AI.ChatMessage> history,
-            CancellationToken cancellationToken = default)
-        {
-            try
-            {
-               // _logger.LogDebug("Evaluating if conversation should be terminated");
+        //        var terminationMessages = new List<OpenAI.Chat.ChatMessage>
+        //        {
+        //            new SystemChatMessage(_terminationPrompt),
+        //            new UserChatMessage($"CONVERSATION: {conversationContext}")
+        //        };
 
-                // Create conversation context from recent messages
-                var conversationContext = CreateConversationContext(history);
+        //        // Use structured output for termination decision
+        //        var chatOptions = new ChatCompletionOptions
+        //        {
+        //            ResponseFormat = OpenAI.Chat.ChatResponseFormat.CreateJsonSchemaFormat(
+        //                "termination_decision",
+        //                BinaryData.FromString(ChatResponseFormatBuilder.BuildFormat(ChatResponseFormatBuilder.ChatResponseStrategy.Termination)),
+        //                "Determine if conversation should continue and provide reasoning"
+        //            )
+        //        };
 
-                // Use AI to determine if conversation should terminate
-                var summary = await SummarizeUsingAI(conversationContext);
+        //        var result = await _chatClient.CompleteChatAsync(terminationMessages, chatOptions);
+        //        var responseContent = result.Value.Content.FirstOrDefault()?.Text ?? "{}";
 
-                //_logger.LogInformation("Should terminate: {ShouldTerminate}", shouldTerminate);
+        //        _logger.LogDebug("AI termination decision raw response: {Response}", responseContent);
 
-                return new GroupChatManagerResult<string>(summary);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error summarizing conversation, defaulting to continue");
-                return string.IsNullOrEmpty(ex.Message) 
-                    ? new GroupChatManagerResult<string>("Error summarizing conversation") 
-                    : new GroupChatManagerResult<string>(ex.Message); // Default to continue conversation on error
-            }
-        }
+        //        // Parse the structured response
+        //        var terminationInfo = JsonSerializer.Deserialize<TerminationInfo>(responseContent);
 
+        //        var shouldContinue = terminationInfo?.ShouldContinue ?? true;
+        //        var reason = terminationInfo?.Reason ?? "Default continuation";
 
+        //        // The method returns whether to terminate, which is the inverse of ShouldContinue
+        //        var shouldTerminate = !shouldContinue;
+
+        //        _logger.LogInformation("AI termination decision: ShouldContinue={ShouldContinue}, ShouldTerminate={ShouldTerminate}, Reason={Reason}",
+        //            shouldContinue, shouldTerminate, reason);
+
+        //        return new GroupChatManagerResult<bool>(shouldTerminate) { Reason = reason };
+        //    }           
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, "Error in  termination evaluation, defaulting to continue");
+        //        return new GroupChatManagerResult<bool>(false) { Reason = "Error in evaluation - continuing conversation" };
+        //    }
+        //}
+
+        /// <summary>
+        /// Unified AI-based conversation filtering and summarization with integrated content filter protection
+        /// Combines FilterResults, FilterResultsAsync, and SummarizeUsingAI into a single method
+        /// </summary>
+        protected override ValueTask<GroupChatManagerResult<string>> FilterResults(IReadOnlyCollection<Microsoft.Extensions.AI.ChatMessage> history, CancellationToken cancellationToken = default) =>
+         this.GetResponseAsync<string>(history, Prompts.Filter(_topic), cancellationToken);
 
 
         /// <summary>
-        /// Use AI to select the next agent based on conversation context with content filter protection
+        /// Unified conversation processing method with comprehensive AI summarization and content filter protection
         /// </summary>
-        private async Task<string> SelectAgentUsingAI(string conversationContext)
-        {
-            try
-            {
-                // Ensure the conversation context is safe for Azure OpenAI
-                var safeContext = SanitizeContextForAzureOpenAI(conversationContext);
-                
-                var selectionMessages = new List<OpenAI.Chat.ChatMessage>
-                {
-                    new SystemChatMessage(_selectionPrompt),
-                    new UserChatMessage($"CONVERSATION: {safeContext}")
-                };
+        //private async Task<GroupChatManagerResult<string>> ProcessConversationSummaryAsync(
+        //    IReadOnlyCollection<Microsoft.Extensions.AI.ChatMessage> history,
+        //    CancellationToken cancellationToken = default)
+        //{
+        //    try
+        //    {
+        //        _logger.LogDebug("Processing conversation summary using unified AI approach with content filter protection");
 
-                // Use structured output for agent selection
-                var chatOptions = new ChatCompletionOptions
-                {
-                    ResponseFormat = OpenAI.Chat.ChatResponseFormat.CreateJsonSchemaFormat(
-                        "agent_selection",
-                        BinaryData.FromString(ChatResponseFormatBuilder.BuildFormat(ChatResponseFormatBuilder.ChatResponseStrategy.Continuation)),
-                        "Select the next agent and provide reasoning"
-                    )
-                };
+        //        // Create conversation context from recent messages
+        //        var conversationContext = CreateConversationContext(history);
 
-                var result = await _chatClient.CompleteChatAsync(selectionMessages, chatOptions);
-                var responseContent = result.Value.Content.FirstOrDefault()?.Text ?? "{}";
-                
-                _logger.LogDebug("AI agent selection raw response: {Response}", responseContent);
-                
-                // Parse the structured response
-                var selectionInfo = JsonSerializer.Deserialize<AgentSelectionInfo>(responseContent);
-                
-                var selectedAgentName = selectionInfo?.AgentName ?? "Coordinator";
-                var reason = selectionInfo?.Reason ?? "Default selection";
-                
-                _logger.LogInformation("AI selected agent: {AgentName}, Reason: {Reason}", selectedAgentName, reason);
-                
-                return selectedAgentName;
-            }
-            catch (Azure.RequestFailedException ex) when (ex.ErrorCode == "content_filter")
-            {
-                _logger.LogWarning("Content filter triggered during agent selection. Using fallback selection logic. Error: {Error}", ex.Message);
-                
-                // Use simple keyword-based fallback when content filter is triggered
-                return GetFallbackAgentFromContext(conversationContext);
-            }
-            catch (System.ClientModel.ClientResultException ex) when (ex.Message.Contains("content_filter"))
-            {
-                _logger.LogWarning("Content filter triggered during agent selection. Using fallback selection logic. Error: {Error}", ex.Message);
-                
-                // Use simple keyword-based fallback when content filter is triggered
-                return GetFallbackAgentFromContext(conversationContext);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error in structured agent selection, using fallback");
-                
-                // Fallback to coordinator
-                _logger.LogInformation("Using fallback agent selection: Coordinator");
-                return "Coordinator";
-            }
-        }
+        //        var summarizationMessages = new List<OpenAI.Chat.ChatMessage>
+        //        {
+        //            new SystemChatMessage(_filterPrompt),
+        //            new UserChatMessage($"CONVERSATION: {conversationContext}")
+        //        };
 
-        /// <summary>
-        /// Simple keyword-based agent selection fallback for content filter scenarios
-        /// </summary>
-        private string GetFallbackAgentFromContext(string conversationContext)
-        {
-            if (string.IsNullOrEmpty(conversationContext))
-                return "Coordinator";
+        //        var result = await _chatClient.CompleteChatAsync(summarizationMessages);
+        //        var responseContent = result.Value.Content.FirstOrDefault()?.Text ?? string.Empty;
 
-            var context = conversationContext.ToLowerInvariant();
-            
-            // Simple keyword matching for agent selection
-            if (context.Contains("transaction") || context.Contains("transfer") || context.Contains("payment") || context.Contains("balance"))
-                return "Transactions";
-            
-            if (context.Contains("account") || context.Contains("open") || context.Contains("register") || context.Contains("offer") || context.Contains("product"))
-                return "Sales";
-            
-            if (context.Contains("complaint") || context.Contains("problem") || context.Contains("issue") || context.Contains("help") || context.Contains("support"))
-                return "CustomerSupport";
-            
-            // Default to coordinator
-            return "Coordinator";
-        }
+        //        _logger.LogDebug("AI conversation summary raw response: {Response}", responseContent);
+        //        _logger.LogInformation("Successfully processed conversation summary: {SummaryLength} chars", responseContent.Length);
 
-        /// <summary>
-        /// Use AI to determine if conversation should terminate with content filter protection
-        /// </summary>
-        private async Task<bool> ShouldTerminateUsingAI(string conversationContext)
-        {
-            try
-            {
-                // Ensure the conversation context is safe for Azure OpenAI
-                var safeContext = SanitizeContextForAzureOpenAI(conversationContext);
-                
-                var terminationMessages = new List<OpenAI.Chat.ChatMessage>
-                {
-                    new SystemChatMessage(_terminationPrompt),
-                    new UserChatMessage($"CONVERSATION: {safeContext}")
-                };
-
-                // Use structured output for termination decision
-                var chatOptions = new ChatCompletionOptions
-                {
-                    ResponseFormat = OpenAI.Chat.ChatResponseFormat.CreateJsonSchemaFormat(
-                        "termination_decision",
-                        BinaryData.FromString(ChatResponseFormatBuilder.BuildFormat(ChatResponseFormatBuilder.ChatResponseStrategy.Termination)),
-                        "Determine if conversation should continue and provide reasoning"
-                    )
-                };
-
-                var result = await _chatClient.CompleteChatAsync(terminationMessages, chatOptions);
-                var responseContent = result.Value.Content.FirstOrDefault()?.Text ?? "{}";
-                
-                _logger.LogDebug("AI termination decision raw response: {Response}", responseContent);
-                
-                // Parse the structured response
-                var terminationInfo = JsonSerializer.Deserialize<TerminationInfo>(responseContent);
-                
-                var shouldContinue = terminationInfo?.ShouldContinue ?? true;
-                var reason = terminationInfo?.Reason ?? "Default continuation";
-                
-                // The method returns whether to terminate, which is the inverse of ShouldContinue
-                var shouldTerminate = !shouldContinue;
-                
-                _logger.LogInformation("AI termination decision: ShouldContinue={ShouldContinue}, ShouldTerminate={ShouldTerminate}, Reason={Reason}", 
-                    shouldContinue, shouldTerminate, reason);
-                
-                return shouldTerminate;
-            }
-            catch (Azure.RequestFailedException ex) when (ex.ErrorCode == "content_filter")
-            {
-                _logger.LogWarning("Content filter triggered during termination decision. Defaulting to continue conversation. Error: {Error}", ex.Message);
-                return false; // Default to continue conversation when content filter is triggered
-            }
-            catch (System.ClientModel.ClientResultException ex) when (ex.Message.Contains("content_filter"))
-            {
-                _logger.LogWarning("Content filter triggered during termination decision. Defaulting to continue conversation. Error: {Error}", ex.Message);
-                return false; // Default to continue conversation when content filter is triggered
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error in structured termination decision, defaulting to continue");
-                return false; // Default to continue conversation on error
-            }
-        }
-
-
-
-        private async Task<string> SummarizeUsingAI(string conversationContext)
-        {
-            try
-            {
-                // Ensure the conversation context is safe for Azure OpenAI
-                var safeContext = SanitizeContextForAzureOpenAI(conversationContext);
-
-                var summarizationMessages = new List<OpenAI.Chat.ChatMessage>
-                {
-                    new SystemChatMessage("Summarize the conversation"),
-                    new UserChatMessage($"CONVERSATION: {safeContext}")
-                };
-
-                //// Use structured output for termination decision
-                //var chatOptions = new ChatCompletionOptions
-                //{
-                //    ResponseFormat = OpenAI.Chat.ChatResponseFormat.CreateJsonSchemaFormat(
-                //        "termination_decision",
-                //        BinaryData.FromString(ChatResponseFormatBuilder.BuildFormat(ChatResponseFormatBuilder.ChatResponseStrategy.Termination)),
-                //        "Determine if conversation should continue and provide reasoning"
-                //    )
-                //};
-
-                var result = await _chatClient.CompleteChatAsync(summarizationMessages);//, chatOptions);
-                var responseContent = result.Value.Content.FirstOrDefault()?.Text ?? "{}";
-
-                //_logger.LogDebug("AI termination decision raw response: {Response}", responseContent);
-
-                // Parse the structured response
-                //var terminationInfo = JsonSerializer.Deserialize<TerminationInfo>(responseContent);
-
-                //var shouldContinue = terminationInfo?.ShouldContinue ?? true;
-                //var reason = terminationInfo?.Reason ?? "Default continuation";
-
-                //// The method returns whether to terminate, which is the inverse of ShouldContinue
-                //var shouldTerminate = !shouldContinue;
-
-                //_logger.LogInformation("AI termination decision: ShouldContinue={ShouldContinue}, ShouldTerminate={ShouldTerminate}, Reason={Reason}",
-                //    shouldContinue, shouldTerminate, reason);
-
-                return responseContent;
-            }
-            catch
-            {
-                return string.Empty; // Default to empty string on error
-            }
-            }
+        //        return new GroupChatManagerResult<string>(responseContent) { Reason = "AI-generated conversation summary" };
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, "Error in unified conversation processing, using fallback summary");
+        //        return string.IsNullOrEmpty(ex.Message)
+        //            ? new GroupChatManagerResult<string>("Error summarizing conversation")
+        //            : new GroupChatManagerResult<string>(ex.Message) { Reason = "Error in summarization - using fallback" };
+        //    }
+        //}
 
 
         /// <summary>
@@ -393,16 +298,12 @@ namespace MultiAgentCopilot.Factories
             {
                 var role = m.Role.ToString();
                 var rawContent = GetMessageContent(m);
-                var content = SanitizeContentForFilter(rawContent);
+                var content = rawContent;
                 return $"{role}: {content}";
             }));
+           
             
-            var sanitizedContext = string.IsNullOrEmpty(context) ? "No conversation history available" : context;
-            
-            // Additional sanitization to prevent content filter issues
-            sanitizedContext = SanitizeContextForAzureOpenAI(sanitizedContext);
-            
-            return sanitizedContext;
+            return context;
         }
 
         /// <summary>
@@ -427,67 +328,14 @@ namespace MultiAgentCopilot.Factories
                 return "Error extracting message content";
             }
         }
-
-        /// <summary>
-        /// Sanitize content to avoid Azure OpenAI content filter issues
-        /// </summary>
-        private string SanitizeContentForFilter(string content)
-        {
-            if (string.IsNullOrEmpty(content))
-                return content;
-
-            // Remove or mask potentially sensitive information that could trigger content filters
-            var sanitized = content;
-
-            // Remove potential account numbers, SSNs, credit card numbers
-            sanitized = System.Text.RegularExpressions.Regex.Replace(sanitized, @"\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b", "[CARD-NUMBER]");
-            sanitized = System.Text.RegularExpressions.Regex.Replace(sanitized, @"\b\d{3}-\d{2}-\d{4}\b", "[SSN]");
-            sanitized = System.Text.RegularExpressions.Regex.Replace(sanitized, @"\b\d{10,12}\b", "[ACCOUNT-NUMBER]");
-            
-            // Remove email addresses and phone numbers if they could be considered sensitive
-            sanitized = System.Text.RegularExpressions.Regex.Replace(sanitized, @"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", "[EMAIL]");
-            sanitized = System.Text.RegularExpressions.Regex.Replace(sanitized, @"\b\d{3}[-.]?\d{3}[-.]?\d{4}\b", "[PHONE]");
-            
-            // Limit content length to reduce risk
-            if (sanitized.Length > 200)
-            {
-                sanitized = sanitized.Substring(0, 200) + "...";
-            }
-
-            return sanitized;
-        }
-
-        /// <summary>
-        /// Additional sanitization specifically for Azure OpenAI context
-        /// </summary>
-        private string SanitizeContextForAzureOpenAI(string context)
-        {
-            if (string.IsNullOrEmpty(context))
-                return "General banking conversation";
-
-            // Replace potentially problematic banking terms
-            var sanitized = context
-                .Replace("fraud", "security concern")
-                .Replace("hack", "security issue")
-                .Replace("stolen", "unauthorized")
-                .Replace("illegal", "inappropriate")
-                .Replace("money laundering", "compliance issue");
-
-            // Ensure we don't have excessively long content
-            if (sanitized.Length > 500)
-            {
-                sanitized = sanitized.Substring(0, 500) + "...";
-            }
-
-            return sanitized;
-        }
+        
     }
 
     /// <summary>
     /// Microsoft Agent Framework implementation with GroupChatOrchestration
     /// Uses SelectionStrategy and TerminationStrategy for proper agent routing
     /// </summary>
-    public class AgentFrameworkOrchestration
+    public class AgentFrameworkOrchestration: OrchestratingAgent
     {
         private readonly ChatClient _chatClient;
         private readonly ILoggerFactory _loggerFactory;
@@ -592,7 +440,7 @@ namespace MultiAgentCopilot.Factories
         private GroupChatOrchestration CreateGroupChatOrchestration(List<AIAgent> agents)
         {
             // Create a custom GroupChatManager with SelectionStrategy and TerminationStrategy
-            var groupChatManager = new BankingGroupChatManager(_chatClient, _loggerFactory);
+            var groupChatManager = new BankingGroupChatManager(this.CreateChatClient(), _loggerFactory);
             
             // Log all agent names for debugging
             _logger.LogInformation("Creating GroupChatOrchestration with {AgentCount} agents:", agents.Count);
