@@ -652,4 +652,4 @@ namespace MultiAgentCopilot.Factories
 
 ## Next Steps
 
-Proceed to Module 3: Agent Specialization
+Proceed to Module 3: [Agent Specialization](./Module-03.md)

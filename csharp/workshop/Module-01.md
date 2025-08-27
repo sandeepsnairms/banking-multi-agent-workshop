@@ -590,4 +590,4 @@ public class SemanticKernelService :  IDisposable
 
 ## Next Steps
 
-Proceed to Module 2: Connecting Agents to Memory
+Proceed to Module 2: [Connecting Agents to Memory](./Module-02.md)
