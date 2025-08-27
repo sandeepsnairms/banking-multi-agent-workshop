@@ -25,7 +25,7 @@ https://github.com/user-attachments/assets/0e943130-13c5-4bb5-a40b-51b6c85dd58c
 
 There are two completely separate implementations for this sample multi-agent application with different instructions on how to deploy and configure for use.
 
-The workshop for this sample is on the [HOL branch](hol) in this repository. To navigate and complete this workshop select one of the following:
+The workshop for this sample is on the [HOL branch](https://github.com/sandeepsnairms/banking-multi-agent-workshop/tree/hol) in this repository. To navigate and complete this workshop select one of the following:
 
 - Navigate to the [LangGraph Python Workshop](/python/workshop/Module-0.md)
 - Navigate to the [Semantic Kernel Csharp Workshop](/csharp/workshop/Module-0.md)
