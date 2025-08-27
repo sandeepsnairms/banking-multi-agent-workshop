@@ -8,7 +8,7 @@ In this Module, you'll confirm the deployment of Azure Services needed to run th
 1. Navigate to the *multi-agent-hol* folder.
 1. If it is empty or does not exist, proceed to [Git Clone](#git-clone)
 1. If the folder exists and has files within it proceed to the next step.
-1. Open a browser locally on the VM and navigate to +++https://portal.azure.com+++
+1. Open a browser locally on the VM and navigate to https://portal.azure.com
 1. In the Search box at the top of the Azure Portal, type in resource group. Open the Resource groups blade
 1. Look for a resource group that starts with: *rg-agenthol-*.
 1. If the resource group does not appear wait a few moments then refresh.
