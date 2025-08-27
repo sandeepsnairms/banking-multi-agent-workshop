@@ -9,9 +9,6 @@ In this Module, you'll confirm the deployment of Azure Services needed to run th
 1. If it is empty or does not exist, proceed to [Git Clone](#git-clone)
 1. If the folder exists and has files within it proceed to the next step.
 1. Open a browser locally on the VM and navigate to +++https://portal.azure.com+++
-1. Login using the credentials below
-   1. User name +++@lab.CloudPortalCredential(User1).Username+++
-   1. Password +++@lab.CloudPortalCredential(User1).Password+++
 1. In the Search box at the top of the Azure Portal, type in resource group. Open the Resource groups blade
 1. Look for a resource group that starts with: *rg-agenthol-*.
 1. If the resource group does not appear wait a few moments then refresh.
@@ -42,9 +39,7 @@ git clone --branch hol --single-branch https://github.com/AzureCosmosDB/banking-
 cd C:\Users\LabUser\multi-agent-hol\
 ```
 
-1. Authenticate the local user using the credentials provided here
-   1. User name +++@lab.CloudPortalCredential(User1).Username+++
-   1. Password +++@lab.CloudPortalCredential(User1).Password+++
+1. Authenticate  yourself
 
 ```shell
 azd auth login
@@ -125,4 +120,4 @@ azd up
 
 ## Next Steps
 
-Proceed to Module 1: Creating Your First Agent
+Proceed to Module 1: [Creating Your First Agent](./Module-01.md)

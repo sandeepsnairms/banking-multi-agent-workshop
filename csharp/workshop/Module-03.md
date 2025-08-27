@@ -1281,4 +1281,4 @@ namespace  MultiAgentCopilot.Services
 
 ## Next Steps
 
-Proceed to Module 4 - Multi-Agent Orchestration
+Proceed to Module 4 - [Multi-Agent Orchestration](./Module-04.md)
