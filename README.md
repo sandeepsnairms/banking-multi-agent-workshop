@@ -4,12 +4,12 @@ Welcome to our multi-agent sample and workshop for a retail banking scenario. Im
 
 ## Build a Multi-Agent AI application using Semantic Kernel Agents or LangGraph
 
-This sample application and full-day workshop shows how to build a multi-tenant, multi-agent, banking application with containerized applications built using two multi-agent frameworks
+This sample application and workshop shows how to build a multi-tenant, multi-agent, banking application with containerized applications built using two multi-agent frameworks
 
 - Semantic Kernel Agents in C#
 - LangGraph in Python
 
-Both are hosted on Azure Container Apps, with Azure Cosmos DB for NoSQL as the transactional database and vector store with Azure OpenAI Service for embeddings and completions. This complete sample and full-day workshop provides practical guidance on many concepts you will need to design and build these types of applications.
+Both are hosted on Azure Container Apps, with Azure Cosmos DB for NoSQL as the transactional database and vector store with Azure OpenAI Service for embeddings and completions. This complete sample and workshop provides practical guidance on many concepts you will need to design and build these types of applications.
 
 ## Architecture Diagram
 
