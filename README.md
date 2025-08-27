@@ -15,7 +15,7 @@ Both are hosted on Azure Container Apps, with Azure Cosmos DB for NoSQL as the t
 
 Here’s the deployment architecture and components of the workshop!
 
-<img src="media/mult-agent.png" alt="Multi-Agent Image">
+<img src="media/Multi-agent.png" alt="Multi-Agent Image">
 
 ## User Experience
 
