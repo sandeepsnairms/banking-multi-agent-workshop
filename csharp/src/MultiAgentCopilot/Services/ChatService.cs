@@ -142,29 +142,7 @@ public class ChatService
     }
 
 
-    public async Task<bool> AddDocument(string containerName, JsonElement document)
-    {
-        try
-        {
-            // Extract raw JSON from JsonElement
-            var json = document.GetRawText();
-            var docJObject = JsonConvert.DeserializeObject<JObject>(json);
-
-            // Ensure "id" exists
-            if (!docJObject!.ContainsKey("id"))
-            {
-                throw new ArgumentException("Document must contain an 'id' property.");
-            }
-           
-            return await _cosmosDBService.InsertDocumentAsync(containerName, docJObject);
-
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, $"Error adding document to container {containerName}.");
-            return false;
-        }
-    }
+    
 
 
 }
