@@ -68,7 +68,7 @@ namespace MultiAgentCopilot
             // Map the chat REST endpoints:
             using (var scope = app.Services.CreateScope())
             {
-                var service = scope.ServiceProvider.GetService<MultiAgentCopilot.ChatEndpoints>();
+                var service = scope.ServiceProvider.GetService<ChatEndpoints>();
                 service?.Map(app);
             }
 
