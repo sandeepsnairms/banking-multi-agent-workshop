@@ -16,7 +16,7 @@ using System.Text.Json;
 using System.Transactions;
 using static Microsoft.ApplicationInsights.MetricDimensionNames.TelemetryContext;
 using Container = Microsoft.Azure.Cosmos.Container;
-using Message =  MultiAgentCopilot.Models.Chat.Message;
+using Message = MultiAgentCopilot.Models.Chat.Message;
 using PartitionKey = Microsoft.Azure.Cosmos.PartitionKey;
 using Session = MultiAgentCopilot.Models.Chat.Session;
 
@@ -25,9 +25,9 @@ namespace MultiAgentCopilot.Services
     /// <summary>
     /// Service to access Azure Cosmos DB for NoSQL.
     /// </summary>
-    public class CosmosDBService 
+    public class CosmosDBService
     {
-        public  Container ChatDataContainer { get; }
+        public Container ChatDataContainer { get; }
         public Container UserDataContainer { get; }
         public Container OfferDataContainer { get; }
         public Container AccountDataContainer { get; }
@@ -102,7 +102,7 @@ namespace MultiAgentCopilot.Services
                 QueryDefinition query = new QueryDefinition("SELECT DISTINCT * FROM c WHERE c.type = @type")
                     .WithParameter("@type", nameof(Session));
 
-                var partitionKey= PartitionManager.GetChatDataPartialPK(tenantId, userId);
+                var partitionKey = PartitionManager.GetChatDataPartialPK(tenantId, userId);
                 FeedIterator<Session> response = ChatDataContainer.GetItemQueryIterator<Session>(query, null, new QueryRequestOptions() { PartitionKey = partitionKey });
 
                 List<Session> output = new();
@@ -124,8 +124,8 @@ namespace MultiAgentCopilot.Services
         public async Task<Session> GetSessionAsync(string tenantId, string userId, string sessionId)
         {
             try
-            { 
-                var partitionKey = PartitionManager.GetChatDataFullPK(tenantId, userId,sessionId);
+            {
+                var partitionKey = PartitionManager.GetChatDataFullPK(tenantId, userId, sessionId);
 
                 return await ChatDataContainer.ReadItemAsync<Session>(
                     id: sessionId,
@@ -138,7 +138,7 @@ namespace MultiAgentCopilot.Services
             }
         }
 
-        public async Task<List<Message>> GetSessionMessagesAsync(string tenantId, string userId,string sessionId)
+        public async Task<List<Message>> GetSessionMessagesAsync(string tenantId, string userId, string sessionId)
         {
             try
             {
@@ -164,15 +164,15 @@ namespace MultiAgentCopilot.Services
                 _logger.LogError(ex.ToString());
                 throw;
             }
-}
+        }
 
         public async Task<Session> InsertSessionAsync(Session session)
         {
             try
-            { 
-                var partitionKey = PartitionManager.GetChatDataFullPK(session.TenantId, session.UserId,session.SessionId);
+            {
+                var partitionKey = PartitionManager.GetChatDataFullPK(session.TenantId, session.UserId, session.SessionId);
 
-                var response= await ChatDataContainer.CreateItemAsync(
+                var response = await ChatDataContainer.CreateItemAsync(
                     item: session,
                     partitionKey: partitionKey
                 );
@@ -189,7 +189,7 @@ namespace MultiAgentCopilot.Services
         public async Task<Message> InsertMessageAsync(Message message)
         {
             try
-            { 
+            {
                 var partitionKey = PartitionManager.GetChatDataFullPK(message.TenantId, message.UserId, message.SessionId);
 
                 return await ChatDataContainer.CreateItemAsync(
@@ -207,7 +207,7 @@ namespace MultiAgentCopilot.Services
         public async Task<Message> UpdateMessageAsync(Message message)
         {
             try
-            { 
+            {
                 var partitionKey = PartitionManager.GetChatDataFullPK(message.TenantId, message.UserId, message.SessionId);
 
                 return await ChatDataContainer.ReplaceItemAsync(
@@ -223,10 +223,10 @@ namespace MultiAgentCopilot.Services
             }
         }
 
-        public async Task<Message> UpdateMessageRatingAsync(string tenantId, string userId, string sessionId,string messageId, bool? rating)
+        public async Task<Message> UpdateMessageRatingAsync(string tenantId, string userId, string sessionId, string messageId, bool? rating)
         {
             try
-            { 
+            {
                 var partitionKey = PartitionManager.GetChatDataFullPK(tenantId, userId, sessionId);
 
                 var response = await ChatDataContainer.PatchItemAsync<Message>(
@@ -249,7 +249,7 @@ namespace MultiAgentCopilot.Services
         public async Task<Session> UpdateSessionAsync(Session session)
         {
             try
-            { 
+            {
                 var partitionKey = PartitionManager.GetChatDataFullPK(session.TenantId, session.UserId, session.SessionId);
 
                 return await ChatDataContainer.ReplaceItemAsync(
@@ -265,7 +265,7 @@ namespace MultiAgentCopilot.Services
             }
         }
 
-        public async Task<Session> UpdateSessionNameAsync(string tenantId, string userId,string sessionId, string name)
+        public async Task<Session> UpdateSessionNameAsync(string tenantId, string userId, string sessionId, string name)
         {
             try
             {
@@ -288,14 +288,14 @@ namespace MultiAgentCopilot.Services
                 _logger.LogError(ex.ToString());
                 throw;
             }
-}
+        }
 
 
 
-        public async Task UpsertSessionBatchAsync(List<Message> messages, List<DebugLog>debugLogs, Session session)
+        public async Task UpsertSessionBatchAsync(List<Message> messages, List<DebugLog> debugLogs, Session session)
         {
             try
-            { 
+            {
                 if (messages.Select(m => m.SessionId).Distinct().Count() > 1 || session.SessionId != messages.Select(m => m.SessionId).FirstOrDefault())
                 {
                     throw new ArgumentException("All items must have the same partition key.");
@@ -335,10 +335,10 @@ namespace MultiAgentCopilot.Services
             }
         }
 
-        public async Task DeleteSessionAndMessagesAsync(string tenantId, string userId,string sessionId)
+        public async Task DeleteSessionAndMessagesAsync(string tenantId, string userId, string sessionId)
         {
             try
-            { 
+            {
                 var partitionKey = PartitionManager.GetChatDataFullPK(tenantId, userId, sessionId);
 
                 var query = new QueryDefinition("SELECT c.id FROM c WHERE c.sessionId = @sessionId")
@@ -367,10 +367,10 @@ namespace MultiAgentCopilot.Services
             }
         }
 
-        public async Task<DebugLog> GetChatCompletionDebugLogAsync(string tenantId, string userId,string sessionId, string debugLogId)
+        public async Task<DebugLog> GetChatCompletionDebugLogAsync(string tenantId, string userId, string sessionId, string debugLogId)
         {
             try
-            { 
+            {
                 var partitionKey = PartitionManager.GetChatDataFullPK(tenantId, userId, sessionId);
 
                 return await ChatDataContainer.ReadItemAsync<DebugLog>(
@@ -478,9 +478,11 @@ namespace MultiAgentCopilot.Services
                .WithParameter("@type", nameof(BankTransaction));
 
                 List<BankTransaction> transactions = new List<BankTransaction>();
-                using (FeedIterator<BankTransaction> feedIterator = AccountDataContainer.GetItemQueryIterator<BankTransaction>(queryDefinition, requestOptions: new QueryRequestOptions { PartitionKey = partitionKey
+                using (FeedIterator<BankTransaction> feedIterator = AccountDataContainer.GetItemQueryIterator<BankTransaction>(queryDefinition, requestOptions: new QueryRequestOptions
+                {
+                    PartitionKey = partitionKey
                 }))
-                                {
+                {
                     while (feedIterator.HasMoreResults)
                     {
                         FeedResponse<BankTransaction> response = await feedIterator.ReadNextAsync();
@@ -488,7 +490,7 @@ namespace MultiAgentCopilot.Services
                     }
                 }
 
-            return transactions;
+                return transactions;
             }
             catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
@@ -499,7 +501,7 @@ namespace MultiAgentCopilot.Services
 
         private async Task<bool> InsertDocumentAsync(string containerName, JObject document)
         {
-            Container container=null;
+            Container container = null;
 
             switch (containerName)
             {
