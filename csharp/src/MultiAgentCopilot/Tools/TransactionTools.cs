@@ -1,18 +1,17 @@
-﻿using Microsoft.SemanticKernel;
-using System.ComponentModel;
+﻿using Microsoft.Extensions.AI;
 using MultiAgentCopilot.Models.Banking;
 using MultiAgentCopilot.Services;
+using System.ComponentModel;
 
-namespace MultiAgentCopilot.Plugins
+namespace MultiAgentCopilot.Tools
 {
-    public class TransactionPlugin : BasePlugin
+    public class TransactionTools : BaseTools
     {
-        public TransactionPlugin(ILogger<BasePlugin> logger, BankingDataService bankService, string tenantId, string userId)
-         : base(logger, bankService, tenantId, userId)
+        public TransactionTools(ILogger<TransactionTools> logger, BankingDataService bankService, string tenantId, string userId)
+            : base(logger, bankService, tenantId, userId)
         {
         }
 
-        [KernelFunction]
         [Description("Adds a new Account Transaction request")]
         public async Task<ServiceRequest> AddFunTransferRequest(
             string debitAccountId,
@@ -30,7 +29,6 @@ namespace MultiAgentCopilot.Plugins
             return await _bankService.CreateFundTransferRequestAsync(_tenantId, debitAccountId, _userId, requestAnnotation, emailId, phoneNumber, amount);
         }
 
-        [KernelFunction]
         [Description("Get the transactions history between 2 dates")]
         public async Task<List<BankTransaction>> GetTransactionHistory(string accountId, DateTime startDate, DateTime endDate)
         {

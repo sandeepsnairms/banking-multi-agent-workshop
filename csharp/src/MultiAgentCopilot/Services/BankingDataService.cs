@@ -10,13 +10,11 @@ using MultiAgentCopilot.Models.Banking;
 
 using PartitionKey = Microsoft.Azure.Cosmos.PartitionKey;
 
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Connectors.AzureCosmosDBNoSQL;
+
 
 using System.Text.Json;
 
-using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
-using Microsoft.Extensions.VectorData;
+
 using System.Linq.Expressions;
 
 
@@ -29,8 +27,8 @@ namespace MultiAgentCopilot.Services
         private readonly Container _requestData;
         private readonly Container _offerData;
 
-        private readonly AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm> _offerDataVectorStore;
-        private readonly AzureOpenAITextEmbeddingGenerationService _textEmbeddingGenerationService;
+        //private readonly AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm> _offerDataVectorStore;
+        //private readonly AzureOpenAITextEmbeddingGenerationService _textEmbeddingGenerationService;
 
         private readonly Database _database;
 
@@ -38,14 +36,14 @@ namespace MultiAgentCopilot.Services
 
         public bool IsInitialized { get; private set; }
 
-        readonly Kernel _semanticKernel;
+        //readonly Kernel _semanticKernel;
 
 
 
 
         public BankingDataService(
            Database database, Container accountData, Container userData, Container requestData, Container offerData,
-           SemanticKernelServiceSettings skSettings,
+           AgentFrameworkServiceSettings skSettings,
            ILoggerFactory loggerFactory)
         {
 
@@ -76,14 +74,14 @@ namespace MultiAgentCopilot.Services
 
             }
 
-            _textEmbeddingGenerationService = new(
-                    deploymentName: skSettings.AzureOpenAISettings.EmbeddingsDeployment, // Name of deployment, e.g. "text-embedding-ada-002".
-                    endpoint: skSettings.AzureOpenAISettings.Endpoint,           // Name of Azure OpenAI service endpoint, e.g. https://myaiservice.openai.azure.com.
-                    credential: credential);
+            //_textEmbeddingGenerationService = new(
+            //        deploymentName: skSettings.AzureOpenAISettings.EmbeddingsDeployment, // Name of deployment, e.g. "text-embedding-ada-002".
+            //        endpoint: skSettings.AzureOpenAISettings.Endpoint,           // Name of Azure OpenAI service endpoint, e.g. https://myaiservice.openai.azure.com.
+            //        credential: credential);
 
             var jsonSerializerOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-            var vectorStoreOptions = new AzureCosmosDBNoSQLVectorStoreRecordCollectionOptions<OfferTerm> { PartitionKeyPropertyName = "TenantId", JsonSerializerOptions = jsonSerializerOptions };
-            _offerDataVectorStore = new AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm>(_database, _offerData.Id, vectorStoreOptions);
+            //var vectorStoreOptions = new AzureCosmosDBNoSQLVectorStoreRecordCollectionOptions<OfferTerm> { PartitionKeyPropertyName = "TenantId", JsonSerializerOptions = jsonSerializerOptions };
+            //_offerDataVectorStore = new AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm>(_database, _offerData.Id, vectorStoreOptions);
 
             _logger.LogInformation("Banking service initialized.");
         }
@@ -303,37 +301,39 @@ namespace MultiAgentCopilot.Services
         {
             try
             {
-                // Generate Embedding
-                ReadOnlyMemory<float> embedding = (await _textEmbeddingGenerationService.GenerateEmbeddingsAsync(
-                       new[] { requirementDescription }
-                   )).FirstOrDefault();
+                return new List<OfferTerm>();
+
+                //// Generate Embedding
+                //ReadOnlyMemory<float> embedding = (await _textEmbeddingGenerationService.GenerateEmbeddingsAsync(
+                //       new[] { requirementDescription }
+                //   )).FirstOrDefault();
 
 
-                string accountTypeString = accountType.ToString();
+                //string accountTypeString = accountType.ToString();
 
-                // filters as LINQ expression
-                Expression<Func<OfferTerm, bool>> linqFilter = term =>
-                    term.TenantId == tenantId &&
-                    term.Type == "Term" &&
-                    term.AccountType == "Savings";
+                //// filters as LINQ expression
+                //Expression<Func<OfferTerm, bool>> linqFilter = term =>
+                //    term.TenantId == tenantId &&
+                //    term.Type == "Term" &&
+                //    term.AccountType == "Savings";
 
-                var options = new VectorSearchOptions<OfferTerm>
-                {
-                    VectorProperty = term => term.Vector, // Correctly specify the vector property as a lambda expression
-                    Filter = linqFilter, // Use the LINQ expression here
-                    Top = 10,
-                    IncludeVectors = false
-                };
+                //var options = new VectorSearchOptions<OfferTerm>
+                //{
+                //    VectorProperty = term => term.Vector, // Correctly specify the vector property as a lambda expression
+                //    Filter = linqFilter, // Use the LINQ expression here
+                //    Top = 10,
+                //    IncludeVectors = false
+                //};
 
 
-                var searchResults = await _offerDataVectorStore.VectorizedSearchAsync(embedding, options);
+                //var searchResults = await _offerDataVectorStore.VectorizedSearchAsync(embedding, options);
 
-                List<OfferTerm> offerTerms = new();
-                await foreach (var result in searchResults.Results)
-                {
-                    offerTerms.Add(result.Record);
-                }
-                return offerTerms;
+                //List<OfferTerm> offerTerms = new();
+                //await foreach (var result in searchResults.Results)
+                //{
+                //    offerTerms.Add(result.Record);
+                //}
+                //return offerTerms;
             }
             catch (Exception ex)
             {

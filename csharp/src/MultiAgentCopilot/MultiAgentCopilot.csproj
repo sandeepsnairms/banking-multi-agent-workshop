@@ -19,6 +19,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="Factories\AgentFrameworkOrchestration.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <_WebToolingArtifacts Remove="Properties\launchSettings.json" />
   </ItemGroup>
 
@@ -29,14 +33,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Azure.AI.OpenAI" Version="2.3.0-beta.2" />
     <PackageReference Include="Azure.Identity" Version="1.13.2" />
+    <PackageReference Include="Microsoft.Agents.Orchestration" Version="0.0.1-nightly-250921.1-alpha" />
     <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.23.0" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.0" />
     <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.48.1" />
-    <PackageReference Include="Microsoft.SemanticKernel" Version="1.47.0" />
-    <PackageReference Include="Microsoft.SemanticKernel.Agents.Core" Version="1.47.0" />
-    <PackageReference Include="Microsoft.SemanticKernel.Connectors.AzureCosmosDBNoSQL" Version="1.47.0-preview" />
-    <PackageReference Include="Microsoft.SemanticKernel.Core" Version="1.47.0" />
+    <PackageReference Include="Microsoft.Extensions.AI" Version="9.9.0" />
+    <PackageReference Include="Microsoft.Extensions.AI.Agents" Version="0.0.1-nightly-250921.1-alpha" />
+    <PackageReference Include="Microsoft.Extensions.AI.Agents.OpenAI" Version="0.0.1-nightly-250921.1-alpha" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.17.2" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="8.1.1" />
@@ -62,6 +67,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Prompts\CustomerSupport.prompty">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Prompts\FilterStrategy.prompty">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Prompts\Sales.prompty">

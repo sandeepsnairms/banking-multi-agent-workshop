@@ -11,9 +11,9 @@ namespace MultiAgentCopilot
         
         public static void AddSemanticKernelService(this IHostApplicationBuilder builder)
         {
-            builder.Services.AddOptions<SemanticKernelServiceSettings>()
-                .Bind(builder.Configuration.GetSection("SemanticKernelServiceSettings"));
-            builder.Services.AddSingleton<SemanticKernelService>();
+            builder.Services.AddOptions<AgentFrameworkServiceSettings>()
+                .Bind(builder.Configuration.GetSection("AgentFrameworkServiceSettings"));
+            builder.Services.AddSingleton< AgentFrameworkService>();
         }
 
         public static void AddCosmosDBService(this IHostApplicationBuilder builder)

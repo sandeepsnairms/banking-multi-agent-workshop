@@ -1,252 +1,184 @@
-﻿using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Agents;
-using Microsoft.SemanticKernel.Agents.Chat;
-using Microsoft.SemanticKernel.ChatCompletion;
-using Microsoft.SemanticKernel.Connectors.OpenAI;
-using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
-
-using OpenAI.Chat;
-using System.Text.Json;
-using MultiAgentCopilot.StructuredFormats;
-using MultiAgentCopilot.Models.ChatInfoFormats;
-using MultiAgentCopilot.Logs;
+﻿using Microsoft.Extensions.AI;
+using Microsoft.Extensions.AI.Agents;
 using MultiAgentCopilot.Models;
+using MultiAgentCopilot.Models.Banking;
 using MultiAgentCopilot.Services;
-using static MultiAgentCopilot.StructuredFormats.ChatResponseFormatBuilder;
-using MultiAgentCopilot.Plugins;
-using Microsoft.Identity.Client;
-
+using MultiAgentCopilot.Tools;
+using OpenAI.Chat;
+using System.ComponentModel;
+using System.Reflection;
+using System.Text.Json;
 
 namespace MultiAgentCopilot.Factories
 {
-    internal class AgentFactory
+    public static class AgentFactory
     {
-        public delegate void LogCallback(string key, string value);
-
-        private string GetAgentName(AgentType agentType)
+        private static ChatClientAgent CreateAgent(Microsoft.Extensions.AI.IChatClient chatClient, ILoggerFactory loggerFactory, string instructions, string? description = null, string? name = null, params AIFunction[] functions)
         {
 
-            string name = string.Empty;
-            switch (agentType)
+            // Correct constructor usage for ChatClientAgent:
+            var options = new ChatClientAgentOptions
             {
-                case AgentType.Sales:
-                    name = "Sales";
-                    break;
-                case AgentType.Transactions:
-                    name = "Transactions";
-                    break;
-                case AgentType.CustomerSupport:
-                    name = "CustomerSupport";
-                    break;
-                case AgentType.Coordinator:
-                    name = "Coordinator";
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(agentType), agentType, null);
-            }
-
-            return name;
+                Instructions = instructions,
+                Name = name,
+                Description = description,
+                ChatOptions = new() { Tools = functions, ToolMode = ChatToolMode.Auto }
+            };
+            return new ChatClientAgent(chatClient, options, loggerFactory);
         }
 
-        private string GetAgentPrompts(AgentType agentType)
+
+        /// <summary>
+        /// Create all banking agents with proper instructions and tools
+        /// </summary>
+        public static List<AIAgent> CreateAllAgents(Microsoft.Extensions.AI.IChatClient chatClient, BankingDataService bankService, string tenantId, string userId, ILoggerFactory loggerFactory)
         {
+            var agents = new List<AIAgent>();
 
-            string promptFile = string.Empty;
-            switch (agentType)
+            ILogger logger = loggerFactory.CreateLogger("AgentFactory");
+
+            // Create Sales Agent
+            var salesAgent = CreateAgent(chatClient: chatClient, loggerFactory: loggerFactory,
+                instructions: GetAgentPrompt(AgentType.Sales),
+                name: GetAgentName(AgentType.Sales),
+                description: GetAgentDescription(AgentType.Sales),
+                functions: GetAgentTools(AgentType.Sales, bankService, tenantId, userId, loggerFactory).ToArray()
+            );
+
+            agents.Add(salesAgent);
+            logger.LogInformation($"Created {salesAgent.Name}: {salesAgent.Description}");
+
+            // Create Transactions Agent
+            var transactionsAgent = CreateAgent(chatClient: chatClient, loggerFactory: loggerFactory,
+               instructions: GetAgentPrompt(AgentType.Transactions),
+               name: GetAgentName(AgentType.Transactions),
+               description: GetAgentDescription(AgentType.Transactions),
+               functions: GetAgentTools(AgentType.Transactions, bankService, tenantId, userId, loggerFactory).ToArray()
+            );
+            agents.Add(transactionsAgent);
+            logger.LogInformation($"Created {transactionsAgent.Name}: {transactionsAgent.Description}");
+
+            // Create CustomerSupport Agent
+            var customerSupportAgent = CreateAgent(chatClient: chatClient, loggerFactory: loggerFactory,
+               instructions: GetAgentPrompt(AgentType.CustomerSupport),
+               name: GetAgentName(AgentType.CustomerSupport),
+               description: GetAgentDescription(AgentType.CustomerSupport),
+               functions: GetAgentTools(AgentType.CustomerSupport, bankService, tenantId, userId, loggerFactory).ToArray()
+            );
+            agents.Add(customerSupportAgent);
+            logger.LogInformation($"Created {customerSupportAgent.Name}: {customerSupportAgent.Description}");
+
+
+            // Create Coordinator Agent
+            var coordinatorAgente = CreateAgent(chatClient: chatClient, loggerFactory: loggerFactory,
+               instructions: GetAgentPrompt(AgentType.Coordinator),
+               name: GetAgentName(AgentType.Coordinator),
+               description: GetAgentDescription(AgentType.Coordinator),
+               functions: GetAgentTools(AgentType.Coordinator, bankService, tenantId, userId, loggerFactory).ToArray()
+            );
+            agents.Add(coordinatorAgente);
+            logger.LogInformation($"Created {coordinatorAgente.Name}: {coordinatorAgente.Description}");
+
+            logger.LogInformation("Successfully created {AgentCount} banking agents", agents.Count);
+            return agents;
+        }
+
+        /// <summary>
+        /// Get agent prompt based on type
+        /// </summary>
+        private static string GetAgentPrompt(AgentType agentType)
+        {
+            string promptFile = agentType switch
             {
-                case AgentType.Sales:
-                    promptFile = "Sales.prompty";
-                    break;
-                case AgentType.Transactions:
-                    promptFile = "Transactions.prompty";
-                    break;
-                case AgentType.CustomerSupport:
-                    promptFile = "CustomerSupport.prompty";
-                    break;
-                case AgentType.Coordinator:
-                    promptFile = "Coordinator.prompty";
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(agentType), agentType, null);
-            }
+                AgentType.Sales => "Sales.prompty",
+                AgentType.Transactions => "Transactions.prompty",
+                AgentType.CustomerSupport => "CustomerSupport.prompty",
+                AgentType.Coordinator => "Coordinator.prompty",
+                _ => throw new ArgumentOutOfRangeException(nameof(agentType), agentType, null)
+            };
 
-            string prompt = $"{File.ReadAllText("Prompts/" + promptFile)}{File.ReadAllText("Prompts/CommonAgentRules.prompty")}";
+            string prompt = $"{File.ReadAllText($"Prompts/{promptFile}")}{File.ReadAllText("Prompts/CommonAgentRules.prompty")}";
 
             return prompt;
         }
 
-
-
-        public ChatCompletionAgent BuildAgent(Kernel kernel, AgentType agentType, ILoggerFactory loggerFactory, BankingDataService bankService, string tenantId, string userId)
+        /// <summary>
+        /// Get agent name based on type
+        /// Names must match pattern: ^[^\s<|\\/>]+$ (no spaces or special characters)
+        /// </summary>
+        private static string GetAgentName(AgentType agentType)
         {
-            ChatCompletionAgent agent = new ChatCompletionAgent
+            return agentType switch
             {
-                Name = GetAgentName(agentType),
-                Instructions = $"""{GetAgentPrompts(agentType)}""",
-                Kernel = GetAgentKernel(kernel, agentType, loggerFactory, bankService, tenantId, userId),
-                Arguments = new KernelArguments(new AzureOpenAIPromptExecutionSettings() { FunctionChoiceBehavior = FunctionChoiceBehavior.Auto() })
+                AgentType.Sales => "Sales",
+                AgentType.Transactions => "Transactions",
+                AgentType.CustomerSupport => "CustomerSupport",
+                AgentType.Coordinator => "Coordinator",
+                _ => throw new ArgumentOutOfRangeException(nameof(agentType), agentType, null)
             };
-
-            return agent;
         }
 
-        private Kernel GetAgentKernel(Kernel kernel, AgentType agentType, ILoggerFactory loggerFactory, BankingDataService bankService, string tenantId, string userId)
+        /// <summary>
+        /// Get agent description
+        /// </summary>
+        private static string GetAgentDescription(AgentType agentType)
         {
-            Kernel agentKernel = kernel.Clone();
-            switch (agentType)
+            return agentType switch
             {
-                case AgentType.Sales:
-                    var salesPlugin = new SalesPlugin(loggerFactory.CreateLogger<SalesPlugin>(), bankService, tenantId, userId);
-                    agentKernel.Plugins.AddFromObject(salesPlugin);
-                    break;
-                case AgentType.Transactions:
-                    var transactionsPlugin = new TransactionPlugin(loggerFactory.CreateLogger<TransactionPlugin>(), bankService, tenantId, userId);
-                    agentKernel.Plugins.AddFromObject(transactionsPlugin);
-                    break;
-                case AgentType.CustomerSupport:
-                    var customerSupportPlugin = new CustomerSupportPlugin(loggerFactory.CreateLogger<CustomerSupportPlugin>(), bankService, tenantId, userId);
-                    agentKernel.Plugins.AddFromObject(customerSupportPlugin);
-                    break;
-                case AgentType.Coordinator:
-                    var CoordinatorPlugin = new CoordinatorPlugin(loggerFactory.CreateLogger<CoordinatorPlugin>(), bankService, tenantId, userId);
-                    agentKernel.Plugins.AddFromObject(CoordinatorPlugin);
-                    break;
-                default:
-                    throw new ArgumentException("Invalid plugin name");
-            }
-
-            return agentKernel;
-        }
-
-
-
-        public static string GetStrategyPrompts(ChatResponseStrategy strategyType)
-        {
-            string prompt = string.Empty;
-            switch (strategyType)
-            {
-                case ChatResponseStrategy.Continuation:
-                    prompt = File.ReadAllText("Prompts/SelectionStrategy.prompty");
-                    break;
-                case ChatResponseStrategy.Termination:
-                    prompt = File.ReadAllText("Prompts/TerminationStrategy.prompty");
-                    break;
-            }
-            return prompt;
-        }
-
-        public AgentGroupChat BuildAgentGroupChat(Kernel kernel, ILoggerFactory loggerFactory, LogCallback logCallback, BankingDataService bankService, string tenantId, string userId)
-        {
-            AgentGroupChat agentGroupChat = new AgentGroupChat();
-            var chatModel = kernel.GetRequiredService<IChatCompletionService>();
-
-            kernel.AutoFunctionInvocationFilters.Add(new AutoFunctionInvocationLoggingFilter(loggerFactory.CreateLogger<AutoFunctionInvocationLoggingFilter>()));
-
-            foreach (AgentType agentType in Enum.GetValues(typeof(AgentType)))
-            {
-                agentGroupChat.AddAgent(BuildAgent(kernel, agentType, loggerFactory, bankService, tenantId, userId));
-            }
-
-            agentGroupChat.ExecutionSettings = GetAgentGroupChatSettings(kernel, logCallback);
-
-
-            return agentGroupChat;
-        }
-
-        private OpenAIPromptExecutionSettings GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStrategy strategyType)
-        {
-            ChatResponseFormat infoFormat;
-            infoFormat = ChatResponseFormat.CreateJsonSchemaFormat(
-            jsonSchemaFormatName: $"agent_result_{strategyType.ToString()}",
-            jsonSchema: BinaryData.FromString($"""
-                {ChatResponseFormatBuilder.BuildFormat(strategyType)}
-                """));
-            var executionSettings = new OpenAIPromptExecutionSettings
-            {
-                ResponseFormat = infoFormat
+                AgentType.Sales => "Handles sales inquiries, account registration, and offers",
+                AgentType.Transactions => "Manages transactions, transfers, and transaction history",
+                AgentType.CustomerSupport => "Provides customer support, handles complaints and service requests",
+                AgentType.Coordinator => "Coordinates and routes requests to appropriate agents",
+                _ => throw new ArgumentOutOfRangeException(nameof(agentType), agentType, null)
             };
-
-            return executionSettings;
         }
 
-        private KernelFunction GetStrategyFunction(ChatResponseFormatBuilder.ChatResponseStrategy strategyType)
+        /// <summary>
+        /// Get tools for specific agent type using existing tool classes
+        /// Returns null for now due to delegate binding limitations with the current Agent Framework API
+        /// </summary>
+        private static IList<AIFunction>? GetAgentTools(AgentType agentType, BankingDataService bankService, string tenantId, string userId, ILoggerFactory loggerFactory)
         {
-
-            KernelFunction function =
-                AgentGroupChat.CreatePromptFunctionForStrategy(
-                    $$$"""
-                    {{{GetStrategyPrompts(strategyType)}}}
-                    
-                    RESPONSE:
-                    {{$lastmessage}}
-                    """,
-                    safeParameterNames: "lastmessage");
-
-            return function;
-        }
-
-        private AgentGroupChatSettings GetAgentGroupChatSettings(Kernel kernel, LogCallback logCallback)
-        {
-            ChatHistoryTruncationReducer historyReducer = new(5);
-
-            AgentGroupChatSettings ExecutionSettings = new AgentGroupChatSettings
+            ILogger logger = loggerFactory.CreateLogger<AgentFrameworkService>();
+            try
             {
-                SelectionStrategy =
-                    new KernelFunctionSelectionStrategy(GetStrategyFunction(ChatResponseFormatBuilder.ChatResponseStrategy.Continuation), kernel)
-                    {
-                        Arguments = new KernelArguments(GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStrategy.Continuation)),
-                        // Save tokens by only including the final few responses
-                        HistoryReducer = historyReducer,
-                        // The prompt variable name for the history argument.
-                        HistoryVariableName = "lastmessage",
-                        // Returns the entire result value as a string.
-                        ResultParser = (result) =>
-                        {
-                            var resultString = result.GetValue<string>();
-                            if (!string.IsNullOrEmpty(resultString))
-                            {
-                                var ContinuationInfo = JsonSerializer.Deserialize<ContinuationInfo>(resultString);
-                                logCallback("SELECTION - Agent", ContinuationInfo!.AgentName);
-                                logCallback("SELECTION - Reason", ContinuationInfo!.Reason);
-                                return ContinuationInfo!.AgentName;
-                            }
-                            else
-                            {
-                                return string.Empty;
-                            }
-                        }
-                    },
-                TerminationStrategy =
-                    new KernelFunctionTerminationStrategy(GetStrategyFunction(ChatResponseFormatBuilder.ChatResponseStrategy.Termination), kernel)
-                    {
-                        Arguments = new KernelArguments(GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStrategy.Termination)),
-                        // Save tokens by only including the final response
-                        HistoryReducer = historyReducer,
-                        // The prompt variable name for the history argument.
-                        HistoryVariableName = "lastmessage",
-                        // Limit total number of turns
-                        MaximumIterations = 8,
-                        // user result parser to determine if the response is "yes"
-                        ResultParser = (result) =>
-                        {
-                            var resultString = result.GetValue<string>();
-                            if (!string.IsNullOrEmpty(resultString))
-                            {
-                                var terminationInfo = JsonSerializer.Deserialize<TerminationInfo>(resultString);
-                                logCallback("TERMINATION - Continue", terminationInfo!.ShouldContinue.ToString());
-                                logCallback("TERMINATION - Reason", terminationInfo!.Reason);
-                                return !terminationInfo!.ShouldContinue;
-                            }
-                            else
-                            {
-                                return false;
-                            }
-                        }
-                    },
-            };
+                logger.LogInformation("Creating tools for agent type: {AgentType}", agentType);
 
-            return ExecutionSettings;
+                // Create the appropriate tools class based on agent type
+                BaseTools toolsClass = agentType switch
+                {
+                    AgentType.Sales => new SalesTools(loggerFactory.CreateLogger<SalesTools>(), bankService, tenantId, userId),
+                    AgentType.Transactions => new TransactionTools(loggerFactory.CreateLogger<TransactionTools>(), bankService, tenantId, userId),
+                    AgentType.CustomerSupport => new CustomerSupportTools(loggerFactory.CreateLogger<CustomerSupportTools>(), bankService, tenantId, userId),
+                    AgentType.Coordinator => new CoordinatorTools(loggerFactory.CreateLogger<CoordinatorTools>(), bankService, tenantId, userId),
+                    _ => throw new ArgumentOutOfRangeException(nameof(agentType), agentType, null)
+                };
+
+                // Log the tool class creation for debugging
+                logger.LogInformation("Created {ToolClassName} for agent type: {AgentType}", toolsClass.GetType().Name, agentType);
+
+                // Log available methods with Description attributes
+                var methods = toolsClass.GetType().GetMethods()
+                    .Where(m => m.GetCustomAttributes(typeof(DescriptionAttribute), false).Length > 0);
+
+                IList<AIFunction> functions = new List<AIFunction>();
+                foreach (var method in methods)
+                {
+                    functions.Add(AIFunctionFactory.Create(method, toolsClass));
+                    var description = method.GetCustomAttribute<DescriptionAttribute>()?.Description ?? "No description";
+                    logger.LogInformation("Agent {AgentType} has method: '{MethodName}' - {Description}",
+                        agentType, method.Name, description);
+                }
+
+                logger.LogInformation("Tool class created for agent type: {AgentType}. Returning null due to delegate binding limitations.", agentType);
+
+                return functions;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error creating tools for agent type: {AgentType}", agentType);
+                return null;
+            }
         }
-    }
+    }  
 }
-

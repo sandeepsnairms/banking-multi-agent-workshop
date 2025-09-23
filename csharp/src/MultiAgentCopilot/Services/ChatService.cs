@@ -13,19 +13,19 @@ public class ChatService
 {
     private readonly CosmosDBService _cosmosDBService;
     private readonly BankingDataService _bankService;
-    private readonly SemanticKernelService _skService;
+    private readonly  AgentFrameworkService _afService;
     private readonly ILogger _logger;
 
 
     public ChatService(
         IOptions<CosmosDBSettings> cosmosOptions,
-        IOptions<SemanticKernelServiceSettings> skOptions,
+        IOptions<AgentFrameworkServiceSettings> skOptions,
         CosmosDBService cosmosDBService,
-        SemanticKernelService skService,
+         AgentFrameworkService skService,
         ILoggerFactory loggerFactory)
     {
         _cosmosDBService = cosmosDBService;
-        _skService = skService;
+        _afService = skService;
         _bankService = new BankingDataService(cosmosDBService.Database, cosmosDBService.AccountDataContainer, cosmosDBService.UserDataContainer, cosmosDBService.AccountDataContainer, cosmosDBService.OfferDataContainer, skOptions.Value, loggerFactory);
         _logger = loggerFactory.CreateLogger<ChatService>();
     }
@@ -92,7 +92,7 @@ public class ChatService
             var userMessage = new Message(tenantId, userId, sessionId, "User", "User", userPrompt);
 
             // Generate the completion to return to the user
-            var result = await _skService.GetResponse(userMessage, archivedMessages, _bankService, tenantId, userId);
+            var result = await _afService.GetResponse(userMessage, archivedMessages, _bankService, tenantId, userId);
 
             await AddPromptCompletionMessagesAsync(tenantId, userId, sessionId, userMessage, result.Item1, result.Item2);
 
@@ -124,7 +124,7 @@ public class ChatService
         {
             ArgumentNullException.ThrowIfNull(sessionId);
 
-            var summary = await _skService.Summarize(sessionId, prompt);
+            var summary = await _afService.Summarize(sessionId, prompt);
 
             var session = await RenameChatSessionAsync(tenantId, userId, sessionId, summary);
 
