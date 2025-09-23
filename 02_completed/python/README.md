@@ -1,9 +1,11 @@
 # Multi Agent Workshop using LangGraph in Python
 
-To run the multi-agent application using Azure Cosmos DB and LangGraph in C#, follow these steps:
+This module contains the completed files for the exercises. To run the multi-agent application using Azure Cosmos DB and LangGraph in Python, follow these steps:
 
 1. Deploy the required Azure resources.
 2. Run the application locally and view the demo.
+
+If you prefer to begin with the minimal scaffolding code and follow the step-by-step instructions to complete each exercise go to [exercises](../../01_exercises/README.md).
 
 ## Deployment and Setup
 

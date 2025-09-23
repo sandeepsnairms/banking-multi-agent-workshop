@@ -1,42 +1,37 @@
-# Module 00 - Deployment and Setup
+#  Multi Agent Workshop using Semantic Kernel in C# (Module 00)
 
-## Introduction
+This module contains the exercise files, including minimal scaffolding code and step-by-step instructions to the exercises. 
 
-In this Module, you'll confirm the deployment of Azure Services needed to run this workshop then start the application to ensure everything has been properly configured.
+To run the multi-agent application using Azure Cosmos DB and Semantic Kernel in C#, follow these steps:
 
-1. Open the folder on the desktop *LabUser - Shortcut*
-1. Navigate to the *multi-agent-hol* folder.
-1. If it is empty or does not exist, proceed to [Git Clone](#git-clone)
-1. If the folder exists and has files within it proceed to the next step.
-1. Open a browser locally on the VM and navigate to https://portal.azure.com
-1. In the Search box at the top of the Azure Portal, type in resource group. Open the Resource groups blade
-1. Look for a resource group that starts with: *rg-agenthol-*.
-1. If the resource group does not appear wait a few moments then refresh.
-1. If after a few minutes, the resource group does not appear, proceed to [Lab Provisioning](#lab-provisioning)
-1. When the new resource group appears, expand the Overview tab and click deployments.
-![essentials-tab-deployments](./media/module-00/essentials-tab-deployments.png)
-1. If all resources have been deployed successfully, you are ready to begin the lab. Your screen should look like this.
-![deployments](./media/module-00/deployments.png)
-1. Proceed to [Running the App](#running-the-app)
+1. Deploy the required Azure resources.
+2. Run the starter application locally and begin working through the exercises.
 
-## Git Clone
+If you prefer to view the final code, see the [exercises](../../../02_exercises/README.md).
 
-1. Open the PowerShell terminal on the Start bar.
-1. Navigate to the LabUser folder.
-1. Clone the GitHub repository for this lab.
+## Deployment and Setup
+
+### Git Clone
+
+Let's clone the repository to download the files to your machine.
+
+1. Create a working directory on your machine, for example: `C:\repos\HOL_SKandLangGraph`.
+2. Open PowerShell from the Start menu.
+3. Navigate to the `C:\repos\HOL_SKandLangGraph` folder.
+4. Clone the GitHub repository by running the following command:
 
 ```shell
-git clone --branch hol --single-branch https://github.com/AzureCosmosDB/banking-multi-agent-workshop.git C:\Users\LabUser\multi-agent-hol
+git clone --branch HOL_SKandLangGraph https://github.com/AzureCosmosDB/banking-multi-agent-workshop.git C:\repos\HOL_SKandLangGraph
 ```
 
-1. Proceed to [Lab Provisioning](#lab-provisioning)
+### Resource Provisioning
 
-## Lab Provisioning
+Let's deploy the Azure Services needed to run the application.
 
 1. Open the PowerShell terminal on the Start Bar and navigate to the multi-agent-hol folder.
 
 ```shell
-cd C:\Users\LabUser\multi-agent-hol\
+cd C:\repos\HOL_SKandLangGraph\
 ```
 
 1. Authenticate  yourself
