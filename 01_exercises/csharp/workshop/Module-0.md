@@ -7,7 +7,7 @@ To run the multi-agent application using Azure Cosmos DB and Semantic Kernel in 
 1. Deploy the required Azure resources.
 2. Run the starter application locally and begin working through the exercises.
 
-If you prefer to view the final code, see the [exercises](../../../02_exercises/README.md).
+If you prefer to view the final code, see the [exercises](../../../02_completed/README.md).
 
 ## Deployment and Setup
 
