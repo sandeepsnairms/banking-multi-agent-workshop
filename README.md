@@ -9,14 +9,14 @@ This branch of the repo shows how to build a multi-tenant, multi-agent, banking 
 - Semantic Kernel Agents in C#
 - LangGraph in Python
 
-To explore the other scenarios showcased in this repository. [Go to main branch](/sandeepsnairms/banking-multi-agent-workshop/tree/main)
+To explore the other scenarios showcased in this repository. [Go to main branch](https://github.com/banking-multi-agent-workshop/tree/main)
 
 
 ## Architecture Diagram
 
 Here’s the deployment architecture and components of the workshop!
 
-<img src="media/Multi-agent.png" alt="Multi-Agent Image">
+<img src="01_exercises/media/Multi-agent.png" alt="Multi-Agent Image">
 
 ## User Experience
 

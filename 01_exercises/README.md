@@ -7,7 +7,7 @@ Welcome to our multi-agent samples repository showcasing a retail banking scenar
 
 This folder contains the starter files for the exercises. Begin with the minimal scaffolding code and follow the step-by-step instructions to complete each exercise.
 
-If you prefer to skip the exercises and [go straight to the final code](..) and artifacts for running the demo.
+If you prefer to skip the exercises and [go straight to the final code](../02_completed) and artifacts for running the demo.
 
 
 ## Important Security Notice
