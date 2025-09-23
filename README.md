@@ -23,25 +23,20 @@ Here’s the deployment architecture and components of the workshop!
 https://github.com/user-attachments/assets/0e943130-13c5-4bb5-a40b-51b6c85dd58c
 
 
-## Branch Contents
+# Branch Overview
 
-This branch contains two folders:
-- **01_exercises**: Contains the starter files for the exercises. Begin with the minimal scaffolding code and follow the step-by-step instructions to complete each exercise.
+This branch contains both exercise starter files and completed solutions for the sample multi-agent application in a retail banking scenario. You can either work through the exercises step by step or use the completed files to run the demo directly.
 
-- **02_completed**: Contains the final files after completing the exercises. These can be used to run the demo directly.
+## 1. Exercises
 
+Work through the exercises to build the application step by step:
 
-## Complete the Exercises
+- [LangGraph (Python)](01_exercises/python/workshop/Module-0.md)  
+- [Semantic Kernel (C#)](01_exercises/csharp/workshop/Module-0.md)  
 
-There are two completely separate implementations for this sample multi-agent application with different instructions on how to deploy and configure for use.
+## 2. Completed Files
 
-- Navigate to [LangGraph Python](01_exercises/python/workshop/Module-0.md)
-- Navigate to [Semantic Kernel Csharp](01_exercises/csharp/workshop/Module-0.md)
+If you prefer to skip the exercises and run as demo directly, use the final code and artifacts:
 
-
-## Completed Files
-
-If you prefer to skip the exercises and go straight to the final code and artifacts for running the demo, select one of the following options to access the completed files:
-
-- Navigate to the [LangGraph Python](02_completed/python/README.md)
-- Navigate to the [Semantic Kernel Csharp](02_completed/csharp/README.md)
+- [LangGraph (Python)](02_completed/python/README.md)  
+- [Semantic Kernel (C#)](02_completed/csharp/README.md)

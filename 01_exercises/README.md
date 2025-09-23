@@ -7,8 +7,13 @@ Welcome to our multi-agent samples repository showcasing a retail banking scenar
 
 This folder contains the starter files for the exercises. Begin with the minimal scaffolding code and follow the step-by-step instructions to complete each exercise.
 
-If you prefer to skip the exercises and [go straight to the final code](../02_completed) and artifacts for running the demo.
+Work through the exercises to build the application step by step:
 
+- [LangGraph (Python)](01_exercises/python/workshop/Module-0.md)  
+- [Semantic Kernel (C#)](01_exercises/csharp/workshop/Module-0.md)  
+
+
+If you prefer to skip the exercises and go to the final code and [artifacts for running as demo](../02_completed/README.md).
 
 ## Important Security Notice
 
