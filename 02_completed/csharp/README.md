@@ -1,23 +1,28 @@
 # Multi Agent Workshop using Semantic Kernel Agents in C#
 
-## Deployment and Setup
+To run the multi-agent application using Azure Cosmos DB and Semantic Kernel in C#, follow these steps:
 
-In this Module, you'll  deploy the Azure Services needed to run the application.
+1. Deploy the required Azure resources.
+2. Run the application locally and view the demo.
+
+## Deployment and Setup
 
 ### Git Clone
 
+Let's clone the repository to download the files to your machine.
+
 1. Create a working directory on your machine, for example: `C:\repos\HOL_SKandLangGraph`.
 2. Open PowerShell from the Start menu.
-3. Navigate to the `LabUser` folder.
+3. Navigate to the `C:\repos\HOL_SKandLangGraph` folder.
 4. Clone the GitHub repository by running the following command:
 
 ```shell
 git clone --branch HOL_SKandLangGraph https://github.com/AzureCosmosDB/banking-multi-agent-workshop.git C:\repos\HOL_SKandLangGraph
 ```
 
-1. Proceed to [Lab Provisioning](#lab-provisioning)
-
 ### Resource Provisioning
+
+Let's deploy the Azure Services needed to run the application.
 
 1. Open the PowerShell terminal on the Start Bar and navigate to the multi-agent-hol folder.
 
@@ -47,7 +52,7 @@ azd up
 1. Click on the Deployments and watch until the status of all deployed resources shows as Succeeded.
 1. Your screen should appear as below.
 
-![deployments](./media/module-00/deployments.png)
+![deployments](./media/deployments.png)
 
 ## Running the App
 
