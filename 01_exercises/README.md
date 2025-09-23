@@ -34,18 +34,18 @@ This branch contains two folders:
 
 There are two completely separate implementations for this sample multi-agent application with different instructions on how to deploy and configure for use.
 
-Use the [HOL_SKandLangGraph branch](../../../../blob/HOL_SKandLangGraph). To navigate and complete the exercises select one of the following:
+Use the [HOL_SKandLangGraph branch](..). To navigate and complete the exercises select one of the following:
 
-- Navigate to [LangGraph Python](../../../../blob/HOL_SKandLangGraph/01_exercises/python/workshop/Module-0.md)
-- Navigate to [Semantic Kernel Csharp](../../../../blob/HOL_SKandLangGraph/01_exercises/csharp/workshop/Module-0.md)
+- Navigate to [LangGraph Python](../01_exercises/python/workshop/Module-0.md)
+- Navigate to [Semantic Kernel Csharp](../01_exercises/csharp/workshop/Module-0.md)
 
 
 ## Completed Files
 
 If you prefer to skip the exercises and go straight to the final code and artifacts for running the demo, select one of the following options to access the completed files:
 
-- Navigate to the [LangGraph Python](https://github.com/AzureCosmosDB/banking-multi-agent-workshop/blob/HOL_SKandLangGraph/02_completed/python/README.md)
-- Navigate to the [Semantic Kernel Csharp](https://github.com/AzureCosmosDB/banking-multi-agent-workshop/blob/HOL_SKandLangGraph/02_completed/csharp/README.md)
+- Navigate to the [LangGraph Python](../02_completed/python/README.md)
+- Navigate to the [Semantic Kernel Csharp](../02_completed/csharp/README.md)
 
 ## Important Security Notice
 
