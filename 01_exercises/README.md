@@ -1,10 +1,10 @@
 # Multi Agent Workshop
 
-Welcome to our multi-agent sample and workshop for a retail banking scenario. Implemented in both C# using Semantic Kernel Agents and Python using LangGraph.
+Welcome to our multi-agent samples repository showcasing a retail banking scenario. This repository demonstrates several approaches to building multi-agent applications using Azure Cosmos DB.
 
 ## Build a Multi-Agent AI application using Semantic Kernel Agents or LangGraph
 
-This sample application and workshop shows how to build a multi-tenant, multi-agent, banking application with containerized applications built using two multi-agent frameworks
+This branch of the repo shows how to build a multi-tenant, multi-agent, banking application with containerized applications built using 
 
 - Semantic Kernel Agents in C#
 - LangGraph in Python
@@ -21,14 +21,32 @@ Here’s the deployment architecture and components of the workshop!
 
 https://github.com/user-attachments/assets/0e943130-13c5-4bb5-a40b-51b6c85dd58c
 
-## Complete the Workshop Exercises
+
+## Branch Contents
+
+This branch contains two folders:
+- **01_exercises**: Contains the starter files for the exercises. Begin with the minimal scaffolding code and follow the step-by-step instructions to complete each exercise.
+
+- **02_completed**: Contains the final files after completing the exercises. These can be used to run the demo directly.
+
+
+## Complete the Exercises
 
 There are two completely separate implementations for this sample multi-agent application with different instructions on how to deploy and configure for use.
 
-The workshop for this sample is on the [HOL branch](https://github.com/AzureCosmosDB/banking-multi-agent-workshop/blob/hol) in this repository. To navigate and complete this workshop select one of the following:
+Use the [HOL_SKandLangGraph branch](../../../../blob/HOL_SKandLangGraph). To navigate and complete the exercises select one of the following:
 
-- Navigate to the [LangGraph Python Workshop](https://github.com/AzureCosmosDB/banking-multi-agent-workshop/blob/hol/python/workshop/Module-0.md)
-- Navigate to the [Semantic Kernel Csharp Workshop](https://github.com/AzureCosmosDB/banking-multi-agent-workshop/blob/hol/csharp/workshop/Module-0.md)
+- Navigate to [LangGraph Python](../../../../blob/HOL_SKandLangGraph/01_exercises/python/workshop/Module-0.md)
+- Navigate to [Semantic Kernel Csharp](../../../../blob/HOL_SKandLangGraph/01_exercises/csharp/workshop/Module-0.md)
+
+
+## Completed Files
+
+If you prefer to skip the exercises and go straight to the final code and artifacts for running the demo, select one of the following options to access the completed files:
+
+- Navigate to the [LangGraph Python](https://github.com/AzureCosmosDB/banking-multi-agent-workshop/blob/HOL_SKandLangGraph/02_completed/python/README.md)
+- Navigate to the [Semantic Kernel Csharp](https://github.com/AzureCosmosDB/banking-multi-agent-workshop/blob/HOL_SKandLangGraph/02_completed/csharp/README.md)
+
 ## Important Security Notice
 
 This template, the application code and configuration it contains, has been built to showcase Microsoft Azure specific services and tools. We strongly advise our customers not to make this code part of their production environments without implementing or enabling additional security features.

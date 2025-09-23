@@ -1,0 +1,6 @@
+.git
+.env
+dist
+bin
+obj
+.pubxml
