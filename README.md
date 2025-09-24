@@ -10,7 +10,6 @@ Welcome to our multi-agent samples repository showcasing a retail banking scenar
 
 This branch of the repo shows how to build a multi-tenant, multi-agent, banking application with containerized applications built using 
 
-- Semantic Kernel Agents in C#
 - LangGraph in Python
 
 To explore the other scenarios showcased in this repository. [Go to main branch](https://github.com/AzureCosmosDB/banking-multi-agent-workshop/tree/main)
@@ -36,11 +35,10 @@ This branch contains both exercise starter files and completed solutions for the
 Work through the exercises to build the application step by step:
 
 - [LangGraph (Python)](01_exercises/python/workshop/Module-0.md)  
-- [Semantic Kernel (C#)](01_exercises/csharp/workshop/Module-0.md)  
 
 ## 2. Completed Files
 
 If you prefer to skip the exercises and run as demo directly, use the final code and artifacts:
 
 - [LangGraph (Python)](02_completed/python/README.md)  
-- [Semantic Kernel (C#)](02_completed/csharp/README.md)
+

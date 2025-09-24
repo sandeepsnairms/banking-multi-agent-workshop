@@ -1,20 +1,34 @@
 # Module 01 - Creating Your First Agent
 
+[< Deployment and Setup](./Module-00.md) - **[Home](Home.md)** - [Connecting Agents to Memory >](./Module-02.md)
+
 ## Introduction
 
-In this Module, you'll implement your first agent as part of a multi-agent banking system implemented using LangGraph. You will get an introduction to the LangChain framework and their tool integration with OpenAI for generating completions.
+In this Module, you'll implement your first agent as part of a multi-agent banking system implemented using either Semantic Kernel Agent Framework or LangGraph. You will get an introduction to Semantic Kernel and LangChain frameworks and their plug-in/tool integration with OpenAI for generating completions.
 
 ## Learning Objectives and Activities
 
-- Learn the basics for LangGraph including prompts, tools and functions
-- Learn how to define prompts and workflows
+- Learn the basics for Semantic Kernel Agent Framework and LangGraph
+- Learn how to integrate agent frameworks to Azure OpenAI
 - Build a simple chat agent
 
 ## Module Exercises
 
-1. [Activity 1: Create Your Very First Agent](#activity-1-create-your-very-first-agent)
-2. [Activity 2: Create a Simple Customer Service Agent](#activity-2-create-a-simple-customer-service-agent)
-3. [Activity 3: Test your Work](#activity-3-test-your-work)
+1. [Activity 1: Session on Single-agent architecture](#activity-1-session-on-single-agent-architecture)
+2. [Activity 2: Session on Semantic Kernel Agent Framework and LangGraph](#activity-2-session-on-semantic-kernel-agent-framework-and-langgraph)
+3. [Activity 3: Create Your Very First Agent](#activity-3-create-your-very-first-agent)
+4. [Activity 4: Create a Simple Customer Service Agent](#activity-4-create-a-simple-customer-service-agent)
+5. [Activity 5: Test your Work](#activity-5-test-your-work)
+
+## Activity 1: Session on Single-agent architecture
+
+In this session you will get an overview of Semantic Kernel Agents and LangGraph and learn the basics for how to build a chat app that interacts with a user and generations completions using an LLM powered by Azure OpenAI.
+
+## Activity 2: Session on Semantic Kernel Agent Framework and LangGraph
+
+In this session, you will get a deeper introduction into the Semantic Kernel Agent Framework and LangGraph with details on how to implement plug-in or tool integration with Azure Open AI.
+
+The following steps are completed in your IDE.
 
 ### Project Structure
 
@@ -33,7 +47,8 @@ Here is what the structure of this solution appears like in VS Code. Spend a few
 
 ![Solution Files](./media/module-01/solution-folder-files.png)
 
-## Activity 1: Create your very first agent
+
+## Activity 3: Create your very first agent
 
 In this hands-on exercise, you will learn the basic elements of a LangGraph agent application and how to define and implement them.
 
@@ -42,11 +57,11 @@ LangGraph is a powerful extension of LangChain that allows you to create statefu
 LangGraph is a directed graph where *Nodes* represent different, functions, agents or steps in the AI workflow. The *Edges* in the graph define the possible transitions between nodes and *State* represents the evolving data as the workflow executes.
 
 The main components of a LangGraph app include:
-
 - StateGraph - The core execution engine for defining and executing multi-step workflows.
 - State (Memory) Management - For tracking progress, sharing information and chat history.
 - Agents - Individual entities with decision making capabilities.
 - Tools - Provide external capabilities.
+
 
 Let's begin to create our first agent application.
 
@@ -87,6 +102,7 @@ PROMPT_DIR = os.path.join(os.path.dirname(__file__), 'prompts')
 
 This code here is the basis upon which we will build our multi-agent application. Notice the comments. Each of these specify the core of how you build a multi-agent application in LangGraph. For the remainer of this module we will replace each of these with the sections below in order.
 
+
 ### Prompts
 
 Agent applications are powered by large language models or LLMs. Defining the behavior for an agent in a system powered by LLMs requires a prompt. This system will have lots of agents and lots of prompts. To simplify construction, we will define a function that loads the prompts for our agents from files.
@@ -110,7 +126,7 @@ def load_prompt(agent_name):
 
 ### Agents & Tools
 
-Agents are the heart of these applications. Below, we are going to create a **ReAct Agent**. ReAct, or *Re-Act* stands for, *Reason and Act* and is a specific type of agent that is what you will most often use in a multi-agent scenario like this one.
+Agents are the heart of these applications. Below, we are going to create a **ReAct Agent**. ReAct, or *Re-Act* stands for, *Reason and Act* and is a specific type of agent that is what you will most often use in a multi-agent scenario like this one. 
 
 In LangGraph there are different types of agents you can create, depending on your needs. These include:
 
@@ -123,6 +139,7 @@ In LangGraph there are different types of agents you can create, depending on yo
 In LangGraph, the definition of an agent includes any **Tools** it needs to do its job. This often involves retrieving some information or taking some action, like transfering execution to another agent (we will get into that soon). If an agent doesn't require any tools, this is defined as empty.
 
 In our simple agent we are going to define a new React Agent as the coorindator for our app using a built-in function called, `create_react_agent()`. Since this is our first agent, there are no tools to define for it so the tools we define for it will be empty. Notice that this agent also calls the function we defined above, `load_prompt()`.
+
 
 In the `banking_agents.py` file, navigate to the `# define agents & tools` comment.
 
@@ -140,6 +157,7 @@ coordinator_agent = create_react_agent(
 ### Functions
 
 Since LangGraph is a graph, the agents, which are comprised of prompts, tools, and functions are implemented as nodes. But humans are also a part of the workflow here so we need to define them as a node too. In our simple sample we have two nodes, one for the coordinator agent and one for the human.
+
 
 In the `banking_agents.py` file, navigate to the `# define functions` comment.
 
@@ -164,12 +182,14 @@ def human_node(state: MessagesState, config) -> None:
 
 Before we go any further we should cover a few new things you may have seen. LangGraph has a series of built-in functions that you will use when building these types of applications. The first you saw above when we defined our agent, `create_react_agent()`. There are two more used above, `Command()` and `interrupt()`. Here is a short summary of built-in functions.
 
+
 | Function | Purpose |
 |-|-|
 | create_react_agent() | Create an agent that reasons and acts using tools dynamically. |
 | interrupt(value) | Pauses execution and waits for external input. |
 | Command(update, goto) | Updates the state and moves execution to the next node. |
 | create_openai_tools_agent() | Create an agent that calls predefined tools when needed. |
+
 
 ### Workflow
 
@@ -178,6 +198,7 @@ With our everything we need for our graph defined we are now ready to define the
 In LangGraph, the, *StateGraph* is the execution engine where everything comes together. It defines the state that holds the information for the workflow, builds the workflow logic, and dynamically executes the workflow based upon the function outputs and logic defined in the graph.
 
 The workflow below is defined with both, the addition of *nodes* that define who is doing the interacting, and an *edge* that defines a transition between the two.
+
 
 In the `banking_agents.py` file, navigate to the `# define workflow` comment.
 
@@ -198,13 +219,14 @@ graph = builder.compile(checkpointer=checkpointer)
 
 Before we are finished creating our first agent, we need to define its behavior.
 
+
 In your IDE, navigate to the the `src/app/prompts` folder in your project.
 
 Locate and open the empty `coordinator_agent.prompty` file.
 
 Copy and paste the following text into it:
 
-```text
+```
 You are a Chat Initiator and Request Router in a bank.
 Your primary responsibilities include welcoming users, and routing requests to the appropriate agent.
 If the user needs general help, tell them you will be able to transfer to 'customer_support' for help when that agent is built.
@@ -213,26 +235,29 @@ If the user wants to check their account balance or make a bank transfer, tell t
 You MUST include human-readable response.
 ```
 
+
 ### Let's review
 
 Congratulations, you have created your first AI agent!
 
 We have:
-
-- Used the `create_react_agent` function from the `langgraph.prebuilt` module to create a simple "coordinator" agent. The function imports the Azure OpenAI model already deployed and defined in `src/app/services/azure_open_ai.py` and returns an agent that can be used to generate completions.
-- Defined a `call_coordinator_agent` function that invokes the agent and a `human_node` function that collects user input.
+- Used the `create_react_agent` function from the `langgraph.prebuilt` module to create a simple "coordinator" agent. The function imports the Azure OpenAI model already deployed (during `azd up`) and defined in `src/app/services/azure_open_ai.py` and returns an agent that can be used to generate completions. 
+- Defined a `call_coordinator_agent` function that invokes the agent and a `human_node` function that collects user input. 
 - Created a state graph that defines the flow of the conversation and compiles it into a langgraph object.
 - Added an in-memory checkpoint to save the state of the conversation.
 
+
 We could run this and see it in action but before we do this, let's implement a second agent for our coorindator agent to transfer to. In this next activity, we are going to create a Customer Service Agent that our Coordinator Agent will transfer execution to on behalf of the user.
 
-## Activity 2: Create a Simple Customer Service Agent
+
+## Activity 4: Create a Simple Customer Service Agent
 
 In this activity, you will create a simple customer service agent that users interact with and generates completions using a large language model.
 
 We've created a coordinator agent that can route requests to different agents. Now, let's create a simple customer service agent that can respond to user queries.
 
 We'll cover **tools** in more detail in the next module, but we'll need to add our first tool (or rather a function that dynamically creates a tool) right here so that our coordinator agent can route requests to the customer service agent.
+
 
 ### Create Agent Transfer Tool
 
@@ -279,6 +304,7 @@ def create_agent_transfer(*, agent_name: str):
     return transfer_to_agent
 ```
 
+
 Next, navigate back to the `banking_agents.py` file.
 
 At the top of the file, copy the following import statement:
@@ -287,9 +313,11 @@ At the top of the file, copy the following import statement:
 from src.app.tools.coordinator import create_agent_transfer
 ```
 
+
 Next, within the same `banking_agents.py` file.
 
 Locate this statement:
+
 
 ```python
 tools = []
@@ -305,7 +333,7 @@ coordinator_agent_tools = [
 
 On the line below, update the tools parameter in the coordinator agent creation.
 
-Replace the value `tools` with the `coordinator_agent_tools` definition.
+Replace the value `tools` with the `coordinator_agent_tools` definition. 
 
 Your coordinator agent should now look like this:
 
@@ -348,11 +376,11 @@ We are done building out our code for our customer service agent. Now, lets add 
 
 In your IDE, navigate to the `src/app/prompts` folder.
 
-Locate the empty `customer_support_agent.prompty` file.
+Locate the empty `customer_support_agent.prompty` file. 
 
 Copy and paste the following text into it:
 
-```text
+```
 You are a customer support agent that can give general advice on banking products and branch locations
 If the user wants to make a complaint or speak to someone, ask for the user's phone number and email address,
 and say you will get someone to call them back.
@@ -360,6 +388,7 @@ You MUST include human-readable response.
 ```
 
 The coordinator agent's job in this multi-agent system is to handle routing to multiple different agents. However, to do that we need to give it instructions to do so. This is done in the coordinator agent's prompt. With our customer service agent, now fully defined, let's update the coordinator agent's prompty file so it can transfer to the customer support agent.
+
 
 ### Update the Coorindator Agent Prompt
 
@@ -369,7 +398,7 @@ Locate the `coordinator_agent.prompty` file.
 
 Replace the text of the file with the text below (notice the difference in the third line between what is there now and the new text):
 
-```text
+```
 You are a Chat Initiator and Request Router in a bank.
 Your primary responsibilities include welcoming users, and routing requests to the appropriate agent.
 If the user needs general help, transfer them to the 'customer_support_agent' agent.
@@ -377,6 +406,7 @@ If the user wants to open a new account or take our a bank loan, tell them you w
 If the user wants to check their account balance or make a bank transfer, tell them you will be able to transfer to transfer to 'transactions_agent' when built
 You MUST include human-readable response.
 ```
+
 
 ### Update our Workflow
 
@@ -390,19 +420,20 @@ Locate this line of code, `builder.add_node("coordinator_agent", call_coordinato
 
 Add the following line of code below it:
 
-```python
+```python   
 builder.add_node("customer_support_agent", call_customer_support_agent)
 ```
 
-## Activity 3: Test your Work
+
+## Activity 5: Test your Work
 
 With the activities in this module complete, it is time to test your work!
 
-To do this, we are going to enable two ways of testing our application. 
+To do this, we are going to add this code to our `banking_agents.py` file.
 
-First, we are going to add code to our `banking_agents.py` file.This code defines a new function, `interactive_chat()` that creates a message loop that invokes our StateGraph that we have defined in this file.
+This code defines a new function, `interactive_chat()` that creates a message loop that invokes our StateGraph that we have defined in this file.
 
-To begin, navigate to the end of the `banking_agents.py` file.
+To being, navigate to the end of the `banking_agents.py` file.
 
 Then paste the following code below all code in this file:
 
@@ -447,15 +478,20 @@ if __name__ == "__main__":
     interactive_chat()
 ```
 
-For the rest of the lab, we're going to be testing using the front end by wiring up the API layer, so you can skip to that section below. But for reference, if you wanted bypass the front end and test the backend in a command line fashion, you could run the below:
+### Ready to test
 
-```shell
+
+Try it out! 
+
+In your IDE, run the following command in your terminal:
+
+```bash
 python -m src.app.banking_agents
 ```
 
-You would see the following output like below, where you can input text after "you"
+You should see the following output like below:
 
-```shell
+```
 [DEBUG] Retrieved Azure AD token successfully using DefaultAzureCredential.
 [DEBUG] Azure OpenAI model initialized successfully.
 Loading prompt for coordinator_agent from prompts\coordinator_agent.prompty
@@ -465,195 +501,48 @@ Type 'exit' to end the conversation.
 You: 
 ```
 
-### Wiring up the API layer
 
-Now lets set up the API layer so that the front end can talk properly to your new agents.
+Input some text to the agent. 
 
-In your IDE, navigate to the `src/app/banking_agents_api.py` file.
+Type the following text:
 
-We will first import the graph and checkpoint from `banking_agents.py` that we've now created. 
 
-Paste the following with the imports at the top of the file:
-
-```python
-from src.app.banking_agents import graph, checkpointer
-```   
-
-Below the imports, paste the function below to return the graph that is :
-
-```python
-def get_compiled_graph():
-    return graph
 ```
-
-Next, locate the `delete_chat_session` function in the file.
-
-This is fairly deep in this file. It may be easier to search for this line of code (e.g. `CTRL-F`).
-
-Here we need to add a background task that will delete checkpoints in the graph, in addition to the chat entries. 
-
-Locate the return statement for this function, `return {"message": "Session deleted successfully"}`
-
-Then add this line of code immediately above it:
-
-```python
-background_tasks.add_task(delete_all_thread_records, checkpointer, sessionId)
-```
-
-Next, locate this function, `get_chat_completion`. 
-
-Currently it looks like this:
-
-```python
-@app.post("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/completion", tags=[endpointTitle],
-          response_model=List[MessageModel])
-async def get_chat_completion(
-        tenantId: str,
-        userId: str,
-        sessionId: str,
-        background_tasks: BackgroundTasks,
-        request_body: str = Body(..., media_type="application/json"),
-
-):
-    return [
-        {
-            "id": "string",
-            "type": "string",
-            "sessionId": "string",
-            "tenantId": "string",
-            "userId": "string",
-            "timeStamp": "string",
-            "sender": "string",
-            "senderRole": "string",
-            "text": "Hello, I am not yet implemented",
-            "debugLogId": "string",
-            "tokensUsed": 0,
-            "rating": "true",
-            "completionPromptId": "string"
-        }
-    ]
-```
-
-Replace the entire function with the following code:
-
-```python
-@app.post("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/completion", tags=[endpointTitle],
-          response_model=List[MessageModel])
-async def get_chat_completion(
-        tenantId: str,
-        userId: str,
-        sessionId: str,
-        background_tasks: BackgroundTasks,
-        request_body: str = Body(..., media_type="application/json"),
-        workflow: CompiledStateGraph = Depends(get_compiled_graph),
-
-):
-    if not request_body.strip():
-        raise HTTPException(status_code=400, detail="Request body cannot be empty")
-
-    # Retrieve last checkpoint
-    config = {"configurable": {"thread_id": sessionId, "checkpoint_ns": "", "userId": userId, "tenantId": tenantId}}
-    checkpoints = list(checkpointer.list(config))
-    last_active_agent = "coordinator_agent"  # Default fallback
-
-    if not checkpoints:
-        # No previous state, start fresh
-        new_state = {"messages": [{"role": "user", "content": request_body}]}
-        response_data = workflow.invoke(new_state, config, stream_mode="updates")
-    else:
-        # Resume from last checkpoint
-        last_checkpoint = checkpoints[-1]
-        last_state = last_checkpoint.checkpoint
-
-        if "messages" not in last_state:
-            last_state["messages"] = []
-
-        last_state["messages"].append({"role": "user", "content": request_body})
-
-        if "channel_versions" in last_state:
-            for key in reversed(last_state["channel_versions"].keys()):
-                if "agent" in key:
-                    last_active_agent = key.split(":")[1]
-                    break
-
-        last_state["langgraph_triggers"] = [f"resume:{last_active_agent}"]
-        response_data = workflow.invoke(last_state, config, stream_mode="updates")
-
-    debug_log_id = store_debug_log(sessionId, tenantId, userId, response_data)
-    messages = extract_relevant_messages(debug_log_id, last_active_agent, response_data, tenantId, userId, sessionId)
-
-    partition_key = [tenantId, userId, sessionId]
-    # Get the active agent from Cosmos DB with a point lookup
-    activeAgent = chat_container.read_item(item=sessionId, partition_key=partition_key).get('activeAgent', 'unknown')
-
-    # update last sender in messages to the active agent
-    messages[-1].sender = agent_mapping.get(activeAgent, activeAgent)
-
-    # Schedule storing chat history and updating correct agent in last message as a background task
-    # to avoid blocking the API response as this is not needed unless retrieving the message history later.
-    background_tasks.add_task(process_messages, messages, userId, tenantId, sessionId)
-
-    return messages
-```
-We should now be done wiring up the API layer.
-
-### Start the Backend
-
-If you stopped the backend, restart it. You can keep both running during the lab.
-
-1. In VS Code, return to the Terminal session with the python folder.
-1. Start the fastapi server.
-
-```shell
-uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 63280
-```
-
-### Start the Frontend
-
-1. If you stopped the frontend, restart it.
-1. In VS Code, return to the terminal session for your frontend app.
-
-```sh
-npm start
-```
-
-### Start a Conversation
-
-1. Return to the frontend app in your browser and hit refresh. If you closed it, open a new tab and navigate to <http://localhost:4200/>.
-1. In the Login dialog, select a user and company and click, Login.
-
-![Final User Interface](./media/module-01/frontend.png)
-
-1. Create a new conversation.
-1. Send the message:
-
-```text
 I want some help
 ```
 
-1. You should see your query being routed to the customer support agent and a response generated:
+You should see your query being routed to the customer support agent and a response generated:
 
-![Testing_1](./media/module-01/testing1.png)
+```shell
+You: I want some help
+transfer_to_customer_support_agent...
+customer_support_agent: You are now connected to our customer support agent. How can we assist you today?
 
-1. End the agent session by deleting the conversation.
+You: 
+```
 
-## Validation Checklist
+End the agent session by typing `exit` to end the application.
+
+
+
+### Validation Checklist
 
 Your implementation is successful if:
 
 - [ ] Your app compiles with no warnings or errors.
 - [ ] Your agent successfully processes user input and generates and appropriate response.
 
-## Common Issues and Troubleshooting
+### Common Issues and Troubleshooting
 
 1. Issue 1: Nothing happens when I run `banking_agents.py`.
     - Confirm that all the code above has been accurately copy and pasted into the correct files.
 
 1. Issue 2: I get a `ModuleNotFoundError:` error when I run `banking_agents.py`.
     - Make sure that your venv is started in the terminal before running any python code.
-    - Make sure that you installed all the python package requirements from Module 0.
+    - Make sure that you installed all the python package requirements from [Module 00](./Module-00.md)
 
-## Module Solution
+
+### Module Solution
 
 The following sections include the completed code for this Module. Copy and paste these into your project if you run into issues and cannot resolve.
 
@@ -834,7 +723,7 @@ def create_agent_transfer(*, agent_name: str):
 
 <br>
 
-```text
+```
 You are a Chat Initiator and Request Router in a bank.
 Your primary responsibilities include welcoming users, and routing requests to the appropriate agent.
 If the user needs general help, transfer them to the 'customer_support_agent' agent.
@@ -850,7 +739,7 @@ You MUST include human-readable response.
 
 <br>
 
-```text
+```
 You are a customer support agent that can give general advice on banking products and branch locations
 If the user wants to make a complaint or speak to someone, ask for the user's phone number and email address,
 and say you will get someone to call them back.
@@ -859,6 +748,12 @@ You MUST include human-readable response.
 
 </details>
 
+
 ## Next Steps
 
-Proceed to Module 2: [Connecting Agents to Memory](./Module-02.md)
+Proceed to [Connecting Agents to Memory](./Module-02.md)
+
+## Resources
+
+- [LangGraph](https://langchain-ai.github.io/langgraph/concepts/)
+- [Azure OpenAI Service documentation](https://learn.microsoft.com/azure/cognitive-services/openai/)

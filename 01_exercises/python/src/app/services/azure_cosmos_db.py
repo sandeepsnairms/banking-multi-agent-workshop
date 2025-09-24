@@ -1,8 +1,9 @@
 import logging
 import os
-import re
+import time
 from datetime import datetime
 from typing import List, Dict
+import re
 
 from azure.cosmos import CosmosClient, PartitionKey
 from azure.identity import DefaultAzureCredential
@@ -53,37 +54,63 @@ except Exception as e:
     raise e
 
 
+def get_cosmos_client():
+    """Return the initialized Cosmos client for shared MCP server"""
+    return cosmos_client
+
 
 def vector_search(vectors, accountType):
-    print("accountType: ", accountType)
-    print("vectors: ", vectors)
-    # Execute the query
-    results = offers_container.query_items(
-        query='''
-        SELECT TOP 10 c.offerId, c.text, c.name
-                        FROM c
-                        WHERE c.type = 'Term'
-                        AND c.accountType = @accountType
-                        AND VectorDistance(c.vector, @referenceVector)> 0.075
-                        ORDER BY VectorDistance(c.vector, @referenceVector) 
-        ''',
-        parameters=[
-            {"name": "@accountType", "value": accountType},
-            {"name": "@referenceVector", "value": vectors}
-        ],
-        enable_cross_partition_query=True, populate_query_metrics=True)
-    print("Executed vector search in Azure Cosmos DB... \n")
-    print("Results: ", results)
+    start_time = time.time()
+    print(f"⏱️  COSMOS_DB: Starting vector search for accountType={accountType}, vector_dims={len(vectors) if vectors else 0}")
+    
     try:
-        results = list(results)
+        query_start_time = time.time()
+        results = offers_container.query_items(
+            query='''
+            SELECT TOP 3 c.offerId, c.text, c.name
+                            FROM c
+                            WHERE c.type = 'Term'
+                            AND c.accountType = @accountType
+                            AND VectorDistance(c.vector, @referenceVector)> 0.075
+                            ORDER BY VectorDistance(c.vector, @referenceVector) 
+            ''',
+            parameters=[
+                {"name": "@accountType", "value": accountType},
+                {"name": "@referenceVector", "value": vectors}
+            ],
+            enable_cross_partition_query=True, 
+            populate_query_metrics=True
+        )
+        
+        query_duration_ms = (time.time() - query_start_time) * 1000
+        print(f"⏱️  COSMOS_DB: Query execution took {query_duration_ms:.2f}ms")
+        
+        # Convert iterator to list with error handling
+        processing_start_time = time.time()
+        result_list = []
+        try:
+            count = 0
+            for item in results:
+                result_list.append(item)
+                count += 1
+                if count >= 3:  # Safety limit to prevent infinite loops
+                    break
+            
+        except Exception as list_error:
+            logging.error(f"Error processing results iterator: {list_error}")
+            return []
+        
+        processing_duration_ms = (time.time() - processing_start_time) * 1000
+        total_duration_ms = (time.time() - start_time) * 1000
+        
+        print(f"⏱️  COSMOS_DB: Results processing took {processing_duration_ms:.2f}ms")
+        print(f"⏱️  COSMOS_DB: Total vector search took {total_duration_ms:.2f}ms, returned {len(result_list)} results")
+        
+        return result_list
+        
     except Exception as e:
-        print(f"[ERROR] Error fetching results from Cosmos DB: {e}")
-        raise e
-    print("length of results: ", len(results))
-    # Extract the necessary information from the results
-    for result in results:
-        print("Result: ", result)
-    return results
+        logging.error(f"Error in vector_search: {e}")
+        return []
 
 
 # update the user data container
