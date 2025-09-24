@@ -1,23 +1,32 @@
 # Module 03 - Agent Specialization
 
+[< Connecting Agents to Memory](./Module-02.md) - **[Home](Home.md)** - [Multi-Agent Orchestration >](./Module-04.md)
+
+
 ## Introduction
 
 In this Module you'll learn how to implement agent specialization by creating Semantic Kernel Functions or LangGraph Tools that provide the functionality necessary to power individual agents that comprise a multi-agent system.
 
+
 ## Learning Objectives and Activities
 
-- Learn the basics for LangGraph Tools
-- Learn how to implement semantic and natural language features using vector indexing and search integration from Azure Cosmos DB.
+- Learn the basics for Semantic Kernel Agent Framework Functions and LangGraph Tools
+- Learn how to implement semantic and natural language features using Vector indexing and search integration from Azure Cosmos DB.
 - Learn how to define tasks and communication protocols for seamless collaboration.
 
 ## Module Exercises
 
-1. [Activity 1: Creating Multiple Agents](#activity-1-creating-multiple-agents)
-1. [Activity 2: Adding Agent Tools](#activity-2-adding-agent-tools)
-1. [Activity 3: Semantic Search](#activity-3-semantic-search)
-1. [Activity 4: Test your Work](#activity-4-test-your-work)
+1. [Activity 1: Understanding Agent Specialization and Integration](#activity-1-session-on-agent-specialization-and-integration)
+2. [Activity 2: Creating Multiple Agents](#activity-2-creating-multiple-agents)
+3. [Activity 3: Adding Agent Tools](#activity-3-adding-agent-tools)
+4. [Activity 4: Semantic Search](#activity-4-semantic-search)
 
-## Activity 1: Creating Multiple Agents
+
+## Activity 1: Session on Agent Specialization and Integration
+
+In this session we will dive into how to create Semantic Kernel Agent Framework Functions or LangGraph Tools to connect agents to external APIs, databases and third-party tools to provide special functionality. Learn the basics for vector indexing and search in Azure Cosmos DB to provide semantic search functionality to your agents. Learn how to define tasks and communication protocols for seamless collaboration between agents.
+
+## Activity 2: Creating Multiple Agents
 
 In this hands-on exercise, you will learn how to create multiple agents that specialize in different tasks. You will learn how to define the roles and responsibilities of each agent and how to define the communication protocols between them.
 
@@ -27,9 +36,11 @@ First, let's add a new transactions agent and sales agent.
 
 ### Define the New Agents
 
-1. To begin, open the **banking_agents.py** file.
-1. Locate the lines that define the **customer_support_agent_tools** and the **customer_support_agent**
-1. Paste the following code below.
+To begin, open the `banking_agents.py` file.
+
+Locate the lines that define the `customer_support_agent_tools` and the `customer_support_agent` 
+
+Paste the following code below:
 
 ```python
 transactions_agent_tools = []
@@ -49,9 +60,9 @@ sales_agent = create_react_agent(
 
 ### Update the Coordinator Agent
 
-Lets also update the coordinator agent tool definition so that it can transfer to both the customer support agent and the transactions agent.
+Lets also update the coordinator agent tool definition so that it can transfer to both the customer support agent and the transactions agent. 
 
-1. Locate the **coordinator_agent_tools** definition.
+Locate the `coordinator_agent_tools` definition
 
 ```python
 coordinator_agent_tools = [
@@ -59,7 +70,7 @@ coordinator_agent_tools = [
 ]   
 ```
 
-1. Replace this code with the following.
+Replace this code with the following:
 
 ```python
 coordinator_agent_tools = [
@@ -71,10 +82,11 @@ coordinator_agent_tools = [
 
 ### Define the New Functions
 
-We also need to add calling functions for the two new agents.
+We also need to add calling functions for the two new agents. 
 
-1. Locate the function, **def call_customer_support_agent**.
-1. Below this function, paste two new functions.
+Locate the line which defines this function, `def call_customer_support_agent`.
+
+Below this function, paste two new functions: 
 
 ```python
 def call_sales_agent(state: MessagesState, config) -> Command[Literal["sales_agent", "human"]]:
@@ -103,11 +115,13 @@ def call_transactions_agent(state: MessagesState, config) -> Command[Literal["tr
 
 ### Update Workflow
 
-Finally, we need to add these agents as nodes in the graph with their calling functions.
+Finally, we need to add these agents as nodes in the graph with their calling functions. 
 
-1. Locate the **StateGraph** builder further below in the file.
-1. Add these two lines to the `StateGraph` builder.
 
+Locate the `StateGraph` builder further below in the file.
+
+Add these two lines to the `StateGraph` builder:
+    
 ```python
 builder.add_node("transactions_agent", call_transactions_agent)
 builder.add_node("sales_agent", call_sales_agent)
@@ -115,9 +129,11 @@ builder.add_node("sales_agent", call_sales_agent)
 
 We've now added two new agents, and adjusted the coordinator agent so it can transfer to all three agents.
 
-## Activity 2: Adding Agent Tools
+
+## Activity 3: Adding Agent Tools
 
 In this activity, you will learn how to add tools to your agents. You will also learn how to define the API contracts for these plugins and how to test and debug them.
+
 
 ### What are tools?
 
@@ -125,12 +141,14 @@ By "tools" we mean functions or discreet actions that each agent can perform. A 
 
 We already added a type of tool to the coordinator agent in the previous module, but that tool only allowed agents to hand off to each-other. In this module, we will add more functional tools to each agent that will allow them to perform other actions, including transactions against the database.
 
+
 ### Defining New Tools
 
 We are going to define a series of tools that allow the customer agents to perform specific actions for users including creating new accounts, balance inquiries, and varios other banking transactions.
 
-1. In VS Code, open the file **src/app/tools/sales.py**.
-1. In the empty file, add the following code.
+To begin, In your IDE, locate the file `src/app/tools/sales.py` 
+
+In the empty file, add the following code:
 
 ```python
 from typing import Any
@@ -190,6 +208,7 @@ def create_account(account_holder: str, balance: float, config: RunnableConfig) 
 
     return f"Failed to create account after {max_attempts} attempts"
 
+
 @tool
 def calculate_monthly_payment(loan_amount: float, years: int) -> float:
     """Calculate the monthly payment for a loan."""
@@ -206,8 +225,9 @@ def calculate_monthly_payment(loan_amount: float, years: int) -> float:
     return round(monthly_payment, 2)  # Rounded to 2 decimal places
 ```
 
-1. Next, open the file **src/app/tools/transactions.py**.
-1. In the empty file, add the following code.
+Next, locate the file `src/app/tools/transactions.py` 
+
+In the empty file, add the following code:
 
 ```python
 import logging
@@ -319,8 +339,9 @@ def bank_balance(config: RunnableConfig, account_number: str) -> str:
     return f"The balance for account number {account_number} is ${balance}"
 ```
 
-1. Finally, open the file **src/app/tools/support.py**.
-1. In the empty file, add the following code.
+Finally, locate the file `src/app/tools/support.py`
+
+In the empty file, add the following code:
 
 ```python
 import logging
@@ -498,10 +519,13 @@ def get_branch_location(state: str) -> Dict[str, List[str]]:
 
 ### Integrate the New Tools
 
-With the tools defined, we need to update the tool definitions for each agent.
+With the tools defined, we need to update the tool definitions for each agent. 
 
-1. In VS Code, open the **banking_agents.py** file.
-1. At the top of the file, add the following import statements:
+In your IDE, navigate to the `banking_agents.py` file.
+
+We need to import the tools into this file.
+
+At the top of the file, add the following import statements:
 
 ```python
 from src.app.tools.sales import calculate_monthly_payment, create_account
@@ -509,8 +533,9 @@ from src.app.tools.support import get_branch_location, service_request
 from src.app.tools.transactions import bank_balance, bank_transfer, get_transaction_history
 ```
 
-1. Next, locate the line containing the empty *customer_support_agent_tools = []*
-1. Update it with the code below.
+Next, locate the line containing the empty `customer_support_agent_tools = []` 
+
+Update it with the code below:
 
 ```python
 customer_support_agent_tools = [
@@ -519,8 +544,9 @@ customer_support_agent_tools = [
 ]
 ```
 
-1. Next, scroll a further down in this file to locate, the empty *transactions_agent_tools = []*.
-1. Update it with the code below.
+Next, scroll a further down in this file to locate, the empty `transactions_agent_tools = []` 
+
+Update it with the code below:
 
 ```python
 transactions_agent_tools = [
@@ -530,8 +556,9 @@ transactions_agent_tools = [
 ]
 ```
 
-1. Finally, scroll further down to the empty *sales_agent_tools = []*.
-1. Update it with the code below.
+Finally, scroll further down to the empty `sales_agent_tools = []`
+
+And update it with the code below:
 
 ```python
 sales_agent_tools = [
@@ -540,14 +567,15 @@ sales_agent_tools = [
 ]
 ```
 
-We're done defining the tools each agent has access to, but we still need to define *when* these tools should be called. To do this, we need to update the agent prompts.
+We're done defining the tools each agent has access to, but we still need to define **when** these tools should be called. To do this, we need to update the agent prompts!
 
 ### Updating Agent Prompts
 
 Since the agents have now been built, we can update the coordinator agent's prompt to route to them.
 
-1. In VS Code, open the file **src/app/prompts/coordinator_agent.prompty**.
-1. Replace the contents with this text below.
+In your IDE, navigate to the file `src/app/prompts/coordinator_agent.prompty`
+
+Replace the contents with this text below: 
 
 ```text
 You are a Chat Initiator and Request Router in a bank.
@@ -558,10 +586,12 @@ If the user wants to check their account balance or make a bank transfer, transf
 You MUST include human-readable response before transferring to another agent.
 ```
 
-Now that the customer support agent has a service request tool, we can update the prompt for the customer support agent.
 
-1. Next, open the file **src/app/prompts/customer_support_agent.prompty**.
-1. Replace the contents with this text below.
+Now that the customer support agent has a service request tool, we can update the prompt for the customer support agent. 
+
+Next, navigate to the file `src/app/prompts/customer_support_agent.prompty` 
+
+Replace the contents with this text below: 
 
 ```text
 You are a customer support agent that can give general advice on banking products and branch locations
@@ -572,10 +602,12 @@ You MUST include human-readable response before transferring to another agent.
 
 Note that we are not explicitly naming the branch location tool, as this is already implied in the first part of the prompt. However, keep a note of this when you test the agent. Does it always call the tool when you expect? Or does the prompt need to be more specific?
 
-Next, update the prompt for the transactions agent.
 
-1. Open the empty file **src/app/prompts/transactions_agent.prompty**.
-1. Paste this text below.
+Next, update the prompt for the transactions agent. 
+
+In your IDE, navigate to the empty file `src/app/prompts/transactions_agent.prompty` 
+
+Paste this text below: 
 
 ```text
 You are a banking transactions agent that can handle account balance enquiries and bank transfers.
@@ -587,10 +619,11 @@ If the user needs general help, transfer to 'customer_support' for help.
 You MUST respond with the repayment amounts before transferring to another agent.
 ```
 
-Finally, lets update the prompt for the sales agent.
+Finally, lets update the prompt for the sales agent. 
 
-1. Open the empty file **src/app/prompts/sales_agent.prompty**
-1. Paste this text below.
+In your IDE, navigate to the empty file `src/app/prompts/sales_agent.prompty`
+
+Paste this text below: 
 
 ```text
 You are a sales agent that can help users with creating a new account, or taking out bank loans.
@@ -606,19 +639,14 @@ If the wants information about a product or offer, ask whether they want Credit 
 You MUST respond with the repayment amounts before transferring to another agent.
 ```
 
-## Activity 3: Semantic Search
+
+## Activity 4: Semantic Search
 
 We are going to add one more tool that is a little different from the others. This tool will allow the customer support agent to perform a semantic search for products in the bank's database. We'll use Azure Cosmos DB Vector Search capability to perform a semantic search against the OffersData container.
 
-1. In VS Code, open the file **src/app/tools/sales.py**
-1. Add these imports to the top of the file.
+In your IDE, locate the file `src/app/tools/sales.py`
 
-```python
-from src.app.services.azure_cosmos_db import vector_search
-from src.app.services.azure_open_ai import generate_embedding
-```
-
-1. Next, paste the code for this tool below the imports at the top.
+Paste the code for this following tool at the top:
 
 ```python
 @tool
@@ -631,76 +659,85 @@ def get_offer_information(user_prompt: str, accountType: str) -> list[dict[str, 
     return search_results
 ```
 
-You can implement this tool in exactly the same way as the other tools.
+You can implement this tool in exactly the same way as the other tools. Do you remember the steps? Go ahead and do it!
 
-1. In VS Code, open the **banking_agents.py**
-1. Locate this import at the top of the file.
+- Hint: The code for the `vector_search` is in `src/app/services/azure_cosmos_db.py` and `generate_embedding` is in `src/app/services/azure_open_ai.py`
 
-```python
-from src.app.tools.sales import calculate_monthly_payment, create_account
-```
+- Hint: Be sure the sales agent definition in `banking_agents.py` knows about its new tool functionality.
 
-1. Replace it with this updated import statement.
 
-```python
-from src.app.tools.sales import calculate_monthly_payment, create_account, get_offer_information
-```
 
-1. Next, locate this code.
-
-```python
-sales_agent_tools = [
-    calculate_monthly_payment,
-    create_account,
-]
-```
-
-1. And replace it with this.
-
-```python
-sales_agent_tools = [
-    get_offer_information,
-    calculate_monthly_payment,
-    create_account,
-]
-```
-
-## Activity 4: Test your Work
+## Activity 5: Test your Work
 
 With the activities in this module complete, it is time to test your work!
+
+Before we begin testing, let’s make a small update to the `interactive_chat()` function in the `banking_agents.py` file. We’ll modify it to generate a unique thread ID each time the application is restarted. This thread ID serves as the unique identifier for the conversation state. 
+
+Up to this point, we’ve been using a hardcoded thread ID to demonstrate how a conversation can be resumed even after the application stops. However, going forward, we want a fresh, unique ID to be generated on each run to represent a new conversation session.
+
+
+Within the `banking_agents.py` file locate the `def interactive_chat()` function.
+
+Immediately above the function declaration remove the below line of code:
+
+```python
+hardcoded_thread_id = "hardcoded-thread-id-01"
+```
+
+Then replace the first line immediately within the function to this:
+
+```python
+def interactive_chat():
+    thread_config = {"configurable": {"thread_id": str(uuid.uuid4()), "userId": "Mark", "tenantId": "Contoso"}}
+```
 
 ### Ready to test
 
 Let's test our agents!
 
-1. In you browser, return to the frontend and hit refresh.
-1. Start a new conversation.
-1. Type the following text to try transferring money between accounts.
+In your IDE, run the following command in your terminal:
 
-```text
-I want to transfer 500 from account Acc001 to Acc003
+```bash
+python -m src.app.banking_agents
 ```
 
-![Testing_1](./media/module-03/testing_module3_1.png)
+Try transferring money between accounts:
 
-1. Wait until the transaction has been completed by the agent.
-1. Return to the Azure Portal, open the Cosmos DB account
-1. Open the AccountsData container.
-1. Verify the transaction was successful.
+```shell
+Welcome to the single-agent banking assistant.
+Type 'exit' to end the conversation.
 
-Let's test a new scenario that will invoke a vector search in Cosmos DB on our banking offers.
+You: I want to transfer 500 from account Acc001 to Acc003
+transfer_to_transactions_agent...
+transactions_agent: To proceed with the transfer of $500 from account Acc001 to account Acc003, can you please confirm the following details:
 
-1. Return to the frontend in your browser.
-1. Create a new conversation.
-1. Type the following text to try asking about banking offers:
+- **From Account:** Acc001
+- **To Account:** Acc003
+- **Amount:** $500
 
- ```text
- Tell me about banking offers
- ```
+Is this correct?
 
-1. You should see results like this below (you might have to specify which type of offer, e.g. "Savings"):
+You: yes
+```
 
-![Testing_2](./media/module-03/testing_module3_2.png)
+When completed, check AccountsData container in Azure Cosmos DB to see if the transaction was successful.
+
+To start again, try changing the hardcoded thread id (or delete the chat entry in the Chat container in Cosmos DB), and restart the program. Try asking about banking offers to invoke a vector search:
+
+```shell
+Welcome to the single-agent banking assistant.
+Type 'exit' to end the conversation.
+
+You: Tell me about banking offers
+transfer_to_sales_agent...
+sales_agent: Would you like information about Credit Card offers or Savings offers? Let me know so I can provide the most relevant details for you!
+
+You: Savings
+
+```
+
+Type `exit` to end the test.
+
 
 ## Validation Checklist
 
