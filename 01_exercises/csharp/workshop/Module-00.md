@@ -90,12 +90,12 @@ You can run this sample app and workshop virtually by using GitHub Codespaces (r
    - [Visual Studio](https://visualstudio.microsoft.com/downloads/) or [VS Code](https://code.visualstudio.com/Download) with [C# Dev Kit](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csdevkit)
    - To build and run the frontend component, install [Node.js](https://nodejs.org/en/download/) and [Angular CLI](https://angular.dev/installation#install-angular-cli)
 
-2. Clone the repository and checkout the start branch:
+2. Clone the repository and checkout the WorkShop_v1_SKandLangGraph branch:
 
    ```bash
    git clone https://github.com/AzureCosmosDB/banking-multi-agent-workshop/
    cd banking-multi-agent-workshop
-   git checkout start
+   git checkout WorkShop_v1_SKandLangGraph
    ```
 
 3. Move on to the [Deployment](Module-00.md#deployment) section.

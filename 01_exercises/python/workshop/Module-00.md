@@ -64,13 +64,13 @@ You can run this sample app and workshop virtually by using GitHub Codespaces (r
 
 1. Install [Docker Desktop](https://docs.docker.com/desktop/), and [VS Code](https://code.visualstudio.com/Download) along with the [Dev Containers extension](https://code.visualstudio.com/docs/devcontainers/tutorial#_install-the-extension) extension.
 
-2. Clone the repository and checkout the start branch:
+2. Clone the repository and checkout the WorkShop_v1_SKandLangGraph branch:
 
    ```bash
    git clone https://github.com/AzureCosmosDB/banking-multi-agent-workshop/
    cd banking-multi-agent-workshop
    git fetch --all
-   git checkout start
+   git checkout WorkShop_v1_SKandLangGraph
    ```
 
 3. Open the repository in VS Code and select **Reopen in Container** when prompted. When asked to **Select a devcontainer.json file**, select the **Python Development Container**.
