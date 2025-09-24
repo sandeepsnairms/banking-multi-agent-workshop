@@ -5,6 +5,8 @@ Welcome to our multi-agent samples repository showcasing a retail banking scenar
 
 **Note:** This branch is still being built and may not be ready yet. Please check back later.
 
+<img src="01_exercises/media/wip.png" alt="Multi-Agent Image">
+
 
 ## Build a Multi-Agent AI application using Semantic Kernel Agents or LangGraph
 
