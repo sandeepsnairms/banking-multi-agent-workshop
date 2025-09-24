@@ -95,7 +95,7 @@ You can run this sample app and workshop virtually by using GitHub Codespaces (r
    ```bash
    git clone https://github.com/AzureCosmosDB/banking-multi-agent-workshop/
    cd banking-multi-agent-workshop
-   git checkout start
+   git checkout WorkShop_v1_SKandLangGraph
    ```
 
 3. Move on to the [Deployment](Module-00.md#deployment) section.

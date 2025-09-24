@@ -13,13 +13,13 @@ If you prefer to begin with the minimal scaffolding code and follow the step-by-
 
 Let's clone the repository to download the files to your machine.
 
-1. Create a working directory on your machine, for example: `C:\repos\HOL_SKandLangGraph`.
+1. Create a working directory on your machine, for example: `C:\repos\WorkShop_v1_SKandLangGraph`.
 2. Open PowerShell from the Start menu.
-3. Navigate to the `C:\repos\HOL_SKandLangGraph` folder.
+3. Navigate to the `C:\repos\WorkShop_v1_SKandLangGraph` folder.
 4. Clone the GitHub repository by running the following command:
 
 ```shell
-git clone --branch HOL_SKandLangGraph https://github.com/AzureCosmosDB/banking-multi-agent-workshop.git C:\repos\HOL_SKandLangGraph
+git clone --branch WorkShop_v1_SKandLangGraph https://github.com/AzureCosmosDB/banking-multi-agent-workshop.git C:\repos\WorkShop_v1_SKandLangGraph
 ```
 
 ### Resource Provisioning
@@ -29,7 +29,7 @@ Let's deploy the Azure Services needed to run the application.
 1. Open the PowerShell terminal on the Start Bar and navigate to the multi-agent-hol folder.
 
 ```shell
-cd C:\repos\HOL_SKandLangGraph\
+cd C:\repos\WorkShop_v1_SKandLangGraph\
 ```
 
 1. Authenticate  yourself
@@ -61,7 +61,7 @@ azd up
 ### 1. Start the Backend App
 
 1. Open the PowerShell terminal on the Start bar.
-1. Navigate to `C:\repos\HOL_SKandLangGraph\csharp\src\MultiAgentCopilot`.
+1. Navigate to `C:\repos\WorkShop_v1_SKandLangGraph\csharp\src\MultiAgentCopilot`.
 1. Type `code .`
 1. Open the Terminal in VS Code.
 1. Type `dotnet run` to start the multi-agent service.
@@ -71,7 +71,7 @@ azd up
 ### 2. Run the Frontend App
 
 1. Within VS Code, open a new terminal.
-1. Navigate to the `frontend` folder, `cd C:\repos\HOL_SKandLangGraph\frontend`
+1. Navigate to the `frontend` folder, `cd C:\repos\WorkShop_v1_SKandLangGraph\frontend`
 1. Copy and run the following:
 
    ```sh
