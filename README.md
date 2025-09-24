@@ -13,7 +13,7 @@ This branch of the repo shows how to build a multi-tenant, multi-agent, banking 
 - Semantic Kernel Agents in C#
 - LangGraph in Python
 
-To explore the other scenarios showcased in this repository. [Go to main branch](https://github.com/banking-multi-agent-workshop/tree/main)
+To explore the other scenarios showcased in this repository. [Go to main branch](https://github.com/AzureCosmosDB/banking-multi-agent-workshop/tree/main)
 
 
 ## Architecture Diagram
