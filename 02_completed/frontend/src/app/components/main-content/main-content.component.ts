@@ -66,7 +66,16 @@ export class MainContentComponent implements OnInit, AfterViewChecked {
       }
     });
 
-
+    // Listen for predefined messages
+    this.dataService.predefinedMessage$.subscribe(message => {
+      if (message && message.trim() !== '') {
+        this.userInput = message;
+        // Auto-send the predefined message after a short delay
+        setTimeout(() => {
+          this.handleChatInput();
+        }, 500);
+      }
+    });
   }
   handleSend() {
     this.initCompletion();
@@ -74,6 +83,35 @@ export class MainContentComponent implements OnInit, AfterViewChecked {
     setTimeout(() => {
       this.isClicked = false; // Reset after a short delay for effect
     }, 300);
+  }
+
+  handleChatInput() {
+    // If no session exists, create one first
+    if (this.sessionId === '' || !this.sessionId) {
+      this.createNewChatSession();
+    } else {
+      this.initCompletion();
+    }
+  }
+
+  createNewChatSession() {
+    this.loadingService.show();
+    this.sessionService.createChatSession(this.dataService.loggedInTenant, this.dataService.loggedInUser).subscribe({
+      next: (response: any) => {
+        this.sessionId = response.sessionId;
+        this.currentSession = response;
+        this.dataService.changeMessage(this.sessionId);
+        this.loadingService.hide();
+        // Now send the message
+        this.initCompletion();
+      },
+      error: (err: any) => {
+        console.error('Error creating chat session', err);
+        this.errorMessage = "Failed to create chat session";
+        this.loadingService.hide();
+        this.toastService.showMessage('Failed to create chat session', 'error');
+      }
+    });
   }
 
   getSelectedSubject() {
@@ -250,6 +288,11 @@ export class MainContentComponent implements OnInit, AfterViewChecked {
   endSession() {
     this.router.navigate(['/chat', '']);
   }
+  
+  navigateToDashboard() {
+    this.router.navigate(['/dashboard']);
+  }
+  
   logout() {
     this.router.navigate(['/login']);
   }

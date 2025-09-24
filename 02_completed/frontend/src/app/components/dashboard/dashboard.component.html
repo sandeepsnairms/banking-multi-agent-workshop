@@ -1,0 +1,208 @@
+<div class="dashboard-container">
+  <div class="dashboard-header">
+    <h1>Dashboard</h1>
+  </div>
+  
+  <div class="dashboard-content">
+    <!-- Account Cards Section -->
+    <section class="account-cards-section">
+      <div class="section-header">
+        <h2>Account Cards</h2>
+        <button mat-icon-button 
+                (click)="refreshAccounts()" 
+                [disabled]="isLoadingAccounts"
+                title="Refresh Accounts"
+                class="refresh-btn">
+          <mat-icon>refresh</mat-icon>
+        </button>
+      </div>
+      
+      <!-- Loading indicator -->
+      <div class="loading-indicator" *ngIf="isLoadingAccounts">
+        <mat-progress-spinner diameter="30" mode="indeterminate"></mat-progress-spinner>
+        <span>Loading accounts...</span>
+      </div>
+      
+      <div class="cards-grid" *ngIf="!isLoadingAccounts">
+        <div class="account-card" *ngFor="let card of accountCards">
+          <div class="card-content">
+            <!-- Card Logo Section -->
+            <div class="card-logo-section">
+              <div class="card-logo-container" *ngIf="hasCardLogo(card.cardType!)">
+                <img [src]="getCardLogo(card.cardType!)?.logoPath" 
+                     [alt]="getCardLogo(card.cardType!)?.altText"
+                     class="card-logo-image"
+                     [title]="getCardTypeName(card.cardType!)">
+              </div>
+              <div class="card-type-name" *ngIf="card.cardType">
+                {{ getCardTypeName(card.cardType) }}
+              </div>
+            </div>
+            
+            <!-- Account ID -->
+            <div class="card-id" *ngIf="card.id">
+              <span class="label">ID:</span>
+              <span class="value">{{ card.id }}</span>
+            </div>
+            
+            <!-- Account Holder Name -->
+            <div class="card-holder">
+              <span class="label">Name:</span>
+              <span class="value">{{ card.name || 'Account Holder' }}</span>
+            </div>
+            
+            <!-- Account Type -->
+            <div class="card-type">
+              <span class="label">Type:</span>
+              <span class="value">{{ card.accountType }}</span>
+            </div>
+            
+            <!-- Account Balance -->
+            <div class="card-balance">
+              <span class="label">Balance:</span>
+              <span class="value balance-amount">{{ card.balance }}</span>
+            </div>
+            
+            <!-- Account Limit -->
+            <div class="card-limit" *ngIf="card.limit && card.limit !== 'N/A'">
+              <span class="label">Limit:</span>
+              <span class="value limit-amount">{{ card.limit }}</span>
+            </div>
+            
+            <!-- Account Number (masked) -->
+            <div class="card-number" *ngIf="card.accountNumber">
+              <span class="label">Account Number:</span>
+              <span class="value">{{ card.accountNumber }}</span>
+            </div>
+            
+            <!-- Card Number -->
+            <div class="card-number-display">
+              <span class="label">Card Number:</span>
+              <span class="value">{{ card.cardNumber }}</span>
+            </div>
+            
+            <!-- Account Status -->
+            <div class="card-status" *ngIf="card.accountStatus">
+              <span class="label">Status:</span>
+              <span class="value status-badge" [ngClass]="card.accountStatus.toLowerCase()">{{ card.accountStatus }}</span>
+            </div>
+            
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Latest Transactions Section -->
+    <section class="transactions-section">
+      <div class="section-header">
+        <h2>Latest Transactions</h2>
+        <button mat-icon-button 
+                (click)="refreshTransactions()" 
+                [disabled]="isLoadingTransactions"
+                title="Refresh Transactions"
+                class="refresh-btn">
+          <mat-icon>refresh</mat-icon>
+        </button>
+      </div>
+      
+      <!-- Loading indicator for transactions -->
+      <div class="loading-indicator" *ngIf="isLoadingTransactions">
+        <mat-progress-spinner diameter="20" mode="indeterminate"></mat-progress-spinner>
+        <span>Loading transactions...</span>
+      </div>
+      
+      <div class="transactions-list" *ngIf="!isLoadingTransactions">
+        <div class="transaction-item" *ngFor="let transaction of latestTransactions">
+          <div class="transaction-main-info">
+            <div class="transaction-header">
+              <span class="transaction-description">{{ transaction.description }}</span>
+              <span class="transaction-id">ID: {{ transaction.id }}</span>
+            </div>
+            <div class="transaction-details">
+              <span class="transaction-date" 
+                    [title]="transaction.transactionDateTime">
+                {{ transaction.date }}
+              </span>
+              <span class="transaction-balance">Balance: {{ transaction.balance }}</span>
+            </div>
+          </div>
+          <div class="transaction-amount-container">
+            <span class="transaction-amount" [ngClass]="transaction.type">
+              {{ transaction.amount }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Service Requests Section -->
+    <section class="service-requests-section">
+      <div class="section-header">
+        <h2>Service Requests</h2>
+        <button mat-icon-button 
+                (click)="refreshServiceRequests()" 
+                [disabled]="isLoadingServiceRequests"
+                title="Refresh Service Requests"
+                class="refresh-btn">
+          <mat-icon>refresh</mat-icon>
+        </button>
+      </div>
+      
+      <!-- Loading indicator for service requests -->
+      <div class="loading-indicator" *ngIf="isLoadingServiceRequests">
+        <mat-progress-spinner diameter="20" mode="indeterminate"></mat-progress-spinner>
+        <span>Loading service requests...</span>
+      </div>
+      
+      <div class="service-requests-list" *ngIf="!isLoadingServiceRequests">
+        <div class="service-requests-table">
+          <table class="requests-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Type</th>
+                <th>Requested On</th>
+                <th>Scheduled</th>
+                <th>SR Type</th>
+                <th>Recipient Email</th>
+                <th>Amount</th>
+                <th>Complete</th>
+                <th>Annotations</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let request of serviceRequests" class="service-request-row">
+                <td class="request-id-cell">
+                  <span class="request-id-short" [title]="request.id">
+                    {{ request.id.substring(0, 8) }}...
+                  </span>
+                </td>
+                <td class="request-type-cell">{{ request.type }}</td>
+                <td class="request-date-cell">{{ request.requestedOn }}</td>
+                <td class="request-scheduled-cell">{{ request.scheduledDateTime }}</td>
+                <td class="request-sr-type-cell">
+                  <span class="sr-type-badge">{{ request.srType }}</span>
+                </td>
+                <td class="request-email-cell">{{ request.recipientEmail }}</td>
+                <td class="request-amount-cell">{{ request.debitAmount }}</td>
+                <td class="request-complete-cell">
+                  <span class="completion-status" [ngClass]="request.isComplete ? 'completed' : 'pending'">
+                    {{ request.isComplete ? 'Yes' : 'No' }}
+                  </span>
+                </td>
+                <td class="request-annotations-cell">
+                  <div class="annotations-list">
+                    <span *ngFor="let annotation of request.requestAnnotations; let last = last" 
+                          class="annotation-item">
+                      {{ annotation }}<span *ngIf="!last">, </span>
+                    </span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>

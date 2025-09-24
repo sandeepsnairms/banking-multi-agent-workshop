@@ -1,16 +1,33 @@
-<div  class="user-greating">
-  <p class="greeting-name"> Hi, {{ loggedInUser }}!</p>
-  <p>How can I help you with your banking needs today?</p>
-</div>
-<div (click)="createNewSession()" class="subject-container">
-  <div
-    class="subject-item"
-    [ngClass]="{ 'selected-subject': isSelected(Subject.SERVICEREQUESTS) }"
-    role="button"
-    (click)="setSubjectSelected(Subject.SERVICEREQUESTS)"
-  >
-    <p>New Conversation</p>
-    <div class="icon-circle">
-      <mat-icon class="bottom-right-icon">chat</mat-icon>
+<div class="chat-options-container">
+  <div class="quick-actions">
+    <h5>Quick Start</h5>
+    <div class="action-buttons">
+      <button class="action-btn" (click)="createNewSession(); setSubjectSelected(Subject.SERVICEREQUESTS)">
+        <mat-icon>chat</mat-icon>
+        <span>New Chat</span>
+      </button>
     </div>
   </div>
+  
+  <div class="suggested-topics">
+    <h6>Suggested Topics</h6>
+    <div class="topic-list">
+      <button class="topic-btn" (click)="createNewSession(); sendPredefinedMessage('What is my account balance?')">
+        <mat-icon>account_balance_wallet</mat-icon>
+        <span>Account Balance</span>
+      </button>
+      <button class="topic-btn" (click)="createNewSession(); sendPredefinedMessage('Show me my recent transactions')">
+        <mat-icon>receipt</mat-icon>
+        <span>Recent Transactions</span>
+      </button>
+      <button class="topic-btn" (click)="createNewSession(); sendPredefinedMessage('Help me with payments')">
+        <mat-icon>payment</mat-icon>
+        <span>Payments Help</span>
+      </button>
+      <button class="topic-btn" (click)="createNewSession(); sendPredefinedMessage('What card services are available?')">
+        <mat-icon>credit_card</mat-icon>
+        <span>Card Services</span>
+      </button>
+    </div>
+  </div>
+</div>

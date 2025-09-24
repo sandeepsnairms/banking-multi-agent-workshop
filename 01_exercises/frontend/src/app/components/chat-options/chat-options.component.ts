@@ -8,6 +8,7 @@ import { Session } from '../../models/session';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ToastService } from '../../services/toast.service';
 import { LoadingService } from '../../services/loading.service';
+
 @Component({
   selector: 'app-chat-options',
   standalone: false,
@@ -19,6 +20,7 @@ export class ChatOptionsComponent {
   Subject = Subject;
   currentSession!: Session;
   sessionHistory: Session[] = [];
+  
   constructor(
     private chatOptionsService: ChatOptionsService,
     private sessionService: SessionService,
@@ -29,13 +31,11 @@ export class ChatOptionsComponent {
     dataService.sessionData$.subscribe((data) => {
       if (data) {
         this.currentSession = data;
-      }else
-      { this.currentSession = new Session(this.dataService.loggedInTenant, this.dataService.loggedInUser,'' );
+      } else {
+        this.currentSession = new Session(this.dataService.loggedInTenant, this.dataService.loggedInUser, '');
       }
     });
-     this.loggedInUser = this.dataService.loggedInUser;
-
-
+    this.loggedInUser = this.dataService.loggedInUser;
   }
 
   setSubjectSelected(subject: string) {
@@ -48,25 +48,27 @@ export class ChatOptionsComponent {
 
   createNewSession(): void {
     this.loadingService.show();
-    this.sessionService.createChatSession(this.dataService.loggedInTenant,this.dataService.loggedInUser, ).subscribe((response: any) => {
+    this.sessionService.createChatSession(this.dataService.loggedInTenant, this.dataService.loggedInUser).subscribe((response: any) => {
       this.currentSession = response;
-       this.getSessions() ;
-      this.toastService.showMessage('Session created successfully!', 'success');
-      this.router.navigate(['/chat', this.currentSession.sessionId]);
+      this.dataService.changeMessage(response.sessionId);
+      this.getSessions();
+      this.toastService.showMessage('Chat session ready!', 'success');
       this.loadingService.hide();
     });
   }
 
-  
+  sendPredefinedMessage(message: string): void {
+    // Set the message in data service for the main-content component to use
+    this.dataService.setPredefinedMessage(message);
+  }
+
   getSessions() {
     this.loadingService.show();
     this.sessionService.getChatSessions(this.dataService.loggedInTenant, this.dataService.loggedInUser).subscribe((response: any) => {
       this.sessionHistory = response;
-      const updatedSessionList = [...this.sessionHistory];  // Assuming you have the latest array of sessions
+      const updatedSessionList = [...this.sessionHistory];
       this.dataService.updateSession(updatedSessionList);
       this.loadingService.hide();
-
     });
   }
-
 }

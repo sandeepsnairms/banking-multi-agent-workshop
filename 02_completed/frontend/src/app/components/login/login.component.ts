@@ -27,7 +27,7 @@ export class LoginComponent  {
   submit() {
     if (this.form.valid) {
       this.submitEM.emit(this.form.value);
-      this.router.navigate(['/chat', '']);
+      this.router.navigate(['/dashboard']);
     }
   }
 
