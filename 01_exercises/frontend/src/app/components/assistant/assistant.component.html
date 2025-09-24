@@ -1,15 +1,60 @@
-<mat-sidenav-container class="dashboard-container">
-  <mat-sidenav #sidenav mode="over" [(opened)]="isSidebarOpened" class="sidebar">
-    <app-sidebar></app-sidebar>
-  </mat-sidenav>
+<div class="banking-app-container">
+  <mat-sidenav-container class="dashboard-container">
+    <mat-sidenav #sidenav mode="side" [(opened)]="isSidebarOpened" class="sidebar">
+      <app-sidebar></app-sidebar>
+    </mat-sidenav>
 
-  <mat-sidenav-content
-    [ngClass]="{
-      'content-expanded': isSidebarOpened,
-      'content-collapsed': !isSidebarOpened
-    }"
-    class="main-content"
-  >
-   <app-main-content (sidebarToggle)="toggleSidebar()"></app-main-content>
-  </mat-sidenav-content>
-</mat-sidenav-container>
+    <mat-sidenav-content class="main-content">
+      <!-- Header with user info -->
+      <mat-toolbar color="primary" class="app-header">
+        <div class="header-left">
+          <button mat-icon-button (click)="toggleSidebar()">
+            <mat-icon>menu</mat-icon>
+          </button>
+          <span class="app-title">Banking Dashboard</span>
+        </div>
+        
+        <div class="header-right">
+          <button mat-icon-button [matMenuTriggerFor]="notificationMenu">
+            <mat-icon>notifications</mat-icon>
+          </button>
+          
+          <div class="user-info">
+            <img [src]="imagePath" alt="User Avatar" class="user-avatar">
+            <span class="user-name">{{ loggedInUser }}</span>
+            <button mat-icon-button [matMenuTriggerFor]="userMenu">
+              <mat-icon>expand_more</mat-icon>
+            </button>
+          </div>
+
+          <mat-menu #userMenu="matMenu">
+            <button mat-menu-item (click)="navigateToProfile()">Profile</button>
+            <button mat-menu-item (click)="logout()">Logout</button>
+          </mat-menu>
+
+          <mat-menu #notificationMenu="matMenu">
+            <button mat-menu-item>No new notifications</button>
+          </mat-menu>
+        </div>
+      </mat-toolbar>
+
+      <!-- Main Content Area -->
+      <div class="content-area">
+        <router-outlet></router-outlet>
+      </div>
+    </mat-sidenav-content>
+  </mat-sidenav-container>
+
+  <!-- AI Assistant Floating Panel - Only show on dashboard routes, hide on chat routes -->
+  <div class="ai-assistant-float" 
+       *ngIf="showAssistantPanel"
+       [ngClass]="{'expanded': assistantExpanded}">
+    <div class="assistant-header" (click)="toggleAssistant()">
+      <span>AI Assistant</span>
+      <mat-icon>{{ assistantExpanded ? 'expand_more' : 'expand_less' }}</mat-icon>
+    </div>
+    <div class="assistant-content" *ngIf="assistantExpanded">
+      <app-main-content></app-main-content>
+    </div>
+  </div>
+</div>

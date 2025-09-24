@@ -1,17 +1,109 @@
-/* Default content style when sidebar is open */
+.banking-app-container {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-container {
+  flex: 1;
+  height: 100%;
+}
+
+.sidebar {
+  width: 280px;
+  background-color: white;
+  border-right: 1px solid #e0e7ff;
+  overflow: hidden;
+}
+
 .main-content {
-  transition: margin-left 0.3s ease;  /* Smooth transition */
+  display: flex;
+  flex-direction: column;
 }
 
-.content-expanded {
-  margin-left: 300px;  /* Sidebar is open, content takes up less space */
+.app-header {
+  background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+  color: white;
+  border-bottom: 1px solid #1e3a8a;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 24px;
+  box-shadow: 0 2px 8px rgba(30, 58, 138, 0.15);
 }
 
-.content-collapsed {
-  margin-left: 0;  /* Sidebar is closed, content takes up full space */
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
-/* Optional: if you want to adjust width of the content container */
-.main-content-container {
-  transition: width 0.3s ease;
+.app-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+
+.user-name {
+  font-weight: 500;
+  color: #1e3a8a;
+}
+
+.content-area {
+  flex: 1;
+  overflow-y: auto;
+  background-color: #f8fafc;
+}
+
+.ai-assistant-float {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 350px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  transition: all 0.3s ease;
+  border: 1px solid #e0e7ff;
+}
+
+.ai-assistant-float.expanded {
+  height: 500px;
+}
+
+.assistant-header {
+  padding: 16px;
+  background-color: #2563eb;
+  color: white;
+  border-radius: 12px 12px 0 0;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 500;
+}
+
+.assistant-content {
+  height: 420px;
+  overflow: hidden;
 }

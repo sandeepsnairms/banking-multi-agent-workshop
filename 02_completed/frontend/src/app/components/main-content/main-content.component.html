@@ -1,97 +1,107 @@
-<!-- inside your main layout component -->
-<div class="main-content-container">
-  <mat-toolbar color="primary" class="fixed-toolbar">
-    <div class="toolbar-title-container">
-      <button mat-icon-button (click)="toggleSidebar()">
-        <mat-icon>menu</mat-icon>
-      </button>
-      <h5 class="toolbar-title">Banking Assistant</h5>
+<!-- Compact chat interface for floating panel -->
+<div class="chat-container">
+  <!-- Chat header - only show if there's an active conversation -->
+  <div class="chat-header" *ngIf="conversationHistory.length > 0">
+    <div class="chat-title">
+      <mat-icon class="chat-icon">smart_toy</mat-icon>
+      <span>{{ summarisedName }}</span>
     </div>
-    <span class="toolbar-spacer"></span>
-    <div class="custom-container">
-      <button mat-icon-button class="custom-button" [matMenuTriggerFor]="userMenu">
-        <img [src]="imagePath" alt="custom icon" />
+    <div class="header-actions">
+      <button mat-icon-button class="dashboard-btn" (click)="navigateToDashboard()" title="Back to Dashboard">
+        <mat-icon>dashboard</mat-icon>
       </button>
-      <h6>{{ loggedInUser }}</h6>
-
-      <mat-menu #userMenu="matMenu">
-        <button mat-menu-item (click)="navigateToProfile()">Profile</button>
-        <button mat-menu-item (click)="logout()">Logout</button>
-      </mat-menu>
-    </div>
-  </mat-toolbar>
-
-  <div class="main-content">
-    <mat-toolbar *ngIf="conversationHistory.length > 0" color="primary" class="top-menu-bar">
-      <h5 class="toolbar-title">{{ summarisedName }}</h5>
-      <span class="toolbar-spacer"></span>
-      <button mat-icon-button (click)="endSession()">
+      <button mat-icon-button class="close-btn" (click)="endSession()">
         <mat-icon>close</mat-icon>
       </button>
-    </mat-toolbar>
+    </div>
+  </div>
 
-    <div class="messages-wrapper">
-      <app-chat-options *ngIf="conversationHistory.length == 0"></app-chat-options>
+  <!-- Chat messages area -->
+  <div class="chat-messages" #messagesContainer>
+    <!-- Welcome message when no conversation -->
+    <div class="welcome-message" *ngIf="conversationHistory.length === 0">
+      <div class="welcome-header">
+        <button mat-icon-button class="dashboard-nav-btn" (click)="navigateToDashboard()" title="Back to Dashboard">
+          <mat-icon>dashboard</mat-icon>
+        </button>
+      </div>
+      <mat-icon class="welcome-icon">smart_toy</mat-icon>
+      <h4>Banking Assistant</h4>
+      <p>Hello {{ loggedInUser }}! How can I help you with your banking needs today?</p>
+      
+      <!-- Show chat options inline for floating panel -->
+      <app-chat-options></app-chat-options>
+    </div>
 
-      <div class="conversations-container">
-        <div class="conversations">
-          <div class="conversation-container" *ngFor="let conversation of conversationHistory">
-            <div class="message user" *ngIf="conversation.sender === 'User'">
-              <div class="message-content">
-                <button mat-icon-button class="custom-icon-button">
-                  <img [src]="imagePath" alt="custom icon" />
-                </button>
-                <p class="user-text">{{ conversation.prompt }}</p>
-              </div>
-            </div>
+    <!-- Chat options for new conversation - removed duplicate -->
 
-            <div class="message assistant" *ngIf="conversation.sender !== 'User'">
-              <div class="message-content">
-                <button mat-icon-button class="custom-icon-button">
-                  <mat-icon class="medium-icon">assistant</mat-icon>
-                </button>
-                <p class="user-text">{{ conversation.completion }}</p>
-
-                <div class="reaction-buttons">
-                  <button mat-icon-button class="reaction-btn">
-                    <mat-icon class="thumb-icon">thumb_up</mat-icon>
-                  </button>
-                  <button mat-icon-button class="reaction-btn">
-                    <mat-icon class="thumb-icon">thumb_down</mat-icon>
-                  </button>
-                  <button mat-icon-button class="debug-btn" (click)="toggleDebugInfo(conversation)">
-                    <mat-icon>bug_report</mat-icon>
-                  </button>
-                </div>
-
-                <div class="agent-info">
-                  <mat-icon class="highlight-icon">person</mat-icon> Agent: {{ conversation.sender || 'Banking Assistant' }}
-                </div>
-              </div>
-            </div>
+    <!-- Conversation messages -->
+    <div class="message-list">
+      <div class="message" *ngFor="let conversation of conversationHistory; let last = last" 
+           [ngClass]="conversation.sender === 'User' ? 'user-message' : 'assistant-message'"
+           #latestMessage>
+        
+        <!-- User message -->
+        <div class="message-bubble user-bubble" *ngIf="conversation.sender === 'User'">
+          <div class="user-message-content">
+            <div class="message-text">{{ conversation.prompt }}</div>
           </div>
+          <div class="user-avatar">
+            <img [src]="imagePath" alt="User Avatar" *ngIf="imagePath; else defaultUserIcon">
+            <ng-template #defaultUserIcon>
+              <mat-icon>person</mat-icon>
+            </ng-template>
+          </div>
+        </div>
 
-          <div class="error-message" *ngIf="errorMessage">
-            <p>{{ errorMessage }}</p>
+        <!-- Assistant message -->
+        <div class="message-bubble assistant-bubble" *ngIf="conversation.sender !== 'User'">
+          <div class="assistant-avatar">
+            <mat-icon>smart_toy</mat-icon>
+          </div>
+          <div class="message-content">
+            <div class="message-text" [innerHTML]="conversation.completion"></div>
+            <div class="message-actions">
+              <button mat-icon-button class="action-btn" title="Good response">
+                <mat-icon>thumb_up</mat-icon>
+              </button>
+              <button mat-icon-button class="action-btn" title="Poor response">
+                <mat-icon>thumb_down</mat-icon>
+              </button>
+              <button mat-icon-button class="action-btn" title="Debug info" 
+                      (click)="toggleDebugInfo(conversation)">
+                <mat-icon>info</mat-icon>
+              </button>
+            </div>
+            <div class="agent-tag">{{ conversation.sender || 'Banking Assistant' }}</div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- INPUT container is now part of .main-content -->
-    <div class="input-container" *ngIf="sessionId != ''">
-      <div class="input-wrapper">
-        <input
-          type="text"
-          [(ngModel)]="userInput"
-          (keyup.enter)="initCompletion()"
-          placeholder="Ask your question here"
-          [maxlength]="maxInputLength"
-        />
-        <span class="send-icon" (click)="initCompletion()">
-          <i class="fa fa-paper-plane"></i>
-        </span>
-      </div>
+    <!-- Error message -->
+    <div class="error-message" *ngIf="errorMessage">
+      <mat-icon>error</mat-icon>
+      <span>{{ errorMessage }}</span>
     </div>
+  </div>
+
+  <!-- Chat input -->
+  <div class="chat-input">
+    <div class="input-wrapper">
+      <input type="text" 
+             [(ngModel)]="userInput" 
+             (keyup.enter)="handleChatInput()"
+             placeholder="Type your message..."
+             [maxlength]="maxInputLength"
+             class="message-input">
+      <button mat-icon-button 
+              class="send-btn" 
+              (click)="handleChatInput()"
+              [disabled]="!userInput.trim() || isLoading">
+        <mat-icon>send</mat-icon>
+      </button>
+    </div>
+    <div class="input-hint">{{ userInput.length }}/{{ maxInputLength }}</div>
   </div>
 </div>

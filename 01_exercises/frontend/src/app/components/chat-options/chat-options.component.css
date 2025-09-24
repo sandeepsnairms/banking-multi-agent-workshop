@@ -1,65 +1,97 @@
-.main-container {
-  margin-left: 0; /* Move the entire content to the left */
+/* Compact chat options for floating panel */
+.chat-options-container {
+  padding: 12px;
+  font-family: 'Open Sans', sans-serif;
 }
 
-.user-greating {
-  font-size: 2.8rem;
-  line-height: 1.2;
-  color: #c4c7c5;
-  max-width: 70%;
-  margin-left: 0; /* Ensure greeting section is aligned to the left */
+.quick-actions {
+  margin-bottom: 16px;
 }
 
-.user-greating .greeting-name {
-  color: purple;
+.quick-actions h5 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e3a8a;
 }
 
-.user-greating p {
-  margin: 0;
-}
-
-.subject-container {
-  margin-top: 2rem;
+.action-buttons {
   display: flex;
-  flex-wrap: wrap;
-  margin-bottom: 2rem;
-  margin-left: 0; /* Move subjects to the left */
+  gap: 8px;
 }
 
-.subject-item {
-  padding: 1.1rem;
-  background-color: #f0f4f9;
-  height: 140px;
-  width: 140px;
-  margin-right: 3rem;
-  border-radius: 10px;
-  position: relative;
-  cursor: pointer;
-  user-select: none;
-}
-
-.icon-circle {
-  background-color: white;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
+.action-btn {
   display: flex;
-  justify-content: center;
   align-items: center;
-  position: absolute;
-  bottom: 10px;
-  right: 10px;
-  margin-bottom: 0.3rem;
-  margin-right: 0.3rem;
+  gap: 6px;
+  padding: 8px 12px;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
 }
 
-.bottom-right-icon {
-  position: absolute;
-  bottom: 8px;
-  right: 8px;
+.action-btn:hover {
+  background: #1d4ed8;
 }
 
-.selected-subject,
-.subject-item:hover {
-  background-color: #cf9fff;
+.action-btn mat-icon {
+  font-size: 16px;
+}
+
+.suggested-topics {
+  margin-top: 16px;
+}
+
+.suggested-topics h6 {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #3730a3;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.topic-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.topic-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #f8fafc;
+  color: #1e3a8a;
+  border: 1px solid #e0e7ff;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  text-align: left;
+  transition: all 0.2s ease;
+}
+
+.topic-btn:hover {
+  background: #eff6ff;
+  border-color: #2563eb;
+  color: #1e3a8a;
+}
+
+.topic-btn mat-icon {
+  font-size: 16px;
+  color: #3730a3;
+}
+
+.topic-btn:hover mat-icon {
+  color: #2563eb;
+}
+
+.topic-btn span {
+  font-weight: 500;
 }

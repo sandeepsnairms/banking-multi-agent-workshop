@@ -1,11 +1,11 @@
-import { ChangeDetectorRef, Component, OnInit, resolveForwardRef } from '@angular/core';
-import { ChatOptionsService } from '../../services/chat-options/chat-options.service';
+import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
 import { SessionService } from '../../services/conversations-service/conversations.service';
-import { Session } from '../../models/session';
 import { DataService } from '../../services/data.service';
 import { LoadingService } from '../../services/loading.service';
 import { ToastService } from '../../services/toast.service';
-import { Router } from '@angular/router';
+import { Session } from '../../models/session';
+
 @Component({
   selector: 'app-sidebar',
   standalone: false,
@@ -13,77 +13,141 @@ import { Router } from '@angular/router';
   styleUrl: './sidebar.component.css'
 })
 export class SidebarComponent implements OnInit {
-  sessionData: any;
-  sessionHistory: Session[] = [];
-  isSidebarOpen: boolean = false;
+  sessions: Session[] = [];
+  isLoadingSessions: boolean = false;
+  currentSessionId: string = '';
+  loggedInUser: string = '';
 
-  isEditing = false;
-  currentEditingSession: Session | null = null;
-  constructor(private loadingSpinnerService: LoadingService,
-    private chatOptionsService: ChatOptionsService,
+  constructor(
     private sessionService: SessionService,
-    public dataService: DataService,
-    private router: Router,
+    private dataService: DataService,
+    private loadingService: LoadingService,
     private toastService: ToastService,
-    private cdr: ChangeDetectorRef
+    private router: Router
   ) {
+    this.loggedInUser = this.dataService.loggedInUser;
+  }
+
+  ngOnInit(): void {
+    this.loadSessions();
     
-  }
-  ngOnInit() {
-    this.getSessions();
-    this.dataService.sessionData$.subscribe((data) => {
-      this.sessionData = data;
-    
-    });
-  }
-  toggleSidebar() {
-    this.isSidebarOpen = !this.isSidebarOpen;
-  }
-
-
-  startEditing(session: Session): void {
-    this.isEditing = true;
-    this.currentEditingSession = session;
-
-  }
-
-  stopEditing(session: Session): void {
-    this.isEditing = false;
-    this.currentEditingSession = null;
-    this.sessionService.renameSession(this.dataService.loggedInTenant, this.dataService.loggedInUser, session.sessionId, session.name).subscribe((response: any) => {
-      this.toastService.showMessage('Session renamed successfully!', 'success');
-      this.getSessions();
-    });
-  }
-
-  getSessions() {
-    this.loadingSpinnerService.show();
-    this.sessionService.getChatSessions(this.dataService.loggedInTenant, this.dataService.loggedInUser).subscribe((response: any) => {
-      this.sessionHistory = response;
-      const updatedSessionList = [...this.sessionHistory];  // Assuming you have the latest array of sessions
-      this.dataService.updateSession(updatedSessionList);
-      if (this.sessionHistory.length == 0) {
-        this.router.navigate(['/chat', '']);
+    // Listen for session updates
+    this.dataService.sessionData$.subscribe((sessions) => {
+      if (sessions) {
+        this.sessions = sessions;
       }
-      this.loadingSpinnerService.hide();
+    });
 
+    // Listen for current session changes
+    this.dataService.currentMessage.subscribe(sessionId => {
+      this.currentSessionId = sessionId;
     });
   }
 
-  isSessionEditing(session: Session): boolean {
-    return this.isEditing && this.currentEditingSession === session;
-  }
+  /**
+   * Load all chat sessions for the current user
+   */
+  loadSessions(): void {
+    this.isLoadingSessions = true;
+    const tenantId = this.dataService.loggedInTenant || 'Contoso';
+    const userId = this.dataService.loggedInUser || 'Mark';
 
-
-  removeSession(session : Session) {
-    this.loadingSpinnerService.show();
-    this.sessionService.removeSession(this.dataService.loggedInTenant, this.dataService.loggedInUser, session.sessionId).subscribe((response: any) => {
-      this.getSessions();
-      this.router.navigate(['/chat', '']);
-      this.loadingSpinnerService.hide();
+    this.sessionService.getChatSessions(tenantId, userId).subscribe({
+      next: (response: Session[]) => {
+        this.sessions = response;
+        this.dataService.updateSession(response);
+        this.isLoadingSessions = false;
+        console.log('Sessions loaded:', response);
+      },
+      error: (error: any) => {
+        console.error('Error loading sessions:', error);
+        this.isLoadingSessions = false;
+        this.toastService.showMessage('Failed to load chat sessions', 'error');
+      }
     });
   }
 
+  /**
+   * Create a new chat session
+   */
+  createNewSession(): void {
+    this.isLoadingSessions = true;
+    const tenantId = this.dataService.loggedInTenant || 'Contoso';
+    const userId = this.dataService.loggedInUser || 'Mark';
 
+    this.sessionService.createChatSession(tenantId, userId).subscribe({
+      next: (response: Session) => {
+        this.dataService.changeMessage(response.sessionId);
+        this.loadSessions(); // Refresh the session list
+        this.router.navigate(['/chat', response.sessionId]);
+        this.toastService.showMessage('New chat session created!', 'success');
+        this.isLoadingSessions = false;
+      },
+      error: (error: any) => {
+        console.error('Error creating session:', error);
+        this.isLoadingSessions = false;
+        this.toastService.showMessage('Failed to create new session', 'error');
+      }
+    });
+  }
 
+  /**
+   * Navigate to a specific chat session
+   */
+  openSession(sessionId: string): void {
+    this.dataService.changeMessage(sessionId);
+    this.router.navigate(['/chat', sessionId]);
+  }
+
+  /**
+   * Delete a chat session
+   */
+  deleteSession(sessionId: string, event: Event): void {
+    event.stopPropagation(); // Prevent opening the session when clicking delete
+    
+    if (confirm('Are you sure you want to delete this chat session?')) {
+      const tenantId = this.dataService.loggedInTenant || 'Contoso';
+      const userId = this.dataService.loggedInUser || 'Mark';
+
+      this.sessionService.removeSession(tenantId, userId, sessionId).subscribe({
+        next: () => {
+          this.loadSessions(); // Refresh the session list
+          this.toastService.showMessage('Session deleted successfully', 'success');
+          
+          // If we deleted the current session, navigate to a new one
+          if (this.currentSessionId === sessionId) {
+            this.router.navigate(['/chat', '']);
+          }
+        },
+        error: (error: any) => {
+          console.error('Error deleting session:', error);
+          this.toastService.showMessage('Failed to delete session', 'error');
+        }
+      });
+    }
+  }
+
+  /**
+   * Check if a session is currently active
+   */
+  isActiveSession(sessionId: string): boolean {
+    return this.currentSessionId === sessionId;
+  }
+
+  /**
+   * Get display name for session (truncate if too long)
+   */
+  getSessionDisplayName(sessionName: string): string {
+    const maxLength = 25;
+    return sessionName.length > maxLength 
+      ? sessionName.substring(0, maxLength) + '...' 
+      : sessionName;
+  }
+
+  /**
+   * TrackBy function for session list performance
+   */
+  trackBySessionId(index: number, session: Session): string {
+    return session.sessionId;
+  }
 }

@@ -1,40 +1,91 @@
-<mat-toolbar color="primary" class="fixed-toolbar">
-  <mat-icon class="menu-icon" aria-hidden="false" aria-label="Menu icon"  ></mat-icon>
-  <span class="title">Recent Conversations</span>
-</mat-toolbar>
-
-<ng-container>
-  <mat-nav-list>
-    <div class="recent-conversations">
-      <div class="conversation-card" *ngFor="let session of (dataService.sessionData$ | async)">
-        <div class="card-header">
-          <mat-icon class="conversation-icon" aria-hidden="false" aria-label="chat icon" fontIcon="chat"></mat-icon>
-          
-          <!-- Display mode: show session name as a link -->
-          <ng-container *ngIf="!isSessionEditing(session); else editMode">
-            <a [routerLink]="['/chat', session.sessionId]" class="session-name">{{ session.name }}</a>
-          </ng-container>
-          
-          <!-- Edit mode: show input field -->
-          <ng-template #editMode>
-            <mat-form-field appearance="outline">
-              <input matInput [(ngModel)]="session.name" (keydown.enter)="stopEditing(session)" (blur)="stopEditing(session)" autofocus>
-            </mat-form-field>
-          </ng-template>
-        </div>
-
-        <!-- Separator line -->
-        <hr>
-
-        <div class="card-footer">
-          <button mat-icon-button class="edit-btn" (click)="startEditing(session)">
-            <mat-icon>edit</mat-icon>
-          </button>
-          <button mat-icon-button class="delete-btn" (click)="removeSession(session)">
-            <mat-icon>delete</mat-icon>
-          </button>
-        </div>
-      </div>
+<div class="sidebar-container">
+  <mat-toolbar color="primary" class="fixed-toolbar">
+    <div class="bank-logo">
+      <mat-icon class="menu-icon">smart_toy</mat-icon>
+      <span class="bank-name">Chat Sessions</span>
     </div>
-  </mat-nav-list>
-</ng-container>
+  </mat-toolbar>
+
+  <!-- New Session Button -->
+  <div class="new-session-section">
+    <button mat-raised-button 
+            color="primary" 
+            class="new-session-btn"
+            (click)="createNewSession()"
+            [disabled]="isLoadingSessions">
+      <mat-icon>add</mat-icon>
+      <span>New Chat</span>
+    </button>
+  </div>
+
+  <!-- Loading indicator -->
+  <div class="loading-section" *ngIf="isLoadingSessions">
+    <mat-progress-spinner diameter="30" mode="indeterminate"></mat-progress-spinner>
+    <span class="loading-text">Loading sessions...</span>
+  </div>
+
+  <!-- Sessions List -->
+  <div class="sessions-section" *ngIf="!isLoadingSessions">
+    <div class="section-header">
+      <h3>Recent Conversations</h3>
+      <span class="session-count">{{ sessions.length }}</span>
+    </div>
+
+    <mat-nav-list class="sessions-list" *ngIf="sessions.length > 0">
+      <mat-list-item 
+        *ngFor="let session of sessions; trackBy: trackBySessionId"
+        class="session-item"
+        [ngClass]="{'active-session': isActiveSession(session.sessionId)}"
+        (click)="openSession(session.sessionId)">
+        
+        <div class="session-content">
+          <div class="session-header">
+            <mat-icon matListItemIcon class="session-icon">chat</mat-icon>
+            <span class="session-name" [title]="session.name">
+              {{ getSessionDisplayName(session.name) }}
+            </span>
+          </div>
+          
+          <div class="session-meta">
+            <span class="session-id">{{ session.sessionId.substring(0, 8) }}...</span>
+            <button mat-icon-button 
+                    class="delete-btn"
+                    (click)="deleteSession(session.sessionId, $event)"
+                    [title]="'Delete session: ' + session.name">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+        </div>
+      </mat-list-item>
+    </mat-nav-list>
+
+    <!-- Empty state -->
+    <div class="empty-state" *ngIf="sessions.length === 0">
+      <mat-icon class="empty-icon">chat_bubble_outline</mat-icon>
+      <h4>No conversations yet</h4>
+      <p>Start a new chat session to begin</p>
+      <button mat-stroked-button 
+              color="primary"
+              (click)="createNewSession()">
+        <mat-icon>add</mat-icon>
+        Start Chatting
+      </button>
+    </div>
+  </div>
+
+  <!-- User Info Section -->
+  <div class="user-info-section">
+    <mat-divider></mat-divider>
+    <div class="user-info">
+      <mat-icon class="user-icon">person</mat-icon>
+      <span class="username">{{ loggedInUser }}</span>
+      <button mat-icon-button 
+              class="refresh-btn"
+              (click)="loadSessions()"
+              [disabled]="isLoadingSessions"
+              title="Refresh sessions">
+        <mat-icon>refresh</mat-icon>
+      </button>
+    </div>
+  </div>
+</div>
