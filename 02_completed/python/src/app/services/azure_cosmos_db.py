@@ -1,8 +1,9 @@
 import logging
 import os
-import re
+import time
 from datetime import datetime
 from typing import List, Dict
+import re
 
 from azure.cosmos import CosmosClient, PartitionKey
 from azure.identity import DefaultAzureCredential
@@ -53,42 +54,69 @@ except Exception as e:
     raise e
 
 
+def get_cosmos_client():
+    """Return the initialized Cosmos client for shared MCP server"""
+    return cosmos_client
+
 
 def vector_search(vectors, accountType):
-    print("accountType: ", accountType)
-    print("vectors: ", vectors)
-    # Execute the query
-    results = offers_container.query_items(
-        query='''
-        SELECT TOP 10 c.offerId, c.text, c.name
-                        FROM c
-                        WHERE c.type = 'Term'
-                        AND c.accountType = @accountType
-                        AND VectorDistance(c.vector, @referenceVector)> 0.075
-                        ORDER BY VectorDistance(c.vector, @referenceVector) 
-        ''',
-        parameters=[
-            {"name": "@accountType", "value": accountType},
-            {"name": "@referenceVector", "value": vectors}
-        ],
-        enable_cross_partition_query=True, populate_query_metrics=True)
-    print("Executed vector search in Azure Cosmos DB... \n")
-    print("Results: ", results)
+    start_time = time.time()
+    print(f"⏱️  COSMOS_DB: Starting vector search for accountType={accountType}, vector_dims={len(vectors) if vectors else 0}")
+    
     try:
-        results = list(results)
+        query_start_time = time.time()
+        results = offers_container.query_items(
+            query='''
+            SELECT TOP 3 c.offerId, c.text, c.name
+                            FROM c
+                            WHERE c.type = 'Term'
+                            AND c.accountType = @accountType
+                            AND VectorDistance(c.vector, @referenceVector)> 0.075
+                            ORDER BY VectorDistance(c.vector, @referenceVector) 
+            ''',
+            parameters=[
+                {"name": "@accountType", "value": accountType},
+                {"name": "@referenceVector", "value": vectors}
+            ],
+            enable_cross_partition_query=True, 
+            populate_query_metrics=True
+        )
+        
+        query_duration_ms = (time.time() - query_start_time) * 1000
+        print(f"⏱️  COSMOS_DB: Query execution took {query_duration_ms:.2f}ms")
+        
+        # Convert iterator to list with error handling
+        processing_start_time = time.time()
+        result_list = []
+        try:
+            count = 0
+            for item in results:
+                result_list.append(item)
+                count += 1
+                if count >= 3:  # Safety limit to prevent infinite loops
+                    break
+            
+        except Exception as list_error:
+            logging.error(f"Error processing results iterator: {list_error}")
+            return []
+        
+        processing_duration_ms = (time.time() - processing_start_time) * 1000
+        total_duration_ms = (time.time() - start_time) * 1000
+        
+        print(f"⏱️  COSMOS_DB: Results processing took {processing_duration_ms:.2f}ms")
+        print(f"⏱️  COSMOS_DB: Total vector search took {total_duration_ms:.2f}ms, returned {len(result_list)} results")
+        
+        return result_list
+        
     except Exception as e:
-        print(f"[ERROR] Error fetching results from Cosmos DB: {e}")
-        raise e
-    print("length of results: ", len(results))
-    # Extract the necessary information from the results
-    for result in results:
-        print("Result: ", result)
-    return results
+        logging.error(f"Error in vector_search: {e}")
+        return []
 
 
 # update the user data container
 def update_chat_container(data):
     try:
+        # For hierarchical partition keys in SDK 4.6.0+, upsert_item handles it automatically
         chat_container.upsert_item(data)
         logging.debug(f"User data saved to Cosmos DB: {data}")
     except Exception as e:
@@ -107,6 +135,7 @@ def update_offers_container(data):
 
 def update_account_container(data):
     try:
+        # For hierarchical partition keys in SDK 4.6.0+, upsert_item handles it automatically
         account_container.upsert_item(data)
         print(f"[DEBUG] Account data saved to Cosmos DB: {data}")
     except Exception as e:
@@ -373,4 +402,138 @@ def create_transaction_record(transaction_data):
         # print(f"[DEBUG] Transaction record created: {transaction_data}")
     except Exception as e:
         print(f"[ERROR] Error creating transaction record: {e}")
+        raise e
+
+
+def fetch_accounts_by_user(tenantId: str, userId: str) -> List[Dict]:
+    """
+    Retrieve all bank accounts for a specific user.
+    Less restrictive query that includes various account document types.
+    
+    :param tenantId: The tenant ID
+    :param userId: The user ID
+    :return: A list of bank accounts for the user
+    """
+    try:
+        # Simplified query without complex ORDER BY to avoid index issues
+        # Start with the most specific query first
+        query = """
+        SELECT * FROM c
+        WHERE c.tenantId = @tenantId AND c.userId = @userId AND c.type = 'BankAccount'
+        """
+        parameters = [
+            {"name": "@tenantId", "value": tenantId},
+            {"name": "@userId", "value": userId}
+        ]
+        
+        accounts = list(
+            account_container.query_items(query=query, parameters=parameters, enable_cross_partition_query=True)
+        )
+        
+        # If no accounts found with standard type, try broader search
+        if not accounts:
+            print(f"[DEBUG] No BankAccount type found, trying broader search...")
+            broader_query = """
+            SELECT * FROM c
+            WHERE c.tenantId = @tenantId AND c.userId = @userId
+            AND (IS_DEFINED(c.accountId) OR IS_DEFINED(c.balance) OR STARTSWITH(c.id, 'A'))
+            """
+            accounts = list(
+                account_container.query_items(query=broader_query, parameters=parameters, enable_cross_partition_query=True)
+            )
+        
+        # If still no accounts, try the most inclusive search
+        if not accounts:
+            print(f"[DEBUG] No accounts found with account fields, trying most inclusive search...")
+            most_inclusive_query = """
+            SELECT * FROM c
+            WHERE c.tenantId = @tenantId AND c.userId = @userId
+            """
+            all_docs = list(
+                account_container.query_items(query=most_inclusive_query, parameters=parameters, enable_cross_partition_query=True)
+            )
+            # Filter client-side for account-like documents
+            accounts = [doc for doc in all_docs if 
+                       doc.get('type') == 'BankAccount' or 
+                       'accountId' in doc or 
+                       'balance' in doc or
+                       (doc.get('id', '').startswith('A') and len(doc.get('id', '')) > 1)]
+        
+        print(f"[DEBUG] Fetched {len(accounts)} accounts for tenantId: {tenantId}, userId: {userId}")
+        
+        # Log sample account structure for debugging
+        if accounts:
+            sample_account = accounts[0]
+            print(f"[DEBUG] Sample account structure: {list(sample_account.keys())}")
+        
+        return accounts
+    except Exception as e:
+        print(f"[ERROR] Error fetching accounts for user {userId} in tenant {tenantId}: {e}")
+        raise e
+
+
+def fetch_transactions_by_account_id(tenantId: str, accountId: str) -> List[Dict]:
+    """
+    Retrieve all transactions for a specific account.
+    
+    :param tenantId: The tenant ID
+    :param accountId: The account ID
+    :return: A list of transactions for the account
+    """
+    try:
+        query = """
+        SELECT * FROM c
+        WHERE c.type = 'BankTransaction' AND c.tenantId = @tenantId AND c.accountId = @accountId
+        ORDER BY c.transactionDateTime DESC
+        """
+        parameters = [
+            {"name": "@tenantId", "value": tenantId},
+            {"name": "@accountId", "value": accountId}
+        ]
+        transactions = list(
+            account_container.query_items(query=query, parameters=parameters, enable_cross_partition_query=True)
+        )
+        print(f"[DEBUG] Fetched {len(transactions)} transactions for accountId: {accountId}, tenantId: {tenantId}")
+        return transactions
+    except Exception as e:
+        print(f"[ERROR] Error fetching transactions for account {accountId} in tenant {tenantId}: {e}")
+        raise e
+
+
+def fetch_service_requests_by_tenant(tenantId: str, userId: str = None) -> List[Dict]:
+    """
+    Retrieve service requests for a tenant, optionally filtered by user.
+    
+    :param tenantId: The tenant ID
+    :param userId: Optional user ID to filter by
+    :return: A list of service requests
+    """
+    try:
+        if userId:
+            query = """
+            SELECT * FROM c
+            WHERE c.type = 'ServiceRequest' AND c.tenantId = @tenantId AND c.userId = @userId
+            ORDER BY c.requestedOn DESC
+            """
+            parameters = [
+                {"name": "@tenantId", "value": tenantId},
+                {"name": "@userId", "value": userId}
+            ]
+        else:
+            query = """
+            SELECT * FROM c
+            WHERE c.type = 'ServiceRequest' AND c.tenantId = @tenantId
+            ORDER BY c.requestedOn DESC
+            """
+            parameters = [
+                {"name": "@tenantId", "value": tenantId}
+            ]
+        
+        service_requests = list(
+            account_container.query_items(query=query, parameters=parameters, enable_cross_partition_query=True)
+        )
+        print(f"[DEBUG] Fetched {len(service_requests)} service requests for tenantId: {tenantId}")
+        return service_requests
+    except Exception as e:
+        print(f"[ERROR] Error fetching service requests for tenant {tenantId}: {e}")
         raise e

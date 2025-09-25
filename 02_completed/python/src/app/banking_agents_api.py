@@ -6,28 +6,43 @@ from dotenv import load_dotenv
 
 from datetime import datetime
 from fastapi import BackgroundTasks
+from azure.monitor.opentelemetry import configure_azure_monitor
+
 
 from azure.cosmos.exceptions import CosmosHttpResponseError
 
 from fastapi import Depends, HTTPException, Body
 from langchain_core.messages import HumanMessage, ToolMessage
 from pydantic import BaseModel
-from typing import List, Dict
+from typing import List, Dict, Optional
+from datetime import datetime
+from enum import IntEnum
 from src.app.services.azure_open_ai import model
 from langgraph_checkpoint_cosmosdb import CosmosDBSaver
 from langgraph.graph.state import CompiledStateGraph
 from starlette.middleware.cors import CORSMiddleware
+from src.app.banking_agents import graph, checkpointer
+from src.app.tools.mcp_client import set_mcp_context  # Enhanced MCP context
 from src.app.services.azure_cosmos_db import update_chat_container, patch_active_agent, \
     fetch_chat_container_by_tenant_and_user, \
     fetch_chat_container_by_session, delete_userdata_item, debug_container, update_users_container, \
     update_account_container, update_offers_container, store_chat_history, update_active_agent_in_latest_message, \
-    chat_container, fetch_chat_history_by_session, delete_chat_history_by_session
+    chat_container, fetch_chat_history_by_session, delete_chat_history_by_session, \
+    fetch_accounts_by_user, fetch_transactions_by_account_id, fetch_service_requests_by_tenant
 import logging
+
+import asyncio
+from src.app.banking_agents import setup_agents
+
+
 
 # Setup logging
 logging.basicConfig(level=logging.ERROR)
 
 load_dotenv(override=False)
+
+configure_azure_monitor()
+
 
 endpointTitle = "ChatEndpoints"
 dataLoadTitle = "DataLoadEndpoints"
@@ -40,8 +55,20 @@ agent_mapping = {
     "sales_agent": "Sales"
 }
 
+
+def get_compiled_graph():
+    return graph
+
+
 app = fastapi.FastAPI(title="Cosmos DB Multi-Agent Banking API", openapi_url="/cosmos-multi-agent-api.json")
 
+@app.on_event("startup")
+async def initialize_agents():
+    await setup_agents()
+
+@app.get("/")
+def health_check():
+    return {"status": "MCP agent system is up"}
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -97,6 +124,85 @@ class DebugLog(BaseModel):
     propertyBag: list
 
 
+# Banking data models based on Swagger schema
+class AccountType(IntEnum):
+    CHECKING = 0
+    SAVINGS = 1
+    CREDIT = 2
+
+
+class AccountStatus(IntEnum):
+    ACTIVE = 0
+    INACTIVE = 1
+    SUSPENDED = 2
+    CLOSED = 3
+    PENDING = 4
+    FROZEN = 5
+    OVERDRAFT = 6
+    LIMITED = 7
+
+
+class CardType(IntEnum):
+    DEBIT = 0
+    CREDIT = 1
+    PREPAID = 2
+    CORPORATE = 3
+    VIRTUAL = 4
+    REWARDS = 5
+    STUDENT = 6
+    BUSINESS = 7
+    PREMIUM = 8
+
+
+class ServiceRequestType(IntEnum):
+    COMPLAINT = 0
+    FUND_TRANSFER = 1
+    FULFILMENT = 2
+    TELE_BANKER_CALLBACK = 3
+
+
+class BankAccount(BaseModel):
+    id: str
+    tenantId: str
+    name: str
+    accountType: AccountType
+    cardNumber: Optional[int] = None
+    accountStatus: Optional[AccountStatus] = None
+    cardType: Optional[CardType] = None
+    balance: Optional[int] = None
+    limit: Optional[int] = None
+    interestRate: Optional[int] = None
+    shortDescription: str
+
+
+class BankTransaction(BaseModel):
+    id: str
+    tenantId: str
+    accountId: str
+    debitAmount: int
+    creditAmount: int
+    accountBalance: int
+    details: str
+    transactionDateTime: datetime
+
+
+class ServiceRequest(BaseModel):
+    id: Optional[str] = None
+    tenantId: Optional[str] = None
+    userId: Optional[str] = None
+    type: Optional[str] = None
+    requestedOn: Optional[datetime] = None
+    scheduledDateTime: Optional[datetime] = None
+    accountId: Optional[str] = None
+    srType: Optional[ServiceRequestType] = None
+    recipientEmail: Optional[str] = None
+    recipientPhone: Optional[str] = None
+    debitAmount: Optional[float] = None
+    isComplete: bool = False
+    requestAnnotations: Optional[List[str]] = None
+    fulfilmentDetails: Optional[Dict[str, str]] = None
+
+
 def store_debug_log(sessionId, tenantId, userId, response_data):
     """Stores detailed debug log information in Cosmos DB."""
     debug_log_id = str(uuid.uuid4())
@@ -123,25 +229,29 @@ def store_debug_log(sessionId, tenantId, userId, response_data):
             if "messages" in details:
                 for msg in details["messages"]:
                     if hasattr(msg, "response_metadata"):
-                        metadata = msg.response_metadata
-                        finish_reason = metadata.get("finish_reason", finish_reason)
-                        model_name = metadata.get("model_name", model_name)
-                        system_fingerprint = metadata.get("system_fingerprint", system_fingerprint)
-                        input_tokens = metadata.get("token_usage", {}).get("prompt_tokens", input_tokens)
-                        output_tokens = metadata.get("token_usage", {}).get("completion_tokens", output_tokens)
-                        total_tokens = metadata.get("token_usage", {}).get("total_tokens", total_tokens)
-                        cached_tokens = metadata.get("token_usage", {}).get("prompt_tokens_details", {}).get(
-                            "cached_tokens", cached_tokens)
-                        logprobs = metadata.get("logprobs", logprobs)
-                        content_filter_results = metadata.get("content_filter_results", content_filter_results)
+                        metadata = getattr(msg, "response_metadata", None)
+                        if metadata:
+                            finish_reason = metadata.get("finish_reason", finish_reason)
+                            model_name = metadata.get("model_name", model_name)
+                            system_fingerprint = metadata.get("system_fingerprint", system_fingerprint)
 
-                        if "tool_calls" in msg.additional_kwargs:
-                            tool_calls.extend(msg.additional_kwargs["tool_calls"])
-                            transfer_success = any(
-                                call.get("name", "").startswith("transfer_to_") for call in tool_calls)
-                            previous_agent = agent_selected
-                            agent_selected = tool_calls[-1].get("name", "").replace("transfer_to_",
-                                                                                    "") if tool_calls else agent_selected
+                            token_usage = metadata.get("token_usage", {}) or {}
+                            input_tokens = token_usage.get("prompt_tokens", input_tokens)
+                            output_tokens = token_usage.get("completion_tokens", output_tokens)
+                            total_tokens = token_usage.get("total_tokens", total_tokens)
+
+                            prompt_details = token_usage.get("prompt_tokens_details", {}) or {}
+                            cached_tokens = prompt_details.get("cached_tokens", cached_tokens)
+
+                            logprobs = metadata.get("logprobs", logprobs)
+                            content_filter_results = metadata.get("content_filter_results", content_filter_results)
+
+                            if "tool_calls" in msg.additional_kwargs:
+                                tool_calls.extend(msg.additional_kwargs["tool_calls"])
+                                transfer_success = any(
+                                    call.get("name", "").startswith("transfer_to_") for call in tool_calls)
+                                previous_agent = agent_selected
+                                agent_selected = tool_calls[-1].get("name", "").replace("transfer_to_", "") if tool_calls else agent_selected
 
     property_bag = [
         {"key": "agent_selected", "value": agent_selected, "timeStamp": timestamp},
@@ -174,6 +284,8 @@ def store_debug_log(sessionId, tenantId, userId, response_data):
     return debug_log_id
 
 
+
+
 def create_thread(tenantId: str, userId: str):
     sessionId = str(uuid.uuid4())
     name = userId
@@ -203,6 +315,61 @@ def create_thread(tenantId: str, userId: str):
          response_model=str)
 def get_service_status():
     return "CosmosDBService: initializing"
+
+
+# Note: cosmos db checkpointer store is used internally by LangGraph for "memory": to maintain end-to-end state of each
+# conversation thread as contextual input to the OpenAI model.
+# However, this function is dead code, as we no longer retrieve chat history from the cosmos db checkpointer store to return in the API.
+# Abandoned this approach as the checkpointer store does not natively keep a record of which agent responded to the last message.
+# Also, retrieving messages from the checkpointer store is not efficient as it requires scanning more records than necessary for chat history.
+# Instead, we are now storing chat history in a separate custom cosmos db session container. Keeping this code for reference.
+def _fetch_messages_for_session(sessionId: str, tenantId: str, userId: str) -> List[MessageModel]:
+    messages = []
+    config = {
+        "configurable": {
+            "thread_id": sessionId,
+            "checkpoint_ns": ""
+        }
+    }
+
+    logging.debug(f"Fetching messages for sessionId: {sessionId} with config: {config}")
+    checkpoints = list(checkpointer.list(config))
+    logging.debug(f"Number of checkpoints retrieved: {len(checkpoints)}")
+
+    if checkpoints:
+        last_checkpoint = checkpoints[-1]
+        for key, value in last_checkpoint.checkpoint.items():
+            if key == "channel_values" and "messages" in value:
+                messages.extend(value["messages"])
+
+    selected_human_index = None
+    for i in range(len(messages) - 1):
+        if isinstance(messages[i], HumanMessage) and not isinstance(messages[i + 1], HumanMessage):
+            selected_human_index = i
+            break
+
+    messages = messages[selected_human_index:] if selected_human_index is not None else []
+
+    return [
+        MessageModel(
+            id=str(uuid.uuid4()),
+            type="ai_response",
+            sessionId=sessionId,
+            tenantId=tenantId,
+            userId=userId,
+            timeStamp=msg.response_metadata.get("timestamp", "") if hasattr(msg, "response_metadata") else "",
+            sender="User" if isinstance(msg, HumanMessage) else "Coordinator",
+            senderRole="User" if isinstance(msg, HumanMessage) else "Assistant",
+            text=msg.content if hasattr(msg, "content") else msg.get("content", ""),
+            debugLogId=str(uuid.uuid4()),
+            tokensUsed=msg.response_metadata.get("token_usage", {}).get("total_tokens", 0) if hasattr(msg,
+                                                                                                      "response_metadata") else 0,
+            rating=True,
+            completionPromptId=""
+        )
+        for msg in messages
+        if msg.content
+    ]
 
 
 @app.get("/tenant/{tenantId}/user/{userId}/sessions",
@@ -345,6 +512,9 @@ def delete_chat_session(tenantId: str, userId: str, sessionId: str, background_t
     }
     delete_chat_history_by_session(sessionId)
 
+    # Schedule the delete_all_thread_records function as a background task
+    background_tasks.add_task(delete_all_thread_records, checkpointer, sessionId)
+
     return {"message": "Session deleted successfully"}
 
 
@@ -370,6 +540,7 @@ def extract_relevant_messages(debug_lod_id, last_active_agent, response_data, te
                 last_agent_name = list(last_agent_node.keys())[0]
             break
 
+    print(f"Last active agent: {last_agent_name}")
     # storing the last active agent in the session container so that we can retrieve it later
     # and deterministically route the incoming message directly to the agent that asked the question.
     patch_active_agent(tenantId, userId, sessionId, last_agent_name)
@@ -450,25 +621,64 @@ async def get_chat_completion(
         sessionId: str,
         background_tasks: BackgroundTasks,
         request_body: str = Body(..., media_type="application/json"),
+        workflow: CompiledStateGraph = Depends(get_compiled_graph),
 
 ):
-    return [
-        {
-            "id": "string",
-            "type": "string",
-            "sessionId": "string",
-            "tenantId": "string",
-            "userId": "string",
-            "timeStamp": "string",
-            "sender": "string",
-            "senderRole": "string",
-            "text": "Hello, I am not yet implemented",
-            "debugLogId": "string",
-            "tokensUsed": 0,
-            "rating": "true",
-            "completionPromptId": "string"
-        }
-    ]
+    if not request_body.strip():
+        raise HTTPException(status_code=400, detail="Request body cannot be empty")
+
+    # 🚀 SET MCP CONTEXT - Fix LLM parameter issues with automatic injection
+    set_mcp_context(
+        tenantId=tenantId,
+        userId=userId,
+        thread_id=sessionId
+    )
+    print(f"🔧 MCP CONTEXT SET: tenantId='{tenantId}', userId='{userId}', thread_id='{sessionId}'")
+
+    # Retrieve last checkpoint
+    config = {"configurable": {"thread_id": sessionId, "checkpoint_ns": "", "userId": userId, "tenantId": tenantId}}
+    checkpoints = list(checkpointer.list(config))
+    last_active_agent = "coordinator_agent"  # Default fallback
+
+    if not checkpoints:
+        # No previous state, start fresh
+        new_state = {"messages": [{"role": "user", "content": request_body}]}
+        response_data = await workflow.ainvoke(new_state, config, stream_mode="updates")
+    else:
+        # Resume from last checkpoint
+        last_checkpoint = checkpoints[-1]
+        last_state = last_checkpoint.checkpoint
+
+        if "messages" not in last_state:
+            last_state["messages"] = []
+
+        last_state["messages"].append({"role": "user", "content": request_body})
+
+        if "channel_versions" in last_state:
+            for key in reversed(last_state["channel_versions"].keys()):
+                if "agent" in key:
+                    last_active_agent = key.split(":")[1]
+                    break
+
+        last_state["langgraph_triggers"] = [f"resume:{last_active_agent}"]
+        response_data = await workflow.ainvoke(last_state, config, stream_mode="updates")
+
+    debug_log_id = store_debug_log(sessionId, tenantId, userId, response_data)
+
+    messages = extract_relevant_messages(debug_log_id, last_active_agent, response_data, tenantId, userId, sessionId)
+
+    partition_key = [tenantId, userId, sessionId]
+    # Get the active agent from Cosmos DB with a point lookup
+    activeAgent = chat_container.read_item(item=sessionId, partition_key=partition_key).get('activeAgent', 'unknown')
+
+    # update last sender in messages to the active agent
+    messages[-1].sender = agent_mapping.get(activeAgent, activeAgent)
+
+    # Schedule storing chat history and updating correct agent in last message as a background task
+    # to avoid blocking the API response as this is not needed unless retrieving the message history later.
+    background_tasks.add_task(process_messages, messages, userId, tenantId, sessionId)
+
+    return messages
 
 
 @app.post("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/summarize-name", tags=[endpointTitle],
@@ -527,3 +737,245 @@ async def put_offerdata(data: Dict):
         return {"message": "Inserted offer record successfully", "id": data.get("id")}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to insert offer data: {str(e)}")
+
+
+# New Banking API endpoints
+@app.get("/tenant/{tenantId}/user/{userId}/accounts", 
+         tags=[endpointTitle], 
+         description="Retrieves all bank accounts for a specific user", 
+         operation_id="GetAccountDetailsAsync",
+         response_model=List[BankAccount])
+def get_user_accounts(tenantId: str, userId: str):
+    """
+    Get all bank accounts associated with a specific user.
+    
+    :param tenantId: The tenant identifier
+    :param userId: The user identifier  
+    :return: List of bank accounts belonging to the user
+    """
+    try:
+        accounts_data = fetch_accounts_by_user(tenantId, userId)
+        
+        # Convert raw data to BankAccount models with flexible mapping
+        accounts = []
+        for account_data in accounts_data:
+            try:
+                # More flexible field mapping - handle different field names and formats
+                account_id = account_data.get("id") or account_data.get("accountId") or ""
+                account_name = account_data.get("name") or account_data.get("accountName") or account_data.get("accountHolder") or "Unknown Account"
+                
+                # Handle accountType with fallback to 0 (CHECKING) for any invalid values
+                try:
+                    account_type_value = account_data.get("accountType", 0)
+                    if isinstance(account_type_value, str):
+                        # Try to map string values to enum
+                        account_type_mapping = {"checking": 0, "savings": 1, "credit": 2}
+                        account_type_value = account_type_mapping.get(account_type_value.lower(), 0)
+                    account_type = AccountType(int(account_type_value))
+                except (ValueError, TypeError):
+                    account_type = AccountType.CHECKING  # Default fallback
+                
+                # Handle optional enum fields with better error handling
+                card_number = account_data.get("cardNumber")
+                if isinstance(card_number, str) and card_number.isdigit():
+                    card_number = int(card_number)
+                elif not isinstance(card_number, (int, type(None))):
+                    card_number = None
+                
+                # Account status with fallback
+                try:
+                    account_status_value = account_data.get("accountStatus")
+                    account_status = AccountStatus(int(account_status_value)) if account_status_value is not None else None
+                except (ValueError, TypeError):
+                    account_status = None
+                
+                # Card type with fallback  
+                try:
+                    card_type_value = account_data.get("cardType")
+                    card_type = CardType(int(card_type_value)) if card_type_value is not None else None
+                except (ValueError, TypeError):
+                    card_type = None
+                
+                # Handle balance - could be string or number
+                balance = account_data.get("balance", 0)
+                if isinstance(balance, str):
+                    try:
+                        balance = int(float(balance))
+                    except (ValueError, TypeError):
+                        balance = 0
+                
+                # Handle limit - could be string or number
+                limit = account_data.get("limit")
+                if isinstance(limit, str):
+                    try:
+                        limit = int(float(limit))
+                    except (ValueError, TypeError):
+                        limit = None
+                
+                # Handle interest rate
+                interest_rate = account_data.get("interestRate")
+                if isinstance(interest_rate, str):
+                    try:
+                        interest_rate = int(float(interest_rate))
+                    except (ValueError, TypeError):
+                        interest_rate = None
+                
+                short_description = account_data.get("shortDescription") or account_data.get("description") or "Bank Account"
+                
+                # Create BankAccount with flexible mapping
+                account = BankAccount(
+                    id=account_id,
+                    tenantId=account_data.get("tenantId", tenantId),
+                    name=account_name,
+                    accountType=account_type,
+                    cardNumber=card_number,
+                    accountStatus=account_status,
+                    cardType=card_type,
+                    balance=balance,
+                    limit=limit,
+                    interestRate=interest_rate,
+                    shortDescription=short_description
+                )
+                accounts.append(account)
+                
+            except Exception as account_error:
+                # Log the error but continue processing other accounts
+                print(f"[WARNING] Failed to process account {account_data.get('id', 'unknown')}: {account_error}")
+                # Create a minimal account entry for failed parsing
+                minimal_account = BankAccount(
+                    id=account_data.get("id") or account_data.get("accountId") or "unknown",
+                    tenantId=account_data.get("tenantId", tenantId),
+                    name=account_data.get("name") or "Unknown Account",
+                    accountType=AccountType.CHECKING,
+                    shortDescription="Account data parsing failed"
+                )
+                accounts.append(minimal_account)
+            
+        print(f"[DEBUG] Successfully processed {len(accounts)} accounts for user {userId}")
+        return accounts
+        
+    except Exception as e:
+        print(f"[ERROR] Failed to retrieve accounts for user {userId}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve accounts: {str(e)}")
+
+
+@app.get("/tenant/{tenantId}/user/{userId}/accounts/{accountId}/transactions",
+         tags=[endpointTitle],
+         description="Retrieves transaction history for a specific account",
+         operation_id="GetAccountTransactions", 
+         response_model=List[BankTransaction])
+def get_account_transactions(tenantId: str, userId: str, accountId: str):
+    """
+    Get all transactions for a specific bank account.
+    
+    :param tenantId: The tenant identifier
+    :param userId: The user identifier (for authorization/context)
+    :param accountId: The account identifier
+    :return: List of transactions for the specified account
+    """
+    try:
+        transactions_data = fetch_transactions_by_account_id(tenantId, accountId)
+        
+        # Convert raw data to BankTransaction models
+        transactions = []
+        for transaction_data in transactions_data:
+            # Parse the transaction date 
+            transaction_date_str = transaction_data.get("transactionDateTime", "")
+            try:
+                # Handle different datetime formats
+                if transaction_date_str.endswith('Z'):
+                    transaction_date = datetime.fromisoformat(transaction_date_str.replace('Z', '+00:00'))
+                else:
+                    transaction_date = datetime.fromisoformat(transaction_date_str)
+            except (ValueError, TypeError):
+                transaction_date = datetime.now()  # Fallback to current time
+            
+            transaction = BankTransaction(
+                id=transaction_data.get("id", ""),
+                tenantId=transaction_data.get("tenantId", ""),
+                accountId=transaction_data.get("accountId", ""),
+                debitAmount=transaction_data.get("debitAmount", 0),
+                creditAmount=transaction_data.get("creditAmount", 0),
+                accountBalance=transaction_data.get("accountBalance", 0),
+                details=transaction_data.get("details", ""),
+                transactionDateTime=transaction_date
+            )
+            transactions.append(transaction)
+            
+        return transactions
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve transactions: {str(e)}")
+
+
+@app.get("/tenant/{tenantId}/servicerequests",
+         tags=[endpointTitle],
+         description="Retrieves service requests for a tenant, optionally filtered by user",
+         operation_id="GetServiceRequests",
+         response_model=List[ServiceRequest])
+def get_service_requests(tenantId: str, userId: str = None):
+    """
+    Get all service requests for a tenant, with optional user filtering.
+    
+    :param tenantId: The tenant identifier
+    :param userId: Optional user identifier to filter service requests by specific user
+    :return: List of service requests for the tenant (and user if specified)
+    """
+    try:
+        service_requests_data = fetch_service_requests_by_tenant(tenantId, userId)
+        
+        # Convert raw data to ServiceRequest models
+        service_requests = []
+        for request_data in service_requests_data:
+            # Parse dates
+            requested_on = None
+            scheduled_date = None
+            
+            if request_data.get("requestedOn"):
+                try:
+                    requested_on_str = request_data.get("requestedOn")
+                    if isinstance(requested_on_str, str):
+                        if requested_on_str.endswith('Z'):
+                            requested_on = datetime.fromisoformat(requested_on_str.replace('Z', '+00:00'))
+                        else:
+                            requested_on = datetime.fromisoformat(requested_on_str)
+                    elif isinstance(requested_on_str, datetime):
+                        requested_on = requested_on_str
+                except (ValueError, TypeError):
+                    pass
+                    
+            if request_data.get("scheduledDateTime"):
+                try:
+                    scheduled_date_str = request_data.get("scheduledDateTime") 
+                    if isinstance(scheduled_date_str, str):
+                        if scheduled_date_str.endswith('Z'):
+                            scheduled_date = datetime.fromisoformat(scheduled_date_str.replace('Z', '+00:00'))
+                        else:
+                            scheduled_date = datetime.fromisoformat(scheduled_date_str)
+                    elif isinstance(scheduled_date_str, datetime):
+                        scheduled_date = scheduled_date_str
+                except (ValueError, TypeError):
+                    pass
+            
+            service_request = ServiceRequest(
+                id=request_data.get("id"),
+                tenantId=request_data.get("tenantId"),
+                userId=request_data.get("userId"),
+                type=request_data.get("type"),
+                requestedOn=requested_on,
+                scheduledDateTime=scheduled_date,
+                accountId=request_data.get("accountId"),
+                srType=ServiceRequestType(request_data.get("srType", 0)) if request_data.get("srType") is not None else None,
+                recipientEmail=request_data.get("recipientEmail"),
+                recipientPhone=request_data.get("recipientPhone"),
+                debitAmount=request_data.get("debitAmount"),
+                isComplete=request_data.get("isComplete", False),
+                requestAnnotations=request_data.get("requestAnnotations"),
+                fulfilmentDetails=request_data.get("fulfilmentDetails")
+            )
+            service_requests.append(service_request)
+            
+        return service_requests
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve service requests: {str(e)}")
