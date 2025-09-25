@@ -8,7 +8,6 @@ from datetime import datetime
 from fastapi import BackgroundTasks
 from azure.monitor.opentelemetry import configure_azure_monitor
 
-
 from azure.cosmos.exceptions import CosmosHttpResponseError
 
 from fastapi import Depends, HTTPException, Body
@@ -19,8 +18,6 @@ from src.app.services.azure_open_ai import model
 from langgraph_checkpoint_cosmosdb import CosmosDBSaver
 from langgraph.graph.state import CompiledStateGraph
 from starlette.middleware.cors import CORSMiddleware
-from src.app.banking_agents import graph, checkpointer
-from src.app.tools.mcp_client import set_mcp_context  # Enhanced MCP context
 from src.app.services.azure_cosmos_db import update_chat_container, patch_active_agent, \
     fetch_chat_container_by_tenant_and_user, \
     fetch_chat_container_by_session, delete_userdata_item, debug_container, update_users_container, \
@@ -28,18 +25,12 @@ from src.app.services.azure_cosmos_db import update_chat_container, patch_active
     chat_container, fetch_chat_history_by_session, delete_chat_history_by_session
 import logging
 
-import asyncio
-from src.app.banking_agents import setup_agents
-
-
-
 # Setup logging
 logging.basicConfig(level=logging.ERROR)
 
 load_dotenv(override=False)
 
 configure_azure_monitor()
-
 
 endpointTitle = "ChatEndpoints"
 dataLoadTitle = "DataLoadEndpoints"
@@ -52,20 +43,8 @@ agent_mapping = {
     "sales_agent": "Sales"
 }
 
-
-def get_compiled_graph():
-    return graph
-
-
 app = fastapi.FastAPI(title="Cosmos DB Multi-Agent Banking API", openapi_url="/cosmos-multi-agent-api.json")
 
-@app.on_event("startup")
-async def initialize_agents():
-    await setup_agents()
-
-@app.get("/")
-def health_check():
-    return {"status": "MCP agent system is up"}
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -147,29 +126,25 @@ def store_debug_log(sessionId, tenantId, userId, response_data):
             if "messages" in details:
                 for msg in details["messages"]:
                     if hasattr(msg, "response_metadata"):
-                        metadata = getattr(msg, "response_metadata", None)
-                        if metadata:
-                            finish_reason = metadata.get("finish_reason", finish_reason)
-                            model_name = metadata.get("model_name", model_name)
-                            system_fingerprint = metadata.get("system_fingerprint", system_fingerprint)
+                        metadata = msg.response_metadata
+                        finish_reason = metadata.get("finish_reason", finish_reason)
+                        model_name = metadata.get("model_name", model_name)
+                        system_fingerprint = metadata.get("system_fingerprint", system_fingerprint)
+                        input_tokens = metadata.get("token_usage", {}).get("prompt_tokens", input_tokens)
+                        output_tokens = metadata.get("token_usage", {}).get("completion_tokens", output_tokens)
+                        total_tokens = metadata.get("token_usage", {}).get("total_tokens", total_tokens)
+                        cached_tokens = metadata.get("token_usage", {}).get("prompt_tokens_details", {}).get(
+                            "cached_tokens", cached_tokens)
+                        logprobs = metadata.get("logprobs", logprobs)
+                        content_filter_results = metadata.get("content_filter_results", content_filter_results)
 
-                            token_usage = metadata.get("token_usage", {}) or {}
-                            input_tokens = token_usage.get("prompt_tokens", input_tokens)
-                            output_tokens = token_usage.get("completion_tokens", output_tokens)
-                            total_tokens = token_usage.get("total_tokens", total_tokens)
-
-                            prompt_details = token_usage.get("prompt_tokens_details", {}) or {}
-                            cached_tokens = prompt_details.get("cached_tokens", cached_tokens)
-
-                            logprobs = metadata.get("logprobs", logprobs)
-                            content_filter_results = metadata.get("content_filter_results", content_filter_results)
-
-                            if "tool_calls" in msg.additional_kwargs:
-                                tool_calls.extend(msg.additional_kwargs["tool_calls"])
-                                transfer_success = any(
-                                    call.get("name", "").startswith("transfer_to_") for call in tool_calls)
-                                previous_agent = agent_selected
-                                agent_selected = tool_calls[-1].get("name", "").replace("transfer_to_", "") if tool_calls else agent_selected
+                        if "tool_calls" in msg.additional_kwargs:
+                            tool_calls.extend(msg.additional_kwargs["tool_calls"])
+                            transfer_success = any(
+                                call.get("name", "").startswith("transfer_to_") for call in tool_calls)
+                            previous_agent = agent_selected
+                            agent_selected = tool_calls[-1].get("name", "").replace("transfer_to_",
+                                                                                    "") if tool_calls else agent_selected
 
     property_bag = [
         {"key": "agent_selected", "value": agent_selected, "timeStamp": timestamp},
@@ -202,8 +177,6 @@ def store_debug_log(sessionId, tenantId, userId, response_data):
     return debug_log_id
 
 
-
-
 def create_thread(tenantId: str, userId: str):
     sessionId = str(uuid.uuid4())
     name = userId
@@ -233,61 +206,6 @@ def create_thread(tenantId: str, userId: str):
          response_model=str)
 def get_service_status():
     return "CosmosDBService: initializing"
-
-
-# Note: cosmos db checkpointer store is used internally by LangGraph for "memory": to maintain end-to-end state of each
-# conversation thread as contextual input to the OpenAI model.
-# However, this function is dead code, as we no longer retrieve chat history from the cosmos db checkpointer store to return in the API.
-# Abandoned this approach as the checkpointer store does not natively keep a record of which agent responded to the last message.
-# Also, retrieving messages from the checkpointer store is not efficient as it requires scanning more records than necessary for chat history.
-# Instead, we are now storing chat history in a separate custom cosmos db session container. Keeping this code for reference.
-def _fetch_messages_for_session(sessionId: str, tenantId: str, userId: str) -> List[MessageModel]:
-    messages = []
-    config = {
-        "configurable": {
-            "thread_id": sessionId,
-            "checkpoint_ns": ""
-        }
-    }
-
-    logging.debug(f"Fetching messages for sessionId: {sessionId} with config: {config}")
-    checkpoints = list(checkpointer.list(config))
-    logging.debug(f"Number of checkpoints retrieved: {len(checkpoints)}")
-
-    if checkpoints:
-        last_checkpoint = checkpoints[-1]
-        for key, value in last_checkpoint.checkpoint.items():
-            if key == "channel_values" and "messages" in value:
-                messages.extend(value["messages"])
-
-    selected_human_index = None
-    for i in range(len(messages) - 1):
-        if isinstance(messages[i], HumanMessage) and not isinstance(messages[i + 1], HumanMessage):
-            selected_human_index = i
-            break
-
-    messages = messages[selected_human_index:] if selected_human_index is not None else []
-
-    return [
-        MessageModel(
-            id=str(uuid.uuid4()),
-            type="ai_response",
-            sessionId=sessionId,
-            tenantId=tenantId,
-            userId=userId,
-            timeStamp=msg.response_metadata.get("timestamp", "") if hasattr(msg, "response_metadata") else "",
-            sender="User" if isinstance(msg, HumanMessage) else "Coordinator",
-            senderRole="User" if isinstance(msg, HumanMessage) else "Assistant",
-            text=msg.content if hasattr(msg, "content") else msg.get("content", ""),
-            debugLogId=str(uuid.uuid4()),
-            tokensUsed=msg.response_metadata.get("token_usage", {}).get("total_tokens", 0) if hasattr(msg,
-                                                                                                      "response_metadata") else 0,
-            rating=True,
-            completionPromptId=""
-        )
-        for msg in messages
-        if msg.content
-    ]
 
 
 @app.get("/tenant/{tenantId}/user/{userId}/sessions",
@@ -430,9 +348,6 @@ def delete_chat_session(tenantId: str, userId: str, sessionId: str, background_t
     }
     delete_chat_history_by_session(sessionId)
 
-    # Schedule the delete_all_thread_records function as a background task
-    background_tasks.add_task(delete_all_thread_records, checkpointer, sessionId)
-
     return {"message": "Session deleted successfully"}
 
 
@@ -458,7 +373,6 @@ def extract_relevant_messages(debug_lod_id, last_active_agent, response_data, te
                 last_agent_name = list(last_agent_node.keys())[0]
             break
 
-    print(f"Last active agent: {last_agent_name}")
     # storing the last active agent in the session container so that we can retrieve it later
     # and deterministically route the incoming message directly to the agent that asked the question.
     patch_active_agent(tenantId, userId, sessionId, last_agent_name)
@@ -539,64 +453,25 @@ async def get_chat_completion(
         sessionId: str,
         background_tasks: BackgroundTasks,
         request_body: str = Body(..., media_type="application/json"),
-        workflow: CompiledStateGraph = Depends(get_compiled_graph),
 
 ):
-    if not request_body.strip():
-        raise HTTPException(status_code=400, detail="Request body cannot be empty")
-
-    # 🚀 SET MCP CONTEXT - Fix LLM parameter issues with automatic injection
-    set_mcp_context(
-        tenantId=tenantId,
-        userId=userId,
-        thread_id=sessionId
-    )
-    print(f"🔧 MCP CONTEXT SET: tenantId='{tenantId}', userId='{userId}', thread_id='{sessionId}'")
-
-    # Retrieve last checkpoint
-    config = {"configurable": {"thread_id": sessionId, "checkpoint_ns": "", "userId": userId, "tenantId": tenantId}}
-    checkpoints = list(checkpointer.list(config))
-    last_active_agent = "coordinator_agent"  # Default fallback
-
-    if not checkpoints:
-        # No previous state, start fresh
-        new_state = {"messages": [{"role": "user", "content": request_body}]}
-        response_data = await workflow.ainvoke(new_state, config, stream_mode="updates")
-    else:
-        # Resume from last checkpoint
-        last_checkpoint = checkpoints[-1]
-        last_state = last_checkpoint.checkpoint
-
-        if "messages" not in last_state:
-            last_state["messages"] = []
-
-        last_state["messages"].append({"role": "user", "content": request_body})
-
-        if "channel_versions" in last_state:
-            for key in reversed(last_state["channel_versions"].keys()):
-                if "agent" in key:
-                    last_active_agent = key.split(":")[1]
-                    break
-
-        last_state["langgraph_triggers"] = [f"resume:{last_active_agent}"]
-        response_data = await workflow.ainvoke(last_state, config, stream_mode="updates")
-
-    debug_log_id = store_debug_log(sessionId, tenantId, userId, response_data)
-
-    messages = extract_relevant_messages(debug_log_id, last_active_agent, response_data, tenantId, userId, sessionId)
-
-    partition_key = [tenantId, userId, sessionId]
-    # Get the active agent from Cosmos DB with a point lookup
-    activeAgent = chat_container.read_item(item=sessionId, partition_key=partition_key).get('activeAgent', 'unknown')
-
-    # update last sender in messages to the active agent
-    messages[-1].sender = agent_mapping.get(activeAgent, activeAgent)
-
-    # Schedule storing chat history and updating correct agent in last message as a background task
-    # to avoid blocking the API response as this is not needed unless retrieving the message history later.
-    background_tasks.add_task(process_messages, messages, userId, tenantId, sessionId)
-
-    return messages
+    return [
+        {
+            "id": "string",
+            "type": "string",
+            "sessionId": "string",
+            "tenantId": "string",
+            "userId": "string",
+            "timeStamp": "string",
+            "sender": "string",
+            "senderRole": "string",
+            "text": "Hello, I am not yet implemented",
+            "debugLogId": "string",
+            "tokensUsed": 0,
+            "rating": "true",
+            "completionPromptId": "string"
+        }
+    ]
 
 
 @app.post("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/summarize-name", tags=[endpointTitle],

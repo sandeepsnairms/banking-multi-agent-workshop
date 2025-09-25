@@ -6,6 +6,8 @@
 
 In this Module, you'll deploy the Azure Services needed to run this workshop and get your local environment configured and ready. You will also learn about the structure of this workshop and get an overview of Multi-Agent Systems.
 
+This workshop covers the complete journey from basic multi-agent systems to advanced architectural patterns using the Model Context Protocol (MCP) in Module 06.
+
 ## Learning Objectives and Activities
 
 - Begin the deployment of the Azure Services
@@ -21,6 +23,8 @@ In this Module, you'll deploy the Azure Services needed to run this workshop and
 1. [Activity 3: Workshop Structure and Overview Session](#activity-3-workshop-structure-and-overview)
 1. [Activity 4: Configure Environment Variables](#activity-4-configure-environment-variables)
 1. [Activity 5: Compile and Run](#activity-5-compile-and-run)
+
+> **Note**: This module prepares your environment for the complete workshop, including the advanced Module 6 covering Model Context Protocol (MCP) architectural patterns.
 
 ## Activity 1 Configure Workshop Environment
 
@@ -149,7 +153,21 @@ Do you want to add some dummy data for testing? (yes/no): y
 
 ## Activity 3: Workshop Structure and Overview Session
 
-While the Azure Services are deploying we will have a presentation to cover on the structure for this workshop for today as well as provide an introduction and overview of multi-agent sytems.
+While the Azure Services are deploying we will have a presentation to cover on the structure for this workshop for today as well as provide an introduction and overview of multi-agent systems.
+
+### Workshop Module Overview
+
+This workshop consists of 6 progressive modules:
+
+- **Module 0**: Prerequisites and Setup (this module)
+- **Module 1**: Creating Your First Agent
+- **Module 2**: Connecting Agents to Memory
+- **Module 3**: Agent Specialization
+- **Module 4**: Multi-Agent Orchestration
+- **Module 5**: Lessons Learned, Agent Futures, Q&A
+- **Module 6**: Converting to Model Context Protocol (MCP)
+
+**Module 6** introduces advanced architectural patterns using the Model Context Protocol (MCP), showing how to convert your multi-agent system from native LangChain tools to a standardized, loosely-coupled architecture that enables better team collaboration and maintainability.
 
 ## Activity 4: Configure Environment Variables
 
@@ -273,7 +291,13 @@ To complete this Module successfully, you should be able to:
 
 ## Next Steps
 
-Proceed to [Creating Your First Agent](./Module-01.md)
+Proceed to [Creating Your First Agent](./Module-01.md) to begin building your multi-agent banking system. The complete learning path will take you through:
+
+1. **Modules 1-4**: Core multi-agent system development
+2. **Module 5**: Best practices and lessons learned
+3. **Module 6**: Advanced MCP architectural patterns (optional advanced topic)
+
+Module 6 provides an in-depth look at converting traditional multi-agent systems to use the Model Context Protocol for improved architecture and team collaboration.
 
 ## Resources
 
