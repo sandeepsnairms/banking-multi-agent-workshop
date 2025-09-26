@@ -1,6 +1,6 @@
 # Module 05 - Lessons Learned, Agent Futures, Q&A
 
-[< Multi-Agent Orchestration](./Module-04.md) - **[Home](Home.md)**
+[< Multi-Agent Orchestration](./Module-04.md) - **[Home](Home.md)** - [Converting to Model Context Protocol (MCP) >](./Module-06.md)
 
 ## Introduction
 
