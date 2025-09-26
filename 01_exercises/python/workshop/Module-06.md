@@ -75,15 +75,17 @@ This is a "USB-C for AI" decision - accepting slight performance overhead for ma
 
 This implementation represents a classic engineering trade-off:
 
-- **Performance Gain**: 25-75x faster tool execution
-- **Complexity Cost**: Custom MCP protocol implementation
-- **Maintenance Burden**: Non-standard architecture requiring specialized knowledge
-- **Innovation Benefit**: Enables real-time banking operations that weren't possible before
+- **Performance Cost**: Additional protocol overhead (typically 10-50ms per tool call)
+- **Architectural Benefit**: Loose coupling, standardization, maintainability, team autonomy
+- **Maintenance Benefit**: Independent development and deployment cycles for different teams
+- **Strategic Value**: Long-term maintainability and ecosystem compatibility over raw speed
+
+This is a "USB-C for AI" decision - accepting slight performance overhead for massive interoperability benefits.
 
 ## Learning Objectives
 
 By the end of this module, you will:
-- Understand the architectural benefits that drove MCP adoption over native tools
+- Understand the architectural benefits that can drive MCP adoption over native tools
 - Analyze trade-offs between tight coupling (LangChain tools) and loose coupling (MCP)
 - Implement both Local and Remote MCP deployment modes
 - Experience the protocol standardization benefits of MCP
@@ -1128,7 +1130,7 @@ async def cleanup_shared_mcp_client():
 
 ```
 
-### Step 2: Create MCP Server
+### Step 2: Create Local MCP Server
 
 Now open `src/app/tools/mcp_server.py` and replace the entire contents with the complete MCP server code.
 
@@ -1142,7 +1144,7 @@ Now open `src/app/tools/mcp_server.py` and replace the entire contents with the 
 - **Performance Monitoring**: Execution timing and logging for all operations
 - **Dual Mode Support**: Can run embedded (local) or standalone (HTTP server)
 
-**Copy the complete MCP server code** from the current project files into your `src/app/tools/mcp_server.py` file.
+**The complete local MCP server code** is already provided in the `src/app/tools/mcp_server.py` file.
 
 The server includes these key banking tools:
 ```python
@@ -2694,17 +2696,19 @@ AZURE_OPENAI_API_VERSION="2024-02-15-preview"
 
 ### Step 2: Run the Application
 
-In your IDE terminal, run the MCP-enabled application:
+Start the FastAPI web server:
 
 ```bash
-python -m src.app.banking_agents
+# Activate the virtual environment and start the FastAPI server
+source .venv/bin/activate
+uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 63280
 ```
 
 You should see MCP initialization output:
 
 ```
-� Initializing MCP Banking System...
-� ENHANCED MCP: Initializing in LOCAL mode
+🚀 Initializing MCP Banking System...
+🔧 ENHANCED MCP: Initializing in LOCAL mode
 🚀 ENHANCED MCP: Starting shared server process...
 ✅ ENHANCED MCP: Shared server started in 1247.32ms (PID: 12345)
 🔄 ENHANCED MCP: Connecting to local shared server...
@@ -2721,23 +2725,29 @@ You should see MCP initialization output:
    - transfer_to_customer_support_agent
    - transfer_to_transactions_agent
    - transfer_to_sales_agent
-
-============================================================
-🏦 Welcome to the MCP-Enabled Banking Assistant!
-🔧 Now powered by Model Context Protocol  
-============================================================
-
-Available agents:
-  • Customer Support (balance, service requests)
-  • Transactions (transfers, history)
-  • Sales (new accounts, loans)
-
-Type 'exit' to end the conversation.
-
-You:
+INFO:     Uvicorn running on http://0.0.0.0:63280 (Press CTRL+C to quit)
 ```
 
-### Step 3: Test Banking Operations
+### Step 3: Start the Frontend Application
+
+To test the complete system with the web interface, open a **new terminal** and start the Angular frontend:
+
+```bash
+# Navigate to the frontend directory
+cd ../frontend
+
+# Install dependencies (if not already done)
+npm install
+
+# Start the Angular development server
+ng serve
+```
+
+The frontend will be available at: **http://localhost:4200**
+
+> **Note**: The frontend automatically connects to the backend API on port 63280 through the proxy configuration.
+
+### Step 4: Test Banking Operations
 
 Try these test scenarios to verify MCP integration:
 
@@ -2782,48 +2792,6 @@ transfer_to_sales_agent...
 sales_agent: Great! I've successfully created a new savings account for you with an initial balance of $1,000. Your new account number is A789. Welcome to our banking family!
 ```
 
-### Step 4: Analyze Performance Improvements
-
-Measure the performance improvements and understand why they occur:
-
-#### **Performance Metrics to Observe:**
-
-```
-📞 LOCAL MCP: Calling tool 'bank_balance' via shared server
-🔧 DEBUG: Tool arguments: {'account_number': 'A123', 'tenantId': 'Contoso', 'userId': 'Mark'}
-✅ LOCAL MCP: Tool call completed in 45.23ms  ← Key metric
-```
-
-#### **Why These Performance Gains Occur:**
-
-**1. Connection Caching Effect**
-- **Before**: New Cosmos DB connection per tool call (~1-2 seconds)
-- **After**: Reused connection from MCP server cache (~5-10ms)
-- **Improvement**: 100-400x faster database operations
-
-**2. Process Reuse Benefit**
-- **Before**: Python import overhead per agent initialization
-- **After**: Shared MCP server process across all agents
-- **Improvement**: Reduced memory usage and startup time
-
-**3. Context Optimization**
-- **Before**: Manual context passing, potential errors
-- **After**: Automatic context injection with validation
-- **Improvement**: Consistent security and reduced code complexity
-
-#### **Expected Performance Ranges:**
-- **Local MCP Tool Calls**: 40-80ms (cached connections)
-- **Remote MCP Tool Calls**: 60-120ms (HTTP + cached connections)
-- **Native Tool Calls**: 2000-4000ms (new connections each time)
-
-#### **Resource Usage Comparison:**
-Monitor your system resources during testing:
-- **Memory Usage**: Should decrease as agents share MCP server resources
-- **Database Connections**: Should drop from N×agents to 1 total
-- **CPU Usage**: Lower due to reduced connection overhead
-
-This performance improvement is why the custom MCP implementation was necessary - standard MCP couldn't deliver the sub-100ms response times required for real-time banking operations.
-
 ## Activity 5: Test Remote MCP Mode
 
 Now let's test the Remote MCP mode using the dedicated HTTP server.
@@ -2847,7 +2815,7 @@ MCP_SERVER_ENDPOINT="http://localhost:8080"
 USE_REMOTE_MCP_SERVER="true"
 ```
 
-**2. MCP server `.env` file (`mcpserver/.env`):**
+**2. MCP server `.env` file (`02_completed/mcpserver/.env`):**
 ```bash
 # Azure Services Configuration (same as client)
 COSMOSDB_ENDPOINT="https://your-cosmos-account.documents.azure.com:443/"
@@ -2863,17 +2831,18 @@ MCP_AUTH_SECRET_KEY="your-mcp-server-jwt-secret-key"
 
 ### Step 2: Start the Remote MCP Server
 
-The Remote MCP server is provided in the `mcpserver/` directory. Open a **new terminal** and start it:
+The Remote MCP server is provided in the `02_completed/mcpserver/` directory. Open a **new terminal** and start it:
 
 ```bash
 # Navigate to the mcpserver directory
-cd mcpserver
+cd ../../02_completed/mcpserver
 
-# Install dependencies (if not already done)
+# Activate virtual environment and install dependencies (if not already done)
+source .venv/bin/activate
 pip install -r requirements.txt
 
-# Start the Remote MCP HTTP server
-python -m src.mcp_http_server
+# Start the Remote MCP HTTP server using uvicorn with proper PYTHONPATH
+PYTHONPATH=src python -m uvicorn src.mcp_http_server:app --host 0.0.0.0 --port 8080
 ```
 
 You should see:
@@ -2892,16 +2861,18 @@ INFO:     Uvicorn running on http://0.0.0.0:8080 (Press CTRL+C to quit)
 
 ### Step 3: Run Application in Remote Mode
 
-In your **original terminal** (where you ran the application), run it again:
+In your **original terminal** (where you ran the application), start the FastAPI web server:
 
 ```bash
-python -m src.app.banking_agents
+# Activate the virtual environment and start the FastAPI server
+source .venv/bin/activate
+uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 63280
 ```
 
-You should see Remote MCP initialization:
+You should see Remote MCP initialization output:
 
 ```
-🚀 Initializing MCP Banking System...  
+🚀 Initializing MCP Banking System...
 🔧 ENHANCED MCP: Initializing in REMOTE mode
 🌐 ENHANCED MCP: Using Remote MCP server (HTTP)
 🌐 REMOTE MCP: Connecting to http://localhost:8080
@@ -2920,13 +2891,29 @@ You should see Remote MCP initialization:
    - transfer_to_transactions_agent
    - transfer_to_sales_agent
 ✅ Loaded 11 MCP tools
-============================================================
-🏦 Welcome to the MCP-Enabled Banking Assistant!
-🔧 Now powered by Model Context Protocol (REMOTE MODE)
-============================================================
+INFO:     Uvicorn running on http://0.0.0.0:63280 (Press CTRL+C to quit)
 ```
 
-### Step 4: Test Remote MCP Operations
+### Step 4: Start the Frontend Application
+
+To test the complete system with the web interface, open a **third terminal** and start the Angular frontend:
+
+```bash
+# Navigate to the frontend directory (from the python directory)
+cd ../frontend
+
+# Install dependencies (if not already done)
+npm install
+
+# Start the Angular development server
+ng serve
+```
+
+The frontend will be available at: **http://localhost:4200**
+
+> **Note**: The frontend automatically connects to the backend API on port 63280 through the proxy configuration.
+
+### Step 5: Test Remote MCP Operations
 
 Try the same banking operations as before:
 
