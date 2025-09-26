@@ -261,26 +261,6 @@ This implementation represents a classic engineering decision:
 - **Strategic Choice**: Accept performance overhead for long-term architectural benefits
 - **Ecosystem Benefits**: Compatibility with growing MCP ecosystem (like choosing USB-C over proprietary connectors)
 
-### When Each Approach Makes Sense
-
-**LangChain @tool Functions** are appropriate when:
-- Prototyping or educational environments
-- Tool calls are rare (<1 per minute) so connection overhead is acceptable
-- Development simplicity is the top priority
-- Very simple tools that don't require external service connections
-
-**Local MCP** is ideal when:
-- Need to eliminate connection overhead while maintaining simplicity
-- Want MCP benefits without operational overhead  
-- Have 1-20 concurrent agents making frequent tool calls
-- Single-tenant deployment with moderate performance requirements
-
-**Remote MCP** is required when:
-- Multiple applications share banking tools
-- Need enterprise security (JWT, audit trails)
-- Require horizontal scaling (50+ agents)
-- Building microservices architecture
-- Multi-tenant SaaS deployment with high performance requirements
 
 ## Activity 2: Implementing MCP Client-Server Architecture
 
@@ -419,7 +399,10 @@ Our implementation fills these gaps, delivering production-ready MCP for banking
 
 Your current `tools` folder has empty `mcp_client.py` and `mcp_server.py` files. Let's start with the MCP client.
 
-Open `src/app/tools/mcp_client.py` and replace the entire contents with:
+Open the empty file `src/app/tools/mcp_client.py` and copy/paste the complete code below:
+
+<details>
+<summary><strong>Complete mcp_client.py code (click to expand)</strong></summary>
 
 ```python
 """
@@ -1129,6 +1112,7 @@ async def cleanup_shared_mcp_client():
         _shared_mcp_client = None
 
 ```
+</details>
 
 ### Step 2: Create Local MCP Server
 
