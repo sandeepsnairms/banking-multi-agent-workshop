@@ -504,7 +504,7 @@ Update the `API_URL` to point to your local FastAPI server:
 ```typescript
 export const environment = {
     production: true,
-    apiUrl: 'http://localhost:8000/'
+    apiUrl: 'http://localhost:63280/'
   };
 ```
 
