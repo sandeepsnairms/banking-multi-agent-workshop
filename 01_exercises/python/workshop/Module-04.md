@@ -407,10 +407,10 @@ First, start the FastAPI server:
 In your IDE, run the following command in your terminal:
 
 ```shell
-uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 8000
+uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 63280
 ```
 
-Next, open a browser and navigate to `http://localhost:8000/docs` to view the swagger UI.
+Next, open a browser and navigate to `http://localhost:63280/docs` to view the swagger UI.
 
 ![Swagger UI](./media/module-04/swagger_ui.png)
 
@@ -437,13 +437,13 @@ Capture the value of the new sessionId
 
 ```json
 {
-  "id": "daf31737-e5ef-479e-add3-407e0f3f746e",
+  "id": "653cc488-e9d5-4af4-9175-9410e501acb9",
   "type": "session",
-  "sessionId": "daf31737-e5ef-479e-add3-407e0f3f746e",
+  "sessionId": "653cc488-e9d5-4af4-9175-9410e501acb9",
   "tenantId": "Contoso",
   "userId": "Mark",
   "tokensUsed": 0,
-  "name": "Mark",
+  "name": "Mark Brown",
   "messages": []
 }
 ```
@@ -461,7 +461,7 @@ Here you can see the request from Swagger and the response from our agent.
   {
     "id": "1a568dff-43fe-4477-977b-9c21c8bf61f3",
     "type": "ai_response",
-    "sessionId": "daf31737-e5ef-479e-add3-407e0f3f746e",
+    "sessionId": "653cc488-e9d5-4af4-9175-9410e501acb9",
     "tenantId": "Contoso",
     "userId": "Mark",
     "timeStamp": "",
@@ -476,7 +476,7 @@ Here you can see the request from Swagger and the response from our agent.
   {
     "id": "10c6daa8-714d-41d8-b564-99a6c8ffdb5d",
     "type": "ai_response",
-    "sessionId": "daf31737-e5ef-479e-add3-407e0f3f746e",
+    "sessionId": "653cc488-e9d5-4af4-9175-9410e501acb9",
     "tenantId": "Contoso",
     "userId": "Mark",
     "timeStamp": "",
@@ -504,7 +504,7 @@ Update the `API_URL` to point to your local FastAPI server:
 ```typescript
 export const environment = {
     production: true,
-    apiUrl: 'http://localhost:8000/'
+    apiUrl: 'http://localhost:63280/'
   };
 ```
 

@@ -1,6 +1,9 @@
 import requests
 
-BASE_URL = "http://127.0.0.1:8000"  # Update if hosted elsewhere.
+import requests
+import json
+
+api_base_url = "http://localhost:63280"
 TENANT_ID = "test_tenant"  # Replace with actual tenant ID if needed.
 USER_ID = "test_user"  # Replace with actual user ID if needed.
 

@@ -12,12 +12,8 @@ param location string
 @description('Id of the user or app to assign application roles')
 param principalId string
 
-@description('Owner name for the owner tag required by policy')
-param owner string
-
 var tags = {
   'azd-env-name': environmentName
-  'owner': owner
 }
 
 var abbrs = loadJsonContent('./abbreviations.json')
@@ -96,7 +92,7 @@ var deployments = [
   {
     name: 'text-embedding-3-small'
     skuCapacity: 5
-	skuName: 'GlobalStandard'
+	skuName: 'Standard'
     modelName: 'text-embedding-3-small'
     modelVersion: '1'
   }

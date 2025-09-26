@@ -2,14 +2,6 @@
 
 **[Home](Home.md)** - [Prerequisites - Deployment and Setup >](./Module-00.md)
 
-## Introduction
-
-Thank you for participating in the Banking Multi-Agent Workshop. Over this series of modules you'll learn how to build a multi-agent AI application.
-
----set up business scenario
-
---set up the technical scenario. highlight the steps of what users will do to 
-
 ## Learning Path
 
 The workshop follows a progressive learning path with the following Modules
@@ -20,6 +12,7 @@ The workshop follows a progressive learning path with the following Modules
 -[Module 3: Agent Specialization](Module-03.md)
 -[Module 4: Multi-Agent Orchestration](Module-04.md)
 -[Module 5: Lessons Learned, Agent Futures, Q&A](Module-05.md)
+-[Module 6: Converting to Model Context Protocol (MCP)](Module-06.md)
 
 
 

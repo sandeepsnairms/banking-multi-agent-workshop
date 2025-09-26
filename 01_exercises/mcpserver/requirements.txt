@@ -1,0 +1,23 @@
+# Core FastAPI and server dependencies
+fastapi>=0.104.1
+uvicorn[standard]>=0.24.0
+pydantic>=2.7.4
+python-dotenv>=1.0.0
+python-multipart>=0.0.9
+
+# Security dependencies
+PyJWT>=2.8.0
+cryptography>=41.0.8
+passlib[bcrypt]>=1.7.4
+bcrypt>=4.1.2
+python-jose[cryptography]>=3.3.0
+
+# Azure SDK dependencies
+azure-cosmos==4.9.0
+azure-identity>=1.17.0
+openai>=1.13.3
+openai>=1.58.1
+
+# Rate limiting and monitoring
+slowapi>=0.1.9
+httpx>=0.25.2
