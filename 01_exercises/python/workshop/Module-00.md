@@ -205,21 +205,20 @@ But you will still need to install dependencies to run the solution locally.
 2. Start the fastapi server.
 
    ```shell
-   uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 8000
+   uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 63280
    ```
 
-The API will be available at `http://localhost:8000/docs`. This has been pre-built with boilerplate code that will create chat sessions and store the chat history in Cosmos DB.
+The API will be available at `http://localhost:63280/docs`. This has been pre-built with boilerplate code that will create chat sessions and store the chat history in Cosmos DB.
 
 #### Run the Frontend App locally
 
-1. Update the `apiUrl` values in `frontend/src/environments/environment.ts` file with the API endpoint (http://localhost:8000/)
 1. Open a new terminal, navigate to the `frontend` folder and run the following to start the application:
 
    ```sh
    npm install
    npm start
    ```
-1. Open your browser and navigate to <http://localhost:8000/>.
+1. Open your browser and navigate to <http://localhost:63280/>.
 
 #### Run the Frontend App on Codespaces
 
@@ -231,7 +230,7 @@ The API will be available at `http://localhost:8000/docs`. This has been pre-bui
    npm start
    ```
 1. From the **Ports** tab:
-   1. Right-click and select the **Port Visibility** option to set port **ChatAPI (8000)** as **Public**.
+   1. Right-click and select the **Port Visibility** option to set port **ChatAPI (63280)** as **Public**.
    1. For the port with the label **Frontend app**. Hover over the address and choose **Open in Browser** (second icon) to access the frontend application.
 
 Lets try a couple of things:

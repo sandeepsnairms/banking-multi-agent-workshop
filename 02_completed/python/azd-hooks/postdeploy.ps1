@@ -166,9 +166,8 @@ Write-Host "Updating .env files with Azure and MCP configuration..."
 Update-EnvFile -mcpServerUrl $mcpServerUrl -targetPath "." -includeMcpClient $true
 
 # Update MCP Server .env file (Azure services only, no MCP client config)
-# Update both locations to ensure compatibility
+# Only update root location - src/.env is redundant
 Update-EnvFile -mcpServerUrl $mcpServerUrl -targetPath "..\mcpserver" -includeMcpClient $false
-Update-EnvFile -mcpServerUrl $mcpServerUrl -targetPath "..\mcpserver\src" -includeMcpClient $false
 
 Write-Host "Both .env files updated successfully"
 

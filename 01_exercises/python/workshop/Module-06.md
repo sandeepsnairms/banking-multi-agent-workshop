@@ -10,7 +10,7 @@ In this module, you'll learn how to convert your multi-agent banking application
 
 ### Why MCP Was Implemented: Architectural Benefits Over Performance
 
-The decision to implement MCP in this banking system was **not driven by performance concerns**. In fact, native LangChain tools often perform as well as or better than MCP in terms of raw speed. The real drivers were **architectural and organizational benefits**:
+A decision to implement MCP in this banking system would **not be driven by performance concerns**. In fact, native LangChain tools often perform as well as or better than MCP in terms of raw speed. The real drivers would be **architectural and organizational benefits**:
 
 | Architectural Aspect | LangChain @tool Functions | MCP Approach | Benefit |
 |---------------------|--------------------------|-------------|----------|
@@ -166,18 +166,18 @@ Problems: 9 total connections, repeated initialization
 ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
 │   Agent 1   │    │   Agent 2   │    │   Agent 3   │
 │ ┌─────────┐ │    │ ┌─────────┐ │    │ ┌─────────┐ │
-│ │MCP Client│ │    │ │MCP Client│ │    │ │MCP Client│ │
+│ │MCPClient│ │    │ │MCPClient│ │    │ │MCPClient│ │
 │ └─────────┘ │    │ └─────────┘ │    │ └─────────┘ │
 └─────┬───────┘    └─────┬───────┘    └─────┬───────┘
       │                  │                  │
       └─────────┬────────┴─────────┬────────┘
-                │                  │
+                │      stdio       │
          ┌─────────────────────────────────┐
-         │      Shared MCP Server          │
-         │ ┌─────────┐  ┌─────────┐       │
-         │ │ Tools   │  │ Azure   │       │
-         │ │ (11)    │  │ Conns   │       │
-         │ └─────────┘  └─────────┘       │
+         │      Shared Local MCP Server    │
+         │ ┌─────────┐  ┌─────────┐        │
+         │ │ Tools   │  │ Azure   │        │
+         │ │ (11)    │  │ Conns   │        │
+         │ └─────────┘  └─────────┘        │
          └─────────────────┬───────────────┘
                            ↓
                         Cosmos
@@ -192,7 +192,7 @@ Benefits: 1 total connection, shared initialization
 │ Banking     │    │ Banking     │    │ Other       │
 │ App 1       │    │ App 2       │    │ App N       │
 │ ┌─────────┐ │    │ ┌─────────┐ │    │ ┌─────────┐ │
-│ │MCP Client│ │    │ │MCP Client│ │    │ │MCP Client│ │
+│ │MCPClient│ │    │ │MCPClient│ │    │ │MCPClient│ │
 │ └─────────┘ │    │ └─────────┘ │    │ └─────────┘ │
 └─────┬───────┘    └─────┬───────┘    └─────┬───────┘
       │                  │                  │
@@ -200,10 +200,10 @@ Benefits: 1 total connection, shared initialization
                 │    HTTP/JWT      │
       ┌─────────────────────────────────────────┐
       │         Remote MCP Server               │
-      │ ┌─────────┐  ┌─────────┐  ┌─────────┐  │
-      │ │ Tools   │  │ Azure   │  │Security │  │
-      │ │ (11)    │  │ Pool    │  │& Audit  │  │
-      │ └─────────┘  └─────────┘  └─────────┘  │
+      │ ┌─────────┐  ┌─────────┐  ┌─────────┐   │
+      │ │ Tools   │  │ Azure   │  │Security │   │
+      │ │ (11)    │  │ Pool    │  │& Audit  │   │
+      │ └─────────┘  └─────────┘  └─────────┘   │
       └─────────────────┬───────────────────────┘
                         ↓
                    Azure Services
@@ -288,7 +288,7 @@ In this activity, we'll examine the custom MCP architecture that provides the ar
 
 Let's examine the MCP client architecture that will be implemented in `src/app/tools/mcp_client.py`. This client implements our dual-mode MCP architecture:
 
-> **Note**: This section explains the architecture and key code patterns. You'll copy the complete files in Activity 3.
+> **Note**: This section explains the architecture and key code patterns. The implementation begins later in this activity.
 
 #### **Key Architecture Decisions:**
 
@@ -336,7 +336,7 @@ def call_mcp_tool(self, tool_name, arguments, context):
 
 Let's examine the MCP server architecture that will be implemented in `src/app/tools/mcp_server.py`. This server implements the cached resource pattern:
 
-> **Note**: This section explains the server architecture and key patterns. You'll copy the complete files in Activity 3.
+> **Note**: This section explains the server architecture and key patterns. The implementation begins later in this activity.
 
 #### **Resource Caching Strategy**
 

@@ -407,10 +407,10 @@ First, start the FastAPI server:
 In your IDE, run the following command in your terminal:
 
 ```shell
-uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 8000
+uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 63280
 ```
 
-Next, open a browser and navigate to `http://localhost:8000/docs` to view the swagger UI.
+Next, open a browser and navigate to `http://localhost:63280/docs` to view the swagger UI.
 
 ![Swagger UI](./media/module-04/swagger_ui.png)
 
