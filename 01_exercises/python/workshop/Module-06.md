@@ -2765,7 +2765,7 @@ MCP_SERVER_ENDPOINT="http://localhost:8080"
 USE_REMOTE_MCP_SERVER="true"
 ```
 
-**2. MCP server `.env` file (`02_completed/mcpserver/.env`):**
+**2. MCP server `.env` file (`01_exercises/mcpserver/.env`):**
 ```bash
 # Azure Services Configuration (same as client)
 COSMOSDB_ENDPOINT="https://your-cosmos-account.documents.azure.com:443/"
@@ -2781,11 +2781,11 @@ MCP_AUTH_SECRET_KEY="your-mcp-server-jwt-secret-key"
 
 ### Step 2: Start the Remote MCP Server
 
-The Remote MCP server is provided in the `02_completed/mcpserver/` directory. Open a **new terminal** and start it:
+The full remote MCP server is provided in the `01_exercises/mcpserver/` directory. Open a **new terminal** and start it:
 
 ```bash
 # Navigate to the mcpserver directory
-cd ../../02_completed/mcpserver
+cd ../mcpserver
 
 # Activate virtual environment and install dependencies (if not already done)
 source .venv/bin/activate
@@ -2815,6 +2815,7 @@ In your **original terminal** (where you ran the application), start the FastAPI
 
 ```bash
 # Activate the virtual environment and start the FastAPI server
+cd ../python
 source .venv/bin/activate
 uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 63280
 ```
