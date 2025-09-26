@@ -356,7 +356,6 @@ Standard MCP libraries (`mcp` package) don't provide:
 - **Process management** for embedded servers
 - **Context injection** for multi-tenant applications
 - **Performance monitoring** and optimization
-- **Dual deployment modes** (Local/Remote)
 
 Our implementation fills these gaps, delivering production-ready MCP for banking applications.
 
@@ -1093,7 +1092,7 @@ Now open `src/app/tools/mcp_server.py` and replace the entire contents with the 
 - **Azure Integration**: Cached connections to Cosmos DB and OpenAI for optimal performance  
 - **Multi-tenant Security**: All operations require tenantId and userId
 - **Performance Monitoring**: Execution timing and logging for all operations
-- **Dual Mode Support**: Can run embedded (local) or standalone (HTTP server)
+- **Dual Mode Support**: Can run an embedded (local) or standalone (HTTP) MCP servers
 
 **The complete local MCP server code** is already provided in the `src/app/tools/mcp_server.py` file.
 
@@ -2918,7 +2917,7 @@ Congratulations! You have successfully implemented a custom MCP solution that ad
 
 ### ✅ **Custom MCP Implementation**:
 - **Connection Caching**: Implemented shared Azure service connections across all agents
-- **Dual Mode Support**: Built flexible architecture supporting both Local and Remote deployment
+- **Dual Mode Support**: Built flexible architecture supporting both Local and Remote deployment (in a real system, you'd choose one, but we've demonstrated both here)
 - **Context Injection**: Automated multi-tenant security context for all tool operations
 - **Performance Monitoring**: Integrated timing and logging for production optimization
 - **Error Resilience**: Built robust error handling with reconnection and retry logic
