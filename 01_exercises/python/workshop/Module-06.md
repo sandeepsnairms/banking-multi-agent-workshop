@@ -228,39 +228,6 @@ Benefits: Multi-client, enterprise security, horizontal scaling
 | **Operational Complexity** | Simple (single process) | Moderate (process management) | Complex (distributed system) |
 | **Ecosystem Compatibility** | None | MCP-compatible clients only | Full MCP ecosystem |
 
-### When Each Approach Makes Sense
-
-**LangChain @tool Functions** are appropriate when:
-- Building prototypes, demos, or simple applications
-- Single team owns both AI logic and domain tools
-- Performance is the absolute top priority
-- Simple deployment requirements (single process)
-- No need for tool reusability across different AI systems
-
-**Local MCP** is ideal when:
-- Want loose coupling without operational complexity
-- Multiple teams work on the same application
-- Need protocol standardization within your organization
-- Tools may be reused by other internal applications
-- Acceptable to trade slight performance for better architecture
-
-**Remote MCP** is required when:
-- Building enterprise systems with multiple AI applications
-- Different teams own AI and domain logic
-- Need independent deployment and scaling of tools
-- Want ecosystem interoperability with other MCP-compatible systems
-- Willing to accept operational complexity for maximum architectural benefits
-- Building microservices architecture
-
-### Performance vs Architecture Trade-off
-
-This implementation represents a classic engineering decision:
-
-- **Performance**: LangChain tools are typically 10-50ms faster per call
-- **Architecture**: MCP provides loose coupling, standardization, and maintainability
-- **Strategic Choice**: Accept performance overhead for long-term architectural benefits
-- **Ecosystem Benefits**: Compatibility with growing MCP ecosystem (like choosing USB-C over proprietary connectors)
-
 
 ## Activity 2: Implementing MCP Client-Server Architecture
 
