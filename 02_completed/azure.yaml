@@ -19,19 +19,6 @@ hooks:
           AZURE_OPENAI_EMBEDDINGDEPLOYMENTID=\"$AZURE_OPENAI_EMBEDDINGDEPLOYMENTID\"
           AZURE_OPENAI_COMPLETIONSDEPLOYMENTID=\"$AZURE_OPENAI_COMPLETIONSDEPLOYMENTID\"
           " > ./python/.env
-      
-          echo "{
-            ""CosmosDBSettings"": {
-              ""CosmosUri"": ""$env:COSMOSDB_ENDPOINT""
-            },
-            ""SemanticKernelServiceSettings"": {
-              ""AzureOpenAISettings"": {
-                ""Endpoint"": ""$env:AZURE_OPENAI_ENDPOINT"",
-                ""EmbeddingDeployment"": ""$env:AZURE_OPENAI_EMBEDDINGDEPLOYMENTID"",
-                ""CompletionsDeployment"": ""$env:AZURE_OPENAI_COMPLETIONSDEPLOYMENTID""
-              }
-            }
-          }" > ./csharp/src/MultiAgentCopilot/appsettings.development.json
 
           echo "export const environment = {
             production: false,
@@ -49,19 +36,6 @@ hooks:
           AZURE_OPENAI_EMBEDDINGDEPLOYMENTID=""$env:AZURE_OPENAI_EMBEDDINGDEPLOYMENTID""
           AZURE_OPENAI_COMPLETIONSDEPLOYMENTID=""$env:AZURE_OPENAI_COMPLETIONSDEPLOYMENTID""
           " > ./python/.env
-
-          echo "{
-            ""CosmosDBSettings"": {
-              ""CosmosUri"": ""$env:COSMOSDB_ENDPOINT""
-            },
-            ""SemanticKernelServiceSettings"": {
-              ""AzureOpenAISettings"": {
-                ""Endpoint"": ""$env:AZURE_OPENAI_ENDPOINT"",
-                ""EmbeddingDeployment"": ""$env:AZURE_OPENAI_EMBEDDINGDEPLOYMENTID"",
-                ""CompletionsDeployment"": ""$env:AZURE_OPENAI_COMPLETIONSDEPLOYMENTID""
-              }
-            }
-          }" > ./csharp/src/MultiAgentCopilot/appsettings.development.json
 
           echo "export const environment = {
             production: false,

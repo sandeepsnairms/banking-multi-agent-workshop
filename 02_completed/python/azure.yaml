@@ -19,6 +19,10 @@ hooks:
           AZURE_OPENAI_EMBEDDINGDEPLOYMENTID=\"$AZURE_OPENAI_EMBEDDINGDEPLOYMENTID\"
           AZURE_OPENAI_COMPLETIONSDEPLOYMENTID=\"$AZURE_OPENAI_COMPLETIONSDEPLOYMENTID\"
           APPLICATIONINSIGHTS_CONNECTION_STRING=\"$APPLICATIONINSIGHTS_CONNECTION_STRING\"
+          AZURE_OPENAI_API_VERSION=\"2024-02-15-preview\"
+          MCP_SERVER_BASE_URL=\"$SERVICE_MCPSERVER_ENDPOINT_URL\"
+          MCP_AUTH_TOKEN=\"banking-server-prod-token-2025\"
+          USE_REMOTE_MCP_SERVER=\"true\"
           " > ./.env
       windows:
         shell: pwsh
@@ -26,15 +30,25 @@ hooks:
         continueOnError: false
         run: |
           echo "
-          COSMOSDB_ENDPOINT=""$env:COSMOSDB_ENDPOINT""
-          AZURE_OPENAI_ENDPOINT=""$env:AZURE_OPENAI_ENDPOINT""
-          AZURE_OPENAI_EMBEDDINGDEPLOYMENTID=""$env:AZURE_OPENAI_EMBEDDINGDEPLOYMENTID""
-          AZURE_OPENAI_COMPLETIONSDEPLOYMENTID=""$env:AZURE_OPENAI_COMPLETIONSDEPLOYMENTID""
-          APPLICATIONINSIGHTS_CONNECTION_STRING=""$env:APPLICATIONINSIGHTS_CONNECTION_STRING""
+          COSMOSDB_ENDPOINT=\"\"$env:COSMOSDB_ENDPOINT\"\"
+          AZURE_OPENAI_ENDPOINT=\"\"$env:AZURE_OPENAI_ENDPOINT\"\"
+          AZURE_OPENAI_EMBEDDINGDEPLOYMENTID=\"\"$env:AZURE_OPENAI_EMBEDDINGDEPLOYMENTID\"\"
+          AZURE_OPENAI_COMPLETIONSDEPLOYMENTID=\"\"$env:AZURE_OPENAI_COMPLETIONSDEPLOYMENTID\"\"
+          APPLICATIONINSIGHTS_CONNECTION_STRING=\"\"$env:APPLICATIONINSIGHTS_CONNECTION_STRING\"\"
+          AZURE_OPENAI_API_VERSION=\"\"2024-02-15-preview\"\"
+          MCP_SERVER_BASE_URL=\"\"$env:SERVICE_MCPSERVER_ENDPOINT_URL\"\"
+          MCP_AUTH_TOKEN=\"\"banking-server-prod-token-2025\"\"
+          USE_REMOTE_MCP_SERVER=\"\"true\"\"
           " > ./.env
 services:
     ChatServiceWebApi:
         project: .
+        host: containerapp
+        language: python
+        docker:
+            path: ./Dockerfile
+    MCPServer:
+        project: ../mcpserver
         host: containerapp
         language: python
         docker:

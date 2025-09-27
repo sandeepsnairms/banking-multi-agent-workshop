@@ -222,6 +222,27 @@ module ChatAPI './app/ChatAPI.bicep' = {
   dependsOn: [cosmos, monitoring, openAi]
 }
 
+// Deploy MCP Server Container App
+module MCPServer './app/mcpServer.bicep' = {
+  name: 'MCPServer'
+  params: {
+    name: '${abbrs.appContainerApps}mcpserver-${resourceToken}'
+    location: location
+    tags: tags
+    environmentId: appsEnv.outputs.id
+    containerRegistryName: registry.outputs.name
+    identityName: AssignRoles.outputs.identityName
+    envSettings: [
+      {
+        name: 'PORT'
+        value: '8080'
+      }
+    ]
+  }
+  scope: rg
+  dependsOn: [cosmos, monitoring, openAi, AssignRoles]
+}
+
 module webApp './app/webApp.bicep' = {
   name: 'webApp'  
   params: {
@@ -236,6 +257,7 @@ module webApp './app/webApp.bicep' = {
 // Outputs
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = registry.outputs.loginServer
 output SERVICE_ChatAPI_ENDPOINT_URL string = ChatAPI.outputs.uri
+output SERVICE_MCPSERVER_ENDPOINT_URL string = MCPServer.outputs.uri
 output FRONTENDPOINT_URL string = webApp.outputs.url
 output AZURE_OPENAI_ENDPOINT string = openAi.outputs.endpoint
 output WEB_APP_NAME string = '${abbrs.webSitesAppService}${resourceToken}'

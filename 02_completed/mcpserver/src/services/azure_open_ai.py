@@ -16,10 +16,11 @@ def get_azure_ad_token():
         credential = DefaultAzureCredential()
         token = credential.get_token("https://cognitiveservices.azure.com/.default")
         print("[DEBUG] MCP Server: Retrieved Azure AD token successfully using DefaultAzureCredential.")
+        return token.token
     except Exception as e:
         print(f"[ERROR] MCP Server: Failed to retrieve Azure AD token: {e}")
-        raise e
-    return token.token
+        print("[WARN] MCP Server: Continuing without Azure AD authentication - some features may not work")
+        return None
 
 def initialize_openai_client():
     """Initialize the Azure OpenAI client"""
@@ -28,20 +29,30 @@ def initialize_openai_client():
     if aoai_client is None:
         try:
             azure_ad_token = get_azure_ad_token()
-            aoai_client = AzureOpenAI(
-                azure_ad_token=azure_ad_token,
-                api_version="2024-09-01-preview",
-                azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT")
-            )
-            print("[DEBUG] MCP Server: Azure OpenAI client initialized successfully.")
+            if azure_ad_token:
+                aoai_client = AzureOpenAI(
+                    azure_ad_token=azure_ad_token,
+                    api_version="2024-09-01-preview",
+                    azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT")
+                )
+                print("[DEBUG] MCP Server: Azure OpenAI client initialized successfully.")
+            else:
+                print("[WARN] MCP Server: Skipping Azure OpenAI client initialization - no valid token")
         except Exception as e:
             print(f"[ERROR] MCP Server: Error initializing Azure OpenAI client: {e}")
-            raise e
+            print("[WARN] MCP Server: Continuing without Azure OpenAI client - some features may not work")
 
 # Initialize on import
-initialize_openai_client()
+try:
+    initialize_openai_client()
+except Exception as e:
+    print(f"[WARN] MCP Server: Failed to initialize Azure OpenAI client during import: {e}")
 
 def generate_embedding(text):
+    if aoai_client is None:
+        print("[ERROR] MCP Server: Azure OpenAI client not available - cannot generate embedding")
+        return [0.0] * 1536  # Return dummy embedding vector
+    
     start_time = time.time()
     print(f"⏱️  MCP AZURE_OPENAI: Starting embedding generation for {len(text)} chars")
     

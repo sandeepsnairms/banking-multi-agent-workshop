@@ -12,9 +12,12 @@ param location string
 @description('Id of the user or app to assign application roles')
 param principalId string
 
+@description('Owner tag for resource tagging')
+param owner string = 'theocon@microsoft.com'
+
 var tags = {
   'azd-env-name': environmentName
-  'owner': 'theocon@microsoft.com'
+  'owner': owner
 }
 
 var abbrs = loadJsonContent('./abbreviations.json')
@@ -218,11 +221,27 @@ module ChatAPI './app/ChatAPI.bicep' = {
         name: 'ApplicationInsightsConnectionString'
         value: monitoring.outputs.applicationInsightsConnectionString
       }
+      {
+        name: 'AZURE_OPENAI_API_VERSION'
+        value: '2024-02-15-preview'
+      }
+      {
+        name: 'MCP_SERVER_BASE_URL'
+        value: mcpServer.outputs.uri
+      }
+      {
+        name: 'USE_REMOTE_MCP_SERVER'
+        value: 'true'
+      }
+      {
+        name: 'MCP_AUTH_TOKEN'
+        value: 'banking-server-prod-token-2025'
+      }
   
     ]
   }
   scope: rg
-  dependsOn: [cosmos, monitoring, openAi]
+  dependsOn: [cosmos, monitoring, openAi, mcpServer]
 }
 
 // Deploy MCP Server Container App
@@ -232,10 +251,15 @@ module mcpServer './app/mcpServer.bicep' = {
     name: '${abbrs.appContainerApps}mcpserver-${resourceToken}'
     location: location
     tags: tags
-    containerAppsEnvironmentName: appsEnv.outputs.name
+    environmentId: appsEnv.outputs.id
     containerRegistryName: registry.outputs.name
-    exists: false // Set to true after first deployment
+    identityName: AssignRoles.outputs.identityName
+    registryServer: registry.outputs.loginServer
     envSettings: [
+      {
+        name: 'PORT'
+        value: '8080'
+      }
       {
         name: 'AZURE_OPENAI_ENDPOINT'
         value: openAi.outputs.endpoint
@@ -253,37 +277,33 @@ module mcpServer './app/mcpServer.bicep' = {
         value: cosmos.outputs.endpoint
       }
       {
-        name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+        name: 'ApplicationInsightsConnectionString'
         value: monitoring.outputs.applicationInsightsConnectionString
-      }
-      {
-        name: 'USE_REMOTE_MCP_SERVER'
-        value: 'true'
-      }
-      {
-        name: 'JWT_SECRET'
-        value: 'your-production-jwt-secret-key'
       }
       {
         name: 'AZURE_OPENAI_API_VERSION'
         value: '2024-02-15-preview'
       }
+      {
+        name: 'AZURE_CLIENT_ID'
+        value: AssignRoles.outputs.identityClientId
+      }
+      {
+        name: 'MCP_AUTH_TOKEN'
+        value: 'banking-server-prod-token-2025'
+      }
+      {
+        name: 'GITHUB_CLIENT_ID'
+        value: ''
+      }
+      {
+        name: 'GITHUB_CLIENT_SECRET'
+        value: ''
+      }
     ]
   }
   scope: rg
-  dependsOn: [cosmos, monitoring, openAi, appsEnv, registry]
-}
-
-// Assign roles to MCP Server system-assigned identity
-module mcpServerRoles './shared/mcproles.bicep' = {
-  name: 'mcpServerRoles'
-  params: {
-    mcpServerName: mcpServer.outputs.name
-    cosmosDbAccountName: cosmos.outputs.name
-    openAIName: openAi.outputs.name
-  }
-  scope: rg
-  dependsOn: [mcpServer]
+  dependsOn: [cosmos, monitoring, openAi, AssignRoles]
 }
 
 module webApp './app/webApp.bicep' = {
