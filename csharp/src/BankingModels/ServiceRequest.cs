@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace MultiAgentCopilot.Models.Banking
+namespace BankingModels
 {
     public class ServiceRequest
     {

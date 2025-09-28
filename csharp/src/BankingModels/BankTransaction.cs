@@ -1,4 +1,4 @@
-﻿namespace  MultiAgentCopilot.Models.Banking
+﻿namespace  BankingModels
 {
     public class BankTransaction
     {

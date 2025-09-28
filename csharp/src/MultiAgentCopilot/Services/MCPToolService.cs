@@ -81,20 +81,38 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Services
             IClientTransport clientTransport;
             _logger.LogInformation("Retrieving MCP tools for agent: {AgentType}", agent);
 
-
-            var jwtToken = _mcpSettings.JWTTokenSecret;
             var mcpConnectionType = _mcpSettings.ConnectionType;
 
             // Load agent configuration on-demand
             var agentConfig = GetAgentConfiguration(agent);
 
-            _logger.LogInformation("MCPToolFactory  Connection type: {ConnectionType}", mcpConnectionType);
+            _logger.LogInformation("MCPToolFactory Connection type: {ConnectionType}", mcpConnectionType);
 
             if (mcpConnectionType == MCPConnectionType.HTTP)
             {
-                // Create HttpClient with JWT Bearer token
+                // Get OAuth token for authentication
+                string? accessToken = null;
+                
+                try
+                {
+                    var (clientId, clientSecret, scope) = GetAgentOAuthCredentials(agent);
+                    accessToken = await GetOAuthTokenAsync(agentConfig.Url, clientId, clientSecret, scope);
+                    
+                    if (string.IsNullOrEmpty(accessToken))
+                    {
+                        _logger.LogError("Failed to obtain OAuth token for agent {AgentType}", agent);
+                        return new List<McpClientTool>();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error obtaining OAuth token for agent {AgentType}", agent);
+                    return new List<McpClientTool>();
+                }
+
+                // Create HttpClient with OAuth Bearer token
                 _httpClient = new HttpClient();
-                _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", jwtToken);
+                _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
                 _httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
 
                 clientTransport = new HttpClientTransport(new()
@@ -130,6 +148,96 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Services
                 _logger.LogError(ex, "Failed to retrieve MCP tools for agent {AgentType}", agent);
                 return new List<McpClientTool>();
             }
+        }
+
+        /// <summary>
+        /// Gets OAuth token from the MCP server using client credentials flow
+        /// </summary>
+        private async Task<string?> GetOAuthTokenAsync(string serverUrl, string clientId, string clientSecret, string? scope = null)
+        {
+            try
+            {
+                // Extract base URL for OAuth token endpoint
+                var baseUri = new Uri(serverUrl);
+                var tokenUrl = new Uri(baseUri, "/oauth/token");
+
+                using var authClient = new HttpClient();
+                authClient.DefaultRequestHeaders.Add("Accept", "application/json");
+
+                // Use OAuth 2.0 Client Credentials flow for service-to-service authentication
+                var tokenRequest = new List<KeyValuePair<string, string>>
+                {
+                    new("grant_type", "client_credentials"),
+                    new("client_id", clientId),
+                    new("client_secret", clientSecret)
+                };
+
+                if (!string.IsNullOrEmpty(scope))
+                {
+                    tokenRequest.Add(new("scope", scope));
+                }
+
+                var content = new FormUrlEncodedContent(tokenRequest);
+
+                _logger.LogDebug("Attempting OAuth authentication to {TokenUrl} for client {ClientId}", tokenUrl, clientId);
+
+                var response = await authClient.PostAsync(tokenUrl, content);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError("OAuth authentication failed with status {StatusCode}: {ErrorContent}", 
+                        response.StatusCode, errorContent);
+                    return null;
+                }
+
+                var responseJson = await response.Content.ReadAsStringAsync();
+                var tokenResponse = JsonSerializer.Deserialize<JsonElement>(responseJson);
+                
+                if (tokenResponse.TryGetProperty("access_token", out var tokenProperty))
+                {
+                    var token = tokenProperty.GetString();
+                    
+                    // Log token expiration for monitoring
+                    if (tokenResponse.TryGetProperty("expires_in", out var expiresProperty))
+                    {
+                        var expiresIn = expiresProperty.GetInt32();
+                        _logger.LogInformation("Successfully obtained OAuth token for client {ClientId}, expires in {ExpiresIn} seconds", 
+                            clientId, expiresIn);
+                    }
+                    
+                    return token;
+                }
+                else
+                {
+                    _logger.LogError("Access token not found in OAuth response");
+                    return null;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during OAuth token acquisition for client {ClientId}", clientId);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Gets agent-specific OAuth credentials from configuration
+        /// </summary>
+        private (string clientId, string clientSecret, string scope) GetAgentOAuthCredentials(AgentType agentType)
+        {
+            var agentName = agentType.ToString().ToUpper();
+            
+            var clientId = _mcpSettings.GetType().GetProperty($"{agentName}ClientId")?.GetValue(_mcpSettings, null) as string 
+                          ?? throw new InvalidOperationException($"OAuth Client ID for agent {agentName} is not configured.");
+            
+            var clientSecret = _mcpSettings.GetType().GetProperty($"{agentName}ClientSecret")?.GetValue(_mcpSettings, null) as string
+                              ?? throw new InvalidOperationException($"OAuth Client Secret for agent {agentName} is not configured.");
+            
+            var scope = _mcpSettings.GetType().GetProperty($"{agentName}Scope")?.GetValue(_mcpSettings, null) as string
+                       ?? "mcp:tools"; // Default scope
+            
+            return (clientId, clientSecret, scope);
         }
 
         private IList<McpClientTool> FilterToolsByAgentTags(

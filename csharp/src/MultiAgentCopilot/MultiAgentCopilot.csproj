@@ -61,6 +61,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\BankingModels\BankingModels.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Update="Prompts\CommonAgentRules.prompty">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

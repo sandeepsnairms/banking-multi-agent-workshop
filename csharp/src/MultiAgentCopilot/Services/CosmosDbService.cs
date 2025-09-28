@@ -4,7 +4,7 @@ using Microsoft.Azure.Cosmos.Fluent;
 using Microsoft.Extensions.Options;
 using Microsoft.Identity.Client;
 using MultiAgentCopilot.Helper;
-using MultiAgentCopilot.Models.Banking;
+using BankingModels;
 using MultiAgentCopilot.Models.Chat;
 using MultiAgentCopilot.Models.Configuration;
 using MultiAgentCopilot.Models.Debug;

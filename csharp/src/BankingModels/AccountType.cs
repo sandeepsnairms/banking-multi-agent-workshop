@@ -1,5 +1,4 @@
-﻿
-namespace MultiAgentCopilot.Models.Banking
+﻿namespace BankingModels
 {
     public enum AccountType
     {

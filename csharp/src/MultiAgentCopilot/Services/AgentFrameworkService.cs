@@ -15,6 +15,7 @@ using MultiAgentCopilot.Models.Configuration;
 using MultiAgentCopilot.Models.Debug;
 using MultiAgentCopilot.MultiAgentCopilot.Factories;
 using MultiAgentCopilot.MultiAgentCopilot.Helper;
+using MultiAgentCopilot.MultiAgentCopilot.Services;
 using MultiAgentCopilot.Services;
 
 using OpenAI;
@@ -32,6 +33,8 @@ public class AgentFrameworkService : IDisposable
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<AgentFrameworkService> _logger;
     private readonly Microsoft.Extensions.AI.IChatClient _chatClient;
+    private BankingDataService _bankService;
+    private MCPToolService _mcpService;
 
     private bool _serviceInitialized = false;
     private List<LogProperty> _promptDebugProperties;
@@ -82,6 +85,27 @@ public class AgentFrameworkService : IDisposable
         _promptDebugProperties.Add(new LogProperty(key, value));
     }
 
+
+    public bool SetBankingDataService(BankingDataService bankService)
+    {
+        // In this implementation, BankingDataService is passed directly to methods that need it.
+        // If you want to store it as a member variable, uncomment the following lines:
+         _bankService = bankService ?? throw new ArgumentNullException(nameof(bankService));
+         _logger.LogInformation("BankingDataService has been set.");
+        return true;
+    }
+
+
+    public bool SetMCPToolService(MCPToolService mcpService)
+    {
+        // In this implementation, MCPToolService is passed directly to methods that need it.
+        // If you want to store it as a member variable, uncomment the following lines:
+        _mcpService = mcpService ?? throw new ArgumentNullException(nameof(mcpService));
+         _logger.LogInformation("MCPToolService has been set.");
+        return true;
+    }
+
+
     public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(
         Message userMessage,
         List<Message> messageHistory,
@@ -123,7 +147,7 @@ public class AgentFrameworkService : IDisposable
             _promptDebugProperties.Clear();
 
             // Use AI-based GroupChat orchestration with selection and termination strategies
-            var (responseText, selectedAgentName) = await RunGroupChatOrchestration(chatHistory, bankService, tenantId, userId);
+            var (responseText, selectedAgentName) = await RunGroupChatOrchestration(chatHistory,  tenantId, userId);
 
             var completionMessages = new List<Message>();
             var completionMessagesLogs = new List<DebugLog>();
@@ -163,7 +187,6 @@ public class AgentFrameworkService : IDisposable
 
     private async Task<(string responseText, string selectedAgentName)> RunGroupChatOrchestration(
         List<Microsoft.Extensions.AI.ChatMessage> chatHistory,
-        BankingDataService bankService,
         string tenantId,
         string userId)
     {
@@ -178,14 +201,26 @@ public class AgentFrameworkService : IDisposable
             // Create a custom GroupChatManager with SelectionStrategy and TerminationStrategy
             var groupChatManager = new GroupChatManagerFactory(chatHistory.Last().Text, _chatClient, LogMessage);
 
-            GroupChatOrchestration groupChatOrchestration = new GroupChatOrchestration(groupChatManager, AgentFactory.CreateAllAgents(_chatClient, bankService, tenantId, userId, _loggerFactory).ToArray())
+            List<AIAgent> agents=null;
+
+            if (_bankService != null)
+                agents = AgentFactory.CreateAllAgents(_chatClient, _bankService, tenantId, userId, _loggerFactory);
+            else if(_mcpService != null)
+                agents = AgentFactory.CreateAllAgents(_chatClient, _mcpService, tenantId, userId, _loggerFactory);
+
+
+            if(agents == null || agents.Count == 0)
+            {
+                _logger.LogError("No agents available for orchestration");
+                return ("No agents available for orchestration.", "Error");
+            }
+            
+            GroupChatOrchestration groupChatOrchestration = new GroupChatOrchestration(groupChatManager, agents.ToArray())
             {
                 LoggerFactory = this._loggerFactory,
                 ResponseCallback = monitor.ResponseCallbackAsync,
-                StreamingResponseCallback = monitor.StreamingResultCallbackAsync
-            }
-            ;
-
+            StreamingResponseCallback = monitor.StreamingResultCallbackAsync
+            };
             var orchestrationResponse = await groupChatOrchestration.RunAsync(chatHistory);
             AgentRunResponse result = await orchestrationResponse.Task;
 

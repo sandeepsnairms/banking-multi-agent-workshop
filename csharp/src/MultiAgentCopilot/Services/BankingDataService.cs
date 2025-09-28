@@ -6,7 +6,7 @@ using Azure.Identity;
 using System.Text;
 using MultiAgentCopilot.Helper;
 using MultiAgentCopilot.Models.Configuration;
-using MultiAgentCopilot.Models.Banking;
+using BankingModels;
 
 using PartitionKey = Microsoft.Azure.Cosmos.PartitionKey;
 

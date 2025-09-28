@@ -5,6 +5,7 @@ using MultiAgentCopilot.Models.Chat;
 using Newtonsoft.Json.Linq;
 using System.Text.Json;
 using Newtonsoft.Json;
+using MultiAgentCopilot.MultiAgentCopilot.Services;
 
 
 namespace MultiAgentCopilot.Services;
@@ -13,20 +14,23 @@ public class ChatService
 {
     private readonly CosmosDBService _cosmosDBService;
     private readonly BankingDataService _bankService;
+    private readonly MCPToolService _mcpService;
     private readonly  AgentFrameworkService _afService;
     private readonly ILogger _logger;
 
 
     public ChatService(
         IOptions<CosmosDBSettings> cosmosOptions,
-        IOptions<AgentFrameworkServiceSettings> skOptions,
+        IOptions<AgentFrameworkServiceSettings> afOptions,
         CosmosDBService cosmosDBService,
-         AgentFrameworkService skService,
+        AgentFrameworkService afService,
+        MCPToolService mcpService,
         ILoggerFactory loggerFactory)
     {
         _cosmosDBService = cosmosDBService;
-        _afService = skService;
-        _bankService = new BankingDataService(cosmosDBService.Database, cosmosDBService.AccountDataContainer, cosmosDBService.UserDataContainer, cosmosDBService.AccountDataContainer, cosmosDBService.OfferDataContainer, skOptions.Value, loggerFactory);
+        _afService = afService;
+        _mcpService = mcpService;
+        _bankService = new BankingDataService(cosmosDBService.Database, cosmosDBService.AccountDataContainer, cosmosDBService.UserDataContainer, cosmosDBService.AccountDataContainer, cosmosDBService.OfferDataContainer, afOptions.Value, loggerFactory);
         _logger = loggerFactory.CreateLogger<ChatService>();
     }
 

@@ -1,4 +1,4 @@
-﻿namespace MultiAgentCopilot.MultiAgentCopilot.Models.Banking
+﻿namespace BankingModels
 {
     public enum CardType
     {

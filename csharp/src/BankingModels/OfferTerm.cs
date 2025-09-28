@@ -1,6 +1,6 @@
 ﻿//using Microsoft.Extensions.VectorData;
 
-namespace MultiAgentCopilot.Models.Banking
+namespace BankingModels
 {
     public class OfferTerm
     {

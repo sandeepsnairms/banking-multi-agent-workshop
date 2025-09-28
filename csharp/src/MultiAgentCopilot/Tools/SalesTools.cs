@@ -1,5 +1,5 @@
 ﻿using Microsoft.Extensions.AI;
-using MultiAgentCopilot.Models.Banking;
+using BankingModels;
 using MultiAgentCopilot.Services;
 using System.ComponentModel;
 

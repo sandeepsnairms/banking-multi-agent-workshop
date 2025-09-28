@@ -1,7 +1,8 @@
 ﻿using Microsoft.Extensions.AI;
 using Microsoft.Extensions.AI.Agents;
 using MultiAgentCopilot.Models;
-using MultiAgentCopilot.Models.Banking;
+using BankingModels;
+using MultiAgentCopilot.MultiAgentCopilot.Services;
 using MultiAgentCopilot.Services;
 using MultiAgentCopilot.Tools;
 using OpenAI.Chat;
@@ -34,50 +35,55 @@ namespace MultiAgentCopilot.Factories
         public static List<AIAgent> CreateAllAgents(Microsoft.Extensions.AI.IChatClient chatClient, BankingDataService bankService, string tenantId, string userId, ILoggerFactory loggerFactory)
         {
             var agents = new List<AIAgent>();
-
             ILogger logger = loggerFactory.CreateLogger("AgentFactory");
 
-            // Create Sales Agent
-            var salesAgent = CreateAgent(chatClient: chatClient, loggerFactory: loggerFactory,
-                instructions: GetAgentPrompt(AgentType.Sales),
-                name: GetAgentName(AgentType.Sales),
-                description: GetAgentDescription(AgentType.Sales),
-                functions: GetAgentTools(AgentType.Sales, bankService, tenantId, userId, loggerFactory).ToArray()
-            );
+            // Get all agent types from the enum
+            var agentTypes = Enum.GetValues<AgentType>();
 
-            agents.Add(salesAgent);
-            logger.LogInformation($"Created {salesAgent.Name}: {salesAgent.Description}");
+            // Create agents for each agent type
+            foreach (var agentType in agentTypes)
+            {
+                var agent = CreateAgent(
+                    chatClient: chatClient, 
+                    loggerFactory: loggerFactory,
+                    instructions: GetAgentPrompt(agentType),
+                    name: GetAgentName(agentType),
+                    description: GetAgentDescription(agentType),
+                    functions: GetAgentTools(agentType, bankService, tenantId, userId, loggerFactory).ToArray()
+                );
 
-            // Create Transactions Agent
-            var transactionsAgent = CreateAgent(chatClient: chatClient, loggerFactory: loggerFactory,
-               instructions: GetAgentPrompt(AgentType.Transactions),
-               name: GetAgentName(AgentType.Transactions),
-               description: GetAgentDescription(AgentType.Transactions),
-               functions: GetAgentTools(AgentType.Transactions, bankService, tenantId, userId, loggerFactory).ToArray()
-            );
-            agents.Add(transactionsAgent);
-            logger.LogInformation($"Created {transactionsAgent.Name}: {transactionsAgent.Description}");
+                agents.Add(agent);
+                logger.LogInformation($"Created {agent.Name}: {agent.Description}");
+            }
 
-            // Create CustomerSupport Agent
-            var customerSupportAgent = CreateAgent(chatClient: chatClient, loggerFactory: loggerFactory,
-               instructions: GetAgentPrompt(AgentType.CustomerSupport),
-               name: GetAgentName(AgentType.CustomerSupport),
-               description: GetAgentDescription(AgentType.CustomerSupport),
-               functions: GetAgentTools(AgentType.CustomerSupport, bankService, tenantId, userId, loggerFactory).ToArray()
-            );
-            agents.Add(customerSupportAgent);
-            logger.LogInformation($"Created {customerSupportAgent.Name}: {customerSupportAgent.Description}");
+            logger.LogInformation("Successfully created {AgentCount} banking agents", agents.Count);
+            return agents;
+        }
 
 
-            // Create Coordinator Agent
-            var coordinatorAgente = CreateAgent(chatClient: chatClient, loggerFactory: loggerFactory,
-               instructions: GetAgentPrompt(AgentType.Coordinator),
-               name: GetAgentName(AgentType.Coordinator),
-               description: GetAgentDescription(AgentType.Coordinator),
-               functions: GetAgentTools(AgentType.Coordinator, bankService, tenantId, userId, loggerFactory).ToArray()
-            );
-            agents.Add(coordinatorAgente);
-            logger.LogInformation($"Created {coordinatorAgente.Name}: {coordinatorAgente.Description}");
+        public static List<AIAgent> CreateAllAgents(Microsoft.Extensions.AI.IChatClient chatClient, MCPToolService mcpService, string tenantId, string userId, ILoggerFactory loggerFactory)
+        {
+            var agents = new List<AIAgent>();
+            ILogger logger = loggerFactory.CreateLogger("AgentFactory");
+
+            // Get all agent types from the enum
+            var agentTypes = Enum.GetValues<AgentType>();
+
+            // Create agents for each agent type
+            foreach (var agentType in agentTypes)
+            {
+                var agent = CreateAgent(
+                    chatClient: chatClient,
+                    loggerFactory: loggerFactory,
+                    instructions: GetAgentPrompt(agentType),
+                    name: GetAgentName(agentType),
+                    description: GetAgentDescription(agentType),
+                    functions: mcpService.GetMcpTools(agentType).GetAwaiter().GetResult().ToArray()
+                );
+
+                agents.Add(agent);
+                logger.LogInformation($"Created {agent.Name}: {agent.Description}");
+            }
 
             logger.LogInformation("Successfully created {AgentCount} banking agents", agents.Count);
             return agents;
@@ -160,6 +166,8 @@ namespace MultiAgentCopilot.Factories
                 // Log available methods with Description attributes
                 var methods = toolsClass.GetType().GetMethods()
                     .Where(m => m.GetCustomAttributes(typeof(DescriptionAttribute), false).Length > 0);
+
+
 
                 IList<AIFunction> functions = new List<AIFunction>();
                 foreach (var method in methods)

@@ -1,7 +1,6 @@
-﻿
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 
-namespace MultiAgentCopilot.Models.Banking
+namespace BankingModels
 {
     public class Offer
     {
