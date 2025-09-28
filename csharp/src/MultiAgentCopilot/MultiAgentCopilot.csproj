@@ -43,6 +43,7 @@
     <PackageReference Include="Microsoft.Extensions.AI.Agents" Version="0.0.1-nightly-250921.1-alpha" />
     <PackageReference Include="Microsoft.Extensions.AI.Agents.OpenAI" Version="0.0.1-nightly-250921.1-alpha" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.17.2" />
+    <PackageReference Include="ModelContextProtocol" Version="0.4.0-preview.1" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="8.1.1" />
   </ItemGroup>

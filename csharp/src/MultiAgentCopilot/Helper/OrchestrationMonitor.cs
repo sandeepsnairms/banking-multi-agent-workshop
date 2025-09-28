@@ -5,7 +5,7 @@ using System.Text;
 using System.Text.Json;
 using OpenAIClient = OpenAI.OpenAIClient;
 
-namespace MultiAgentCopilot.MultiAgentCopilot.Factories
+namespace MultiAgentCopilot.MultiAgentCopilot.Helper
 {
     /// <summary>
     /// Provides monitoring and callback functionality for orchestration scenarios, including tracking streamed responses and message history.
@@ -29,10 +29,10 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Factories
         /// <returns>A <see cref="ValueTask"/> representing the asynchronous operation.</returns>
         public ValueTask ResponseCallbackAsync(IEnumerable<ChatMessage> response)
         {
-            WriteStreamedResponse(this.StreamedResponses);
-            this.StreamedResponses.Clear();
+            WriteStreamedResponse(StreamedResponses);
+            StreamedResponses.Clear();
 
-            this.History.AddRange(response);
+            History.AddRange(response);
             WriteResponse(response);
             return default;
         }
@@ -55,7 +55,7 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Factories
 
             if (builder.Length > 0)
             {
-                System.Console.WriteLine($"\n# STREAMED {authorRole ?? ChatRole.Assistant}{(authorName is not null ? $" - {authorName}" : string.Empty)}: {builder}\n");
+                Console.WriteLine($"\n# STREAMED {authorRole ?? ChatRole.Assistant}{(authorName is not null ? $" - {authorName}" : string.Empty)}: {builder}\n");
             }
         }
 
@@ -65,7 +65,7 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Factories
             {
                 if (!string.IsNullOrEmpty(message.Text))
                 {
-                    System.Console.WriteLine($"\n# RESPONSE {message.Role}{(message.AuthorName is not null ? $" - {message.AuthorName}" : string.Empty)}: {message}");
+                    Console.WriteLine($"\n# RESPONSE {message.Role}{(message.AuthorName is not null ? $" - {message.AuthorName}" : string.Empty)}: {message}");
                 }
             }
         }
@@ -77,7 +77,7 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Factories
         /// <returns>A <see cref="ValueTask"/> representing the asynchronous operation.</returns>
         public ValueTask StreamingResultCallbackAsync(AgentRunResponseUpdate streamedResponse)
         {
-            this.StreamedResponses.Add(streamedResponse);
+            StreamedResponses.Add(streamedResponse);
             return default;
         }
     }

@@ -1,4 +1,5 @@
-﻿using  MultiAgentCopilot.Models.Configuration;
+﻿using MultiAgentCopilot.Models.Configuration;
+using MultiAgentCopilot.MultiAgentCopilot.Services;
 using MultiAgentCopilot.Services;
 
 namespace MultiAgentCopilot
@@ -8,8 +9,15 @@ namespace MultiAgentCopilot
     /// </summary>
     public static partial class DependencyInjection
     {
-        
-        public static void AddSemanticKernelService(this IHostApplicationBuilder builder)
+
+        public static void AddMCPService(this IHostApplicationBuilder builder)
+        {
+            builder.Services.AddOptions<MCPToolService>()
+                .Bind(builder.Configuration.GetSection("MCPSettings"));
+            builder.Services.AddSingleton<MCPToolService>();
+        }
+
+        public static void AddAgentFrameworkService(this IHostApplicationBuilder builder)
         {
             builder.Services.AddOptions<AgentFrameworkServiceSettings>()
                 .Bind(builder.Configuration.GetSection("AgentFrameworkServiceSettings"));
