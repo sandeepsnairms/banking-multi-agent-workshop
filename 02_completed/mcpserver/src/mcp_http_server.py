@@ -133,7 +133,7 @@ def transfer_to_agent_message(agent):
 def create_agent_transfer(agent_name: str):
     tool_name = f"transfer_to_{agent_name}"
 
-    @mcp.tool(tool_name)
+    @mcp.tool(name=tool_name, description="")
     def transfer_to_agent(
         tool_call_id: Annotated[str, InjectedToolCallId],
         **kwargs
@@ -262,6 +262,16 @@ def service_request(
     recipientEmail: str,
     requestSummary: str
 ) -> str:
+    """Create a new service request for customer support.
+    
+    Args:
+        recipientPhone: Customer's phone number for contact
+        recipientEmail: Customer's email address for contact
+        requestSummary: Description of the service request or issue
+    
+    Returns:
+        Confirmation message with service request ID
+    """
     try:
         tenantId = config["configurable"].get("tenantId", "UNKNOWN_TENANT_ID")
         userId = config["configurable"].get("userId", "UNKNOWN_USER_ID")
@@ -299,6 +309,14 @@ def service_request(
 @mcp.tool()
 @traceable
 def get_branch_location(state: str) -> Dict[str, List[str]]:
+    """Find bank branch locations in a specific state.
+    
+    Args:
+        state: The US state name to search for branch locations
+    
+    Returns:
+        Dictionary with counties and their branch locations
+    """
     branches = {
             "Alabama": {"Jefferson County": ["Central Bank - Birmingham", "Trust Bank - Hoover"],
                         "Mobile County": ["Central Bank - Mobile", "Trust Bank - Prichard"]},

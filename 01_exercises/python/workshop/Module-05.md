@@ -700,7 +700,6 @@ There were a lot of changes to banking_agents.py. Below is a concise diff-style 
 ### 1. Imports & async foundation
 - **Added MCP + async tooling** and removed direct tool wiring.
     ```python
-    # NEW
     import asyncio, json
     from langchain_mcp_adapters.client import MultiServerMCPClient
     from langchain_mcp_adapters.tools import load_mcp_tools
@@ -710,7 +709,8 @@ There were a lot of changes to banking_agents.py. Below is a concise diff-style 
 - **Agent calls switched to async** (`ainvoke`) instead of sync (`invoke`).
 
 ### 2. MCP client, session, and tool loading
-- **Centralized MCP setup** with persistent session; tools loaded dynamically from the unified MCP server.
+- **Centralized MCP setup** with persistent shared session for performance; tools loaded dynamically from the unified MCP server.
+
     ```python
     _mcp_client = None
     _session_context = None
@@ -753,8 +753,8 @@ sales_agent            = create_react_agent(model, sales_tools,            state
 transactions_agent     = create_react_agent(model, transactions_tools,     state_modifier=load_prompt("transactions_agent"))
 ```
 
-### 5. Async agent nodes (+ traceability)
-- **Node functions are async** and **use `@traceable`**; agent calls use `ainvoke`.
+### 5. Async agent nodes
+- **Node functions are async**; agent calls use `ainvoke`.
     ```python
     @traceable(run_type="llm")
     async def call_sales_agent(state: MessagesState, config):
@@ -794,21 +794,125 @@ transactions_agent     = create_react_agent(model, transactions_tools,     state
     )
     ```
 
-### 8. Runtime setup & Windows event loop
-- **App boot now awaits MCP setup** and ensures Windows event loop compatibility.
-```python
-if __name__ == "__main__":
-    if sys.platform == "win32":
-        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    asyncio.run(setup_agents())
-```
-
-### 9. What stayed the same?
+### 8. What stayed the same?
 
 - **LangGraph structure & CosmosDBSaver** usage are preserved (checkpointer + `START → coordinator_agent`).
 - **Cosmos "activeAgent" point lookup** remains for persistence and fallback routing.
 
 Tools are now discovered and invoked via MCP, agent nodes are async, routing respects MCP tool-emitted `goto`, and per-turn IDs are injected via a temporary system message to make MCP tools stateless and reliable.
+
+## Activity 6: Testing MCP Server with VS Code Client
+
+VS Code has built-in support for MCP servers, allowing you to interact with your banking tools directly through the editor. This is a great way to test your MCP server and understand how MCP clients work.
+
+### 1. Start Your MCP Server
+
+First, make sure your MCP server is running locally:
+
+```bash
+cd /path/to/banking-multi-agent-workshop/01_exercises/mcpserver
+source .venv/bin/activate
+PYTHONPATH=src python3 src/mcp_http_server.py
+```
+
+You should see output like:
+```
+🚀 Initializing MCP Server...
+✅ Banking Tools MCP server initialized with Simple Token Auth
+🌐 Server will be available at: http://0.0.0.0:8080
+```
+
+### 2. Add MCP Server in VS Code
+
+**Step-by-step VS Code commands:**
+
+1. **Open Command Palette**: 
+   - Press `Ctrl+Shift+P` (Windows/Linux) or `Cmd+Shift+P` (macOS)
+
+2. **Add the MCP Server**:
+   - Type: `MCP: Add Server`
+   - Press Enter
+   - **Enter Server URL**: `http://localhost:8080/mcp/`
+   - **Enter Server Name**: `banking-mcp-server` (or any name you prefer)
+   - **Verify**: You should see a success message confirming the server was added
+
+> **Note**: VS Code will automatically create the MCP configuration file for you. You don't need to manually create any JSON files!
+
+### 3. Interact with Banking Tools
+
+**Essential VS Code MCP Commands:**
+
+1. **List Available Tools**:
+   - `Ctrl+Shift+P` → Type: `MCP: List Tools`
+   - This shows all banking tools from your server
+
+2. **Call Individual Tools**:
+   - `Ctrl+Shift+P` → Type: `MCP: Call Tool`
+   - Select a tool from the list (e.g., `get_branch_location`, `server_info`)
+   - Enter required parameters when prompted
+
+3. **Manage MCP Servers**:
+   - `Ctrl+Shift+P` → Type: `MCP: Remove Server` (to disconnect)
+   - `Ctrl+Shift+P` → Type: `MCP: Refresh Servers` (to reload)
+
+### 4. Example Interactions
+
+**Test Branch Locations:**
+- Tool: `get_branch_location`
+- Parameter: `state = "California"`
+- Expected Result: List of bank branches in California counties
+
+**Test Server Info:**
+- Tool: `server_info` 
+- Parameters: (none required)
+- Expected Result: MCP server information and status
+
+**Test Account Tools:**
+- Tool: `bank_balance`
+- Parameters: Provide account number, tenant ID, user ID, thread ID
+- Expected Result: Account balance information
+
+### 6. Debugging Tips
+
+If you encounter issues:
+
+- **Check MCP server logs** in your terminal for authentication or connection errors
+- **Verify the URL** in `mcp.json` matches your server (including `/mcp/` path)
+- **Restart VS Code** after making changes to `mcp.json`
+- **Check authentication** - ensure your server is running in simple token mode
+
+### 7. Understanding MCP Client-Server Interaction
+
+This hands-on experience helps you understand:
+- **Protocol Communication**: How MCP clients discover and call tools
+- **Authentication Flow**: Bearer token authentication in action
+- **Tool Discovery**: Dynamic tool loading from the server
+- **Error Handling**: How MCP handles connection and execution errors
+
+This VS Code MCP client interaction gives you insight into how your banking application connects to the MCP server, just through a different client interface.
+
+### Optional: Understanding the Configuration
+
+If you're curious about what VS Code created automatically, it stores MCP server configurations in:
+
+- **Windows**: `%APPDATA%\Code\User\mcp.json`
+- **macOS**: `~/Library/Application Support/Code/User/mcp.json`  
+- **Linux**: `~/.config/Code/User/mcp.json`
+
+The configuration looks like this:
+```json
+{
+  "servers": {
+    "banking-mcp-server": {
+      "url": "http://localhost:8080/mcp/",
+      "type": "http"
+    }
+  },
+  "inputs": []
+}
+```
+
+But you don't need to edit this manually - VS Code handles it all through the command palette!
 
 ### Next Steps
 
