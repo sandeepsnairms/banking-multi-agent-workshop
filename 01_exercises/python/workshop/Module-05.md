@@ -699,7 +699,7 @@ Check the terminal logs to confirm:
 
 ## Activity 5: Understanding the code changes
 
-Below is a concise diff-style overview of what changed to enable MCP in your multi-agent banking app.
+There were a lot of changes to banking_agents.py. Below is a concise diff-style overview of what changed to enable MCP in your multi-agent banking app.
 
 ### 1. Imports & async foundation
 - **Added MCP + async tooling** and removed direct tool wiring.
