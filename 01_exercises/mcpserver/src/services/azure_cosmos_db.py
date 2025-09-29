@@ -36,7 +36,8 @@ def initialize_cosmos_client():
             print("[DEBUG] MCP Server: Connected to Cosmos DB successfully using DefaultAzureCredential.")
         except Exception as dac_error:
             print(f"[ERROR] MCP Server: Failed to authenticate using DefaultAzureCredential: {dac_error}")
-            raise dac_error
+            print("[WARN] MCP Server: Continuing without Cosmos DB client - some features may not work")
+            return
 
         # Initialize database and containers
         try:
@@ -49,16 +50,27 @@ def initialize_cosmos_client():
             print("[DEBUG] MCP Server: Cosmos DB containers initialized")
         except Exception as e:
             print(f"[ERROR] MCP Server: Error initializing Cosmos DB Containers: {e}")
-            raise e
+            print("[WARN] MCP Server: Continuing without Cosmos DB containers - some features may not work")
 
 # Initialize on import
-initialize_cosmos_client()
+try:
+    initialize_cosmos_client()
+except Exception as e:
+    print(f"[WARN] MCP Server: Failed to initialize Cosmos DB client during import: {e}")
+
+# Helper function to check if cosmos is available
+def is_cosmos_available():
+    return account_container is not None and offers_container is not None
 
 def get_cosmos_client():
     """Return the initialized Cosmos client for shared MCP server"""
     return cosmos_client
 
 def vector_search(vectors, accountType):
+    if offers_container is None:
+        print("[ERROR] MCP Server: Cosmos DB not available - cannot perform vector search")
+        return []
+        
     start_time = time.time()
     print(f"⏱️  MCP COSMOS_DB: Starting vector search for accountType={accountType}, vector_dims={len(vectors) if vectors else 0}")
     
@@ -112,6 +124,10 @@ def vector_search(vectors, accountType):
         return []
 
 def create_account_record(account_data):
+    if not is_cosmos_available():
+        print("[ERROR] MCP Server: Cosmos DB not available - cannot create account record")
+        raise Exception("Cosmos DB not available")
+        
     try:
         account_container.upsert_item(account_data)
         print(f"[DEBUG] MCP Server: Account record created: {account_data}")

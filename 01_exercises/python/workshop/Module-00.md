@@ -68,13 +68,13 @@ You can run this sample app and workshop virtually by using GitHub Codespaces. T
 
 1. Install [Docker Desktop](https://docs.docker.com/desktop/), and [VS Code](https://code.visualstudio.com/Download) along with the [Dev Containers extension](https://code.visualstudio.com/docs/devcontainers/tutorial#_install-the-extension) extension.
 
-2. Clone the repository and checkout the start branch:
+2. Clone the repository and checkout the WorkShop_v2_PythonLangGraph branch:
 
    ```bash
    git clone https://github.com/AzureCosmosDB/banking-multi-agent-workshop/
-   cd banking-multi-agent-workshop
+   cd banking-multi-agent-workshop/01_exercises
    git fetch --all
-   git checkout start
+   git checkout WorkShop_v2_PythonLangGraph
    ```
 
 3. Open the repository in VS Code and select **Reopen in Container** when prompted. When asked to **Select a devcontainer.json file**, select the **Python Development Container**.
@@ -84,6 +84,9 @@ You can run this sample app and workshop virtually by using GitHub Codespaces. T
 5. Move on to the [Deployment](Module-00.md#deployment) section.
 
 #### Local Environment without VS Code Dev Containers
+
+> **NOTE**
+> For the MCP parts of the workshop in module 6 to function properly, you must be running in a Linux environment. If you are on Windows, consider installing WSL or switching to dev containers.
 
 1. To run the workshop locally on your machine, install the following:
 
@@ -98,8 +101,8 @@ You can run this sample app and workshop virtually by using GitHub Codespaces. T
 
    ```bash
    git clone https://github.com/AzureCosmosDB/banking-multi-agent-workshop/
-   cd banking-multi-agent-workshop
-   git checkout start
+   cd banking-multi-agent-workshop/01_exercises
+   git checkout WorkShop_v2_PythonLangGraph
    ```
 
 3. Move on to the [Deployment](Module-00.md#deployment) section.
@@ -108,10 +111,10 @@ You can run this sample app and workshop virtually by using GitHub Codespaces. T
 
 ### Deployment
 
-1. From the terminal, switch to the `start` branch:
+1. From the terminal, switch to the `WorkShop_v2_PythonLangGraph` branch:
 
    ```bash
-   git checkout start
+   git checkout WorkShop_v2_PythonLangGraph
    ```
 
 1. Navigate to the correct folder:
@@ -193,7 +196,7 @@ But you will still need to install dependencies to run the solution locally.
 3. Install the required dependencies for the project.
 
    ```shell
-   pip install -r ../src/app/requirements.txt
+   pip install -r src/app/requirements.txt
    ```
    Note: If getting `requirements.txt` file not found when using GitHub codespaces, please navigate to the `src/app` folder and run the command there ` pip install -r requirements.txt`
 
@@ -216,7 +219,7 @@ The API will be available at `http://localhost:63280/docs`. This has been pre-bu
 
    ```sh
    npm install
-   npm start
+   ng serve
    ```
 1. Open your browser and navigate to <http://localhost:63280/>.
 
@@ -227,7 +230,7 @@ The API will be available at `http://localhost:63280/docs`. This has been pre-bu
 
    ```sh
    npm install
-   npm start
+   ng serve
    ```
 1. From the **Ports** tab:
    1. Right-click and select the **Port Visibility** option to set port **ChatAPI (63280)** as **Public**.

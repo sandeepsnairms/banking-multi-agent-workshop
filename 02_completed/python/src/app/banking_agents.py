@@ -1,14 +1,14 @@
 import logging
 import os
 import sys
-import time
 import uuid
 import asyncio
 import json
 from langchain_core.messages import ToolMessage, SystemMessage
 from langchain.schema import AIMessage
 from langchain_mcp_adapters.client import MultiServerMCPClient
-from typing import Literal, Optional, List
+from langchain_mcp_adapters.tools import load_mcp_tools
+from typing import Literal
 from langgraph.graph import StateGraph, START, MessagesState
 from langgraph.prebuilt import create_react_agent
 from langgraph.types import Command, interrupt
@@ -20,19 +20,11 @@ from src.app.services.azure_open_ai import model
 from src.app.services.azure_cosmos_db import DATABASE_NAME, checkpoint_container, chat_container, \
     update_chat_container, patch_active_agent
 
-# 🔄 Global persistent MCP client and cache
-_persistent_mcp_client: Optional[MultiServerMCPClient] = None
-_mcp_tools_cache: Optional[List] = None
-_native_tools_fallback_enabled = False  # 🚀 Using shared MCP server for optimal performance
-_shared_mcp_client = None  # 🚀 Enhanced shared client
-
-# 🔧 Tool version tracking for cache invalidation
-import time
-_module_load_time = time.time()
-_agents_setup_version = None
-_last_setup_time = None
-
-print(f"🔧 MODULE LOAD: banking_agents module loaded at {_module_load_time}")
+# Uncomment these if you want to use custom OAuth configuration
+# try:
+#     from fastmcp.client.auth import OAuth
+# except ImportError:
+#     print("fastmcp not available, OAuth configuration will not be available")
 
 local_interactive_mode = False
 
@@ -54,100 +46,86 @@ def load_prompt(agent_name):
 
 # Tool filtering utility
 def filter_tools_by_prefix(tools, prefixes):
-    filtered = []
-    for tool in tools:
-        # Handle both dict and object formats for compatibility
-        if isinstance(tool, dict):
-            tool_name = tool.get('name', '')
-        else:
-            tool_name = getattr(tool, 'name', '')
-        
-        if any(tool_name.startswith(prefix) for prefix in prefixes):
-            filtered.append(tool)
-    return filtered
+    return [tool for tool in tools if any(tool.name.startswith(prefix) for prefix in prefixes)]
 
-# � Global persistent MCP client and cache
-_persistent_mcp_client: Optional[MultiServerMCPClient] = None
-_mcp_tools_cache: Optional[List] = None
-_native_tools_fallback_enabled = True  # 🚀 NEW: Enable native fallback for performance
-
-async def get_persistent_mcp_client():
-    """Get or create a persistent MCP client that is reused across all tool calls"""
-    global _persistent_mcp_client, _mcp_tools_cache, _shared_mcp_client
-    
-    if _persistent_mcp_client is None:
-        print("🔧 MCP CLIENT: Creating new MCP client and tools")
-        print("🔄 Initializing SHARED MCP client (high-performance setup)...")
-        start_time = time.time()
-        
-        try:
-            # 🚀 Use the new shared MCP client for optimal performance
-            from src.app.tools.mcp_client import get_shared_mcp_client, set_mcp_context, get_mcp_context
-            _shared_mcp_client = await get_shared_mcp_client()
-            
-            # Get tools from shared client
-            _mcp_tools_cache = await _shared_mcp_client.get_tools()
-            
-            # For compatibility, create a wrapper that looks like MultiServerMCPClient
-            class SharedMCPClientWrapper:
-                def __init__(self, shared_client):
-                    self.shared_client = shared_client
-                
-                async def get_tools(self):
-                    return await self.shared_client.get_tools()
-                
-                async def call_tool(self, tool_name: str, arguments: dict):
-                    return await self.shared_client.call_tool(tool_name, arguments)
-                
-                async def close(self):
-                    await self.shared_client.cleanup()
-            
-            _persistent_mcp_client = SharedMCPClientWrapper(_shared_mcp_client)
-            
-            setup_duration = (time.time() - start_time) * 1000
-            print(f"✅ SHARED MCP client initialized in {setup_duration:.2f}ms")
-            print(f"🛠️  Cached {len(_mcp_tools_cache)} tools for reuse")
-            
-            # Log cached tools
-            print("[DEBUG] Cached tools from SHARED MCP server:")
-            for tool in _mcp_tools_cache:
-                tool_name = tool.get('name') if isinstance(tool, dict) else getattr(tool, 'name', 'unknown')
-                print("  -", tool_name)
-                
-        except Exception as e:
-            print(f"❌ Failed to initialize SHARED MCP client: {e}")
-            raise Exception("Failed to initialize MCP client")
-    
-    return _persistent_mcp_client, _mcp_tools_cache
+# Global variables for persistent session management
+_mcp_client = None
+_session_context = None
+_persistent_session = None
 
 async def setup_agents():
     global coordinator_agent, customer_support_agent, transactions_agent, sales_agent
-    
-    print("🔧 SETUP: Setting up agents with fresh MCP client...")
-    
-    # Clear all caches when explicitly recreating (e.g., after module reload)
-    global _persistent_mcp_client, _shared_mcp_client
-    _persistent_mcp_client = None
-    _shared_mcp_client = None
-    _mcp_tools_cache = None
-    coordinator_agent = None
-    customer_support_agent = None
-    
-    # 🔧 CRITICAL FIX: Also clear the SharedMCPClient's global cache
-    from src.app.tools.mcp_client import cleanup_shared_mcp_client
-    await cleanup_shared_mcp_client()
-    print("🔧 SETUP: Cleared SharedMCPClient global cache")  
-    transactions_agent = None
-    sales_agent = None
-    print("🔧 CLEARED: All agent and MCP client caches cleared for fresh setup")
+    global _mcp_client, _session_context, _persistent_session
 
-    print("Setting up agents with persistent MCP client...")
+    print("🚀 Starting unified Banking Tools MCP client...")
     
-    # Get persistent client and cached tools
-    _shared_mcp_client = None
-    print("🔧 DEBUG: Cleared MCP client cache - forcing tool regeneration")
+    # Load authentication configuration
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(override=False)
+        simple_token = os.getenv("MCP_AUTH_TOKEN")
+        github_client_id = os.getenv("GITHUB_CLIENT_ID")
+        github_client_secret = os.getenv("GITHUB_CLIENT_SECRET")
+        
+        print("🔐 Client Authentication Configuration:")
+        print(f"   Simple Token: {'SET' if simple_token else 'NOT SET'}")
+        print(f"   GitHub OAuth: {'SET' if github_client_id and github_client_secret else 'NOT SET'}")
+        
+        # Determine authentication mode (same logic as server)
+        if github_client_id and github_client_secret:
+            auth_mode = "github_oauth"
+            print("   Mode: GitHub OAuth (Production)")
+        elif simple_token:
+            auth_mode = "simple_token" 
+            print(f"   Mode: Simple Token (Development)")
+            print(f"   Token: {simple_token[:8]}...")
+        else:
+            auth_mode = "none"
+            print("   Mode: No Authentication")
+            
+    except ImportError:
+        auth_mode = "none"
+        simple_token = None
+        print("🔐 Client Authentication: Dependencies unavailable - no auth")
     
-    mcp_client, all_tools = await get_persistent_mcp_client()
+    print("   - Transport: streamable_http")
+    print("   - Server URL: "+os.getenv("MCP_SERVER_BASE_URL", "http://localhost:8080")+"/mcp/")
+    print(f"   - Authentication: {auth_mode.upper()}")
+    print("   - Status: Ready to connect\\n")
+    
+    # MCP Client configuration based on authentication mode
+    client_config = {
+        "banking_tools": {
+            "transport": "streamable_http",
+            "url": os.getenv("MCP_SERVER_BASE_URL", "http://localhost:8080")+"/mcp/",
+        }
+    }
+    
+    # Add authentication if configured
+    if auth_mode == "simple_token" and simple_token:
+        # Add bearer token header for simple token auth
+        client_config["banking_tools"]["headers"] = {
+            "Authorization": f"Bearer {simple_token}"
+        }
+        print("🔐 Added Bearer token authentication to client")
+    elif auth_mode == "github_oauth":
+        # Enable OAuth for GitHub authentication
+        client_config["banking_tools"]["auth"] = "oauth"
+        print("🔐 Enabled OAuth authentication for client")
+    
+    _mcp_client = MultiServerMCPClient(client_config)
+    print("✅ MCP Client initialized successfully")
+
+    # Create a persistent session that stays alive for the application lifetime
+    _session_context = _mcp_client.session("banking_tools")
+    _persistent_session = await _session_context.__aenter__()
+    
+    # Load tools using the persistent session
+    all_tools = await load_mcp_tools(_persistent_session)
+
+    print("[DEBUG] All tools registered from unified MCP server:")
+    for tool in all_tools:
+        print("  -", tool.name)
 
     # Assign tools to agents based on tool name prefix
     coordinator_tools = filter_tools_by_prefix(all_tools, ["transfer_to_"])
@@ -155,21 +133,26 @@ async def setup_agents():
     sales_tools = filter_tools_by_prefix(all_tools, ["get_offer_information", "create_account", "calculate_monthly_payment", "transfer_to_customer_support_agent", "transfer_to_transactions_agent"])
     transactions_tools = filter_tools_by_prefix(all_tools, ["bank_transfer", "get_transaction_history", "bank_balance", "transfer_to_customer_support_agent"])
 
-    # Debug: Print tool information for transactions agent
-    print(f"🔧 DEBUG: Transactions agent tools ({len(transactions_tools)} total):")
-    for tool in transactions_tools:
-        tool_name = getattr(tool, 'name', 'UNKNOWN')
-        tool_args = getattr(tool, 'args_schema', None)
-        if tool_args:
-            print(f"  - {tool_name}: {tool_args.__name__} schema with fields {list(tool_args.__fields__.keys())}")
-        else:
-            print(f"  - {tool_name}: No args schema")
-
     # Create agents with their respective tools
     coordinator_agent = create_react_agent(model, coordinator_tools, state_modifier=load_prompt("coordinator_agent"))
     customer_support_agent = create_react_agent(model, support_tools, state_modifier=load_prompt("customer_support_agent"))
     sales_agent = create_react_agent(model, sales_tools, state_modifier=load_prompt("sales_agent"))
     transactions_agent = create_react_agent(model, transactions_tools, state_modifier=load_prompt("transactions_agent"))
+
+async def cleanup_persistent_session():
+    """Clean up the persistent MCP session when the application shuts down"""
+    global _session_context, _persistent_session
+    
+    if _session_context is not None and _persistent_session is not None:
+        try:
+            # Properly exit the async context manager
+            await _session_context.__aexit__(None, None, None)
+            print("MCP persistent session cleaned up successfully")
+        except Exception as e:
+            print(f"Error cleaning up MCP session: {e}")
+        finally:
+            _session_context = None
+            _persistent_session = None
 
 @traceable(run_type="llm")
 async def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coordinator_agent", "human"]]:
@@ -208,158 +191,46 @@ async def call_coordinator_agent(state: MessagesState, config) -> Command[Litera
         return Command(update=state, goto=activeAgent)
     else:
         response = await coordinator_agent.ainvoke(state)
-        
-        # Check if any tool responses indicate a transfer request
-        transfer_target = None
-        print(f"🔧 DEBUG: Checking response for transfer requests")
-        print(f"🔧 DEBUG: Response type: {type(response)}")
-        print(f"🔧 DEBUG: Response contents: {response}")
-        
-        # Check if this is a LangGraph AddableValuesDict response
-        if isinstance(response, dict):
-            print(f"🔧 DEBUG: Response is dict with keys: {list(response.keys())}")
-            # Look for messages in the response
-            if 'messages' in response and response['messages']:
-                print(f"🔧 DEBUG: Found {len(response['messages'])} messages in response dict")
-                for i, message in enumerate(response['messages']):
-                    print(f"🔧 DEBUG: Message {i}: type={type(message)}")
-                    if hasattr(message, 'content'):
-                        print(f"🔧 DEBUG: Message {i} content: {message.content}")
-                        if isinstance(message.content, str) and message.content.strip():
-                            try:
-                                import json
-                                # Try to parse JSON response
-                                content_data = json.loads(message.content)
-                                if content_data.get("goto"):
-                                    transfer_target = content_data["goto"]
-                                    print(f"🔄 COORDINATOR: Found JSON transfer in message content: {transfer_target}")
-                                    break
-                            except (json.JSONDecodeError, TypeError, AttributeError):
-                                # Check for old format
-                                if message.content.startswith("TRANSFER_REQUEST:"):
-                                    transfer_target = message.content.split(":", 1)[1]
-                                    print(f"� COORDINATOR: Found legacy transfer: {transfer_target}")
-                                    break
-                    
-                    # Check if message has tool_calls
-                    if hasattr(message, 'tool_calls') and message.tool_calls:
-                        print(f"🔧 DEBUG: Message {i} has {len(message.tool_calls)} tool calls")
-                        for j, tool_call in enumerate(message.tool_calls):
-                            print(f"� DEBUG: Tool call {j}: {tool_call}")
-            
-            # Also check for any other relevant keys in response
-            for key, value in response.items():
-                if key != 'messages':
-                    print(f"� DEBUG: Response[{key}]: {value} (type: {type(value)})")
-        
-        else:
-            print(f"🔧 DEBUG: Response is not a dict")
-        
-        if transfer_target:
-            return Command(update=response, goto=transfer_target)
-        else:
-            return Command(update=response, goto="human")
+        return Command(update=response, goto="human")
 
 
 @traceable(run_type="llm")
 async def call_customer_support_agent(state: MessagesState, config) -> Command[Literal["customer_support_agent", "human"]]:
     thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
-    userId = config["configurable"].get("userId", "UNKNOWN_USER_ID")
-    tenantId = config["configurable"].get("tenantId", "UNKNOWN_TENANT_ID")
     if local_interactive_mode:
         patch_active_agent("cli-test", "cli-test", thread_id, "customer_support_agent")
-    
-    from langchain_core.messages import SystemMessage
-    
-    # Add system message with tenant/user context for the LLM to use when calling tools
-    system_message = SystemMessage(content=f"When calling service_request tool, always include these parameters: tenantId='{tenantId}', userId='{userId}'")
-    state["messages"].append(system_message)
-    
     response = await customer_support_agent.ainvoke(state)
-    
-    # Remove the system message added above from response
-    if isinstance(response, dict) and "messages" in response:
-        response["messages"] = [
-            msg for msg in response["messages"]
-            if not isinstance(msg, SystemMessage)
-        ]
-    
     return Command(update=response, goto="human")
 
 
 @traceable(run_type="llm")
 async def call_sales_agent(state: MessagesState, config) -> Command[Literal["sales_agent", "human"]]:
-    start_time = time.time()
-    print("⏱️  LANGGRAPH: Starting sales agent execution")
-    
     thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
-    userId = config["configurable"].get("userId", "UNKNOWN_USER_ID")
-    tenantId = config["configurable"].get("tenantId", "UNKNOWN_TENANT_ID")
     if local_interactive_mode:
         patch_active_agent("cli-test", "cli-test", thread_id, "sales_agent")
-    
-    from langchain_core.messages import SystemMessage
-    
-    # Add system message with tenant/user context for the LLM to use when calling tools
-    system_message = SystemMessage(content=f"When calling create_account tool, always include these parameters: tenantId='{tenantId}', userId='{userId}'")
-    state["messages"].append(system_message)
-    
-    agent_start_time = time.time()
     response = await sales_agent.ainvoke(state, config)
-    agent_duration_ms = (time.time() - agent_start_time) * 1000
-    
-    # Remove the system message added above from response
-    if isinstance(response, dict) and "messages" in response:
-        response["messages"] = [
-            msg for msg in response["messages"]
-            if not isinstance(msg, SystemMessage)
-        ]
-    
-    total_duration_ms = (time.time() - start_time) * 1000
-    print(f"⏱️  LANGGRAPH: Sales agent invoke took {agent_duration_ms:.2f}ms")
-    print(f"⏱️  LANGGRAPH: Total sales agent call took {total_duration_ms:.2f}ms")
-    
     return Command(update=response, goto="human")
 
 
 @traceable(run_type="llm")
 async def call_transactions_agent(state: MessagesState, config) -> Command[Literal["transactions_agent", "human"]]:
-    # 🔧 SMART REFRESH: Only recreate if module was reloaded (--reload detected)
-    global _agents_setup_version, _last_setup_time
-    if _agents_setup_version != _module_load_time:
-        print(f"🔧 DETECTED RELOAD: Module reloaded, refreshing agents (setup_version={_agents_setup_version}, module_load_time={_module_load_time})")
-        # Clear SharedMCP cache before recreating agents
-        from src.app.tools.mcp_client import cleanup_shared_mcp_client
-        await cleanup_shared_mcp_client()
-        await setup_agents()
-        _agents_setup_version = _module_load_time
-        _last_setup_time = time.time()
-    
     thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
     userId = config["configurable"].get("userId", "UNKNOWN_USER_ID")
     tenantId = config["configurable"].get("tenantId", "UNKNOWN_TENANT_ID")
     if local_interactive_mode:
         patch_active_agent("cli-test", "cli-test", thread_id, "transactions_agent")
-    
-    # Add system message with tenant/user context for the LLM to use when calling tools
-    from langchain_core.messages import SystemMessage
-
-    system_msg_content = f"IMPORTANT: When calling the bank_balance, bank_transfer, or get_transaction_history tools, you MUST always include these exact parameters: tenantId='{tenantId}', userId='{userId}', thread_id='{thread_id}'. Do not call these tools without all required parameters."
-    print(f"🔧 DEBUG: Adding system message to transactions agent: {system_msg_content}")
-
-    
-    # Add as proper SystemMessage object 
-    system_message = SystemMessage(content=system_msg_content)
-    state["messages"].append(system_message)
-    
+    state["messages"].append({
+        "role": "system",
+        "content": f"If tool to be called requires tenantId='{tenantId}', userId='{userId}', thread_id='{thread_id}', include these in the JSON parameters when invoking the tool. Do not ask the user for them, there are included here for your reference."
+    })
     response = await transactions_agent.ainvoke(state, config)
     # explicitly remove the system message added above from response
+    print(f"DEBUG: transactions_agent response: {response}")
     if isinstance(response, dict) and "messages" in response:
         response["messages"] = [
             msg for msg in response["messages"]
             if not isinstance(msg, SystemMessage)
         ]
-    
     return Command(update=response, goto="human")
 
 
@@ -427,35 +298,6 @@ builder.add_conditional_edges(
 
 checkpointer = CosmosDBSaver(database_name=DATABASE_NAME, container_name=checkpoint_container)
 graph = builder.compile(checkpointer=checkpointer)
-
-async def cleanup_persistent_mcp_client():
-    """Properly shutdown the persistent MCP client and shared MCP client"""
-    global _persistent_mcp_client, _shared_mcp_client
-    
-    print("🔄 Shutting down MCP clients...")
-    
-    # Clean up shared MCP client first (higher priority)
-    if _shared_mcp_client:
-        try:
-            await _shared_mcp_client.cleanup()
-            _shared_mcp_client = None
-            print("✅ Shared MCP client cleaned up")
-        except Exception as e:
-            print(f"⚠️ Error cleaning up shared MCP client: {e}")
-    
-    # Then clean up persistent MCP client
-    if _persistent_mcp_client:
-        try:
-            if hasattr(_persistent_mcp_client, 'close'):
-                await _persistent_mcp_client.close()
-            elif hasattr(_persistent_mcp_client, '__aenter__'):
-                # If it's an async context manager, we might need different handling
-                pass
-            print("✅ Persistent MCP client shutdown complete")
-        except Exception as e:
-            print(f"⚠️  Error during MCP client shutdown: {e}")
-        finally:
-            _persistent_mcp_client = None
 
 
 def interactive_chat():

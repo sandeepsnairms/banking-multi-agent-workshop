@@ -28,7 +28,7 @@ resource cosmosDb 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' = {
     ]
     capabilities: [
       {
-        name: 'EnableServerless'		
+        name: 'EnableServerless'
       }
 	  {
         name: 'EnableNoSQLVectorSearch'
@@ -87,7 +87,7 @@ resource cosmosContainerChats 'Microsoft.DocumentDB/databaseAccounts/sqlDatabase
     }
     tags: tags
   }
-  
+
 resource cosmosContainerOffers 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-12-01-preview' = {
     parent: database
     name: offersContainerName
@@ -112,7 +112,7 @@ resource cosmosContainerOffers 'Microsoft.DocumentDB/databaseAccounts/sqlDatabas
 					excludedPaths: [
 						{
 							path: '/"_etag"/?'
-						}						
+						}
 					]
 					vectorIndexes: [
 						{
@@ -137,7 +137,7 @@ resource cosmosContainerOffers 'Microsoft.DocumentDB/databaseAccounts/sqlDatabas
 }
 
 
-  
+
 resource cosmosContainerUsers 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2023-04-15' = {
     parent: database
     name: usersContainerName

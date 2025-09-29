@@ -102,211 +102,136 @@ You can run this sample app using GitHub Codespaces (requires a GitHub account).
 
 ### Deployment
 
-1. Navigate to the correct folder:
+1. Navigate to the Python folder:
 
    ```bash
-   cd python/infra
+   cd /path/to/banking-multi-agent-workshop/02_completed/python
    ```
 
-1. Log in to Azure using AZD. Follow the prompts to complete authentication.
+2. Log in to Azure using AZD. Follow the prompts to complete authentication:
 
    ```bash
    azd auth login
    ```
 
-1. Provision the Azure services and deploy the application.
+3. Provision the Azure services and deploy the application:
 
    ```bash
    azd up
    ```
 
-This step will take approximately 10-15 minutes.
+   This step will take approximately 10-15 minutes and will:
+   - Create all required Azure resources (Cosmos DB, Azure OpenAI, Container Apps, etc.)
+   - Deploy both the Banking API and MCP Server as Container Apps
+   - Configure authentication and networking between services
+   - Set up environment variables automatically
 
-> [!IMPORTANT]
-> If you encounter any errors during the deployment, rerun `azd up` to continue the deployment from where it left off. This will not create duplicate resources, and tends to resolve most issues.
+   > [!IMPORTANT]
+   > If you encounter any errors during the deployment, rerun `azd up` to continue the deployment from where it left off. This will not create duplicate resources.
 
-1. When the resources are finally deployed, you will see a message in the terminal like below:
+4. When the deployment completes successfully, you will see endpoint URLs for both services:
 
-```bash
-Deploying services (azd deploy)
+   ```bash
+   SUCCESS: Your application was deployed to Azure in X minutes.
+   
+   Banking API: https://ca-webapi-xxxxx.azurecontainerapps.io/
+   MCP Server: https://ca-mcpserver-xxxxx.azurecontainerapps.io/
+   ```
 
-  (✓) Done: Deploying service ChatServiceWebApi
-  - Endpoint: https://ca-webapi-6xbkqp3ybtbuw.whitemoss-86b36485.eastus2.azurecontainerapps.io/
+5. The deployment will automatically:
+   - Load sample banking data (accounts, transactions, offers)
+   - Configure MCP client-server communication
+   - Set up authentication tokens
+   - Update environment variables
 
-Do you want to add some dummy data for testing? (yes/no): y
-```
+### Setting up local development
 
-1. Press `y` to load the data for the workshop.
+When you deploy this solution, it automatically configures `.env` files with the required Azure endpoints and authentication tokens for both the main application and MCP server.
 
-1. After the data is loaded, you will see a message in the terminal like below:
+To run the solution locally after deployment:
 
-```bash
-PUT offerdata Request Successful: True
-PUT offerdata Request Successful: True
-PUT offerdata Request Successful: True
+1. Navigate to the python folder and install dependencies:
 
-Do you want to deploy the frontend app? (yes/no): 
-```
+   ```bash
+   cd /path/to/banking-multi-agent-workshop/02_completed/python
+   ```
 
-1. Press `y` to deploy the frontend application.
+2. Create and activate a virtual environment:
 
-### Setting up local debugging
-
-When you deploy this solution it automatically injects endpoints and configuration values for the required resources into a `.env` file at root (python) folder.
-
-But you will still need to install dependencies to run the solution locally.
-
-1. Navigate to the python folder of the project.
-2. Create and activate a virtual environment (Linux/Mac):
-
+   **Linux/Mac:**
    ```shell
    python -m venv .venv
    source .venv/bin/activate
    ```
 
-   For Windows:
-
+   **Windows:**
    ```shell
    python -m venv .venv
    .venv\Scripts\Activate.ps1
    ```
 
-3. Install the required dependencies for the project.
+3. Install the main application dependencies:
 
    ```shell
-   pip install -r ../src/app/requirements.txt
+   pip install -r src/app/requirements.txt
    ```
 
-4. Install HTTP MCP Server dependencies (if using HTTP mode):
+4. Install MCP server dependencies:
 
    ```shell
    pip install -r ../mcpserver/requirements.txt
    ```
 
-### Environment Configuration
+### Running the solution locally
 
-The application supports two MCP modes controlled by environment variables:
+This solution uses **Model Context Protocol (MCP)** architecture with the MCP server running as a separate HTTP service.
 
-#### Direct MCP Mode (Default)
-No additional configuration needed. The MCP server runs embedded within the application.
+#### Terminal 1 - Start the MCP Server:
+```bash
+# Navigate to mcpserver folder and ensure virtual environment is activated
+cd /path/to/banking-multi-agent-workshop/02_completed/mcpserver
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
-#### HTTP MCP Mode
-Set these environment variables before starting the main application:
-
-```shell
-export USE_REMOTE_MCP_SERVER=true
-export MCP_SERVER_ENDPOINT=http://localhost:8080
-```
-
-**Optional MCP Server Configuration:**
-```shell
-# Custom JWT secret key (recommended for production)
-export MCP_AUTH_SECRET_KEY=your-secure-secret-key-here
-
-# Custom server port (default is 8080)
-export MCP_SERVER_PORT=8080
-
-# Security settings (for production)
-export JWT_EXPIRATION_HOURS=1
-export ALLOWED_ORIGINS=http://localhost:4200,http://localhost:3000
-export RATE_LIMIT_REQUESTS=100
-export ENABLE_AUDIT_LOGGING=true
-```
-
-**Security Features (HTTP MCP Mode):**
-The HTTP MCP server includes enterprise-grade security features:
-- 🔐 JWT authentication with access/refresh tokens
-- 👥 Role-based access control (admin, customer, agent, read-only)
-- 🛡️ Input validation and sanitization
-- 🚦 Rate limiting and DOS protection
-- 📝 Comprehensive audit logging
-- 🔒 CORS security and HTTPS support
-
-For production deployment, see `/mcpserver/SECURITY.md` for detailed security configuration.
-
-### Running the solution
-
-You can run this solution in two modes:
-
-#### Option 1: Direct MCP Mode (Original)
-This runs the MCP server directly within the application.
-
-1. Navigate to the python folder of the project.
-2. Start the fastapi server.
-
-   ```shell
-   uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 8000
-   ```
-
-#### Option 2: HTTP MCP Mode (New Architecture)
-This runs the MCP server as a separate HTTP service that the main application connects to.
-
-**Terminal 1 - Start the HTTP MCP Server:**
-```shell
-# Navigate to mcpserver folder and activate virtual environment
-cd /path/to/banking-multi-agent-workshop/mcpserver
-source .venv/bin/activate
-
-# Install dependencies (first time only)
-pip install -r requirements.txt
-
-# Start the HTTP MCP server with security features (run from mcpserver root)
+# Start the MCP server (run from mcpserver root)
 PYTHONPATH=src python3 -m uvicorn src.mcp_http_server:app --host 0.0.0.0 --port 8080
 ```
 
-**For Production Security:**
-```shell
-# Generate a secure JWT secret key
-python -c "import secrets; print(secrets.token_urlsafe(32))"
-
-# Set production environment variables
-export JWT_SECRET=your-generated-secret-key
-export ALLOWED_ORIGINS=https://yourdomain.com
-export ENABLE_AUDIT_LOGGING=true
-
-# Copy and configure environment template
-cp .env.example .env
-# Edit .env with your production values
-```
-
-**Terminal 2 - Start the Main Banking Application:**
-```shell
-# Navigate to python folder and activate virtual environment
-cd /path/to/banking-multi-agent-workshop/python
-source .venv/bin/activate
-
-# Set environment variables to use Remote MCP server
-export USE_REMOTE_MCP_SERVER=true
-export MCP_SERVER_ENDPOINT=http://localhost:8080
+#### Terminal 2 - Start the Banking API:
+```bash
+# Navigate to python folder and ensure virtual environment is activated
+cd /path/to/banking-multi-agent-workshop/02_completed/python
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
 # Start the main banking API
 uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 8000
 ```
 
-**Verify the setup:**
-```shell
-# Test HTTP MCP server health
-curl http://localhost:8080/health
+#### Terminal 3 - Start the Frontend (optional):
+```bash
+# Navigate to frontend folder
+cd /path/to/banking-multi-agent-workshop/02_completed/frontend
 
-# Test authentication (get development token)
-curl -X POST http://localhost:8080/auth/token
-
-# Test banking API
-curl http://localhost:8000/docs
-
-# Run security tests (HTTP MCP server)
-cd /path/to/banking-multi-agent-workshop/mcpserver
-python test_security.py
+# Install and start frontend
+npm install
+npm start
 ```
 
-The API will be available at <http://localhost:8000/docs>. This has been pre-built with boilerplate code that will create chat sessions and store the chat history in Cosmos DB.
+**Access the applications:**
+- Banking API: <http://localhost:8000/docs>
+- MCP Server: <http://localhost:8080/docs>
+- Frontend (if started): <http://localhost:4200>
 
-**MCP Server Endpoints:**
-- HTTP MCP Server: <http://localhost:8080>
-- API Documentation: <http://localhost:8080/docs>
-- Health Check: <http://localhost:8080/health>
-- Authentication: <http://localhost:8080/auth/token> (development)
-- Security Documentation: `/mcpserver/SECURITY.md`
+#### Verify the setup:
+```bash
+# Test MCP server health
+curl http://localhost:8080/health
+
+# Test MCP server authentication (simple token mode)
+curl http://localhost:8080/auth/token
+
+# Test banking API
+curl http://localhost:8000/health
+```
 
 #### Run the Frontend App locally
 

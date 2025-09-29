@@ -60,6 +60,9 @@
       },
       "principalId": {
         "value": "${AZURE_PRINCIPAL_ID}"
+      },
+      "owner": {
+        "value": "${OWNER_EMAIL}"
       }
     }
 }

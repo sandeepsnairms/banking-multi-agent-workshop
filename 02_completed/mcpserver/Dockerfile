@@ -26,4 +26,4 @@ ENV USE_REMOTE_MCP_SERVER=true
 ENV JWT_SECRET=your-production-secret-key-change-this
 
 # Run the HTTP MCP server
-CMD ["python", "-m", "src.mcp_http_server"]
+CMD ["python", "src/mcp_http_server.py"]

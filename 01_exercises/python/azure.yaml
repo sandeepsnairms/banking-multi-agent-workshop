@@ -39,3 +39,9 @@ services:
         language: python
         docker:
             path: ./Dockerfile
+    MCPServer:
+        project: ../mcpserver
+        host: containerapp
+        language: python
+        docker:
+            path: ../mcpserver/Dockerfile

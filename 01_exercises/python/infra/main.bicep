@@ -12,8 +12,12 @@ param location string
 @description('Id of the user or app to assign application roles')
 param principalId string
 
+@description('Owner tag for resource tagging')
+param owner string
+
 var tags = {
   'azd-env-name': environmentName
+  'owner': owner
 }
 
 var abbrs = loadJsonContent('./abbreviations.json')
@@ -83,16 +87,16 @@ module openAi './shared/openai.bicep' = {
 //Deploy OpenAI Deployments
 var deployments = [
   {
-    name: 'gpt-4o'
+    name: 'gpt-4.1-mini'
     skuCapacity: 30
 	skuName: 'GlobalStandard'
-    modelName: 'gpt-4o'
-    modelVersion: '2024-11-20'
+    modelName: 'gpt-4.1-mini'
+    modelVersion: '2025-04-14'
   }
   {
     name: 'text-embedding-3-small'
     skuCapacity: 5
-	skuName: 'Standard'
+	skuName: 'GlobalStandard'
     modelName: 'text-embedding-3-small'
     modelVersion: '1'
   }
@@ -142,6 +146,8 @@ module AssignRoles './shared/assignroles.bicep' = {
   scope: rg
   dependsOn: [cosmos, monitoring, openAi]
 }
+
+
 
 // Deploy ChatAPI Container App
 module ChatAPI './app/ChatAPI.bicep' = {
@@ -215,11 +221,89 @@ module ChatAPI './app/ChatAPI.bicep' = {
         name: 'ApplicationInsightsConnectionString'
         value: monitoring.outputs.applicationInsightsConnectionString
       }
+      {
+        name: 'AZURE_OPENAI_API_VERSION'
+        value: '2024-02-15-preview'
+      }
+      {
+        name: 'MCP_SERVER_BASE_URL'
+        value: mcpServer.outputs.uri
+      }
+      {
+        name: 'USE_REMOTE_MCP_SERVER'
+        value: 'true'
+      }
+      {
+        name: 'MCP_AUTH_TOKEN'
+        value: 'banking-server-prod-token-2025'
+      }
   
     ]
   }
   scope: rg
-  dependsOn: [cosmos, monitoring, openAi]
+  dependsOn: [cosmos, monitoring, openAi, mcpServer]
+}
+
+// Deploy MCP Server Container App
+module mcpServer './app/mcpServer.bicep' = {
+  name: 'mcpServer'
+  params: {
+    name: '${abbrs.appContainerApps}mcpserver-${resourceToken}'
+    location: location
+    tags: tags
+    environmentId: appsEnv.outputs.id
+    containerRegistryName: registry.outputs.name
+    identityName: AssignRoles.outputs.identityName
+    registryServer: registry.outputs.loginServer
+    envSettings: [
+      {
+        name: 'PORT'
+        value: '8080'
+      }
+      {
+        name: 'AZURE_OPENAI_ENDPOINT'
+        value: openAi.outputs.endpoint
+      }
+      {
+        name: 'AZURE_OPENAI_COMPLETIONSDEPLOYMENTID'
+        value: openAiModelDeployments[0].outputs.name
+      }
+      {
+        name: 'AZURE_OPENAI_EMBEDDINGDEPLOYMENTID'
+        value: openAiModelDeployments[1].outputs.name
+      }
+      {
+        name: 'COSMOSDB_ENDPOINT'
+        value: cosmos.outputs.endpoint
+      }
+      {
+        name: 'ApplicationInsightsConnectionString'
+        value: monitoring.outputs.applicationInsightsConnectionString
+      }
+      {
+        name: 'AZURE_OPENAI_API_VERSION'
+        value: '2024-02-15-preview'
+      }
+      {
+        name: 'AZURE_CLIENT_ID'
+        value: AssignRoles.outputs.identityClientId
+      }
+      {
+        name: 'MCP_AUTH_TOKEN'
+        value: 'banking-server-prod-token-2025'
+      }
+      {
+        name: 'GITHUB_CLIENT_ID'
+        value: ''
+      }
+      {
+        name: 'GITHUB_CLIENT_SECRET'
+        value: ''
+      }
+    ]
+  }
+  scope: rg
+  dependsOn: [cosmos, monitoring, openAi, AssignRoles]
 }
 
 module webApp './app/webApp.bicep' = {
@@ -236,6 +320,7 @@ module webApp './app/webApp.bicep' = {
 // Outputs
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = registry.outputs.loginServer
 output SERVICE_ChatAPI_ENDPOINT_URL string = ChatAPI.outputs.uri
+output SERVICE_MCPSERVER_ENDPOINT_URL string = mcpServer.outputs.uri
 output FRONTENDPOINT_URL string = webApp.outputs.url
 output AZURE_OPENAI_ENDPOINT string = openAi.outputs.endpoint
 output WEB_APP_NAME string = '${abbrs.webSitesAppService}${resourceToken}'

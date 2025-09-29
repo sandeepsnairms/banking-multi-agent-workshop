@@ -22,7 +22,6 @@ from langgraph_checkpoint_cosmosdb import CosmosDBSaver
 from langgraph.graph.state import CompiledStateGraph
 from starlette.middleware.cors import CORSMiddleware
 from src.app.banking_agents import graph, checkpointer
-from src.app.tools.mcp_client import set_mcp_context  # Enhanced MCP context
 from src.app.services.azure_cosmos_db import update_chat_container, patch_active_agent, \
     fetch_chat_container_by_tenant_and_user, \
     fetch_chat_container_by_session, delete_userdata_item, debug_container, update_users_container, \
@@ -62,13 +61,64 @@ def get_compiled_graph():
 
 app = fastapi.FastAPI(title="Cosmos DB Multi-Agent Banking API", openapi_url="/cosmos-multi-agent-api.json")
 
+# Global flag to track agent initialization
+_agents_initialized = False
+
 @app.on_event("startup")
 async def initialize_agents():
-    await setup_agents()
+    """Initialize agents with retry logic to handle MCP server startup timing"""
+    global _agents_initialized
+    
+    print("🚀 Starting agent initialization with retry logic...")
+    
+    max_retries = 5
+    retry_delay = 10  # seconds
+    
+    for attempt in range(max_retries):
+        try:
+            print(f"🔄 Attempt {attempt + 1}/{max_retries}: Initializing agents...")
+            await setup_agents()
+            _agents_initialized = True
+            print("✅ Agents initialized successfully!")
+            return
+        except Exception as e:
+            print(f"❌ Attempt {attempt + 1} failed: {e}")
+            if attempt < max_retries - 1:
+                print(f"⏳ Waiting {retry_delay} seconds before retry...")
+                await asyncio.sleep(retry_delay)
+            else:
+                print("❌ All attempts failed. Starting without agent initialization.")
+                print("💡 Agents will be initialized on first request.")
+                _agents_initialized = False
+
+async def ensure_agents_initialized():
+    """Ensure agents are initialized before handling requests"""
+    global _agents_initialized
+    
+    if not _agents_initialized:
+        print("🔄 Initializing agents on demand...")
+        try:
+            await setup_agents()
+            _agents_initialized = True
+            print("✅ Agents initialized successfully!")
+        except Exception as e:
+            print(f"❌ Failed to initialize agents: {e}")
+            raise HTTPException(status_code=503, detail="MCP service unavailable. Please try again in a few moments.")
 
 @app.get("/")
 def health_check():
     return {"status": "MCP agent system is up"}
+
+@app.get("/health/ready")
+async def readiness_check():
+    """Readiness probe for Container Apps"""
+    try:
+        if not _agents_initialized:
+            await ensure_agents_initialized()
+        return {"status": "ready", "agents_initialized": _agents_initialized}
+    except Exception:
+        return {"status": "not_ready", "agents_initialized": False}
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -624,16 +674,11 @@ async def get_chat_completion(
         workflow: CompiledStateGraph = Depends(get_compiled_graph),
 
 ):
+    # Ensure agents are initialized before processing requests
+    await ensure_agents_initialized()
+    
     if not request_body.strip():
         raise HTTPException(status_code=400, detail="Request body cannot be empty")
-
-    # 🚀 SET MCP CONTEXT - Fix LLM parameter issues with automatic injection
-    set_mcp_context(
-        tenantId=tenantId,
-        userId=userId,
-        thread_id=sessionId
-    )
-    print(f"🔧 MCP CONTEXT SET: tenantId='{tenantId}', userId='{userId}', thread_id='{sessionId}'")
 
     # Retrieve last checkpoint
     config = {"configurable": {"thread_id": sessionId, "checkpoint_ns": "", "userId": userId, "tenantId": tenantId}}

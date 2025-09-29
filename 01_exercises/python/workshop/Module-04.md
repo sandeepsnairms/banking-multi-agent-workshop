@@ -1,7 +1,5 @@
 # Module 04 - Multi-Agent Orchestration
 
-[< Agent Specialization](./Module-03.md) - **[Home](Home.md)** - [Lessons Learned, Agent Futures, Q&A >](./Module-05.md)
-
 ## Introduction
 
 In this Module you'll learn how to implement the multi-agent orchestration to tie all of the agents you have created so far together into a single system. You'll also learn how to test the system as a whole is working correctly and how to debug and monitor the agents performance and behavior and troubleshoot them.
@@ -15,42 +13,180 @@ In this Module you'll learn how to implement the multi-agent orchestration to ti
 
 ## Module Exercises
 
-1. [Activity 1: Session on Multi-Agent Architectures](#activity-1-session-on-multi-agent-architectures)
-2. [Activity 2: Define Agents and Roles](#activity-2-define-agents-and-roles)
-3. [Activity 3: Session on Testing and Monitoring](#activity-3-session-on-testing-and-monitoring)
-4. [Activity 4: Implement Agent Tracing and Monitoring](#activity-4-implement-agent-tracing-and-monitoring)
-5. [Activity 5: Putting it all together](#activity-5-putting-it-all-together)
-6. [Activity 6: Test With Swagger](#activity-6-test-with-swagger)
-7. [Activity 7: Connect to our Frontend Application](#activity-7-connect-to-our-frontend-application)
+1. [Activity 1: Agent to Agent Communication](#activity-1-agent-to-agent-communication)
+1. [Activity 2: Test your work](#activity-2-test-your-work)
+1. [Activity 3: Implement Agent Tracing and Monitoring](#activity-3-implement-agent-tracing-and-monitoring)
+1. [Bonus Activity: Test with Swagger](#bonus-activity-test-with-swagger)
 
-## Activity 1: Session on Multi-Agent Architectures
+## Activity 1: Agent to Agent Communication
 
-In this session you will learn how this all comes together and get insights into how the multi-agent orchestration works and coordindates across all of the defined agents for your system.
+In this exercise, you will enhance the multi-agent banking application by enabling agent-to-agent communication through routing logic. So far, you’ve built several specialized agents—such as customer support, sales, and transactions—that can perform specific tasks. However, these agents operate in isolation and rely entirely on the coordinator agent to route and handle all interactions.
 
-## Activity 2: Define Agents and Roles
+This setup limits the system’s flexibility: if an agent encounters a query it cannot handle, it has no way of collaborating with other agents directly. That’s where agent routing comes in.
 
-In this hands-on exercise, you will complete the agent definitions by defining routing.
+With this enhancement, agents will be able to talk to each other—consulting, sharing context, and collaborating on tasks. For example, a sales agent might ask the transactions agent for account information before making a recommendation, or a support agent might escalate a case to sales directly.
 
-Up until this point, you have created a number of agents that can perform specific tasks, but they are not talking to each other. This means if any agent is asked a question that it cannot answer, it will not know which other agent to ask. This is where agent routing comes in.
+By completing this exercise, you will:
 
-Determine which agents you think should be able to talk to each other, and then wire them up! If you've forgotten how to do it, look back through the modules.
+- Implement inter-agent routing and communication.
+- Improve the system’s ability to handle complex or multi-step requests.
+- Enable more autonomous and intelligent agent behavior.
 
-Hint: the coordinator agent is a good place to start! And you might need to update the agent prompts appropriately for it to work.
+This upgrade not only reduces dependency on the coordinator but also creates a more collaborative and efficient agent ecosystem, reflecting real-world teamwork dynamics.
 
-## Activity 3: Session on Testing and Monitoring
+1. In VS Code, open the **banking_agents.py** file.
+1. Locate the **customer_support_agent_tools**.
+1. Update it with the below code.
 
-In this session you will learn about how to design the service layer for a multi-agent system and how to configure and conduct testing and debugging and monitoring for these systems.
+```python
+customer_support_agent_tools = [
+    get_branch_location,
+    service_request,
+    create_agent_transfer(agent_name="sales_agent"),
+    create_agent_transfer(agent_name="transactions_agent"),
+]
+```
 
-## Activity 4: Implement Agent Tracing and Monitoring
+1. Next, locate the **transactions_agent_tools**.
+1. Update it with the below code.
+
+```python
+transactions_agent_tools = [
+    bank_balance,
+    bank_transfer,
+    get_transaction_history,
+    create_agent_transfer(agent_name="customer_support_agent"),
+]
+```
+
+1. Next, locate **sales_agent**, and update it with the below code:
+
+```python
+sales_agent_tools = [
+    get_offer_information,
+    calculate_monthly_payment,
+    create_account,
+    create_agent_transfer(agent_name="customer_support_agent"),
+    create_agent_transfer(agent_name="transactions_agent"),
+]
+```
+
+We need to update the prompts of agents accordingly as we have updated the tools each agent can call.
+
+1. In VS Code, open the file **src/app/prompts/coordinator_agent.prompty**
+1. Update with the following text.
+
+```text
+You are a Chat Initiator and Request Router in a bank.  
+Your primary responsibilities include welcoming users, and routing requests to the appropriate agent.  
+If the user needs general help, transfer to 'customer_support' for help.  
+If the user wants to open a new account or take our a bank loan or ask about banking offers, transfer to 'sales_agent'.  
+You MUST include human-readable response before transferring to another agent.
+```
+
+1. Next, open the file **src/app/prompts/customer_support_agent.prompty**
+1. Update with the following text.
+
+```text
+You are a customer support agent that can give general advice on banking products and branch locations  
+If the user wants to open a new account or take our a bank loan or ask about banking offers, transfer to 'sales_agent'.  
+If the user wants to check their account balance, make a bank transfer, or get transaction history, transfer to 'transactions_agent'.  
+If the user wants to make a complaint or speak to someone, ask for the user's phone number and email address,  
+and say you will get someone to call them back, call 'service_request' tool with these values and pass config along with a summary of what they said into the requestSummary parameter.  
+You MUST include human-readable response before transferring to another agent.
+```
+
+1. Next, open the empty file **src/app/prompts/transactions_agent.prompty**
+1. Update with the following text.
+
+```text
+You are a banking transactions agent that can handle account balance enquiries and bank transfers.  
+If the user wants to make a deposit or withdrawal or transfer, ask for the amount and the account number which they want to transfer from and to.  
+Then call 'bank_transfer' tool with toAccount, fromAccount, and amount values.  
+Make sure you confirm the transaction details with the user before calling the 'bank_transfer' tool.  
+then call 'bank_transfer' tool with these values.  
+If the user wants to know transaction history, ask for the start and end date, and call 'get_transaction_history' tool with these values.  
+If the user needs general help, transfer to 'customer_support' for help.  
+You MUST respond with the repayment amounts before transferring to another agent.
+```
+
+1. Finally, navigate to the empty file **src/app/prompts/sales_agent.prompty**
+1. Update with the following text:
+
+```text
+You are a sales agent that can help users with creating a new account, or taking out bank loans or providing information about new banking offers.  
+If the user wants information about a product or banking offers, ask whether they want Credit Card or Savings, then call 'get_offer_information' tool with the user_prompt, and the accountType ('CreditCard' or 'Savings').  
+If the user wants to check their account balance, make a bank transfer, or get transaction history, transfer to 'transactions_agent'.  
+If the user wants to create a new account, you must ask for the account holder's name and the initial balance.  
+Call create_account tool with these values, and also pass the config. Be sure to tell the user their full new account number including A prefix.  
+If customer wants to open anything other than a banking account, advise that you can only open a banking account and if they want any other sort of account they will need to contact the branch.  
+If user wants to take out a loan, you can offer a loan quote. You must ask for the loan amount and the number of years for the loan.  
+When user provides these, calculate the monthly payment using calculate_monthly_payment tool and provide the result as part of the response.  
+Do not return the monthly payment tool call output directly to the user, include it with the rest of your response.  
+If the user wants to move ahead with the loan, advise that they need to come into the branch to complete the application.  
+You MUST respond with the repayment amounts before transferring to another agent.
+```
+
+## Activity 2: Test your work
+
+With these updates, each agent is now equipped with the ability to delegate tasks and transfer control to other relevant agents when needed.
+
+### Start a Conversation
+
+1. In you browser, return to our frontend, <http://localhost:4200/> and hit refresh.
+1. Create a new conversation and try transferring money again as shown below.
+1. Type the following text:
+
+```text
+I want to transfer money
+```
+
+1. When prompted provide the amount and the accounts to tranfer from and to.
+
+```text
+I want to transfer 500 from Acc001 to Acc003
+```
+
+1. When prompted, confirm the transaction.
+1. The conversion should look similar to this.
+
+![Testing_1](./media/module-04/testing_module_4-1.png)
+
+Now, let's again try asking about banking offers to invoke vector search, as shown below.
+
+1. In the same conversation, type the following text:
+
+```text
+Tell me something about your banking offers
+```
+
+1. Because the transactions agent can only transfer to the customer service agent, it will transfer you there first, so you may have to ask the same question again to get transferred to the sales agent. When finally transferred to the sales agent (which handles queries about product information) it will respond with a range of offers to choose from.
+1. Type the following text:
+
+```text
+credit card
+```
+
+1. As the agents can talk to each other, the `transactions_agent` after completing the account transfer, calls the *customer_support_agent*, which in turn calls the *sales_agent* to finally get us a result using Cosmos DB Vector Search.
+1. The conversation should look similar to this.
+
+![Testing_2](./media/module-04/testing_module_4-2.png)
+
+## Activity 3: Implement Agent Tracing and Monitoring
+
 In this activity, you'll integrate LangSmith, a powerful observability and monitoring platform, into our multi-agent application. You'll learn how to trace agent interactions and monitor application behavior using LangSmith's build in tools. This would help you understand how your agents perform, where bottlenecks occur, and how the application behaves end-to-end.
 
 ### Creating a LangSmith Account
-1. Visit https://smith.langchain.com
+
+1. Visit <https://smith.langchain.com>
 2. Click Sign Up and create your free LangSmith account.
 3. Once you're signed in, go to your Account Settings, and create a new API Key.
 
+**Note:** you should record the user credentials and optionally the keys for this if you'd like to keep this beyond this lab.
+
 ### Adding LangSmith Environment Variables
-Open the .env file in the python folder of the code base.
+
+1. Open the **.env** file in the python folder of the code base.
 
 ```python
 LANGCHAIN_API_KEY="<your_langsmith_api_key>"
@@ -58,7 +194,7 @@ LANGCHAIN_TRACING_V2="true"
 LANGCHAIN_PROJECT="multi-agent-banking-app"
 ```
 
-Your .env file should look like this after adding the above lines.
+1. Your .env file should look like this after adding the above lines.
 
 ```python
 COSMOSDB_ENDPOINT="<your_cosmos_db_uri>"
@@ -72,35 +208,40 @@ LANGCHAIN_PROJECT="multi-agent-banking-app"
 ```
 
 ### Adding tracing to the Agents
-LangSmith makes it easy to trace specific functions or agents using the @traceable decorator. 
+
+LangSmith makes it easy to trace specific functions or agents using the @traceable decorator.
 
 The decorator works by creating a run tree for you each time the function is called and inserting it within the current trace. The function inputs, name, and other information is then streamed to LangSmith. If the function raises an error or if it returns a response, that information is also added to the tree, and updates are patched to LangSmith so you can detect and diagnose sources of errors. This is all done on a background thread to avoid blocking your app's execution.
 
 LangSmith UX is built in a way that different components of your multi-agent application get rendered differently. LangSmith supports many different types of Runs - you can specify the type of Run in the @traceable decorator. The types of runs are:
-1. LLM: Invokes an LLM 
-2. Retriever: Retrieves documents from databases or other sources
-3. Tool: Executes actions with function calls
-4. Chain: Default type; combines multiple Runs into a larger process
-5. Prompt: Hydrates a prompt to be used with an LLM
-6. Parser: Extracts structured data
+
+1. LLM: Invokes an LLM
+1. Retriever: Retrieves documents from databases or other sources
+1. Tool: Executes actions with function calls
+1. Chain: Default type; combines multiple Runs into a larger process
+1. Prompt: Hydrates a prompt to be used with an LLM
+1. Parser: Extracts structured data
 
 Let's update our code to add @traceable decorator so that we can monitor the traces in langsmith.
 
-In your IDE, navigate to the file `banking_agents.py` file.
+1. In VS Code, navigate to the file **banking_agents.py** file.
+1. At the top of this file, add the import shown below.
 
-Add `@traceable(run_type="llm")` on top of the `def call_coordinator_agent(state: MessagesState, config)` function. It should look like this now.
-
-Add the below import line under the imports for this file
 ```python
 from langsmith import traceable
 ```
+
+1. Locate the function call, **def call_coordinator_agent(state: MessagesState, config)**
+1. Add `@traceable(run_type="llm")` on top of the function.
+1. It should look like this now.
 
 ```python
 @traceable(run_type="llm")
 def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coordinator_agent", "human"]]:
 ```
 
-Now, let's do this for other functions in the `banking_agents.py` file. Finally, your functions should look like this.
+1. Next, do this for other functions in the **banking_agents.py** file. 
+1. Your functions should all look like this.
 
 ```python
 @traceable(run_type="llm")
@@ -122,12 +263,16 @@ def human_node(state: MessagesState, config) -> None:
 def interactive_chat():
 ```
 
-Let's go to the `tools/support.py` file now. We will add the `@traceable` on top of all the functions. We are not adding the run type on these functions because we already have `@tool` decorator on top of these functions which would help LangSmith to infer that these are tools used by the Agents. It should look like this.
+1. Next, open the **tools/support.py** file.
+1. Add the import below to the imports at the top of this file.
 
-Add the below import line under the imports for this file
 ```python
 from langsmith import traceable
 ```
+
+1. Next, add `@traceable` on top of all the functions in this file. 
+
+**Note:** We are not adding the run type on these functions because we already have `@tool` decorator on top of these functions which would help LangSmith to infer that these are tools used by the Agents. It should look like this.
 
 ```python
 @tool
@@ -140,12 +285,15 @@ def service_request(config: RunnableConfig,  recipientPhone: str, recipientEmail
 def get_branch_location(state: str) -> Dict[str, List[str]]:
 ```
 
-Now, let's go to the `tools/sales.py` file now. It should look like this after adding the `@traceable` decorator.
+1. Open the **tools/sales.py** file.
+1. Add the below import line under the imports for this file.
 
-Add the below import line under the imports for this file
 ```python
 from langsmith import traceable
 ```
+
+1. Add the `@traceable` decorator to every function in this file.
+1. It should look like this now.
 
 ```python
 @tool
@@ -161,12 +309,15 @@ def create_account(account_holder: str, balance: float, config: RunnableConfig) 
 def calculate_monthly_payment(loan_amount: float, years: int) -> float:
 ```
 
-Now, let's go to the `tools/transactions.py` file  now. It should look like this after adding the `@traceable` decorator.
+1. Fionally, open the **tools/transactions.py** file.
+1. Add the below import line under the imports for this file.
 
-Add the below import line under the imports for this file
 ```python
 from langsmith import traceable
 ```
+
+1. Add the *@traceable* decorator to every function.
+1. It should look like this now.
 
 ```python
 @tool
@@ -184,19 +335,21 @@ def bank_balance(config: RunnableConfig, account_number: str) -> str:
 
 ### Let's monitor traces in LangSmith
 
-In your IDE, run the following command in your terminal.
+1. In VS Code, run the following command in your terminal.
 
 ```bash
 python -m src.app.banking_agents
 ```
 
-Let's open [LangSmith](https://smith.langchain.com/) now to make sure our project is listed under traces. The project name will be `multi-agent-banking-app` as we mentioned in our .env file.
+1. Next, open a new tab in your browser and navigate to, <https://smith.langchain.com/> to make sure our project is listed under traces. 
+1. The project name will be `multi-agent-banking-app` as we mentioned in our .env file.
 
-Note: If you are not able to see your project under traces, search for banking in the search bar, and then you should be able to see it.
+**Note:** If you are not able to see your project under traces, search for banking in the search bar, and then you should be able to see it.
 
 ![LangSmith_1](./media/module-04/lang_smith_1.png)
 
 Try asking about banking offers to invoke a vector search again:
+
 ```shell
 Welcome to the single-agent banking assistant.
 Type 'exit' to end the conversation.
@@ -247,7 +400,8 @@ transactions_agent: Please provide the start and end dates for the transaction h
 
 You: start date as 2025-02-07 and end date as 2025-02-12
 ```
-The run which has a loading icon in front of it should be the current trace. 
+
+The run which has a loading icon in front of it should be the current trace.
 
 ![LangSmith_6](./media/module-04/lang_smith_6.png)
 
@@ -255,162 +409,19 @@ You can click the final agent call, highlighted below to see the final result cr
 
 ![LangSmith_8](./media/module-04/lang_smith_8.png)
 
-## Activity 5: Putting It All Together
+## Bonus Activity: Test with Swagger
 
-In this activity, you will wire the API layer for the multi-agent system, connect the UI to the backend, implement tracing, and deploy your changes!
+We've been testing using the frontend for this lab, but as you can clearly see, this solution is built as a backend that exposes API's called by the frontend. This makes it easy for us to do automated unit testing without requiring a human. With the API layer ready, let's explore simple testing against our API layer in our application.
 
-We're now going to wire up the API layer for the multi-agent system. The shell of this was pre-built for you, with operations like creating chat session entries and deleting them. But there was no implementation for chat completions and interacting with the agent graph (as we had not built that yet). We're going to add that now. 
+Start the FastAPI server:
 
-### Wiring up the API Layer
-
-In your IDE, navigate to the `src/app/banking_agents_api.py` file.
-
-We will first import the graph and checkpoint from `banking_agents.py` that we've now created. 
-
-Paste the following with the imports at the top of the file:
-
-```python
-from src.app.banking_agents import graph, checkpointer
-```   
-
-Below the imports, paste the function below to return the graph that is :
-
-```python
-def get_compiled_graph():
-    return graph
-```
-
-Next, locate the `delete_chat_session` function in the file.
-
-This is fairly deep in this file. It may be easier to search for this line of code (e.g. `CTRL-F`).
-
-Here we need to add a background task that will delete checkpoints in the graph, in addition to the chat entries. 
-
-Locate the return statement for this function, `return {"message": "Session deleted successfully"}`
-
-Then add this line of code immediately above it:
-    
-```python
-background_tasks.add_task(delete_all_thread_records, checkpointer, sessionId)
-```
-
-Next, locate this function, `get_chat_completion`. 
-
-Currently it looks like this:
-
-```python
-@app.post("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/completion", tags=[endpointTitle],
-          response_model=List[MessageModel])
-async def get_chat_completion(
-        tenantId: str,
-        userId: str,
-        sessionId: str,
-        background_tasks: BackgroundTasks,
-        request_body: str = Body(..., media_type="application/json"),
-
-):
-    return [
-        {
-            "id": "string",
-            "type": "string",
-            "sessionId": "string",
-            "tenantId": "string",
-            "userId": "string",
-            "timeStamp": "string",
-            "sender": "string",
-            "senderRole": "string",
-            "text": "Hello, I am not yet implemented",
-            "debugLogId": "string",
-            "tokensUsed": 0,
-            "rating": "true",
-            "completionPromptId": "string"
-        }
-    ]
-```
-
-Replace the entire function with the following code:
-
-```python
-@app.post("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/completion", tags=[endpointTitle],
-          response_model=List[MessageModel])
-async def get_chat_completion(
-        tenantId: str,
-        userId: str,
-        sessionId: str,
-        background_tasks: BackgroundTasks,
-        request_body: str = Body(..., media_type="application/json"),
-        workflow: CompiledStateGraph = Depends(get_compiled_graph),
-
-):
-    if not request_body.strip():
-        raise HTTPException(status_code=400, detail="Request body cannot be empty")
-
-    # Retrieve last checkpoint
-    config = {"configurable": {"thread_id": sessionId, "checkpoint_ns": "", "userId": userId, "tenantId": tenantId}}
-    checkpoints = list(checkpointer.list(config))
-    last_active_agent = "coordinator_agent"  # Default fallback
-
-    if not checkpoints:
-        # No previous state, start fresh
-        new_state = {"messages": [{"role": "user", "content": request_body}]}
-        response_data = workflow.invoke(new_state, config, stream_mode="updates")
-    else:
-        # Resume from last checkpoint
-        last_checkpoint = checkpoints[-1]
-        last_state = last_checkpoint.checkpoint
-
-        if "messages" not in last_state:
-            last_state["messages"] = []
-
-        last_state["messages"].append({"role": "user", "content": request_body})
-
-        if "channel_versions" in last_state:
-            for key in reversed(last_state["channel_versions"].keys()):
-                if "agent" in key:
-                    last_active_agent = key.split(":")[1]
-                    break
-
-        last_state["langgraph_triggers"] = [f"resume:{last_active_agent}"]
-        response_data = workflow.invoke(last_state, config, stream_mode="updates")
-
-    debug_log_id = store_debug_log(sessionId, tenantId, userId, response_data)
-    messages = extract_relevant_messages(debug_log_id, last_active_agent, response_data, tenantId, userId, sessionId)
-
-    # Schedule storing chat history and updating correct agent in last message as a background task
-    # to avoid blocking the API response as this is not needed unless retrieving the message history later.
-    background_tasks.add_task(process_messages, messages, userId, tenantId, sessionId)
-
-    return messages
-```
-
-This new function calls some functions that already existed in the file, namely `extract_relevant_messages` and `process_messages`. These functions coalesce the message structure coming back from LangGraph into a format that fits our API design.
-
-We've already implemented tracing at these lines:
-
-```python
-from azure.monitor.opentelemetry import configure_azure_monitor
-
-configure_azure_monitor()
-```
-
-This will expect environment variable of `APPLICATIONINSIGHTS_CONNECTION_STRING` which should have been set in your local .env file at initial deployment.
-
-We should now be done wiring up the API layer.
-
-
-## Activity 6: Test with Swagger
-
-With the API layer ready, it is time to do our final testing and preparation for integration with our front-end app.
-
-First, start the FastAPI server:
-
-In your IDE, run the following command in your terminal:
+1. If the backend is closed, restart the backend:
 
 ```shell
 uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 63280
 ```
 
-Next, open a browser and navigate to `http://localhost:63280/docs` to view the swagger UI.
+Next, open a new browser tab and navigate to <http://localhost:63280/docs> to view the swagger UI.
 
 ![Swagger UI](./media/module-04/swagger_ui.png)
 
@@ -425,13 +436,13 @@ This app comes with a few pre-created tenant and user ids that you can use to te
 | Fabrikan  | Abhishek |
 | Fabrikan  | David    |
 
-You can use these to test the API using the Swagger UI with these operations below.
+We will demonstrate this doing manual testing using the Swagger UI with these operations below. To automate this, you'd take the URIs you see in Swagger and write REST API calls using a testing tool.
 
 Create a new session with tenantId = `Contoso` and userId = `Mark`
 
 ![Create a new session](./media/module-04/post_create_session.png)
 
-Click Execute. 
+Click Execute.
 
 Capture the value of the new sessionId
 
@@ -491,58 +502,15 @@ Here you can see the request from Swagger and the response from our agent.
 ]
 ```
 
-## Activity 7: Connect to our Frontend Application
+## Validation Checklist
 
-Finally, hook up the UI to the backend locally and test the entire system end-to-end.
-
-In your IDE, navigate to the `/frontend` folder.
-
-Next, locate the `src/app/environments/environment.ts` file. 
-
-Update the `API_URL` to point to your local FastAPI server:
-
-```typescript
-export const environment = {
-    production: true,
-    apiUrl: 'http://localhost:63280/'
-  };
-```
-
-If you haven't already we need to install npm.
-
-```shell 
-npm i
-```
-
-Then build and start the frontend:
-
-
-```shell
-ng serve
-```
-
-Open a browser and navigate to `http://localhost:4200` to view the UI. 
-
-You should be able to create a chat session, send messages, and receive completions from the agents.
-
-![Final User Interface](./media/module-04/frontend.png)
-
-As a final last step, if you want, you can deploy your updates to Azure and then navigate to the final solution.
-
-```shell   
-azd up
-```
-
-### Validation Checklist
-
+- [ ] Frontend is loading correctly, and testing on the UI works correctly.
 - [ ] LangSmith is showing the traces of the project correctly.
 - [ ] Swagger UI is working correctly, and you are able to test the API's there.
-- [ ] Frontend is loading correctly, and testing on the UI works correctly.
 
-### Module Solution
+## Module Solution
 
 The following sections include the completed code for this Module. Copy and paste these into your project if you run into issues and cannot resolve.
-
 
 <details>
   <summary>Completed code for <strong>src/app/banking_agents.py</strong></summary>
@@ -780,6 +748,7 @@ if __name__ == "__main__":
     interactive_chat()
 
 ```
+
 </details>
 
 <details>
@@ -926,6 +895,7 @@ def calculate_monthly_payment(loan_amount: float, years: int) -> float:
 
     return round(monthly_payment, 2)  # Rounded to 2 decimal places
 ```
+
 </details>
 
 <details>
@@ -1109,6 +1079,7 @@ def get_branch_location(state: str) -> Dict[str, List[str]]:
 
     return branches.get(state, {"Unknown County": ["No branches available", "No branches available"]})
 ```
+
 </details>
 
 <details>
@@ -1228,6 +1199,7 @@ def bank_balance(config: RunnableConfig, account_number: str) -> str:
     balance = account.get("balance", 0)
     return f"The balance for account number {account_number} is ${balance}"
 ```
+
 </details>
 
 <details>
@@ -1736,6 +1708,13 @@ async def get_chat_completion(
     debug_log_id = store_debug_log(sessionId, tenantId, userId, response_data)
     messages = extract_relevant_messages(debug_log_id, last_active_agent, response_data, tenantId, userId, sessionId)
 
+    partition_key = [tenantId, userId, sessionId]
+    # Get the active agent from Cosmos DB with a point lookup
+    activeAgent = chat_container.read_item(item=sessionId, partition_key=partition_key).get('activeAgent', 'unknown')
+
+    # update last sender in messages to the active agent
+    messages[-1].sender = agent_mapping.get(activeAgent, activeAgent)    
+
     # Schedule storing chat history and updating correct agent in last message as a background task
     # to avoid blocking the API response as this is not needed unless retrieving the message history later.
     background_tasks.add_task(process_messages, messages, userId, tenantId, sessionId)
@@ -1800,16 +1779,9 @@ async def put_offerdata(data: Dict):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to insert offer data: {str(e)}")
 ```
+
 </details>
 
 ## Next Steps
 
-Proceed to [Lessons Learned, Agent Futures, Q&A](./Module-04.md)
-
-## Resources
-
-- [Semantic Kernel Agent Framework](https://learn.microsoft.com/semantic-kernel/frameworks/agent)
-- [LangGraph](https://langchain-ai.github.io/langgraph/concepts/)
-- [Azure OpenAI Service documentation](https://learn.microsoft.com/azure/cognitive-services/openai/)
-- [Azure Cosmos DB Vector Database](https://learn.microsoft.com/azure/cosmos-db/vector-database)
-
+Proceed to [Converting to Model Context Protocol (MCP)](./Module-05.md)
