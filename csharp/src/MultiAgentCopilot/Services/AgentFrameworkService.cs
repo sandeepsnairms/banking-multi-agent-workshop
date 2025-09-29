@@ -1,4 +1,5 @@
 ﻿
+
 using Azure.AI.OpenAI;
 using Azure.Identity;
 using Microsoft.Agents.Orchestration;
@@ -38,6 +39,7 @@ public class AgentFrameworkService : IDisposable
 
     private bool _serviceInitialized = false;
     private List<LogProperty> _promptDebugProperties;
+    private List<AIAgent> _agents = null;
 
     public bool IsInitialized => _serviceInitialized;
 
@@ -74,8 +76,7 @@ public class AgentFrameworkService : IDisposable
         // Use ChatClient directly from OpenAI SDK
         _chatClient = openAIClient.GetChatClient(_settings.AzureOpenAISettings.CompletionsDeployment).AsIChatClient();
 
-            
-        _logger.LogWarning("Using placeholder orchestration. Microsoft Agent Framework GroupChatOrchestration is needed.");
+        _logger.LogWarning("Agent Framework Initialized.");
 
         Task.Run(Initialize).ConfigureAwait(false);
     }
@@ -86,22 +87,39 @@ public class AgentFrameworkService : IDisposable
     }
 
 
-    public bool SetBankingDataService(BankingDataService bankService)
+    public bool SetInProcessToolService(BankingDataService bankService)
     {
-        // In this implementation, BankingDataService is passed directly to methods that need it.
-        // If you want to store it as a member variable, uncomment the following lines:
          _bankService = bankService ?? throw new ArgumentNullException(nameof(bankService));
-         _logger.LogInformation("BankingDataService has been set.");
+
+        _logger.LogInformation("InProcessToolService has been set.");
         return true;
     }
 
 
     public bool SetMCPToolService(MCPToolService mcpService)
     {
-        // In this implementation, MCPToolService is passed directly to methods that need it.
-        // If you want to store it as a member variable, uncomment the following lines:
         _mcpService = mcpService ?? throw new ArgumentNullException(nameof(mcpService));
-         _logger.LogInformation("MCPToolService has been set.");
+
+        _logger.LogInformation("MCPToolService has been set.");
+        return true;
+    }
+
+    public bool InitializeAgents()
+    {
+        if (_agents == null || _agents.Count == 0)
+        {
+            if(_mcpService != null) 
+                _agents = AgentFactory.CreateAllAgentsWithMCPToolsAsync(_chatClient, _mcpService, _loggerFactory).GetAwaiter().GetResult();
+
+            if(_bankService != null)
+                _agents = AgentFactory.CreateAllAgentsWithInProcessTools(_chatClient, _bankService, _loggerFactory);
+
+            if (_agents == null || _agents.Count == 0)
+            {
+                _logger.LogError("No agents available for orchestration");
+               return false;
+            }
+        }
         return true;
     }
 
@@ -196,26 +214,11 @@ public class AgentFrameworkService : IDisposable
 
             OrchestrationMonitor monitor = new();
             monitor.History.AddRange(chatHistory);
-     
-                
+                     
             // Create a custom GroupChatManager with SelectionStrategy and TerminationStrategy
             var groupChatManager = new GroupChatManagerFactory(chatHistory.Last().Text, _chatClient, LogMessage);
-
-            List<AIAgent> agents=null;
-
-            if (_bankService != null)
-                agents = AgentFactory.CreateAllAgents(_chatClient, _bankService, tenantId, userId, _loggerFactory);
-            else if(_mcpService != null)
-                agents = AgentFactory.CreateAllAgents(_chatClient, _mcpService, tenantId, userId, _loggerFactory);
-
-
-            if(agents == null || agents.Count == 0)
-            {
-                _logger.LogError("No agents available for orchestration");
-                return ("No agents available for orchestration.", "Error");
-            }
-            
-            GroupChatOrchestration groupChatOrchestration = new GroupChatOrchestration(groupChatManager, agents.ToArray())
+                                   
+            GroupChatOrchestration groupChatOrchestration = new GroupChatOrchestration(groupChatManager, _agents.ToArray())
             {
                 LoggerFactory = this._loggerFactory,
                 ResponseCallback = monitor.ResponseCallbackAsync,

@@ -16,7 +16,6 @@ namespace MultiAgentCopilot.Factories
     {
         private static ChatClientAgent CreateAgent(Microsoft.Extensions.AI.IChatClient chatClient, ILoggerFactory loggerFactory, string instructions, string? description = null, string? name = null, params AIFunction[] functions)
         {
-
             // Correct constructor usage for ChatClientAgent:
             var options = new ChatClientAgentOptions
             {
@@ -28,11 +27,10 @@ namespace MultiAgentCopilot.Factories
             return new ChatClientAgent(chatClient, options, loggerFactory);
         }
 
-
         /// <summary>
         /// Create all banking agents with proper instructions and tools
         /// </summary>
-        public static List<AIAgent> CreateAllAgents(Microsoft.Extensions.AI.IChatClient chatClient, BankingDataService bankService, string tenantId, string userId, ILoggerFactory loggerFactory)
+        public static List<AIAgent> CreateAllAgentsWithInProcessTools(Microsoft.Extensions.AI.IChatClient chatClient, BankingDataService bankService, ILoggerFactory loggerFactory)
         {
             var agents = new List<AIAgent>();
             ILogger logger = loggerFactory.CreateLogger("AgentFactory");
@@ -49,7 +47,7 @@ namespace MultiAgentCopilot.Factories
                     instructions: GetAgentPrompt(agentType),
                     name: GetAgentName(agentType),
                     description: GetAgentDescription(agentType),
-                    functions: GetAgentTools(agentType, bankService, tenantId, userId, loggerFactory).ToArray()
+                    functions: GetAgentTools(agentType, bankService, loggerFactory).ToArray()
                 );
 
                 agents.Add(agent);
@@ -60,8 +58,7 @@ namespace MultiAgentCopilot.Factories
             return agents;
         }
 
-
-        public static List<AIAgent> CreateAllAgents(Microsoft.Extensions.AI.IChatClient chatClient, MCPToolService mcpService, string tenantId, string userId, ILoggerFactory loggerFactory)
+        public static async Task<List<AIAgent>> CreateAllAgentsWithMCPToolsAsync(Microsoft.Extensions.AI.IChatClient chatClient, MCPToolService mcpService, ILoggerFactory loggerFactory)
         {
             var agents = new List<AIAgent>();
             ILogger logger = loggerFactory.CreateLogger("AgentFactory");
@@ -69,25 +66,182 @@ namespace MultiAgentCopilot.Factories
             // Get all agent types from the enum
             var agentTypes = Enum.GetValues<AgentType>();
 
-            // Create agents for each agent type
+            // Create agents for each agent type with proper MCP integration
             foreach (var agentType in agentTypes)
             {
-                var agent = CreateAgent(
-                    chatClient: chatClient,
-                    loggerFactory: loggerFactory,
-                    instructions: GetAgentPrompt(agentType),
-                    name: GetAgentName(agentType),
-                    description: GetAgentDescription(agentType),
-                    functions: mcpService.GetMcpTools(agentType).GetAwaiter().GetResult().ToArray()
-                );
+                try
+                {
+                    logger.LogInformation("Creating agent {AgentType} with MCP tools", agentType);
+                    
+                    // Convert MCP tools to AI functions using proper async MCP client patterns
+                    var aiFunctions = await ConvertMcpToolsToAIFunctionsAsync(mcpService, agentType, logger).ConfigureAwait(false);
 
-                agents.Add(agent);
-                logger.LogInformation($"Created {agent.Name}: {agent.Description}");
+                    var agent = CreateAgent(
+                        chatClient: chatClient,
+                        loggerFactory: loggerFactory,
+                        instructions: GetAgentPrompt(agentType),
+                        name: GetAgentName(agentType),
+                        description: GetAgentDescription(agentType),
+                        functions: aiFunctions.ToArray()
+                    );
+
+                    agents.Add(agent);
+                    logger.LogInformation("Created agent {AgentName} with {ToolCount} MCP tools", agent.Name, aiFunctions.Count());
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Failed to create agent {AgentType} with MCP tools", agentType);
+                    
+                    // Fallback: create agent without MCP tools
+                    try
+                    {
+                        var agent = CreateAgent(
+                            chatClient: chatClient,
+                            loggerFactory: loggerFactory,
+                            instructions: GetAgentPrompt(agentType),
+                            name: GetAgentName(agentType),
+                            description: GetAgentDescription(agentType),
+                            functions: Array.Empty<AIFunction>()
+                        );
+
+                        agents.Add(agent);
+                        logger.LogWarning("Created agent {AgentName} without MCP tools due to error", agent.Name);
+                    }
+                    catch (Exception fallbackEx)
+                    {
+                        logger.LogError(fallbackEx, "Failed to create agent {AgentType} even without MCP tools", agentType);
+                    }
+                }
             }
 
-            logger.LogInformation("Successfully created {AgentCount} banking agents", agents.Count);
+            logger.LogInformation("Successfully created {AgentCount} banking agents with MCP tools integration", agents.Count);
             return agents;
         }
+
+        /// <summary>
+        /// Convert MCP tools to AI functions for use with agents using proper MCP client
+        /// </summary>
+        private static async Task<IEnumerable<AIFunction>> ConvertMcpToolsToAIFunctionsAsync(MCPToolService mcpService, AgentType agentType, ILogger logger)
+        {
+            var functions = new List<AIFunction>();
+            
+            try
+            {
+                logger.LogInformation("Retrieving MCP tools for agent {AgentType}", agentType);
+                
+                // Get MCP tools using the proper MCP client approach
+                var mcpTools = await mcpService.GetMcpTools(agentType).ConfigureAwait(false);
+                
+                foreach (var mcpTool in mcpTools)
+                {
+                    try
+                    {
+                        logger.LogDebug("Converting MCP tool {ToolName} to AI function for agent {AgentType}", mcpTool.Name, agentType);
+                        
+                        // Create a proper MCP tool wrapper that follows Microsoft.Extensions.AI.Agents patterns
+                        var mcpToolExecutor = new McpToolExecutor(mcpService, agentType, mcpTool, logger);
+                        
+                        // Create a wrapper method with proper attributes
+                        var wrapperMethod = CreateDynamicToolMethod(mcpToolExecutor, mcpTool);
+                        
+                        if (wrapperMethod != null)
+                        {
+                            // Create AI function using the standard factory pattern
+                            var aiFunction = AIFunctionFactory.Create(wrapperMethod, mcpToolExecutor);
+                            functions.Add(aiFunction);
+                            logger.LogDebug("Successfully converted MCP tool {ToolName} to AI function", mcpTool.Name);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "Failed to convert MCP tool {ToolName} to AI function for agent {AgentType}", mcpTool.Name, agentType);
+                    }
+                }
+                
+                logger.LogInformation("Converted {FunctionCount} MCP tools to AI functions for agent {AgentType}", functions.Count, agentType);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to retrieve MCP tools for agent {AgentType}", agentType, ex);
+            }
+            
+            return functions;
+        }
+
+        /// <summary>
+        /// Create a dynamic method for the MCP tool with proper attributes
+        /// </summary>
+        private static System.Reflection.MethodInfo? CreateDynamicToolMethod(McpToolExecutor executor, McpTool mcpTool)
+        {
+            // For now, use the existing ExecuteAsync method
+            // In a more advanced implementation, we could create dynamic methods with proper signatures
+            var method = typeof(McpToolExecutor).GetMethod(nameof(McpToolExecutor.ExecuteAsync));
+            
+            // We could enhance this to create methods with proper parameter signatures based on the MCP tool schema
+            return method;
+        }
+
+        /// <summary>
+        /// Proper MCP tool executor that integrates with Microsoft.Extensions.AI.Agents
+        /// </summary>
+        private class McpToolExecutor
+        {
+            private readonly MCPToolService _mcpService;
+            private readonly AgentType _agentType;
+            private readonly McpTool _mcpTool;
+            private readonly ILogger _logger;
+
+            public McpToolExecutor(MCPToolService mcpService, AgentType agentType, McpTool mcpTool, ILogger logger)
+            {
+                _mcpService = mcpService;
+                _agentType = agentType;
+                _mcpTool = mcpTool;
+                _logger = logger;
+            }
+
+            [Description("Execute MCP banking tool")]
+            public async Task<string> ExecuteAsync(Dictionary<string, object>? arguments = null)
+            {
+                try
+                {
+                    _logger.LogInformation("Executing MCP tool {ToolName} for agent {AgentType}", _mcpTool.Name, _agentType);
+                    
+                    // Use the MCP service to execute the tool with proper MCP client patterns
+                    var result = await _mcpService.CallToolAsync(_agentType, _mcpTool.Name, arguments);
+                    
+                    // Handle different result types appropriately
+                    return result switch
+                    {
+                        string stringResult => stringResult,
+                        null => "Tool execution completed successfully",
+                        _ => System.Text.Json.JsonSerializer.Serialize(result, new System.Text.Json.JsonSerializerOptions { WriteIndented = true })
+                    };
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error executing MCP tool {ToolName} for agent {AgentType}", _mcpTool.Name, _agentType);
+                    return $"Error executing {_mcpTool.Name}: {ex.Message}";
+                }
+            }
+        }
+
+        ///// <summary>
+        ///// Extract parameters from MCP tool definition - Simplified for current API
+        ///// </summary>
+        //private static IEnumerable<object> ExtractParametersFromMcpTool(McpTool mcpTool, ILogger logger)
+        //{
+        //    // Parameters are extracted automatically by the AI framework from method signatures
+        //    // This method is kept for potential future enhancements
+        //    return Enumerable.Empty<object>();
+        //}
+
+        /// <summary>
+        /// Extract parameters from MCP tool definition - Legacy method
+        /// </summary>
+        //private static IEnumerable<object> GetParametersFromMcpTool(McpTool mcpTool)
+        //{
+        //    return Enumerable.Empty<object>();
+        //}
 
         /// <summary>
         /// Get agent prompt based on type
@@ -143,7 +297,7 @@ namespace MultiAgentCopilot.Factories
         /// Get tools for specific agent type using existing tool classes
         /// Returns null for now due to delegate binding limitations with the current Agent Framework API
         /// </summary>
-        private static IList<AIFunction>? GetAgentTools(AgentType agentType, BankingDataService bankService, string tenantId, string userId, ILoggerFactory loggerFactory)
+        private static IList<AIFunction>? GetAgentTools(AgentType agentType, BankingDataService bankService, ILoggerFactory loggerFactory)
         {
             ILogger logger = loggerFactory.CreateLogger<AgentFrameworkService>();
             try
@@ -153,10 +307,10 @@ namespace MultiAgentCopilot.Factories
                 // Create the appropriate tools class based on agent type
                 BaseTools toolsClass = agentType switch
                 {
-                    AgentType.Sales => new SalesTools(loggerFactory.CreateLogger<SalesTools>(), bankService, tenantId, userId),
-                    AgentType.Transactions => new TransactionTools(loggerFactory.CreateLogger<TransactionTools>(), bankService, tenantId, userId),
-                    AgentType.CustomerSupport => new CustomerSupportTools(loggerFactory.CreateLogger<CustomerSupportTools>(), bankService, tenantId, userId),
-                    AgentType.Coordinator => new CoordinatorTools(loggerFactory.CreateLogger<CoordinatorTools>(), bankService, tenantId, userId),
+                    AgentType.Sales => new SalesTools(loggerFactory.CreateLogger<SalesTools>(), bankService),
+                    AgentType.Transactions => new TransactionTools(loggerFactory.CreateLogger<TransactionTools>(), bankService),
+                    AgentType.CustomerSupport => new CustomerSupportTools(loggerFactory.CreateLogger<CustomerSupportTools>(), bankService),
+                    AgentType.Coordinator => new CoordinatorTools(loggerFactory.CreateLogger<CoordinatorTools>(), bankService),
                     _ => throw new ArgumentOutOfRangeException(nameof(agentType), agentType, null)
                 };
 

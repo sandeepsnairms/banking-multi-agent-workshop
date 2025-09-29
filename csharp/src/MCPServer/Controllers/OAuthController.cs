@@ -16,28 +16,28 @@ public class OAuthController : ControllerBase
         { "coordinator-agent-client", new OAuthClient 
             { 
                 ClientId = "coordinator-agent-client", 
-                ClientSecret = "coordinator-secret-2024", 
+                ClientSecret = "coordinator-secret-key-2024", 
                 AllowedScopes = ["mcp:tools", "mcp:tools:coordinator"] 
             }
         },
         { "customer-agent-client", new OAuthClient 
             { 
                 ClientId = "customer-agent-client", 
-                ClientSecret = "customer-secret-2024", 
+                ClientSecret = "customer-secret-key-2024", 
                 AllowedScopes = ["mcp:tools", "mcp:tools:customer"] 
             }
         },
         { "sales-agent-client", new OAuthClient 
             { 
                 ClientId = "sales-agent-client", 
-                ClientSecret = "sales-secret-2024", 
+                ClientSecret = "sales-secret-key-2024", 
                 AllowedScopes = ["mcp:tools", "mcp:tools:sales"] 
             }
         },
         { "transactions-agent-client", new OAuthClient 
             { 
                 ClientId = "transactions-agent-client", 
-                ClientSecret = "transactions-secret-2024", 
+                ClientSecret = "transactions-secret-key-2024", 
                 AllowedScopes = ["mcp:tools", "mcp:tools:transactions"] 
             }
         }

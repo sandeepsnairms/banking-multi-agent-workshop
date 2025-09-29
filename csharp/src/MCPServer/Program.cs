@@ -76,7 +76,7 @@ builder.Services.AddSwaggerGen(c =>
     { 
         Title = "Banking MCP Server API", 
         Version = "v1",
-        Description = "A Model Context Protocol (MCP) Server for banking operations with OAuth 2.0 JWT Bearer authentication."
+        Description = "A Model Context Protocol (MCP) Server for banking operations with OAuth 2.0 JWT Bearer authentication. Supports both REST API and SSE for MCP protocol."
     });
     
     c.AddSecurityDefinition("OAuth2", new OpenApiSecurityScheme
@@ -150,23 +150,46 @@ app.MapGet("/health", () => new
 { 
     status = "healthy", 
     timestamp = DateTime.UtcNow,
-    server_name = McpProtocol.Name,
-    server_version = McpProtocol.ServerVersion,
-    implementation = McpProtocol.Implementation,
-    description = McpProtocol.Description
+    server_name = "Banking MCP Server",
+    server_version = "1.0.0",
+    protocol_version = "2024-11-05",
+    description = "Banking MCP Server with OAuth 2.0 authentication and SSE support"
 })
 .WithOpenApi()
 .WithTags("Health")
 .WithSummary("Server health check");
 
+// Add MCP capabilities endpoint
+app.MapGet("/mcp/capabilities", () => new
+{
+    protocolVersion = "2024-11-05",
+    capabilities = new
+    {
+        tools = new { },
+        logging = new { },
+        sse = new { }
+    },
+    serverInfo = new
+    {
+        name = "Banking MCP Server",
+        version = "1.0.0"
+    }
+})
+.WithOpenApi()
+.WithTags("MCP")
+.WithSummary("Get MCP server capabilities");
+
 // Display startup information
-Console.WriteLine("Starting Banking MCP server with OAuth 2.0 authentication...");
+Console.WriteLine("Starting Banking MCP server with OAuth 2.0 authentication and SSE support...");
 Console.WriteLine("OAuth 2.0 endpoints:");
 Console.WriteLine("  - POST /oauth/token - Get OAuth access token");
 Console.WriteLine("");
 Console.WriteLine("MCP Protocol endpoints:");
-Console.WriteLine("  - POST /mcp/tools/list - List available MCP tools");
-Console.WriteLine("  - POST /mcp/tools/call - Execute MCP tools");
+Console.WriteLine("  - POST /mcp/tools/list - List available MCP tools (REST)");
+Console.WriteLine("  - POST /mcp/tools/call - Execute MCP tools (REST)");
+Console.WriteLine("  - GET /mcp/sse - Server-Sent Events stream for MCP protocol");
+Console.WriteLine("  - POST /mcp - Handle MCP protocol messages");
+Console.WriteLine("  - GET /mcp/capabilities - Get server capabilities");
 Console.WriteLine("  - All endpoints require valid OAuth Bearer token");
 Console.WriteLine("");
 Console.WriteLine("Available tools:");
@@ -184,6 +207,7 @@ app.Lifetime.ApplicationStarted.Register(() =>
         {
             Console.WriteLine($"  - {address}");
             Console.WriteLine($"  - Swagger UI: {address}");
+            Console.WriteLine($"  - SSE Stream: {address}/mcp/sse");
         }
     }
     Console.WriteLine("");

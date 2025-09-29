@@ -1,20 +1,16 @@
 ﻿using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using ModelContextProtocol.Client;
-using ModelContextProtocol.Protocol;
-using ModelContextProtocol.Server;
 using MultiAgentCopilot.Models;
 using MultiAgentCopilot.Models.Configuration;
 using MultiAgentCopilot.MultiAgentCopilot.Models.Configuration;
 using MultiAgentCopilot.Services;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
 using System.Net.Http;
-using System.Runtime;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -22,22 +18,24 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Services
 {
     public class MCPToolService : IDisposable
     {
-        private HttpClient? _httpClient;
         private readonly ILogger<MCPToolService> _logger;
-        private MCPSettings _mcpSettings;
+        private readonly MCPSettings _mcpSettings;
+        private readonly Dictionary<AgentType, HttpClient> _httpClients;
+        private readonly ILoggerFactory _loggerFactory;
 
-
-        public MCPToolService(MCPSettings mcpSettings, ILogger<MCPToolService> logger)
+        public MCPToolService(IOptions<MCPSettings> mcpOptions, ILogger<MCPToolService> logger, ILoggerFactory loggerFactory)
         {
-            _mcpSettings = mcpSettings ?? throw new ArgumentNullException(nameof(mcpSettings));
+            _mcpSettings = mcpOptions.Value ?? throw new ArgumentNullException(nameof(mcpOptions));
             _logger = logger;
+            _loggerFactory = loggerFactory;
+            _httpClients = new Dictionary<AgentType, HttpClient>();
             
-            _logger.LogInformation("Initialized MCPToolFactory with settings: ConnectionType={ConnectionType}", mcpSettings.ConnectionType);
+            _logger.LogInformation("Initialized MCPToolService with settings: ConnectionType={ConnectionType}", _mcpSettings.ConnectionType);
         }
 
         private AgentConfiguration GetAgentConfiguration(AgentType agentType)
         {
-            var agentName = agentType.ToString().ToUpper();
+            var agentName = agentType.ToString();
 
             // Get URL for the agent
             var url = _mcpSettings.GetType().GetProperty($"{agentName}EndpointUrl")?.GetValue(_mcpSettings, null) as string;
@@ -46,6 +44,7 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Services
             {
                 throw new InvalidOperationException($"MCP endpoint URL for agent {agentName} is not configured.");
             }
+            
             // Get tags for the agent (comma-separated)
             var tagsValue = _mcpSettings.GetType().GetProperty($"{agentName}ToolTags")?.GetValue(_mcpSettings, null) as string;
 
@@ -76,147 +75,206 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Services
             return config;
         }
 
-        public async Task<IList<McpClientTool>> GetMcpTools(AgentType agent)
+        private async Task<HttpClient> GetOrCreateHttpClientAsync(AgentType agentType)
         {
-            IClientTransport clientTransport;
-            _logger.LogInformation("Retrieving MCP tools for agent: {AgentType}", agent);
-
-            var mcpConnectionType = _mcpSettings.ConnectionType;
-
-            // Load agent configuration on-demand
-            var agentConfig = GetAgentConfiguration(agent);
-
-            _logger.LogInformation("MCPToolFactory Connection type: {ConnectionType}", mcpConnectionType);
-
-            if (mcpConnectionType == MCPConnectionType.HTTP)
+            // Check if we already have a client for this agent type
+            if (_httpClients.TryGetValue(agentType, out var existingClient))
             {
-                // Get OAuth token for authentication
-                string? accessToken = null;
-                
-                try
-                {
-                    var (clientId, clientSecret, scope) = GetAgentOAuthCredentials(agent);
-                    accessToken = await GetOAuthTokenAsync(agentConfig.Url, clientId, clientSecret, scope);
-                    
-                    if (string.IsNullOrEmpty(accessToken))
-                    {
-                        _logger.LogError("Failed to obtain OAuth token for agent {AgentType}", agent);
-                        return new List<McpClientTool>();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error obtaining OAuth token for agent {AgentType}", agent);
-                    return new List<McpClientTool>();
-                }
-
-                // Create HttpClient with OAuth Bearer token
-                _httpClient = new HttpClient();
-                _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-                _httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
-
-                clientTransport = new HttpClientTransport(new()
-                {
-                    Endpoint = new Uri(agentConfig.Url)
-                });
-            }
-            else
-            {
-                clientTransport = new StdioClientTransport(new()
-                {
-                    Name = $"Banking Tools Server - {agent}",
-                    Command = agentConfig.Url
-                });
+                return existingClient;
             }
 
             try
             {
-                await using var mcpClient = await McpClient.CreateAsync(clientTransport!);
+                var agentConfig = GetAgentConfiguration(agentType);
+                var httpClient = new HttpClient
+                {
+                    BaseAddress = new Uri(agentConfig.Url),
+                    Timeout = TimeSpan.FromSeconds(30)
+                };
 
-                var mcpTools = await mcpClient.ListToolsAsync();
+                // Add OAuth authentication if configured
+                if (_mcpSettings.ConnectionType == MCPConnectionType.HTTP)
+                {
+                    var (clientId, clientSecret, scope) = GetAgentOAuthCredentials(agentType);
+                    
+                    _logger.LogInformation("Setting up OAuth authentication for MCP server at {Url} with client {ClientId}", 
+                        agentConfig.Url, clientId);
 
+                    // Get OAuth token
+                    var token = await GetOAuthTokenAsync(agentConfig.Url, clientId, clientSecret, scope);
+                    if (!string.IsNullOrEmpty(token))
+                    {
+                        httpClient.DefaultRequestHeaders.Authorization = 
+                            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                    }
+                }
+
+                // Add common request headers (but not Content-Type - that's a content header)
+                httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
+                httpClient.DefaultRequestHeaders.Add("User-Agent", "MultiAgentCopilot-MCP-Client/1.0");
+
+                _httpClients[agentType] = httpClient;
+                _logger.LogInformation("Created HTTP client for agent {AgentType}", agentType);
+                
+                return httpClient;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to create HTTP client for agent {AgentType}", agentType);
+                throw;
+            }
+        }
+
+        private async Task<string?> GetOAuthTokenAsync(string baseUrl, string clientId, string clientSecret, string scope)
+        {
+            try
+            {
+                using var oauthClient = new HttpClient();
+                var tokenRequest = new FormUrlEncodedContent(new[]
+                {
+                    new KeyValuePair<string, string>("grant_type", "client_credentials"),
+                    new KeyValuePair<string, string>("client_id", clientId),
+                    new KeyValuePair<string, string>("client_secret", clientSecret),
+                    new KeyValuePair<string, string>("scope", scope)
+                });
+
+                var tokenUrl = new Uri(new Uri(baseUrl), "/oauth/token").ToString();
+                var response = await oauthClient.PostAsync(tokenUrl, tokenRequest);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    var tokenResponse = await response.Content.ReadAsStringAsync();
+                    var tokenData = JsonSerializer.Deserialize<JsonElement>(tokenResponse);
+                    
+                    if (tokenData.TryGetProperty("access_token", out var tokenElement))
+                    {
+                        return tokenElement.GetString();
+                    }
+                }
+                
+                _logger.LogWarning("Failed to get OAuth token. Status: {StatusCode}", response.StatusCode);
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting OAuth token");
+                return null;
+            }
+        }
+
+        public async Task<IList<McpTool>> GetMcpTools(AgentType agent)
+        {
+            _logger.LogInformation("Retrieving MCP tools for agent: {AgentType}", agent);
+
+            try
+            {
+                var httpClient = await GetOrCreateHttpClientAsync(agent);
+                
+                // Create content with proper Content-Type header
+                var content = new StringContent("{}", System.Text.Encoding.UTF8, "application/json");
+                
+                // Call the REST API endpoint
+                var response = await httpClient.PostAsync("/mcp/tools/list", content);
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogError("Failed to get MCP tools for agent {AgentType}. Status: {StatusCode}, Error: {ErrorContent}", 
+                        agent, response.StatusCode, errorContent);
+                    return new List<McpTool>();
+                }
+
+                var responseContent = await response.Content.ReadAsStringAsync();
+                var toolsResponse = JsonSerializer.Deserialize<JsonElement>(responseContent);
+
+                var tools = new List<McpTool>();
+                
+                if (toolsResponse.TryGetProperty("tools", out var toolsArray))
+                {
+                    foreach (var toolElement in toolsArray.EnumerateArray())
+                    {
+                        var tool = new McpTool
+                        {
+                            Name = toolElement.GetProperty("name").GetString() ?? "",
+                            Description = toolElement.GetProperty("description").GetString() ?? "",
+                            InputSchema = toolElement.TryGetProperty("inputSchema", out var schemaElement) ? schemaElement : new JsonElement()
+                        };
+
+                        // Extract tags if available
+                        if (toolElement.TryGetProperty("McpToolTags", out var tagsElement))
+                        {
+                            tool.Tags = tagsElement.GetString()?.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                                       .Select(t => t.Trim()).ToList() ?? new List<string>();
+                        }
+
+                        tools.Add(tool);
+                    }
+                }
+                
                 // Filter tools based on agent tags if configured
-                var filteredTools = FilterToolsByAgentTags(mcpTools, agentConfig.Tags);
+                var agentConfig = GetAgentConfiguration(agent);
+                var filteredTools = FilterToolsByAgentTags(tools, agentConfig.Tags);
 
                 _logger.LogInformation("Retrieved {TotalTools} tools, filtered to {FilteredTools} for agent {AgentType} using tags [{Tags}]",
-                    mcpTools.Count, filteredTools.Count, agent, string.Join(", ", agentConfig.Tags));
+                    tools.Count, filteredTools.Count, agent, string.Join(", ", agentConfig.Tags));
 
                 return filteredTools;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to retrieve MCP tools for agent {AgentType}", agent);
-                return new List<McpClientTool>();
+                return new List<McpTool>();
             }
         }
 
         /// <summary>
-        /// Gets OAuth token from the MCP server using client credentials flow
+        /// Execute a tool via HTTP REST API
         /// </summary>
-        private async Task<string?> GetOAuthTokenAsync(string serverUrl, string clientId, string clientSecret, string? scope = null)
+        public async Task<object?> CallToolAsync(AgentType agent, string toolName, Dictionary<string, object>? arguments = null)
         {
             try
             {
-                // Extract base URL for OAuth token endpoint
-                var baseUri = new Uri(serverUrl);
-                var tokenUrl = new Uri(baseUri, "/oauth/token");
+                var httpClient = await GetOrCreateHttpClientAsync(agent);
+                
+                _logger.LogInformation("Executing MCP tool {ToolName} for agent {AgentType}", toolName, agent);
 
-                using var authClient = new HttpClient();
-                authClient.DefaultRequestHeaders.Add("Accept", "application/json");
-
-                // Use OAuth 2.0 Client Credentials flow for service-to-service authentication
-                var tokenRequest = new List<KeyValuePair<string, string>>
+                var request = new
                 {
-                    new("grant_type", "client_credentials"),
-                    new("client_id", clientId),
-                    new("client_secret", clientSecret)
+                    Name = toolName,
+                    Arguments = arguments ?? new Dictionary<string, object>()
                 };
 
-                if (!string.IsNullOrEmpty(scope))
-                {
-                    tokenRequest.Add(new("scope", scope));
-                }
-
-                var content = new FormUrlEncodedContent(tokenRequest);
-
-                _logger.LogDebug("Attempting OAuth authentication to {TokenUrl} for client {ClientId}", tokenUrl, clientId);
-
-                var response = await authClient.PostAsync(tokenUrl, content);
-
+                var json = JsonSerializer.Serialize(request);
+                var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+                
+                var response = await httpClient.PostAsync("/mcp/tools/call", content);
+                
                 if (!response.IsSuccessStatusCode)
                 {
                     var errorContent = await response.Content.ReadAsStringAsync();
-                    _logger.LogError("OAuth authentication failed with status {StatusCode}: {ErrorContent}", 
-                        response.StatusCode, errorContent);
+                    _logger.LogError("Failed to call tool {ToolName} for agent {AgentType}. Status: {StatusCode}, Error: {ErrorContent}", 
+                        toolName, agent, response.StatusCode, errorContent);
                     return null;
                 }
 
-                var responseJson = await response.Content.ReadAsStringAsync();
-                var tokenResponse = JsonSerializer.Deserialize<JsonElement>(responseJson);
+                var responseContent = await response.Content.ReadAsStringAsync();
+                var result = JsonSerializer.Deserialize<JsonElement>(responseContent);
                 
-                if (tokenResponse.TryGetProperty("access_token", out var tokenProperty))
+                // Extract content from the response
+                if (result.TryGetProperty("content", out var contentArray))
                 {
-                    var token = tokenProperty.GetString();
-                    
-                    // Log token expiration for monitoring
-                    if (tokenResponse.TryGetProperty("expires_in", out var expiresProperty))
+                    var firstContent = contentArray.EnumerateArray().FirstOrDefault();
+                    if (firstContent.TryGetProperty("text", out var textElement))
                     {
-                        var expiresIn = expiresProperty.GetInt32();
-                        _logger.LogInformation("Successfully obtained OAuth token for client {ClientId}, expires in {ExpiresIn} seconds", 
-                            clientId, expiresIn);
+                        return textElement.GetString();
                     }
-                    
-                    return token;
                 }
-                else
-                {
-                    _logger.LogError("Access token not found in OAuth response");
-                    return null;
-                }
+                
+                return responseContent;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error during OAuth token acquisition for client {ClientId}", clientId);
+                _logger.LogError(ex, "Error calling tool {ToolName} for agent {AgentType}", toolName, agent);
                 return null;
             }
         }
@@ -226,7 +284,16 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Services
         /// </summary>
         private (string clientId, string clientSecret, string scope) GetAgentOAuthCredentials(AgentType agentType)
         {
-            var agentName = agentType.ToString().ToUpper();
+            // Note: There's a typo in MCPSettings - "Cordinator" instead of "Coordinator"
+            // We'll handle both the typo and the correct spelling
+            var agentName = agentType switch
+            {
+                AgentType.Coordinator => "Cordinator", // Using the typo from MCPSettings
+                AgentType.CustomerSupport => "Customer",
+                AgentType.Sales => "Sales",
+                AgentType.Transactions => "Transactions",
+                _ => agentType.ToString()
+            };
             
             var clientId = _mcpSettings.GetType().GetProperty($"{agentName}ClientId")?.GetValue(_mcpSettings, null) as string 
                           ?? throw new InvalidOperationException($"OAuth Client ID for agent {agentName} is not configured.");
@@ -240,8 +307,8 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Services
             return (clientId, clientSecret, scope);
         }
 
-        private IList<McpClientTool> FilterToolsByAgentTags(
-            IList<McpClientTool> allTools,
+        private IList<McpTool> FilterToolsByAgentTags(
+            IList<McpTool> allTools,
             List<string> agentTags)
         {
             // If agent has no tags configured, return all tools
@@ -251,7 +318,7 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Services
                 return allTools;
             }
 
-            var filteredTools = new List<McpClientTool>();
+            var filteredTools = new List<McpTool>();
 
             foreach (var tool in allTools)
             {
@@ -273,80 +340,68 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Services
             return filteredTools;
         }
 
-        private bool HasMatchingTags(McpClientTool tool, List<string> agentTags)
+        private bool HasMatchingTags(McpTool tool, List<string> agentTags)
         {
-            // assume `tools` is IEnumerable<McpClientTool> returned by client.ListTools()
-           
-            Console.WriteLine($"Tool: {tool.Name}");
-            Console.WriteLine($"  Description: {tool.Description}");
+            _logger.LogDebug("Checking tags for tool {ToolName}", tool.Name);
 
-            tool.AdditionalProperties.TryGetValue("McpToolTags", out var tagElements);
+            var toolTags = tool.Tags ?? new List<string>();
 
-            _logger.LogDebug("Tool {ToolName} has tags: {TagsJson}", tool.Name, tagElements?.ToString() ?? "[]");
+            _logger.LogDebug("Tool {ToolName} has tags: [{ToolTags}]", tool.Name, string.Join(", ", toolTags));
 
-            // If no tags found in tool, return false
-            if (tagElements == null)
+            // If no tags found in tool, return true (allow all tools without tags)
+            if (toolTags.Count == 0)
             {
-                _logger.LogDebug("Tool {ToolName} has no tags defined, skipping tag match, returning true.", tool.Name);
+                _logger.LogDebug("Tool {ToolName} has no tags defined, allowing access", tool.Name);
                 return true;
             }
 
-            try
+            // Check if any of the tool's tags match any of the agent's tags
+            foreach (var agentTag in agentTags)
             {
-                // Extract tool tags from the CSV string
-                var toolTags = new List<string>();
-                
-                // tagElements is a CSV string
-                var csvString = tagElements.ToString();
-                if (!string.IsNullOrEmpty(csvString))
-                {
-                    toolTags.AddRange(csvString.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                                              .Select(tag => tag.Trim())
-                                              .Where(tag => !string.IsNullOrEmpty(tag)));
-                }
-
-                _logger.LogDebug("Extracted tool tags for {ToolName}: [{ToolTags}]", tool.Name, string.Join(", ", toolTags));
-
-                // Check if any of the tool's tags match any of the agent's tags
-                foreach (var agentTag in agentTags)
-                {
-                    foreach (var toolTag in toolTags)
-                    {
-                        if (string.Equals(toolTag, agentTag, StringComparison.OrdinalIgnoreCase))
-                        {
-                            _logger.LogDebug("Found matching tag '{Tag}' between tool {ToolName} and agent tags", toolTag, tool.Name);
-                            return true;
-                        }
-                    }
-                }
-
-                // Also check for universal tags
                 foreach (var toolTag in toolTags)
                 {
-                    if (string.Equals(toolTag, "*", StringComparison.OrdinalIgnoreCase))
+                    if (string.Equals(toolTag, agentTag, StringComparison.OrdinalIgnoreCase))
                     {
-                        _logger.LogDebug("Found universal tag '{Tag}' for tool {ToolName}", toolTag, tool.Name);
+                        _logger.LogDebug("Found matching tag '{Tag}' between tool {ToolName} and agent tags", toolTag, tool.Name);
                         return true;
                     }
                 }
+            }
 
-                _logger.LogDebug("No matching tags found between tool {ToolName} tags [{ToolTags}] and agent tags [{AgentTags}]", 
-                    tool.Name, string.Join(", ", toolTags), string.Join(", ", agentTags));
-                
-                return false;
-            }
-            catch (Exception ex)
+            // Also check for universal tags
+            foreach (var toolTag in toolTags)
             {
-                _logger.LogWarning(ex, "Error processing tags for tool {ToolName}", tool.Name);
-                return false;
+                if (string.Equals(toolTag, "*", StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogDebug("Found universal tag '{Tag}' for tool {ToolName}", toolTag, tool.Name);
+                    return true;
+                }
             }
+
+            _logger.LogDebug("No matching tags found between tool {ToolName} tags [{ToolTags}] and agent tags [{AgentTags}]", 
+                tool.Name, string.Join(", ", toolTags), string.Join(", ", agentTags));
+            
+            return false;
         }
-        
 
         public void Dispose()
         {
-            _httpClient?.Dispose();
+            // Dispose all HTTP clients
+            foreach (var client in _httpClients.Values)
+            {
+                client?.Dispose();
+            }
+            _httpClients.Clear();
         }
+    }
+
+    // Simple MCP tool model
+    public class McpTool
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public JsonElement InputSchema { get; set; }
+        public List<string> Tags { get; set; } = new List<string>();
     }
 
     // Configuration for each agent

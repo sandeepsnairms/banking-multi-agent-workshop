@@ -54,17 +54,26 @@ public class McpController : ControllerBase
             {
                 var description = method.GetCustomAttribute<DescriptionAttribute>()?.Description ?? "";
                 var parameters = method.GetParameters();
-                var tags = method.GetCustomAttribute<McpToolTagsAttribute>()?.Tags ?? new[] { "banking" };
+                var tagsAttribute = method.GetCustomAttribute<McpToolTagsAttribute>();
+                var tags = tagsAttribute?.Tags ?? new[] { "banking" };
 
                 var inputSchema = CreateInputSchema(parameters);
 
-                tools.Add(new
+                // Create the tool object with tags in additional properties for MCP protocol
+                var toolObject = new Dictionary<string, object>
                 {
-                    name = method.Name,
-                    description,
-                    tags,
-                    inputSchema
-                });
+                    ["name"] = method.Name,
+                    ["description"] = description,
+                    ["inputSchema"] = inputSchema
+                };
+
+                // Add tags as additional properties for filtering
+                if (tags.Length > 0)
+                {
+                    toolObject["McpToolTags"] = string.Join(",", tags);
+                }
+
+                tools.Add(toolObject);
             }
 
             _logger.LogInformation("Listed {ToolCount} MCP banking tools", tools.Count);

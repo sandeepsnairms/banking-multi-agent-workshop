@@ -1,4 +1,5 @@
 ﻿using MultiAgentCopilot.Models.Configuration;
+using MultiAgentCopilot.MultiAgentCopilot.Models.Configuration;
 using MultiAgentCopilot.MultiAgentCopilot.Services;
 using MultiAgentCopilot.Services;
 
@@ -12,7 +13,7 @@ namespace MultiAgentCopilot
 
         public static void AddMCPService(this IHostApplicationBuilder builder)
         {
-            builder.Services.AddOptions<MCPToolService>()
+            builder.Services.AddOptions<MCPSettings>()
                 .Bind(builder.Configuration.GetSection("MCPSettings"));
             builder.Services.AddSingleton<MCPToolService>();
         }
@@ -21,7 +22,7 @@ namespace MultiAgentCopilot
         {
             builder.Services.AddOptions<AgentFrameworkServiceSettings>()
                 .Bind(builder.Configuration.GetSection("AgentFrameworkServiceSettings"));
-            builder.Services.AddSingleton< AgentFrameworkService>();
+            builder.Services.AddSingleton<AgentFrameworkService>();
         }
 
         public static void AddCosmosDBService(this IHostApplicationBuilder builder)

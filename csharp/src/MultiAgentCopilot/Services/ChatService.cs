@@ -31,6 +31,14 @@ public class ChatService
         _afService = afService;
         _mcpService = mcpService;
         _bankService = new BankingDataService(cosmosDBService.Database, cosmosDBService.AccountDataContainer, cosmosDBService.UserDataContainer, cosmosDBService.AccountDataContainer, cosmosDBService.OfferDataContainer, afOptions.Value, loggerFactory);
+
+        //initilaize only one 
+        //_afService.SetInProcessToolService(_bankService);
+        _afService.SetMCPToolService(_mcpService);
+
+        if(!_afService.InitializeAgents())
+            throw new Exception("Error initializing agents in ChatService.");
+
         _logger = loggerFactory.CreateLogger<ChatService>();
     }
 

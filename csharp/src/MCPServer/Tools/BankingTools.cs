@@ -20,6 +20,7 @@ public class BankingTools
     }
 
     [Description("Search for banking offers and products using semantic search")]
+    [McpToolTags("offers", "sales", "general")]
     public async Task<List<OfferTerm>> SearchOffers(
         [Description("Type of account (Savings, Checking, etc.)")] string accountType,
         [Description("Customer requirements or preferences")] string requirement,
@@ -49,6 +50,7 @@ public class BankingTools
     }
 
     [Description("Get detailed information for a specific banking offer")]
+    [McpToolTags("offers", "sales", "general")]
     public async Task<Offer> GetOfferDetails(
         [Description("Unique identifier of the offer")] string offerId,
         [Description("Tenant ID (optional, defaults to 'default-tenant')")] string? tenantId = null)
@@ -73,6 +75,7 @@ public class BankingTools
 
 
     [Description("Get transaction history for a bank account")]
+    [McpToolTags("transactions", "accounts", "general")]
     public async Task<List<BankTransaction>> GetTransactionHistory(
         [Description("Bank account ID")] string accountId,
         [Description("Start date for transaction history")] DateTime startDate,
@@ -98,6 +101,7 @@ public class BankingTools
     }
 
     [Description("Get account details for a user")]
+    [McpToolTags("accounts", "general")]
     public async Task<BankAccount> GetAccountDetails(
         [Description("Bank account ID")] string accountId,
         [Description("User ID")] string userId,
@@ -121,6 +125,7 @@ public class BankingTools
     }
 
     [Description("Get all registered accounts for a user")]
+    [McpToolTags("accounts", "general")]
     public async Task<List<BankAccount>> GetUserAccounts(
         [Description("User ID")] string userId,
         [Description("Tenant ID (optional, defaults to 'default-tenant')")] string? tenantId = null)
@@ -144,6 +149,7 @@ public class BankingTools
 
 
     [Description("Create a customer service request")]
+    [McpToolTags("services", "general")]
     public async Task<ServiceRequest> CreateServiceRequest(
         [Description("Type of service request (FundTransfer, Complaint, TeleBankerCallBack, Fulfilment)")] string requestType,
         [Description("Description of the issue or request")] string description,
@@ -207,6 +213,7 @@ public class BankingTools
     }
 
     [Description("Get service requests for an account")]
+    [McpToolTags("services", "general")]
     public async Task<List<ServiceRequest>> GetServiceRequests(
         [Description("Associated account ID")] string accountId,
         [Description("User ID (optional)")] string? userId = null,
@@ -237,6 +244,7 @@ public class BankingTools
     }
 
     [Description("Add annotation to an existing service request")]
+    [McpToolTags("services", "general")]
     public async Task<bool> AddServiceRequestAnnotation(
         [Description("Service request ID")] string requestId,
         [Description("Associated account ID")] string accountId,
@@ -262,6 +270,7 @@ public class BankingTools
     }
 
     [Description("Get telebanker availability information")]
+    [McpToolTags("services", "general")]
     public async Task<string> GetTeleBankerAvailability()
     {
         try
