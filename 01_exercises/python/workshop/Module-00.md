@@ -219,7 +219,7 @@ The API will be available at `http://localhost:63280/docs`. This has been pre-bu
 
    ```sh
    npm install
-   npm start
+   ng serve
    ```
 1. Open your browser and navigate to <http://localhost:63280/>.
 
@@ -230,7 +230,7 @@ The API will be available at `http://localhost:63280/docs`. This has been pre-bu
 
    ```sh
    npm install
-   npm start
+   ng serve
    ```
 1. From the **Ports** tab:
    1. Right-click and select the **Port Visibility** option to set port **ChatAPI (63280)** as **Public**.
