@@ -591,7 +591,7 @@ pip install -r requirements.txt
 
 ### 3. Start the MCP Server
 ```bash
-PYTHONPATH=src python3 src/mcp_http_server.py
+PYTHONPATH=src python src/mcp_http_server.py
 ```
 
 You should see output like:
