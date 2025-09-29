@@ -2,18 +2,9 @@
 
 [< Multi-Agent Orchestration](./Module-04.md) - **[Home](Home.md)**
 
-## Overview
+## Introduction
 
 In this module, you'll learn how to convert your multi-agent banking application to use **Model Context Protocol (MCP)**. MCP provides a standardized way for AI applications to integrate with external tools and data sources, offering better modularity and reusability.
-
-## Why MCP?
-
-MCP addresses several challenges in AI tool integration:
-
-- **Standardization**: Common protocol for tool integration across different AI systems
-- **Loose Coupling**: AI models can interact with tools without tight dependencies
-- **Reusability**: Tools can be shared across multiple AI applications
-- **Team Independence**: Different teams can develop AI logic and business tools separately
 
 ## Learning Objectives
 
@@ -22,6 +13,12 @@ By the end of this module, you will:
 - Convert LangChain tools to MCP tools using `@mcp.tool()` decorators
 - Configure MCP client-server architecture
 - Test the complete MCP-enabled banking system
+- Test the mcp server independently using vs code as a client
+
+## Why MCP?
+
+MCP provides significant architectural advantages through separation of concerns by keeping business logic (tools) separated from AI orchestration, enabling teams to work independently on different components. The protocol standardization uses JSON-RPC for reliable communication between clients and servers, ensuring consistent interaction patterns across different systems. This approach also enables development independence, where tool updates don't require AI agent redeployment, allowing for more flexible and maintainable multi-agent systems.
+
 
 ## Module Exercises
 
@@ -60,10 +57,6 @@ client = MultiServerMCPClient(config)
 session = client.session("banking_tools")
 all_tools = await load_mcp_tools(session)
 ```
-
-### Key Benefits
-
-MCP provides significant architectural advantages through separation of concerns by keeping business logic (tools) separated from AI orchestration, enabling teams to work independently on different components. The protocol standardization uses JSON-RPC for reliable communication between clients and servers, ensuring consistent interaction patterns across different systems. This approach also enables development independence, where tool updates don't require AI agent redeployment, allowing for more flexible and maintainable multi-agent systems.
 
 ## Activity 2: Update Banking Agents for MCP
 
