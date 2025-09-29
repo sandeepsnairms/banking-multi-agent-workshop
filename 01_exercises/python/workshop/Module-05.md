@@ -62,9 +62,8 @@ all_tools = await load_mcp_tools(session)
 ```
 
 ### Key Benefits
-- **Separation of Concerns**: Business logic (tools) separated from AI orchestration
-- **Protocol Standardization**: Uses JSON-RPC for reliable communication
-- **Development Independence**: Tool updates don't require AI agent redeployment
+
+MCP provides significant architectural advantages through separation of concerns by keeping business logic (tools) separated from AI orchestration, enabling teams to work independently on different components. The protocol standardization uses JSON-RPC for reliable communication between clients and servers, ensuring consistent interaction patterns across different systems. This approach also enables development independence, where tool updates don't require AI agent redeployment, allowing for more flexible and maintainable multi-agent systems.
 
 ## Activity 2: Update Banking Agents for MCP
 
