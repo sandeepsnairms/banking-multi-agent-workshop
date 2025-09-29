@@ -572,13 +572,6 @@ replace it with the below, making the `invoke` calls asynchronous:
 
 ## Activity 3: Start the MCP Server
 
-The MCP server is provided in the `mcpserver/` directory and includes all banking tools implemented with native `@mcp.tool()` decorators.
-
-> [!NOTE]
-> There should be a `.env` file in the `mcpserver/` directory with the necessary environment variables that was created when you did your initial deployment. If this did not work for any reason, refer to the `.env.sample` file.
-
-## Activity 3: Start the MCP Server
-
 The MCP server is provided in the `mcpserver/` directory and includes all banking tools implemented with native `@mcp.tool()` decorators. 
 
 > [!NOTE]
