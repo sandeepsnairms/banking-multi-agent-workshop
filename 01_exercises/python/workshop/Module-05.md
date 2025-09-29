@@ -30,6 +30,7 @@ By the end of this module, you will:
 3. [Activity 3: Start the MCP Server](#activity-3-start-the-mcp-server)
 4. [Activity 4: Test the Complete System](#activity-4-test-the-complete-system)
 5. [Activity 5: Understanding the code changes](#activity-5-understanding-the-code-changes)
+6. [Activity 6: Testing MCP Server with VS Code Client](#activity-6-testing-mcp-server-with-vs-code-client)
 
 ## Activity 1: Understanding the MCP Architecture
 
