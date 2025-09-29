@@ -620,11 +620,9 @@ npm start
 ### Start a Conversation
 
 1. Return to the frontend app in your browser and hit refresh. If you closed it, open a new tab and navigate to <http://localhost:4200/>.
-1. In the Login dialog, select a user and company and click, Login.
-
+1. In the Login dialog, select a user and company and click, Login. You will be presented with a dashboard that looks like the below, with two methods of initiating a chat; and AI assistant window, or full screen chat when clicking the left hand side bar. 
 ![Final User Interface](./media/module-01/frontend.png)
-
-1. Create a new conversation.
+1. Create a new conversation. For now, use the left hand side bar.
 1. Send the message:
 
 ```text
