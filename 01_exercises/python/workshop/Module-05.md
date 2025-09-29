@@ -432,6 +432,154 @@ if __name__ == "__main__":
 ```
 </details>
 
+### Update banking_agents_api.py
+
+In `banking_agents_api.py` add the below imports:
+
+```python
+from datetime import datetime
+import asyncio
+from src.app.banking_agents import setup_agents
+```
+
+Locate the below function:
+
+```python
+app = fastapi.FastAPI(title="Cosmos DB Multi-Agent Banking API", openapi_url="/cosmos-multi-agent-api.json")
+```
+
+Below that, add the following code:
+
+```python
+# Global flag to track agent initialization
+_agents_initialized = False
+
+@app.on_event("startup")
+async def initialize_agents():
+    """Initialize agents with retry logic to handle MCP server startup timing"""
+    global _agents_initialized
+    
+    print("🚀 Starting agent initialization with retry logic...")
+    
+    max_retries = 5
+    retry_delay = 10  # seconds
+    
+    for attempt in range(max_retries):
+        try:
+            print(f"🔄 Attempt {attempt + 1}/{max_retries}: Initializing agents...")
+            await setup_agents()
+            _agents_initialized = True
+            print("✅ Agents initialized successfully!")
+            return
+        except Exception as e:
+            print(f"❌ Attempt {attempt + 1} failed: {e}")
+            if attempt < max_retries - 1:
+                print(f"⏳ Waiting {retry_delay} seconds before retry...")
+                await asyncio.sleep(retry_delay)
+            else:
+                print("❌ All attempts failed. Starting without agent initialization.")
+                print("💡 Agents will be initialized on first request.")
+                _agents_initialized = False
+
+async def ensure_agents_initialized():
+    """Ensure agents are initialized before handling requests"""
+    global _agents_initialized
+    
+    if not _agents_initialized:
+        print("🔄 Initializing agents on demand...")
+        try:
+            await setup_agents()
+            _agents_initialized = True
+            print("✅ Agents initialized successfully!")
+        except Exception as e:
+            print(f"❌ Failed to initialize agents: {e}")
+            raise HTTPException(status_code=503, detail="MCP service unavailable. Please try again in a few moments.")
+
+@app.get("/")
+def health_check():
+    return {"status": "MCP agent system is up"}
+
+@app.get("/health/ready")
+async def readiness_check():
+    """Readiness probe for Container Apps"""
+    try:
+        if not _agents_initialized:
+            await ensure_agents_initialized()
+        return {"status": "ready", "agents_initialized": _agents_initialized}
+    except Exception:
+        return {"status": "not_ready", "agents_initialized": False}
+```
+
+Locate the `get_chat_completion` function and add the following line at the start of the function:
+
+```python
+    await ensure_agents_initialized()
+```
+
+Finally, locate this code block within `get_chat_completion`:
+
+```python
+    if not checkpoints:
+        # No previous state, start fresh
+        new_state = {"messages": [{"role": "user", "content": request_body}]}
+        response_data = workflow.invoke(new_state, config, stream_mode="updates")
+    else:
+        # Resume from last checkpoint
+        last_checkpoint = checkpoints[-1]
+        last_state = last_checkpoint.checkpoint
+
+        if "messages" not in last_state:
+            last_state["messages"] = []
+
+        last_state["messages"].append({"role": "user", "content": request_body})
+
+        if "channel_versions" in last_state:
+            for key in reversed(last_state["channel_versions"].keys()):
+                if "agent" in key:
+                    last_active_agent = key.split(":")[1]
+                    break
+
+        last_state["langgraph_triggers"] = [f"resume:{last_active_agent}"]
+        response_data = workflow.invoke(last_state, config, stream_mode="updates")
+```
+
+replace it with the below, making the `invoke` calls asynchronous:
+
+```python
+    if not checkpoints:
+        # No previous state, start fresh
+        new_state = {"messages": [{"role": "user", "content": request_body}]}
+        response_data = await workflow.ainvoke(new_state, config, stream_mode="updates")
+    else:
+        # Resume from last checkpoint
+        last_checkpoint = checkpoints[-1]
+        last_state = last_checkpoint.checkpoint
+
+        if "messages" not in last_state:
+            last_state["messages"] = []
+
+        last_state["messages"].append({"role": "user", "content": request_body})
+
+        if "channel_versions" in last_state:
+            for key in reversed(last_state["channel_versions"].keys()):
+                if "agent" in key:
+                    last_active_agent = key.split(":")[1]
+                    break
+
+        last_state["langgraph_triggers"] = [f"resume:{last_active_agent}"]
+        response_data = await workflow.ainvoke(last_state, config, stream_mode="updates")
+```
+
+## Activity 3: Start the MCP Server
+
+The MCP server is provided in the `mcpserver/` directory and includes all banking tools implemented with native `@mcp.tool()` decorators.
+
+> [!NOTE]
+> There should be a `.env` file in the `mcpserver/` directory with the necessary environment variables that was created when you did your initial deployment. If this did not work for any reason, refer to the `.env.sample` file.
+
+        response_data = await workflow.ainvoke(new_state, config, stream_mode="updates")
+```
+
 ## Activity 3: Start the MCP Server
 
 The MCP server is provided in the `mcpserver/` directory and includes all banking tools implemented with native `@mcp.tool()` decorators. 
@@ -447,13 +595,13 @@ cd /path/to/banking-multi-agent-workshop/01_exercises/mcpserver
 ### 2. Install Dependencies
 ```bash
 python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
 ### 3. Start the MCP Server
 ```bash
-PYTHONPATH=src python3 -m uvicorn src.mcp_http_server:app --host 0.0.0.0 --port 8080
+PYTHONPATH=src python3 src/mcp_http_server.py
 ```
 
 You should see output like:
@@ -475,7 +623,8 @@ The server provides these banking tools:
 
 ## Activity 4: Test the Complete System
 
-### 1. Set Environment Variables
+### 1. Set Environment Variables in the `.env` file of the python folder:
+
 ```bash
 # Set MCP configuration
 export USE_REMOTE_MCP_SERVER=true
@@ -483,10 +632,41 @@ export MCP_SERVER_BASE_URL=http://localhost:8080
 export MCP_AUTH_TOKEN=banking-server-prod-token-2025
 ```
 
-### 2. Start the Banking API
+### 2. Navigate to python folder and start the Banking API
 ```bash
-cd /path/to/banking-multi-agent-workshop/01_exercises/python
-uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 8000
+python -m venv .venv
+source .venv/bin/activate
+uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 63280
+```
+
+When the server has fully start, you should now see something like:
+```
+   Token: banking-...
+   - Transport: streamable_http
+   - Server URL: http://localhost:8080/mcp/
+   - Authentication: SIMPLE_TOKEN
+   - Status: Ready to connect\n
+🔐 Added Bearer token authentication to client
+✅ MCP Client initialized successfully
+[DEBUG] All tools registered from unified MCP server:
+  - transfer_to_sales_agent
+  - transfer_to_customer_support_agent
+  - transfer_to_transactions_agent
+  - get_offer_information
+  - create_account
+  - calculate_monthly_payment
+  - service_request
+  - get_branch_location
+  - bank_transfer
+  - get_transaction_history
+  - bank_balance
+  - server_info
+Loading prompt for coordinator_agent from /home/theovk/testworkshop-mcp/banking-multi-agent-workshop/01_exercises/python/src/app/prompts/coordinator_agent.prompty
+Loading prompt for customer_support_agent from /home/theovk/testworkshop-mcp/banking-multi-agent-workshop/01_exercises/python/src/app/prompts/customer_support_agent.prompty
+Loading prompt for sales_agent from /home/theovk/testworkshop-mcp/banking-multi-agent-workshop/01_exercises/python/src/app/prompts/sales_agent.prompty
+Loading prompt for transactions_agent from /home/theovk/testworkshop-mcp/banking-multi-agent-workshop/01_exercises/python/src/app/prompts/transactions_agent.prompty
+✅ Agents initialized successfully!
+INFO:     Application startup complete.
 ```
 
 ### 3. Start the Frontend
@@ -502,11 +682,8 @@ ng serve
 2. Test with these prompts:
 
 ```text
-What's my account balance for account 12345?
-Transfer $100 from account 12345 to account 67890
-I need information about savings accounts with high interest rates
-What are my recent transactions?
-I want to open a new checking account
+What's my account balance for account Acc003?
+Transfer 100 from account Acc001 to account Acc003
 ```
 
 These should behave in the same way as your original application. 
