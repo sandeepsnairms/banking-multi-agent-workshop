@@ -112,7 +112,6 @@ from langgraph_checkpoint_cosmosdb import CosmosDBSaver
 from langgraph.checkpoint.memory import MemorySaver
 from langsmith import traceable
 from src.app.services.azure_open_ai import model
-#from src.app.services.local_model import model  # Use local model for testing
 from src.app.services.azure_cosmos_db import DATABASE_NAME, checkpoint_container, chat_container, \
     update_chat_container, patch_active_agent
 
@@ -543,7 +542,7 @@ Finally, locate this code block within `get_chat_completion`:
         response_data = workflow.invoke(last_state, config, stream_mode="updates")
 ```
 
-replace it with the below, making the `invoke` calls asynchronous:
+Replace it with the below, making the `invoke` calls asynchronous:
 
 ```python
     if not checkpoints:
@@ -605,7 +604,8 @@ INFO:     Uvicorn running on http://0.0.0.0:8080
 
 ### Understanding the MCP Tools
 
-The server provides these banking tools:
+The server provides the same banking tools that you created earlier, but now as MCP tools:
+
 - **Sales Tools**: `get_offer_information`, `create_account`, `calculate_monthly_payment`
 - **Transaction Tools**: `bank_balance`, `bank_transfer`, `get_transaction_history`
 - **Support Tools**: `service_request`, `get_branch_location`
@@ -613,7 +613,9 @@ The server provides these banking tools:
 
 ## Activity 4: Test the Complete System
 
-### 1. Set Environment Variables in the `.env` file of the python folder:
+### 1. Set Environment Variables 
+
+In the `.env` file of the python folder, set the following:
 
 ```bash
 # Set MCP configuration
@@ -622,14 +624,18 @@ export MCP_SERVER_BASE_URL=http://localhost:8080
 export MCP_AUTH_TOKEN=banking-server-prod-token-2025
 ```
 
-### 2. Navigate to python folder and start the Banking API
+### 2. Start the Banking API
+
+Navigate to python folder and start the API:
+
 ```bash
-python -m venv .venv
-source .venv/bin/activate
+python -m venv .venv # if not already done
+source .venv/bin/activate # if not already activated
 uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 63280
 ```
 
 When the server has fully start, you should now see something like:
+
 ```
    Token: banking-...
    - Transport: streamable_http
@@ -651,10 +657,10 @@ When the server has fully start, you should now see something like:
   - get_transaction_history
   - bank_balance
   - server_info
-Loading prompt for coordinator_agent from /home/theovk/testworkshop-mcp/banking-multi-agent-workshop/01_exercises/python/src/app/prompts/coordinator_agent.prompty
-Loading prompt for customer_support_agent from /home/theovk/testworkshop-mcp/banking-multi-agent-workshop/01_exercises/python/src/app/prompts/customer_support_agent.prompty
-Loading prompt for sales_agent from /home/theovk/testworkshop-mcp/banking-multi-agent-workshop/01_exercises/python/src/app/prompts/sales_agent.prompty
-Loading prompt for transactions_agent from /home/theovk/testworkshop-mcp/banking-multi-agent-workshop/01_exercises/python/src/app/prompts/transactions_agent.prompty
+Loading prompt for coordinator_agent from /home/path/to/banking-multi-agent-workshop/01_exercises/python/src/app/prompts/coordinator_agent.prompty
+Loading prompt for customer_support_agent from /home/path/to/banking-multi-agent-workshop/01_exercises/python/src/app/prompts/customer_support_agent.prompty
+Loading prompt for sales_agent from /home/path/to/banking-multi-agent-workshop/01_exercises/python/src/app/prompts/sales_agent.prompty
+Loading prompt for transactions_agent from /home/path/to/banking-multi-agent-workshop/01_exercises/python/src/app/prompts/transactions_agent.prompty
 ✅ Agents initialized successfully!
 INFO:     Application startup complete.
 ```
@@ -666,7 +672,7 @@ npm install
 ng serve
 ```
 
-### 4. Test the System
+### 4. Test the Application
 
 1. Open your browser to `http://localhost:4200`
 2. Test with these prompts:
@@ -683,8 +689,8 @@ These should behave in the same way as your original application.
 Check the terminal logs to confirm:
 - ✅ MCP Client connects to MCP Server successfully
 - ✅ Tools are loaded dynamically from the server
-- ✅ Authentication is working (bearer token mode)
-- ✅ Agents use MCP tools instead of direct imports
+- ✅ OAuth Authentication is working (bearer token mode with simple token)
+- ✅ Agents use MCP tools
 
 
 ## Activity 5: Understanding the code changes
@@ -693,7 +699,7 @@ There were a lot of changes to banking_agents.py. Below is a concise diff-style 
 
 ### 1. Imports & async foundation
 - **Added MCP + async tooling** and removed direct tool wiring.
-    ```py
+    ```python
     # NEW
     import asyncio, json
     from langchain_mcp_adapters.client import MultiServerMCPClient
@@ -705,7 +711,7 @@ There were a lot of changes to banking_agents.py. Below is a concise diff-style 
 
 ### 2. MCP client, session, and tool loading
 - **Centralized MCP setup** with persistent session; tools loaded dynamically from the unified MCP server.
-    ```py
+    ```python
     _mcp_client = None
     _session_context = None
     _persistent_session = None
@@ -725,7 +731,7 @@ There were a lot of changes to banking_agents.py. Below is a concise diff-style 
 
 ### 3. Tool routing by prefix (from server → agents)
 - **Replaced hardcoded tool lists** with filtered MCP tools based on name prefixes.
-    ```py
+    ```python
     def filter_tools_by_prefix(tools, prefixes):
         return [t for t in tools if any(t.name.startswith(p) for p in prefixes)]
 
@@ -740,7 +746,7 @@ There were a lot of changes to banking_agents.py. Below is a concise diff-style 
     ```
 
 ### 4. Agents created the same way, but with MCP tools
-```py
+```python
 coordinator_agent      = create_react_agent(model, coordinator_tools,      state_modifier=load_prompt("coordinator_agent"))
 customer_support_agent = create_react_agent(model, support_tools,          state_modifier=load_prompt("customer_support_agent"))
 sales_agent            = create_react_agent(model, sales_tools,            state_modifier=load_prompt("sales_agent"))
@@ -749,7 +755,7 @@ transactions_agent     = create_react_agent(model, transactions_tools,     state
 
 ### 5. Async agent nodes (+ traceability)
 - **Node functions are async** and **use `@traceable`**; agent calls use `ainvoke`.
-    ```py
+    ```python
     @traceable(run_type="llm")
     async def call_sales_agent(state: MessagesState, config):
         response = await sales_agent.ainvoke(state, config)
@@ -758,7 +764,7 @@ transactions_agent     = create_react_agent(model, transactions_tools,     state
 
 ### 6. Passing per-turn IDs for MCP tools
 - **Inject a transient `SystemMessage`** so MCP tools get `tenantId/userId/thread_id` without asking the user; remove it from the response.
-    ```py
+    ```python
     state["messages"].append({"role":"system",
         "content": f"If tool ... requires tenantId='{tenantId}', userId='{userId}', thread_id='{thread_id}', include these in the JSON parameters."})
 
@@ -769,7 +775,7 @@ transactions_agent     = create_react_agent(model, transactions_tools,     state
 
 ### 7. Conditional routing via ToolMessage (`goto`)
 - **New `get_active_agent`** reads the last `ToolMessage` (emitted by MCP tools) for a `"goto"` hint; falls back to Cosmos DB.
-    ```py
+    ```python
     def get_active_agent(state, config) -> str:
         for msg in reversed(state["messages"]):
             if isinstance(msg, ToolMessage):
@@ -779,7 +785,7 @@ transactions_agent     = create_react_agent(model, transactions_tools,     state
         ...
     ```
 - **Added conditional edges** from coordinator based on that resolver.
-    ```py
+    ```python
     builder.add_conditional_edges(
         "coordinator_agent",
         get_active_agent,
@@ -790,18 +796,19 @@ transactions_agent     = create_react_agent(model, transactions_tools,     state
 
 ### 8. Runtime setup & Windows event loop
 - **App boot now awaits MCP setup** and ensures Windows event loop compatibility.
-```py
+```python
 if __name__ == "__main__":
     if sys.platform == "win32":
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     asyncio.run(setup_agents())
 ```
 
-### 9. What stayed the same
-- **LangGraph structure & CosmosDBSaver** usage are preserved (checkpointer + `START → coordinator_agent`).
-- **Cosmos “activeAgent” point lookup** remains for persistence and fallback routing.
+### 9. What stayed the same?
 
-**Net effect:** Tools are now discovered and invoked via MCP, agent nodes are async, routing respects MCP tool-emitted `goto`, and per-turn IDs are injected via a temporary system message to make MCP tools stateless and reliable.
+- **LangGraph structure & CosmosDBSaver** usage are preserved (checkpointer + `START → coordinator_agent`).
+- **Cosmos "activeAgent" point lookup** remains for persistence and fallback routing.
+
+Tools are now discovered and invoked via MCP, agent nodes are async, routing respects MCP tool-emitted `goto`, and per-turn IDs are injected via a temporary system message to make MCP tools stateless and reliable.
 
 ### Next Steps
 
