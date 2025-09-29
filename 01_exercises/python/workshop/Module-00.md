@@ -196,7 +196,7 @@ But you will still need to install dependencies to run the solution locally.
 3. Install the required dependencies for the project.
 
    ```shell
-   pip install -r ../src/app/requirements.txt
+   pip install -r src/app/requirements.txt
    ```
    Note: If getting `requirements.txt` file not found when using GitHub codespaces, please navigate to the `src/app` folder and run the command there ` pip install -r requirements.txt`
 
