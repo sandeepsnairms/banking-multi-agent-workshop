@@ -13,7 +13,7 @@ param location string
 param principalId string
 
 @description('Owner tag for resource tagging')
-param owner string = 'theocon@microsoft.com'
+param owner string
 
 var tags = {
   'azd-env-name': environmentName

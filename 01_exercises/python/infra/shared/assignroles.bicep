@@ -91,3 +91,4 @@ resource cosmosAccessRoleCU 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssign
 
 output identityId string = identity.properties.principalId
 output identityName string = identity.name
+output identityClientId string = identity.properties.clientId
