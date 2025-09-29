@@ -1,4 +1,4 @@
-# Module 05 (NEW) - Converting to Model Context Protocol (MCP)
+# Module 05 - Converting to Model Context Protocol (MCP)
 
 [< Multi-Agent Orchestration](./Module-04.md) - **[Home](Home.md)**
 
