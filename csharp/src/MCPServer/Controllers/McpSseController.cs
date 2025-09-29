@@ -11,6 +11,7 @@ namespace MCPServer.Controllers;
 
 /// <summary>
 /// MCP SSE Controller providing Server-Sent Events support for MCP protocol
+/// Also provides REST API endpoints for backward compatibility
 /// </summary>
 [ApiController]
 [Route("mcp")]
@@ -101,7 +102,7 @@ public class McpSseController : ControllerBase
     }
 
     /// <summary>
-    /// Handle MCP protocol messages via POST
+    /// Handle MCP protocol messages via POST (JSON-RPC 2.0)
     /// </summary>
     [HttpPost("")]
     public async Task<IActionResult> HandleMcpMessage([FromBody] JsonElement message)
@@ -143,6 +144,99 @@ public class McpSseController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// REST API endpoint - Lists all available MCP banking tools
+    /// Provided for backward compatibility with non-SSE clients
+    /// </summary>
+    [HttpPost("tools/list")]
+    public IActionResult ListTools()
+    {
+        try
+        {
+            // OAuth authentication check
+            if (!IsAuthenticated(out var clientId, out var scopes))
+            {
+                return Unauthorized(new { error = "Authentication required" });
+            }
+
+            _logger.LogInformation("REST API tools list requested - ClientId: {ClientId}", clientId);
+
+            var tools = GetAvailableTools();
+
+            _logger.LogInformation("Listed {ToolCount} MCP banking tools via REST API", tools.Count);
+            return Ok(new { tools = tools.ToArray() });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error listing MCP tools via REST API");
+            return StatusCode(500, new { error = "Internal server error listing tools" });
+        }
+    }
+
+    /// <summary>
+    /// REST API endpoint - Executes a specific MCP banking tool
+    /// Provided for backward compatibility with non-SSE clients
+    /// </summary>
+    [HttpPost("tools/call")]
+    public async Task<IActionResult> CallTool([FromBody] ToolCallRequest request)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(request.Name))
+            {
+                return BadRequest(new { error = "Tool name is required" });
+            }
+
+            // OAuth authentication check
+            if (!IsAuthenticated(out var clientId, out var scopes))
+            {
+                return Unauthorized(new { error = "Authentication required" });
+            }
+
+            _logger.LogInformation("REST API calling tool: {ToolName} for client: {ClientId}", request.Name, clientId);
+
+            var result = await ExecuteTool(request.Name, request.Arguments);
+
+            if (result == null)
+            {
+                _logger.LogWarning("Banking tool not found: {ToolName}", request.Name);
+                return NotFound(new { error = $"Tool '{request.Name}' not found" });
+            }
+
+            var response = new
+            {
+                content = new[]
+                {
+                    new
+                    {
+                        type = "text",
+                        text = result is string ? result : JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true })
+                    }
+                }
+            };
+
+            _logger.LogInformation("Successfully executed banking tool via REST API: {ToolName}", request.Name);
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error calling MCP tool via REST API: {ToolName}", request.Name);
+            return StatusCode(500, new 
+            { 
+                error = "Internal server error executing tool",
+                isError = true,
+                content = new[]
+                {
+                    new
+                    {
+                        type = "text",
+                        text = $"Error: {ex.Message}"
+                    }
+                }
+            });
+        }
+    }
+
     private object HandleInitialize(string? id)
     {
         return new
@@ -168,30 +262,7 @@ public class McpSseController : ControllerBase
 
     private object HandleToolsList(string? id)
     {
-        var tools = new List<object>();
-
-        // Discover tools from BankingTools
-        var bankingToolsMethods = typeof(BankingTools).GetMethods(BindingFlags.Public | BindingFlags.Instance)
-            .Where(m => m.GetCustomAttribute<DescriptionAttribute>() != null);
-
-        foreach (var method in bankingToolsMethods)
-        {
-            var description = method.GetCustomAttribute<DescriptionAttribute>()?.Description ?? "";
-            var parameters = method.GetParameters();
-            var tagsAttribute = method.GetCustomAttribute<McpToolTagsAttribute>();
-            var tags = tagsAttribute?.Tags ?? new[] { "banking" };
-
-            var inputSchema = CreateInputSchema(parameters);
-
-            var toolObject = new
-            {
-                name = method.Name,
-                description,
-                inputSchema
-            };
-
-            tools.Add(toolObject);
-        }
+        var tools = GetAvailableTools();
 
         return new
         {
@@ -229,33 +300,7 @@ public class McpSseController : ControllerBase
                 }
             }
 
-            // Find and invoke the tool method
-            var bankingMethod = typeof(BankingTools).GetMethod(toolName, BindingFlags.Public | BindingFlags.Instance);
-            if (bankingMethod == null)
-            {
-                return CreateErrorResponse(id, -32601, $"Tool '{toolName}' not found");
-            }
-
-            var parameters = ConvertArgumentsToParameters(bankingMethod, arguments);
-            var task = bankingMethod.Invoke(_bankingTools, parameters);
-            
-            object? result = null;
-            if (task is Task taskResult)
-            {
-                await taskResult;
-                if (taskResult.GetType().IsGenericType)
-                {
-                    result = taskResult.GetType().GetProperty("Result")?.GetValue(taskResult);
-                }
-                else
-                {
-                    result = "Operation completed successfully";
-                }
-            }
-            else
-            {
-                result = task;
-            }
+            var result = await ExecuteTool(toolName, arguments);
 
             return new
             {
@@ -279,6 +324,85 @@ public class McpSseController : ControllerBase
             _logger.LogError(ex, "Error calling tool");
             return CreateErrorResponse(id, -32603, $"Tool execution error: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Shared method to get available tools for both SSE and REST endpoints
+    /// </summary>
+    private List<object> GetAvailableTools()
+    {
+        var tools = new List<object>();
+
+        // Discover tools from BankingTools
+        var bankingToolsMethods = typeof(BankingTools).GetMethods(BindingFlags.Public | BindingFlags.Instance)
+            .Where(m => m.GetCustomAttribute<DescriptionAttribute>() != null);
+
+        foreach (var method in bankingToolsMethods)
+        {
+            var description = method.GetCustomAttribute<DescriptionAttribute>()?.Description ?? "";
+            var parameters = method.GetParameters();
+            var tagsAttribute = method.GetCustomAttribute<McpToolTagsAttribute>();
+            var tags = tagsAttribute?.Tags ?? new[] { "banking" };
+
+            var inputSchema = CreateInputSchema(parameters);
+
+            // Create the tool object with tags for filtering
+            var toolObject = new Dictionary<string, object>
+            {
+                ["name"] = method.Name,
+                ["description"] = description,
+                ["inputSchema"] = inputSchema
+            };
+
+            // Add tags as additional properties for filtering
+            if (tags.Length > 0)
+            {
+                toolObject["McpToolTags"] = string.Join(",", tags);
+            }
+
+            tools.Add(toolObject);
+        }
+
+        return tools;
+    }
+
+    /// <summary>
+    /// Shared method to execute tools for both SSE and REST endpoints
+    /// </summary>
+    private async Task<object?> ExecuteTool(string? toolName, Dictionary<string, object>? arguments)
+    {
+        if (string.IsNullOrEmpty(toolName))
+            return null;
+
+        // Find and invoke the tool method
+        var bankingMethod = typeof(BankingTools).GetMethod(toolName, BindingFlags.Public | BindingFlags.Instance);
+        if (bankingMethod == null)
+        {
+            return null;
+        }
+
+        var parameters = ConvertArgumentsToParameters(bankingMethod, arguments ?? new Dictionary<string, object>());
+        var task = bankingMethod.Invoke(_bankingTools, parameters);
+        
+        object? result = null;
+        if (task is Task taskResult)
+        {
+            await taskResult;
+            if (taskResult.GetType().IsGenericType)
+            {
+                result = taskResult.GetType().GetProperty("Result")?.GetValue(taskResult);
+            }
+            else
+            {
+                result = "Operation completed successfully";
+            }
+        }
+        else
+        {
+            result = task;
+        }
+
+        return result;
     }
 
     private object CreateErrorResponse(string? id, int code, string message)
@@ -483,4 +607,13 @@ public class McpSseController : ControllerBase
             return Activator.CreateInstance(type);
         return null;
     }
+}
+
+/// <summary>
+/// Request model for MCP tool execution via REST API
+/// </summary>
+public class ToolCallRequest
+{
+    public string Name { get; set; } = "";
+    public Dictionary<string, object>? Arguments { get; set; }
 }

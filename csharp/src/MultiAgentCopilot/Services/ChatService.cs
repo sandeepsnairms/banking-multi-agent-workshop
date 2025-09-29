@@ -32,8 +32,8 @@ public class ChatService
         _mcpService = mcpService;
         _bankService = new BankingDataService(cosmosDBService.Database, cosmosDBService.AccountDataContainer, cosmosDBService.UserDataContainer, cosmosDBService.AccountDataContainer, cosmosDBService.OfferDataContainer, afOptions.Value, loggerFactory);
 
-        //initilaize only one 
-        //_afService.SetInProcessToolService(_bankService);
+        // Initialize the Agent Framework with both tool services
+        _afService.SetInProcessToolService(_bankService);
         _afService.SetMCPToolService(_mcpService);
 
         if(!_afService.InitializeAgents())
