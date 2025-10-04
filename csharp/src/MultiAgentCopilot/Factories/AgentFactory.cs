@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.AI;
-using Microsoft.Extensions.AI.Agents;
 using MultiAgentCopilot.Models;
+using Microsoft.Agents.AI;
 using BankingModels;
 using MultiAgentCopilot.MultiAgentCopilot.Services;
 using MultiAgentCopilot.Services;
@@ -9,28 +9,31 @@ using OpenAI.Chat;
 using System.ComponentModel;
 using System.Reflection;
 using System.Text.Json;
+using OpenAI;
 
 namespace MultiAgentCopilot.Factories
 {
     public static class AgentFactory
     {
-        private static ChatClientAgent CreateAgent(Microsoft.Extensions.AI.IChatClient chatClient, ILoggerFactory loggerFactory, string instructions, string? description = null, string? name = null, params AIFunction[] functions)
+        private static AIAgent CreateAgent(OpenAI.Chat.ChatClient chatClient, ILoggerFactory loggerFactory, string instructions, string? description = null, string? name = null, params AIFunction[] functions)
         {
-            // Correct constructor usage for ChatClientAgent:
-            var options = new ChatClientAgentOptions
-            {
-                Instructions = instructions,
-                Name = name,
-                Description = description,
-                ChatOptions = new() { Tools = functions, ToolMode = ChatToolMode.Auto }
-            };
-            return new ChatClientAgent(chatClient, options, loggerFactory);
+            //// Correct constructor usage for ChatClientAgent:
+            //var options = new ChatClientAgentOptions
+            //{
+            //    Instructions = instructions,
+            //    Name = name,
+            //    Description = description,
+            //    ChatOptions = new() { Tools = functions, ToolMode = ChatToolMode.Auto }
+            //};
+            //return new ChatClientAgent(chatClient, options, loggerFactory);
+
+            return chatClient.CreateAIAgent(instructions, name, description, functions);   
         }
 
         /// <summary>
         /// Create all banking agents with proper instructions and tools
         /// </summary>
-        public static List<AIAgent> CreateAllAgentsWithInProcessTools(Microsoft.Extensions.AI.IChatClient chatClient, BankingDataService bankService, ILoggerFactory loggerFactory)
+        public static List<AIAgent> CreateAllAgentsWithInProcessTools(OpenAI.Chat.ChatClient chatClient, BankingDataService bankService, ILoggerFactory loggerFactory)
         {
             var agents = new List<AIAgent>();
             ILogger logger = loggerFactory.CreateLogger("AgentFactory");
@@ -58,9 +61,9 @@ namespace MultiAgentCopilot.Factories
             return agents;
         }
 
-        public static async Task<List<AIAgent>> CreateAllAgentsWithMCPToolsAsync(Microsoft.Extensions.AI.IChatClient chatClient, MCPToolService mcpService, ILoggerFactory loggerFactory)
+        public static async Task<List<AIAgent>> CreateAllAgentsWithMCPToolsAsync(OpenAI.Chat.ChatClient chatClient, MCPToolService mcpService, ILoggerFactory loggerFactory)
         {
-            var agents = new List<AIAgent>();
+            var agents = new List<Microsoft.Agents.AI.AIAgent>();
             ILogger logger = loggerFactory.CreateLogger("AgentFactory");
 
             // Get all agent types from the enum

@@ -4,8 +4,8 @@ using Azure.AI.OpenAI;
 using Azure.Identity;
 using Microsoft.Agents.Orchestration;
 using Microsoft.Extensions.AI;
-using Microsoft.Extensions.AI.Agents;
-using Microsoft.Extensions.AI.Agents.OpenAI;
+using Microsoft.Agents.AI;
+using Microsoft.Agents.AI.OpenAI;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MultiAgentCopilot.Factories;
@@ -33,13 +33,13 @@ public class AgentFrameworkService : IDisposable
     private readonly AgentFrameworkServiceSettings _settings;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<AgentFrameworkService> _logger;
-    private readonly Microsoft.Extensions.AI.IChatClient _chatClient;
+    private readonly OpenAI.Chat.ChatClient _chatClient;
     private BankingDataService _bankService;
     private MCPToolService _mcpService;
 
     private bool _serviceInitialized = false;
     private List<LogProperty> _promptDebugProperties;
-    private List<AIAgent> _agents = null;
+    private List<Microsoft.Agents.AI.AIAgent> _agents = null;
 
     public bool IsInitialized => _serviceInitialized;
 
@@ -74,7 +74,9 @@ public class AgentFrameworkService : IDisposable
 
         var openAIClient = new AzureOpenAIClient(endpoint, credential);
         // Use ChatClient directly from OpenAI SDK
-        _chatClient = openAIClient.GetChatClient(_settings.AzureOpenAISettings.CompletionsDeployment).AsIChatClient();
+        _chatClient = openAIClient.GetChatClient(_settings.AzureOpenAISettings.CompletionsDeployment);
+
+             
 
         _logger.LogWarning("Agent Framework Initialized.");
 
@@ -212,18 +214,18 @@ public class AgentFrameworkService : IDisposable
         {
             _logger.LogInformation("Starting Agent Framework orchestration");
 
-            OrchestrationMonitor monitor = new();
-            monitor.History.AddRange(chatHistory);
+            //OrchestrationMonitor monitor = new();
+            //monitor.History.AddRange(chatHistory);
                      
             // Create a custom GroupChatManager with SelectionStrategy and TerminationStrategy
             var groupChatManager = new GroupChatManagerFactory(chatHistory.Last().Text, _chatClient, LogMessage);
-                                   
-            GroupChatOrchestration groupChatOrchestration = new GroupChatOrchestration(groupChatManager, _agents.ToArray())
-            {
-                LoggerFactory = this._loggerFactory,
-                ResponseCallback = monitor.ResponseCallbackAsync,
-            StreamingResponseCallback = monitor.StreamingResultCallbackAsync
-            };
+
+            GroupChatOrchestration groupChatOrchestration = new GroupChatOrchestration(groupChatManager, _agents.ToArray());
+            //{
+            //    LoggerFactory = this._loggerFactory,
+            //    ResponseCallback = monitor.ResponseCallbackAsync,
+            //    StreamingResponseCallback = monitor.StreamingResultCallback
+            //};
             var orchestrationResponse = await groupChatOrchestration.RunAsync(chatHistory);
             AgentRunResponse result = await orchestrationResponse.Task;
 
@@ -262,15 +264,14 @@ public class AgentFrameworkService : IDisposable
     {
         try
         {
-            var messages = new List<Microsoft.Extensions.AI.ChatMessage>
-                {
-                    new (ChatRole.System, "Summarize the following text into exactly two words:"),
-                    new (ChatRole.User, userPrompt)
-                };
+            var agent = _chatClient.CreateAIAgent("Summarize the following text into exactly two words:", "Summarizer", "A tool to summarize text", new AIFunction[] { });
 
-            var response = await _chatClient.GetResponseAsync(messages);
+            await foreach (var update in agent.RunStreamingAsync(userPrompt))
+            {
+                return update.Text;
+            }
 
-            return response.Messages.FirstOrDefault()?.Text ?? "No summary generated";
+            return "No summary generated";
 
         }
         catch (Exception ex)

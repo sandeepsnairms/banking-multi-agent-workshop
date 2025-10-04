@@ -34,7 +34,7 @@ public class ChatService
 
         // Initialize the Agent Framework with both tool services
         _afService.SetInProcessToolService(_bankService);
-        _afService.SetMCPToolService(_mcpService);
+        //_afService.SetMCPToolService(_mcpService);
 
         if(!_afService.InitializeAgents())
             throw new Exception("Error initializing agents in ChatService.");
