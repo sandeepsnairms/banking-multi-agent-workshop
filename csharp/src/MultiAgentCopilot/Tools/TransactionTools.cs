@@ -7,7 +7,7 @@ namespace MultiAgentCopilot.Tools
 {
     public class TransactionTools : BaseTools
     {
-        public TransactionTools(ILogger<TransactionTools> logger, BankingDataService bankService)
+        public TransactionTools(ILogger<TransactionTools> logger, MockBankingService bankService)
             : base(logger, bankService)
         {
         }

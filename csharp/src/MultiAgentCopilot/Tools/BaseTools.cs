@@ -8,10 +8,10 @@ namespace MultiAgentCopilot.Tools
     public abstract class BaseTools
     {
         protected readonly ILogger _logger;
-        protected readonly BankingDataService _bankService;
+        protected readonly MockBankingService _bankService;
 
 
-        protected BaseTools(ILogger logger, BankingDataService bankService)
+        protected BaseTools(ILogger logger, MockBankingService bankService)
         {
             _logger = logger;
             _bankService = bankService;

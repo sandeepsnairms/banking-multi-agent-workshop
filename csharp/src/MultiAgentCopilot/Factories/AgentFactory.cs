@@ -33,10 +33,10 @@ namespace MultiAgentCopilot.Factories
         /// <summary>
         /// Create all banking agents with proper instructions and tools
         /// </summary>
-        public static List<AIAgent> CreateAllAgentsWithInProcessTools(OpenAI.Chat.ChatClient chatClient, BankingDataService bankService, ILoggerFactory loggerFactory)
+        public static List<AIAgent> CreateAllAgentsWithInProcessTools(OpenAI.Chat.ChatClient chatClient, MockBankingService bankService, ILoggerFactory loggerFactory)
         {
             var agents = new List<AIAgent>();
-            ILogger logger = loggerFactory.CreateLogger("AgentFactory");
+            //ILogger logger = loggerFactory.CreateLogger("AgentFactory");
 
             // Get all agent types from the enum
             var agentTypes = Enum.GetValues<AgentType>();
@@ -54,10 +54,10 @@ namespace MultiAgentCopilot.Factories
                 );
 
                 agents.Add(agent);
-                logger.LogInformation($"Created {agent.Name}: {agent.Description}");
+                Console.WriteLine($"Created {agent.Name}: {agent.Description}");
             }
 
-            logger.LogInformation("Successfully created {AgentCount} banking agents", agents.Count);
+            Console.WriteLine($"Successfully created {agents.Count} banking agents");
             return agents;
         }
 
@@ -74,7 +74,7 @@ namespace MultiAgentCopilot.Factories
             {
                 try
                 {
-                    logger.LogInformation("Creating agent {AgentType} with MCP tools", agentType);
+                    Console.WriteLine($"Creating agent {agentType} with MCP tools");
                     
                     // Convert MCP tools to AI functions using proper async MCP client patterns
                     var aiFunctions = await ConvertMcpToolsToAIFunctionsAsync(mcpService, agentType, logger).ConfigureAwait(false);
@@ -89,7 +89,7 @@ namespace MultiAgentCopilot.Factories
                     );
 
                     agents.Add(agent);
-                    logger.LogInformation("Created agent {AgentName} with {ToolCount} MCP tools", agent.Name, aiFunctions.Count());
+                    Console.WriteLine($"Created agent {agent.Name} with {aiFunctions.Count()} MCP tools");
                 }
                 catch (Exception ex)
                 {
@@ -117,7 +117,7 @@ namespace MultiAgentCopilot.Factories
                 }
             }
 
-            logger.LogInformation("Successfully created {AgentCount} banking agents with MCP tools integration", agents.Count);
+            Console.WriteLine($"Successfully created {agents.Count} banking agents with MCP tools integration");
             return agents;
         }
 
@@ -130,8 +130,8 @@ namespace MultiAgentCopilot.Factories
             
             try
             {
-                logger.LogInformation("Retrieving MCP tools for agent {AgentType}", agentType);
-                
+                Console.WriteLine($"Retrieving MCP tools for agent {agentType}");
+
                 // Get MCP tools using the proper MCP client approach
                 var mcpTools = await mcpService.GetMcpTools(agentType).ConfigureAwait(false);
                 
@@ -160,12 +160,12 @@ namespace MultiAgentCopilot.Factories
                         logger.LogError(ex, "Failed to convert MCP tool {ToolName} to AI function for agent {AgentType}", mcpTool.Name, agentType);
                     }
                 }
-                
-                logger.LogInformation("Converted {FunctionCount} MCP tools to AI functions for agent {AgentType}", functions.Count, agentType);
+
+                Console.WriteLine($"Converted {functions.Count} MCP tools to AI functions for agent {agentType}");
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Failed to retrieve MCP tools for agent {AgentType}", agentType, ex);
+                //logger.LogError(ex, "Failed to retrieve MCP tools for agent {AgentType}", agentType, ex);
             }
             
             return functions;
@@ -300,12 +300,13 @@ namespace MultiAgentCopilot.Factories
         /// Get tools for specific agent type using existing tool classes
         /// Returns null for now due to delegate binding limitations with the current Agent Framework API
         /// </summary>
-        private static IList<AIFunction>? GetAgentTools(AgentType agentType, BankingDataService bankService, ILoggerFactory loggerFactory)
+        private static IList<AIFunction>? GetAgentTools(AgentType agentType, MockBankingService bankService, ILoggerFactory AloggerFactory)
         {
-            ILogger logger = loggerFactory.CreateLogger<AgentFrameworkService>();
+             LoggerFactory loggerFactory=new LoggerFactory();
+            //ILogger logger = loggerFactory.CreateLogger<AgentFrameworkService>();
             try
             {
-                logger.LogInformation("Creating tools for agent type: {AgentType}", agentType);
+                Console.WriteLine($"Creating tools for agent type: {agentType}");
 
                 // Create the appropriate tools class based on agent type
                 BaseTools toolsClass = agentType switch
@@ -318,7 +319,7 @@ namespace MultiAgentCopilot.Factories
                 };
 
                 // Log the tool class creation for debugging
-                logger.LogInformation("Created {ToolClassName} for agent type: {AgentType}", toolsClass.GetType().Name, agentType);
+                Console.WriteLine($"Created {toolsClass.GetType().Name} for agent type: {agentType}");
 
                 // Log available methods with Description attributes
                 var methods = toolsClass.GetType().GetMethods()
@@ -331,17 +332,16 @@ namespace MultiAgentCopilot.Factories
                 {
                     functions.Add(AIFunctionFactory.Create(method, toolsClass));
                     var description = method.GetCustomAttribute<DescriptionAttribute>()?.Description ?? "No description";
-                    logger.LogInformation("Agent {AgentType} has method: '{MethodName}' - {Description}",
-                        agentType, method.Name, description);
+                    Console.WriteLine($"Agent {agentType} has method: '{method.Name}' - {description}");
                 }
 
-                logger.LogInformation("Tool class created for agent type: {AgentType}. Returning null due to delegate binding limitations.", agentType);
+                Console.WriteLine($"Tool class created for agent type: {agentType}. Returning null due to delegate binding limitations.");
 
                 return functions;
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error creating tools for agent type: {AgentType}", agentType);
+                //logger.LogError(ex, "Error creating tools for agent type: {AgentType}", agentType);
                 return null;
             }
         }

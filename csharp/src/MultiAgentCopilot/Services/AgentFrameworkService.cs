@@ -34,7 +34,7 @@ public class AgentFrameworkService : IDisposable
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<AgentFrameworkService> _logger;
     private readonly OpenAI.Chat.ChatClient _chatClient;
-    private BankingDataService _bankService;
+    private MockBankingService _bankService;
     private MCPToolService _mcpService;
 
     private bool _serviceInitialized = false;
@@ -83,17 +83,34 @@ public class AgentFrameworkService : IDisposable
         Task.Run(Initialize).ConfigureAwait(false);
     }
 
-    private void LogMessage(string key, string value)
+    public AgentFrameworkService(string endpointUrl, string deploymentName)
     {
-        _promptDebugProperties.Add(new LogProperty(key, value));
+        
+        DefaultAzureCredential credential;
+
+        credential = new DefaultAzureCredential();
+       
+       
+        var endpoint = new Uri(endpointUrl);
+
+        var openAIClient = new AzureOpenAIClient(endpoint, credential);
+        // Use ChatClient directly from OpenAI SDK
+        _chatClient = openAIClient.GetChatClient(deploymentName);
+
     }
 
 
-    public bool SetInProcessToolService(BankingDataService bankService)
+    private void LogMessage(string key, string value)
+    {
+        //_promptDebugProperties.Add(new LogProperty(key, value));
+    }
+
+
+    public bool SetInProcessToolService(MockBankingService bankService)
     {
          _bankService = bankService ?? throw new ArgumentNullException(nameof(bankService));
 
-        _logger.LogInformation("InProcessToolService has been set.");
+       // _logger.LogInformation("InProcessToolService has been set.");
         return true;
     }
 
@@ -129,7 +146,7 @@ public class AgentFrameworkService : IDisposable
     public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(
         Message userMessage,
         List<Message> messageHistory,
-        BankingDataService bankService,
+        MockBankingService bankService,
         string tenantId,
         string userId)
     {
@@ -205,14 +222,14 @@ public class AgentFrameworkService : IDisposable
         }
     }
 
-    private async Task<(string responseText, string selectedAgentName)> RunGroupChatOrchestration(
+    public async Task<(string responseText, string selectedAgentName)> RunGroupChatOrchestration(
         List<Microsoft.Extensions.AI.ChatMessage> chatHistory,
         string tenantId,
         string userId)
     {
         try
         {
-            _logger.LogInformation("Starting Agent Framework orchestration");
+            //_logger.LogInformation("Starting Agent Framework orchestration");
 
             //OrchestrationMonitor monitor = new();
             //monitor.History.AddRange(chatHistory);
@@ -233,13 +250,13 @@ public class AgentFrameworkService : IDisposable
             // In RunGroupChatOrchestration, ensure selectedAgentName is not null
             string selectedAgentName = result.AgentId ?? "Unknown";
 
-            _logger.LogInformation("Agent Framework orchestration completed with agent: {AgentName}", selectedAgentName);
+            //_logger.LogInformation("Agent Framework orchestration completed with agent: {AgentName}", selectedAgentName);
 
             return (responseText, selectedAgentName);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in Agent Framework orchestration");
+            //_logger.LogError(ex, "Error in Agent Framework orchestration");
             return ("Sorry, I encountered an error while processing your request. Please try again.", "Error");
         }
     }

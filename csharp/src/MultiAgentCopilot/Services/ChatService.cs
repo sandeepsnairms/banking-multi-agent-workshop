@@ -13,7 +13,7 @@ namespace MultiAgentCopilot.Services;
 public class ChatService
 {
     private readonly CosmosDBService _cosmosDBService;
-    private readonly BankingDataService _bankService;
+    private readonly MockBankingService _bankService;
     private readonly MCPToolService _mcpService;
     private readonly  AgentFrameworkService _afService;
     private readonly ILogger _logger;
@@ -30,7 +30,7 @@ public class ChatService
         _cosmosDBService = cosmosDBService;
         _afService = afService;
         _mcpService = mcpService;
-        _bankService = new BankingDataService(cosmosDBService.Database, cosmosDBService.AccountDataContainer, cosmosDBService.UserDataContainer, cosmosDBService.AccountDataContainer, cosmosDBService.OfferDataContainer, afOptions.Value, loggerFactory);
+        _bankService =new  MockBankingService(); //new BankingDataService(cosmosDBService.Database, cosmosDBService.AccountDataContainer, cosmosDBService.UserDataContainer, cosmosDBService.AccountDataContainer, cosmosDBService.OfferDataContainer, afOptions.Value, loggerFactory);
 
         // Initialize the Agent Framework with both tool services
         _afService.SetInProcessToolService(_bankService);

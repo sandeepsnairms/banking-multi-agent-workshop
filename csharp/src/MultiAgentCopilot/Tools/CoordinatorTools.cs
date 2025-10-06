@@ -6,7 +6,7 @@ namespace MultiAgentCopilot.Tools
 {
     public class CoordinatorTools : BaseTools
     {
-        public CoordinatorTools(ILogger<CoordinatorTools> logger, BankingDataService bankService)
+        public CoordinatorTools(ILogger<CoordinatorTools> logger, MockBankingService bankService)
             : base(logger, bankService)
         {
         }

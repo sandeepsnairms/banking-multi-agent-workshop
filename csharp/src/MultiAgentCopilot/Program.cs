@@ -1,9 +1,37 @@
+using ModelContextProtocol.Server;
+using MultiAgentCopilot.MultiAgentCopilot.Services;
+using MultiAgentCopilot.Services;
+
+
+
 namespace MultiAgentCopilot
 {
     public class Program
     {
+
         public static void Main(string[] args)
         {
+            AgentFrameworkService afs = new AgentFrameworkService("https://sandeepnair-openai.openai.azure.com", "gpt-4o");
+            List<Microsoft.Extensions.AI.ChatMessage> chatHistory = new List<Microsoft.Extensions.AI.ChatMessage>();
+
+            chatHistory.Add(new Microsoft.Extensions.AI.ChatMessage(Microsoft.Extensions.AI.ChatRole.User, "Hi, Please let me know my bank balance"));
+
+            MockBankingService mb= new MockBankingService();
+
+            afs.SetInProcessToolService(mb);
+
+            afs.InitializeAgents();
+
+            var (responseText, selectedAgentName) = afs.RunGroupChatOrchestration(chatHistory, "Contoso", "Mark").GetAwaiter().GetResult();
+
+            Console.WriteLine($"Agent {selectedAgentName} said {responseText}");
+
+            Console.WriteLine($"Press any key to exit.");
+
+            Console.ReadLine();
+
+            return;
+
             var builder = WebApplication.CreateBuilder(args);
 
             // Load configuration from appsettings.json and environment variables
