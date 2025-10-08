@@ -1,333 +1,580 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using ModelContextProtocol.AspNetCore;
-using MCPServer.Tools;
+﻿
 using MCPServer.Models;
+using MCPServer.Authentication;
 using MCPServer.Services;
-using Microsoft.OpenApi.Models;
-using System.Text.Json;
-using OpenTelemetry;
-using OpenTelemetry.Metrics;
-using OpenTelemetry.Trace;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.IdentityModel.Tokens;
+using ModelContextProtocol.AspNetCore.Authentication;
 using System.Net.Http.Headers;
 using System.Security.Claims;
-using System.Text;
-using Microsoft.AspNetCore.Mvc;
-using System.Reflection;
+using System.Text.Json;
+using Banking.Services;
+using MCPServer.Tools;
 using System.ComponentModel;
-using Microsoft.AspNetCore.Hosting.Server;
-using Microsoft.AspNetCore.Hosting.Server.Features;
-using Microsoft.AspNetCore.Authentication;
-using System.Text.Encodings.Web;
-using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Logging;
+using System.Reflection;
+using MCPServer.Models.Configuration;
+
+// DIAGNOSTIC: This should appear in logs if changes are applied
+Console.WriteLine("🚀 STARTING MCP SERVER - UPDATED VERSION 3.0 with Real BankingDataService and Cosmos DB");
+Console.WriteLine($"🕐 Startup Time: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure URLs - let ASP.NET Core handle port assignment, but prefer 5000
-builder.WebHost.UseUrls("http://localhost:5000", "http://localhost:0");
+// Configure Cosmos DB settings
+builder.Services.Configure<CosmosDBSettings>(
+    builder.Configuration.GetSection("CosmosDBSettings"));
 
-// Add OpenTelemetry
-builder.Services.AddOpenTelemetry()
-    .WithTracing(b => b.AddSource("*")
-        .AddAspNetCoreInstrumentation()
-        .AddHttpClientInstrumentation())
-    .WithMetrics(b => b.AddMeter("*")
-        .AddAspNetCoreInstrumentation()
-        .AddHttpClientInstrumentation())
-    .WithLogging()
-    .UseOtlpExporter();
+// Register Cosmos DB service
+builder.Services.AddSingleton<CosmosDBService>();
 
-// Configure Authentication with custom OAuth scheme
+// Get the actual server URL from Kestrel configuration or default
+var serverUrl = builder.Configuration["Kestrel:Endpoints:Http:Url"] ?? "http://localhost:5000";
+if (!serverUrl.EndsWith("/"))
+    serverUrl += "/";
+
+var inMemoryOAuthServerUrl = "https://localhost:7029";
+
+// Configure OAuth settings
+builder.Services.Configure<OAuthSettings>(
+    builder.Configuration.GetSection("OAuthSettings"));
+
+
+// Register the banking service with real Cosmos DB containers (same pattern as ChatService.cs)
+builder.Services.AddScoped<Banking.Services.BankingDataService>(serviceProvider =>
+{
+    var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+    var cosmosDBService = serviceProvider.GetRequiredService<CosmosDBService>();
+    var logger = loggerFactory.CreateLogger<Program>();
+    
+    logger.LogInformation("Initializing BankingDataService with real Cosmos DB containers");
+    
+    
+    return new Banking.Services.BankingDataService(
+        database: cosmosDBService.Database,
+        accountData: cosmosDBService.AccountDataContainer,
+        userData: cosmosDBService.UserDataContainer,
+        requestData: cosmosDBService.RequestDataContainer,
+        offerData: cosmosDBService.OfferDataContainer,
+        loggerFactory);
+});
+
+// Register BankingTools which depends on BankingDataService
+builder.Services.AddScoped<BankingTools>();
+
 builder.Services.AddAuthentication(options =>
 {
-    options.DefaultAuthenticateScheme = "CustomOAuth";
-    options.DefaultChallengeScheme = "CustomOAuth";
+    options.DefaultChallengeScheme = McpAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
 })
-.AddScheme<CustomOAuthSchemeOptions, CustomOAuthHandler>("CustomOAuth", options => { });
+.AddJwtBearer(options =>
+{
+    // Configure to validate tokens from our in-memory OAuth server
+    options.Authority = inMemoryOAuthServerUrl;
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidAudience = serverUrl, // Validate that the audience matches the resource metadata as suggested in RFC 8707
+        ValidIssuer = inMemoryOAuthServerUrl,
+        NameClaimType = "name",
+        RoleClaimType = "roles"
+    };
+
+    options.Events = new JwtBearerEvents
+    {
+        OnTokenValidated = context =>
+        {
+            var name = context.Principal?.Identity?.Name ?? "unknown";
+            var email = context.Principal?.FindFirstValue("preferred_username") ?? "unknown";
+            Console.WriteLine($"JWT Token validated for: {name} ({email})");
+            
+            // Add auth_type claim to distinguish from server-to-server
+            var claims = new List<Claim> { new("auth_type", "user_jwt") };
+            var identity = new ClaimsIdentity(claims);
+            context.Principal?.AddIdentity(identity);
+            
+            return Task.CompletedTask;
+        },
+        OnMessageReceived = context =>
+        {
+            // Check if the token looks like a Base64 JSON token (not a JWT)
+            var token = context.Token;
+            if (!string.IsNullOrEmpty(token) && !token.Contains('.'))
+            {
+                // This is likely a Base64 JSON token, skip JWT validation
+                Console.WriteLine("Detected non-JWT token, skipping JWT validation");
+                context.NoResult();
+                return Task.CompletedTask;
+            }
+            return Task.CompletedTask;
+        },
+        OnAuthenticationFailed = context =>
+        {
+            Console.WriteLine($"JWT Authentication failed: {context.Exception.Message}");
+            context.NoResult();
+            return Task.CompletedTask;
+        },
+        OnChallenge = context =>
+        {
+            Console.WriteLine($"Challenging client to authenticate with Entra ID");
+            return Task.CompletedTask;
+        }
+    };
+})
+.AddScheme<ServerToServerAuthenticationOptions, ServerToServerAuthenticationHandler>(
+    ServerToServerAuthenticationOptions.DefaultScheme, options => { })
+.AddMcp(options =>
+{
+    options.ResourceMetadata = new()
+    {
+        Resource = new Uri(serverUrl),
+        ResourceDocumentation = new Uri("https://docs.example.com/api/weather"),
+        AuthorizationServers = { new Uri(inMemoryOAuthServerUrl) },
+        ScopesSupported = ["mcp:tools"],
+    };
+});
 
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("McpTools", policy =>
-        policy.RequireAuthenticatedUser()
-              .RequireClaim("scope", "mcp:tools"));
+    // Policy for server-to-server authentication only
+    options.AddPolicy(AuthorizationPolicies.ServerToServerPolicy, policy =>
+    {
+        policy.AddAuthenticationSchemes(ServerToServerAuthenticationOptions.DefaultScheme);
+        policy.AddRequirements(new ServerToServerRequirement());
+    });
+
+    // Policy for both user JWT and server-to-server authentication
+    options.AddPolicy(AuthorizationPolicies.UserOrServerPolicy, policy =>
+    {
+        policy.AddAuthenticationSchemes(
+            JwtBearerDefaults.AuthenticationScheme,
+            ServerToServerAuthenticationOptions.DefaultScheme);
+        policy.AddRequirements(new UserOrServerRequirement());
+    });
+
+    // Policy requiring mcp:tools scope
+    options.AddPolicy(AuthorizationPolicies.McpToolsScope, policy =>
+    {
+        policy.AddAuthenticationSchemes(
+            JwtBearerDefaults.AuthenticationScheme,
+            ServerToServerAuthenticationOptions.DefaultScheme);
+        policy.AddRequirements(new McpToolsScopeRequirement());
+    });
+
+    // Default policy uses both authentication schemes
+    options.DefaultPolicy = new AuthorizationPolicyBuilder()
+        .AddAuthenticationSchemes(
+            JwtBearerDefaults.AuthenticationScheme,
+            ServerToServerAuthenticationOptions.DefaultScheme)
+        .AddRequirements(new UserOrServerRequirement())
+        .Build();
 });
 
-// Add controllers for OAuth endpoints and MCP endpoints
-builder.Services.AddControllers()
-    .AddJsonOptions(options =>
-    {
-        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-        options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
-        options.JsonSerializerOptions.WriteIndented = true;
-    });
+// Register authorization handlers
+builder.Services.AddScoped<IAuthorizationHandler, ServerToServerAuthorizationHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, UserOrServerAuthorizationHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, McpToolsScopeAuthorizationHandler>();
 
 builder.Services.AddHttpContextAccessor();
 
-// Register MCP tools for dependency injection
-builder.Services.AddSingleton<IBankingService, MockBankingService>();
-builder.Services.AddSingleton<BankingTools>();
+// Banking service is already registered above
 
-// Add API Explorer and Swagger
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
+// Add HTTP client for server-to-server token service
+builder.Services.AddHttpClient<IServerToServerTokenService, ServerToServerTokenService>();
+builder.Services.AddScoped<IServerToServerTokenService, ServerToServerTokenService>();
+
+// Add controllers for OAuth endpoints
+builder.Services.AddControllers();
+
+// Add MCP server with explicit configuration (SINGLE REGISTRATION)
+Console.WriteLine("=== Configuring MCP Server ===");
+try 
 {
-    c.SwaggerDoc("v1", new OpenApiInfo 
-    { 
-        Title = "Banking MCP Server API", 
-        Version = "v1",
-        Description = "A Model Context Protocol (MCP) Server for banking operations with OAuth 2.0 JWT Bearer authentication. Supports both REST API and SSE for MCP protocol."
-    });
+    // Try alternative registration approach
+    var mcpBuilder = builder.Services.AddMcpServer();
+    mcpBuilder.WithTools<BankingTools>();
+    mcpBuilder.WithHttpTransport();
     
-    c.AddSecurityDefinition("OAuth2", new OpenApiSecurityScheme
-    {
-        Description = "OAuth 2.0 Bearer token. Get token from /oauth/token endpoint.",
-        Name = "Authorization",
-        In = ParameterLocation.Header,
-        Type = SecuritySchemeType.ApiKey,
-        Scheme = "Bearer"
-    });
+    Console.WriteLine("✓ MCP Server configured successfully with BankingTools");
+    Console.WriteLine("✓ HTTP transport enabled");
     
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "OAuth2"
-                }
-            },
-            Array.Empty<string>()
-        }
-    });
-});
-
-// Add CORS
-builder.Services.AddCors(options =>
+    // Try to register MCP services manually as fallback
+    Console.WriteLine("🔍 Attempting manual MCP service registration...");
+    
+}
+catch (Exception ex)
 {
-    options.AddPolicy("AllowAll", policy =>
-    {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
-    });
-});
-
-// Add logging
-builder.Logging.ClearProviders();
-builder.Logging.AddConsole();
-builder.Logging.AddDebug();
+    Console.WriteLine($"❌ Error configuring MCP Server: {ex.Message}");
+    Console.WriteLine($"❌ Stack trace: {ex.StackTrace}");
+}
+Console.WriteLine("================================");
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline
-if (app.Environment.IsDevelopment())
+// Validate MCP services are registered
+Console.WriteLine("=== MCP Service Validation ===");
+using (var scope = app.Services.CreateScope())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
+    try
     {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Banking MCP Server API V1");
-        c.RoutePrefix = string.Empty;
-        c.DocumentTitle = "Banking MCP Server API Documentation";
-        c.DefaultModelsExpandDepth(-1);
-    });
+        var bankingTools = scope.ServiceProvider.GetService<BankingTools>();
+        Console.WriteLine($"BankingTools registration: {(bankingTools != null ? "✓ Success" : "❌ Failed")}");
+        
+        var bankingService = scope.ServiceProvider.GetService<Banking.Services.BankingDataService>();
+        Console.WriteLine($"BankingDataService registration: {(bankingService != null ? "✓ Success" : "❌ Failed")}");
+        Console.WriteLine($"BankingDataService implementation: {bankingService?.GetType().Name ?? "N/A"}");
+        
+        // Try to test a banking tools method
+        if (bankingTools != null)
+        {
+            // Test reflection-based tool discovery
+            var toolsInfo = GetBankingToolsInfo();
+            Console.WriteLine($"Banking tools discovery: {(toolsInfo.Length > 0 ? "✓ Success" : "❌ Failed")} - Found {toolsInfo.Length} tools");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"❌ Error validating services: {ex.Message}");
+        Console.WriteLine($"❌ Stack trace: {ex.StackTrace}");
+    }
 }
+Console.WriteLine("==============================");
 
-// Disable HTTPS redirection for OAuth testing
-// app.UseHttpsRedirection();
-app.UseCors("AllowAll");
+// Add detailed logging to see what's happening BEFORE other middleware
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/mcp"))
+    {
+        Console.WriteLine($"=== MCP Request Debug ===");
+        Console.WriteLine($"Path: {context.Request.Path}");
+        Console.WriteLine($"Method: {context.Request.Method}");
+        Console.WriteLine($"Content-Type: {context.Request.ContentType}");
+        Console.WriteLine($"Accept: {context.Request.Headers.Accept.FirstOrDefault() ?? "None"}");
+        Console.WriteLine($"Authorization Header: {context.Request.Headers.Authorization.FirstOrDefault() ?? "None"}");
+        Console.WriteLine($"User Authenticated: {context.User?.Identity?.IsAuthenticated ?? false}");
+        
+        // Read and log the request body
+        if (context.Request.ContentLength > 0)
+        {
+            context.Request.EnableBuffering();
+            var body = await new StreamReader(context.Request.Body).ReadToEndAsync();
+            context.Request.Body.Position = 0;
+            Console.WriteLine($"Request Body: {body}");
+        }
+        Console.WriteLine($"========================");
+    }
+    
+    await next();
+    
+    // Log response details
+    if (context.Request.Path.StartsWithSegments("/mcp"))
+    {
+        Console.WriteLine($"=== MCP Response Debug ===");
+        Console.WriteLine($"Status Code: {context.Response.StatusCode}");
+        Console.WriteLine($"Content-Type: {context.Response.ContentType ?? "None"}");
+        Console.WriteLine($"==========================");
+    }
+});
 
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Map controllers (including OAuth endpoints and the new MCP controller)
+// Map OAuth controllers
 app.MapControllers();
 
-// Add health check endpoint
-app.MapGet("/health", () => new 
-{ 
-    status = "healthy", 
-    timestamp = DateTime.UtcNow,
-    server_name = "Banking MCP Server",
-    server_version = "1.0.0",
-    protocol_version = "2024-11-05",
-    description = "Banking MCP Server with OAuth 2.0 authentication and SSE support"
-})
-.WithOpenApi()
-.WithTags("Health")
-.WithSummary("Server health check");
-
-// Add MCP capabilities endpoint
-app.MapGet("/mcp/capabilities", () => new
-{
-    protocolVersion = "2024-11-05",
-    capabilities = new
-    {
-        tools = new { },
-        logging = new { },
-        sse = new { }
-    },
-    serverInfo = new
-    {
-        name = "Banking MCP Server",
-        version = "1.0.0"
-    }
-})
-.WithOpenApi()
-.WithTags("MCP")
-.WithSummary("Get MCP server capabilities");
-
-// Display startup information
-Console.WriteLine("Starting Banking MCP server with OAuth 2.0 authentication and SSE support...");
-Console.WriteLine("OAuth 2.0 endpoints:");
-Console.WriteLine("  - POST /oauth/token - Get OAuth access token");
-Console.WriteLine("");
-Console.WriteLine("MCP Protocol endpoints:");
-Console.WriteLine("  - POST /mcp/tools/list - List available MCP tools (REST)");
-Console.WriteLine("  - POST /mcp/tools/call - Execute MCP tools (REST)");
-Console.WriteLine("  - GET /mcp/sse - Server-Sent Events stream for MCP protocol");
-Console.WriteLine("  - POST /mcp - Handle MCP protocol messages");
-Console.WriteLine("  - GET /mcp/capabilities - Get server capabilities");
-Console.WriteLine("  - All endpoints require valid OAuth Bearer token");
-Console.WriteLine("");
-Console.WriteLine("Available tools:");
-Console.WriteLine("  - BankingTools: Search offers, get account details, transaction history, service requests");
-Console.WriteLine("");
-
-// Start the server and display the actual URLs
-app.Lifetime.ApplicationStarted.Register(() =>
-{
-    var addresses = app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()?.Addresses;
-    if (addresses != null)
-    {
-        Console.WriteLine("Server is running on:");
-        foreach (var address in addresses)
-        {
-            Console.WriteLine($"  - {address}");
-            Console.WriteLine($"  - Swagger UI: {address}");
-            Console.WriteLine($"  - SSE Stream: {address}/mcp/sse");
-        }
-    }
-    Console.WriteLine("");
-    Console.WriteLine("Press Ctrl+C to stop the server");
+// Add a test endpoint to verify MCP framework
+app.MapGet("/mcp-test", () => {
+    return Results.Ok(new { 
+        Status = "MCP Server is running",
+        Timestamp = DateTime.Now,
+        Framework = "ModelContextProtocol.AspNetCore"
+    });
 });
 
-app.Run();
+// Configure MCP endpoints with explicit path - temporarily remove auth for testing
+// app.MapMcp("/mcp"); // COMMENTED OUT - Using custom endpoint instead
 
-// Custom OAuth Authentication Handler Options
-public class CustomOAuthSchemeOptions : AuthenticationSchemeOptions
+// Add a custom JSON-RPC endpoint as fallback for MCP
+app.MapPost("/mcp", async (HttpContext context) =>
 {
+    Console.WriteLine("🔍 Custom MCP endpoint hit!");
+    
+    try
+    {
+        // Read the request body
+        using var reader = new StreamReader(context.Request.Body);
+        var requestBody = await reader.ReadToEndAsync();
+        Console.WriteLine($"📥 Request: {requestBody}");
+        
+        // Parse JSON-RPC request
+        var request = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(requestBody);
+        var method = request.GetProperty("method").GetString();
+        var id = request.TryGetProperty("id", out var idProp) ? idProp.GetInt32() : 1;
+        
+        Console.WriteLine($"🎯 Method: {method}, ID: {id}");
+        
+        // Handle different MCP methods
+        object response = method switch
+        {
+            "tools/list" => new
+            {
+                jsonrpc = "2.0",
+                id = id,
+                result = new
+                {
+                    tools = GetBankingToolsInfo()
+                }
+            },
+            "tools/call" => await HandleToolCall(request, context),
+            "ping" => new { jsonrpc = "2.0", id = id, result = new { } },
+            _ => new { jsonrpc = "2.0", id = id, error = new { code = -32601, message = $"Method '{method}' is not available." } }
+        };
+        
+        // Send response
+        context.Response.ContentType = "application/json";
+        var responseJson = System.Text.Json.JsonSerializer.Serialize(response);
+        Console.WriteLine($"📤 Response: {responseJson}");
+        await context.Response.WriteAsync(responseJson);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"❌ Error in custom MCP endpoint: {ex.Message}");
+        var errorResponse = new
+        {
+            jsonrpc = "2.0",
+            id = 1,
+            error = new { code = -32603, message = "An error occurred." }
+        };
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(errorResponse));
+    }
+});
+
+Console.WriteLine($"Starting MCP server with authorization at {serverUrl}");
+Console.WriteLine($"Using in-memory OAuth server at {inMemoryOAuthServerUrl}");
+Console.WriteLine($"Protected Resource Metadata URL: {serverUrl}.well-known/oauth-protected-resource");
+Console.WriteLine($"OAuth Token Endpoint: {serverUrl}oauth/token");
+Console.WriteLine($"MCP Endpoint: {serverUrl}mcp");
+Console.WriteLine($"Server-to-Server Authentication: Enabled");
+Console.WriteLine("Supported authentication methods:");
+Console.WriteLine("  1. JWT Bearer tokens from Entra ID (user authentication)");
+Console.WriteLine("  2. Server-to-server OAuth tokens (client credentials flow)");
+Console.WriteLine("Supported transport types:");
+Console.WriteLine("  - HTTP Transport (POST to /mcp endpoint)");
+Console.WriteLine("Press Ctrl+C to stop the server");
+Console.WriteLine();
+
+// Helper method to get tool information from BankingTools class using reflection
+object[] GetBankingToolsInfo()
+{
+    var toolsList = new List<object>();
+    var bankingToolsType = typeof(BankingTools);
+    
+    foreach (var method in bankingToolsType.GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
+    {
+        // Skip inherited methods from Object class
+        if (method.DeclaringType != bankingToolsType)
+            continue;
+            
+        var descriptionAttribute = method.GetCustomAttributes(typeof(DescriptionAttribute), false)
+            .FirstOrDefault() as DescriptionAttribute;
+            
+        if (descriptionAttribute != null)
+        {
+            var parameters = method.GetParameters()
+                .Where(p => p.GetCustomAttributes(typeof(DescriptionAttribute), false).Any())
+                .Select(p => new
+                {
+                    name = p.Name,
+                    type = GetParameterTypeName(p.ParameterType),
+                    description = (p.GetCustomAttributes(typeof(DescriptionAttribute), false)
+                        .FirstOrDefault() as DescriptionAttribute)?.Description ?? "",
+                    required = !p.HasDefaultValue
+                })
+                .ToArray();
+                
+            toolsList.Add(new
+            {
+                name = method.Name,
+                description = descriptionAttribute.Description,
+                inputSchema = new
+                {
+                    type = "object",
+                    properties = parameters.ToDictionary(
+                        p => p.name,
+                        p => new { type = p.type, description = p.description }
+                    ),
+                    required = parameters.Where(p => p.required).Select(p => p.name).ToArray()
+                }
+            });
+        }
+    }
+    
+    return toolsList.ToArray();
 }
 
-// Custom OAuth Authentication Handler
-public class CustomOAuthHandler : AuthenticationHandler<CustomOAuthSchemeOptions>
+// Helper method to map .NET types to JSON schema types
+string GetParameterTypeName(Type type)
 {
-    private readonly ILogger<CustomOAuthHandler> _logger;
+    // Handle nullable reference types by checking if it's a string
+    if (type == typeof(string))
+        return "string";
+    if (type == typeof(int) || type == typeof(int?) || type == typeof(long) || type == typeof(long?))
+        return "integer";
+    if (type == typeof(bool) || type == typeof(bool?))
+        return "boolean";
+    if (type == typeof(double) || type == typeof(double?) || type == typeof(decimal) || type == typeof(decimal?) || type == typeof(float) || type == typeof(float?))
+        return "number";
+    if (type == typeof(DateTime) || type == typeof(DateTime?))
+        return "string"; // ISO date string
+    
+    return "string"; // Default to string for complex types
+}
 
-    public CustomOAuthHandler(IOptionsMonitor<CustomOAuthSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder)
-        : base(options, logger, encoder)
+// Helper method to handle tool calls
+async Task<object> HandleToolCall(JsonElement request, HttpContext context)
+{
+    var id = request.TryGetProperty("id", out var idProp) ? idProp.GetInt32() : 1;
+    
+    try
     {
-        _logger = logger.CreateLogger<CustomOAuthHandler>();
-    }
-
-    protected override Task<AuthenticateResult> HandleAuthenticateAsync()
-    {
-        try
+        var parameters = request.GetProperty("params");
+        var toolName = parameters.GetProperty("name").GetString();
+        var arguments = parameters.TryGetProperty("arguments", out var argsProp) ? argsProp : new JsonElement();
+        
+        Console.WriteLine($"🛠️ Calling tool: {toolName}");
+        
+        // Get the banking tools from DI
+        using var scope = app.Services.CreateScope();
+        var bankingTools = scope.ServiceProvider.GetRequiredService<BankingTools>();
+        
+        // Use reflection to find and invoke the method
+        var method = typeof(BankingTools).GetMethod(toolName);
+        if (method == null)
         {
-            // Extract token from Authorization header
-            var authHeader = Request.Headers.Authorization.FirstOrDefault();
-            
-            if (string.IsNullOrEmpty(authHeader))
+            return new
             {
-                return Task.FromResult(AuthenticateResult.NoResult());
+                jsonrpc = "2.0",
+                id = id,
+                error = new { code = -32601, message = $"Tool '{toolName}' not found." }
+            };
+        }
+        
+        // Prepare method parameters
+        var methodParams = method.GetParameters();
+        var args = new object[methodParams.Length];
+        
+        for (int i = 0; i < methodParams.Length; i++)
+        {
+            var param = methodParams[i];
+            var paramName = param.Name;
+            
+            if (arguments.TryGetProperty(paramName, out var argValue))
+            {
+                // Convert the JSON value to the expected parameter type
+                args[i] = ConvertJsonToType(argValue, param.ParameterType);
             }
-            
-            if (!authHeader.StartsWith("Bearer "))
+            else if (param.HasDefaultValue)
             {
-                return Task.FromResult(AuthenticateResult.NoResult());
+                args[i] = param.DefaultValue;
             }
-
-            var token = authHeader.Substring("Bearer ".Length);
-            
-            if (ValidateOAuthToken(token, out var tokenData))
+            else if (param.ParameterType.IsGenericType && param.ParameterType.GetGenericTypeDefinition() == typeof(Nullable<>))
             {
-                var claims = new List<Claim>
-                {
-                    new(ClaimTypes.NameIdentifier, tokenData.ClientId),
-                    new("client_id", tokenData.ClientId),
-                    new("tenant_id", "default-tenant"),
-                    new("scope", string.Join(" ", tokenData.Scopes))
-                };
-                
-                // Add individual scope claims
-                foreach (var scope in tokenData.Scopes)
-                {
-                    claims.Add(new("scope", scope));
-                }
-                
-                var identity = new ClaimsIdentity(claims, Scheme.Name);
-                var principal = new ClaimsPrincipal(identity);
-                
-                _logger.LogInformation("Token validated for client: {ClientId}", tokenData.ClientId);
-                
-                var ticket = new AuthenticationTicket(principal, Scheme.Name);
-                return Task.FromResult(AuthenticateResult.Success(ticket));
+                args[i] = null;
             }
             else
             {
-                return Task.FromResult(AuthenticateResult.Fail("Invalid token"));
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Token validation failed");
-            return Task.FromResult(AuthenticateResult.Fail("Token validation failed"));
-        }
-    }
-
-    private bool ValidateOAuthToken(string token, out TokenData tokenData)
-    {
-        tokenData = null!;
-        
-        try
-        {
-            var tokenBytes = Convert.FromBase64String(token);
-            var tokenJson = System.Text.Encoding.UTF8.GetString(tokenBytes);
-            var jsonData = JsonSerializer.Deserialize<JsonElement>(tokenJson);
-
-            var expiresAt = jsonData.GetProperty("expires_at").GetInt64();
-            var currentTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            var isExpired = currentTime > expiresAt;
-            
-            if (!isExpired)
-            {
-                tokenData = new TokenData
+                // Required parameter missing
+                return new
                 {
-                    ClientId = jsonData.GetProperty("client_id").GetString() ?? "",
-                    Scopes = jsonData.GetProperty("scopes").EnumerateArray()
-                        .Select(s => s.GetString() ?? "").ToArray(),
-                    IssuedAt = jsonData.GetProperty("issued_at").GetInt64(),
-                    ExpiresAt = jsonData.GetProperty("expires_at").GetInt64()
+                    jsonrpc = "2.0",
+                    id = id,
+                    error = new { code = -32602, message = $"Missing required parameter: {paramName}" }
                 };
-                return true;
             }
-            
-            return false;
         }
-        catch (Exception ex)
+        
+        // Invoke the method
+        var result = method.Invoke(bankingTools, args);
+        
+        // Handle async methods
+        if (result is Task task)
         {
-            _logger.LogError(ex, "Token validation error");
-            return false;
+            await task;
+            
+            // Get the result from Task<T>
+            if (task.GetType().IsGenericType)
+            {
+                var resultProperty = task.GetType().GetProperty("Result");
+                result = resultProperty?.GetValue(task);
+            }
+            else
+            {
+                result = null; // Task without return value
+            }
         }
+        
+        // Serialize the result to JSON string
+        string resultText = result switch
+        {
+            null => "No result",
+            string str => str,
+            _ => JsonSerializer.Serialize(result, new JsonSerializerOptions { WriteIndented = true })
+        };
+        
+        return new
+        {
+            jsonrpc = "2.0",
+            id = id,
+            result = new { content = new[] { new { type = "text", text = resultText } } }
+        };
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"❌ Tool call error: {ex.Message}");
+        return new
+        {
+            jsonrpc = "2.0",
+            id = id,
+            error = new { code = -32603, message = $"Error calling tool: {ex.Message}" }
+        };
     }
 }
 
-public class TokenData
+// Helper method to convert JSON values to .NET types
+object? ConvertJsonToType(JsonElement jsonValue, Type targetType)
 {
-    public string ClientId { get; set; } = "";
-    public string[] Scopes { get; set; } = Array.Empty<string>();
-    public long IssuedAt { get; set; }
-    public long ExpiresAt { get; set; }
+    try
+    {
+        // Handle nullable types
+        if (targetType.IsGenericType && targetType.GetGenericTypeDefinition() == typeof(Nullable<>))
+        {
+            if (jsonValue.ValueKind == JsonValueKind.Null)
+                return null;
+            targetType = Nullable.GetUnderlyingType(targetType)!;
+        }
+        
+        return targetType.Name switch
+        {
+            nameof(String) => jsonValue.GetString(),
+            nameof(Int32) => jsonValue.GetInt32(),
+            nameof(Int64) => jsonValue.GetInt64(),
+            nameof(Boolean) => jsonValue.GetBoolean(),
+            nameof(Double) => jsonValue.GetDouble(),
+            nameof(Decimal) => jsonValue.GetDecimal(),
+            nameof(Single) => jsonValue.GetSingle(),
+            nameof(DateTime) => jsonValue.GetDateTime(),
+            _ => JsonSerializer.Deserialize(jsonValue, targetType)
+        };
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"⚠️ Warning: Could not convert JSON value to {targetType.Name}: {ex.Message}");
+        return targetType.IsValueType ? Activator.CreateInstance(targetType) : null;
+    }
 }
+
+app.Run();

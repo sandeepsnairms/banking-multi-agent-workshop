@@ -1,4 +1,4 @@
-﻿namespace BankingModels
+﻿namespace Banking.Models
 {
     public enum AccountStatus
     {

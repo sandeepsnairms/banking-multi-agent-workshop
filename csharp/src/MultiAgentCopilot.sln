@@ -7,7 +7,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MultiAgentCopilot", "MultiA
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MCPServer", "MCPServer\MCPServer.csproj", "{8B3A187B-DF59-EFF4-34F3-CA37CC868C80}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BankingModels", "BankingModels\BankingModels.csproj", "{D0563F89-6D36-4284-9914-446B78338037}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Banking", "Banking\Banking.csproj", "{D0563F89-6D36-4284-9914-446B78338037}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

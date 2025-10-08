@@ -1,5 +1,6 @@
 using MCPServer.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using System.Text.Json.Serialization;
 
 namespace MCPServer.Controllers;
@@ -9,43 +10,26 @@ namespace MCPServer.Controllers;
 public class OAuthController : ControllerBase
 {
     private readonly ILogger<OAuthController> _logger;
+    private readonly OAuthSettings _oauthSettings;
+    private readonly Dictionary<string, OAuthClient> _clients;
 
-    // OAuth client credentials store (in production, use proper client management)
-    private readonly Dictionary<string, OAuthClient> _clients = new()
-    {
-        { "coordinator-agent-client", new OAuthClient 
-            { 
-                ClientId = "coordinator-agent-client", 
-                ClientSecret = "coordinator-secret-key-2024", 
-                AllowedScopes = ["mcp:tools", "mcp:tools:coordinator"] 
-            }
-        },
-        { "customer-agent-client", new OAuthClient 
-            { 
-                ClientId = "customer-agent-client", 
-                ClientSecret = "customer-secret-key-2024", 
-                AllowedScopes = ["mcp:tools", "mcp:tools:customer"] 
-            }
-        },
-        { "sales-agent-client", new OAuthClient 
-            { 
-                ClientId = "sales-agent-client", 
-                ClientSecret = "sales-secret-key-2024", 
-                AllowedScopes = ["mcp:tools", "mcp:tools:sales"] 
-            }
-        },
-        { "transactions-agent-client", new OAuthClient 
-            { 
-                ClientId = "transactions-agent-client", 
-                ClientSecret = "transactions-secret-key-2024", 
-                AllowedScopes = ["mcp:tools", "mcp:tools:transactions"] 
-            }
-        }
-    };
-
-    public OAuthController(ILogger<OAuthController> logger)
+    public OAuthController(ILogger<OAuthController> logger, IOptions<OAuthSettings> oauthOptions)
     {
         _logger = logger;
+        _oauthSettings = oauthOptions.Value;
+        
+        // Convert configuration to runtime client dictionary
+        _clients = _oauthSettings.Clients.ToDictionary(
+            c => c.ClientId,
+            c => new OAuthClient
+            {
+                ClientId = c.ClientId,
+                ClientSecret = c.ClientSecret,
+                AllowedScopes = c.AllowedScopes.ToArray()
+            }
+        );
+
+        _logger.LogInformation("OAuth controller initialized with {ClientCount} clients", _clients.Count);
     }
 
     [HttpPost("token")]
@@ -94,7 +78,7 @@ public class OAuthController : ControllerBase
 
             // Generate access token (simple implementation - in production use proper JWT/token service)
             var accessToken = GenerateAccessToken(client.ClientId, requestedScopes);
-            var expiresIn = 3600; // 1 hour
+            var expiresIn = _oauthSettings.TokenExpirationMinutes * 60; // Convert to seconds
 
             _logger.LogInformation("OAuth token issued for client {ClientId} with scopes: {Scopes}", 
                 client.ClientId, string.Join(", ", requestedScopes));
@@ -141,7 +125,7 @@ public class OAuthController : ControllerBase
             client_id = clientId,
             scopes = scopes,
             issued_at = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
-            expires_at = DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds()
+            expires_at = DateTimeOffset.UtcNow.AddMinutes(_oauthSettings.TokenExpirationMinutes).ToUnixTimeSeconds()
         };
 
         var tokenJson = System.Text.Json.JsonSerializer.Serialize(tokenData);

@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using System.Text.Json;
-using MCPServer.Services;
-using BankingModels;
+using Banking.Models;
+using Banking.Services;
 
 namespace MCPServer.Tools;
 
@@ -10,21 +10,36 @@ namespace MCPServer.Tools;
 /// </summary>
 public class BankingTools
 {
-    private readonly IBankingService _bankingService;
+    private readonly Banking.Services.BankingDataService _bankingService;
     private readonly ILogger<BankingTools> _logger;
 
-    public BankingTools(IBankingService bankingService, ILogger<BankingTools> logger)
+    public BankingTools(Banking.Services.BankingDataService bankingService, ILogger<BankingTools> logger)
     {
         _bankingService = bankingService;
         _logger = logger;
     }
 
+
+    [Description("Get the current logged-in BankUser")]
+    public async Task<BankUser> GetLoggedInUser(string tenantId, string userId)
+    {
+        _logger.LogTrace($"Get Logged In User for Tenant:{tenantId} User:{userId}");
+        return await _bankingService.GetUserAsync(tenantId, userId);
+    }
+
+    [Description("Get the current date time in UTC")]
+    public DateTime GetCurrentDateTime()
+    {
+        var now = DateTime.Now.ToUniversalTime();
+        _logger.LogTrace($"Get Datetime: {now}");
+        return now;
+    }
+
     [Description("Search for banking offers and products using semantic search")]
-    [McpToolTags("offers", "sales", "general")]
     public async Task<List<OfferTerm>> SearchOffers(
-        [Description("Type of account (Savings, Checking, etc.)")] string accountType,
-        [Description("Customer requirements or preferences")] string requirement,
-        [Description("Tenant ID (optional, defaults to 'default-tenant')")] string? tenantId = null)
+        string accountType,
+        string requirement,
+        string? tenantId = null)
     {
         try
         {
@@ -50,10 +65,9 @@ public class BankingTools
     }
 
     [Description("Get detailed information for a specific banking offer")]
-    [McpToolTags("offers", "sales", "general")]
     public async Task<Offer> GetOfferDetails(
-        [Description("Unique identifier of the offer")] string offerId,
-        [Description("Tenant ID (optional, defaults to 'default-tenant')")] string? tenantId = null)
+        string offerId,
+        string? tenantId = null)
     {
         try
         {
@@ -75,12 +89,11 @@ public class BankingTools
 
 
     [Description("Get transaction history for a bank account")]
-    [McpToolTags("transactions", "accounts", "general")]
     public async Task<List<BankTransaction>> GetTransactionHistory(
-        [Description("Bank account ID")] string accountId,
-        [Description("Start date for transaction history")] DateTime startDate,
-        [Description("End date for transaction history")] DateTime endDate,
-        [Description("Tenant ID (optional, defaults to 'default-tenant')")] string? tenantId = null)
+         string accountId,
+         DateTime startDate,
+         DateTime endDate,
+         string? tenantId = null)
     {
         try
         {
@@ -101,11 +114,10 @@ public class BankingTools
     }
 
     [Description("Get account details for a user")]
-    [McpToolTags("accounts", "general")]
     public async Task<BankAccount> GetAccountDetails(
-        [Description("Bank account ID")] string accountId,
-        [Description("User ID")] string userId,
-        [Description("Tenant ID (optional, defaults to 'default-tenant')")] string? tenantId = null)
+        string accountId,
+        string userId,
+        string? tenantId = null)
     {
         try
         {
@@ -125,10 +137,9 @@ public class BankingTools
     }
 
     [Description("Get all registered accounts for a user")]
-    [McpToolTags("accounts", "general")]
     public async Task<List<BankAccount>> GetUserAccounts(
-        [Description("User ID")] string userId,
-        [Description("Tenant ID (optional, defaults to 'default-tenant')")] string? tenantId = null)
+        string userId,
+        string? tenantId = null)
     {
         try
         {
@@ -149,13 +160,12 @@ public class BankingTools
 
 
     [Description("Create a customer service request")]
-    [McpToolTags("services", "general")]
     public async Task<ServiceRequest> CreateServiceRequest(
-        [Description("Type of service request (FundTransfer, Complaint, TeleBankerCallBack, Fulfilment)")] string requestType,
-        [Description("Description of the issue or request")] string description,
-        [Description("Associated account ID (optional)")] string? accountId = null,
-        [Description("User ID")] string? userId = null,
-        [Description("Tenant ID (optional, defaults to 'default-tenant')")] string? tenantId = null)
+        string requestType,
+        string description,
+        string? accountId = null,
+        string? userId = null,
+        string? tenantId = null)
     {
         try
         {
@@ -213,12 +223,11 @@ public class BankingTools
     }
 
     [Description("Get service requests for an account")]
-    [McpToolTags("services", "general")]
     public async Task<List<ServiceRequest>> GetServiceRequests(
-        [Description("Associated account ID")] string accountId,
-        [Description("User ID (optional)")] string? userId = null,
-        [Description("Service request type filter (optional)")] string? requestType = null,
-        [Description("Tenant ID (optional, defaults to 'default-tenant')")] string? tenantId = null)
+        string accountId,
+        string? userId = null,
+        string? requestType = null,
+        string? tenantId = null)
     {
         try
         {
@@ -244,12 +253,11 @@ public class BankingTools
     }
 
     [Description("Add annotation to an existing service request")]
-    [McpToolTags("services", "general")]
     public async Task<bool> AddServiceRequestAnnotation(
-        [Description("Service request ID")] string requestId,
-        [Description("Associated account ID")] string accountId,
-        [Description("Annotation to add")] string annotation,
-        [Description("Tenant ID (optional, defaults to 'default-tenant')")] string? tenantId = null)
+        string requestId,
+        string accountId,
+        string annotation,
+        string? tenantId = null)
     {
         try
         {
@@ -270,7 +278,6 @@ public class BankingTools
     }
 
     [Description("Get telebanker availability information")]
-    [McpToolTags("services", "general")]
     public async Task<string> GetTeleBankerAvailability()
     {
         try

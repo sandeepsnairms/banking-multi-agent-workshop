@@ -4,34 +4,27 @@
     {
         public MCPConnectionType ConnectionType { get; set; } = MCPConnectionType.STDIO;
 
-        // Agent endpoint URLs
-        public string CordinatorEndpointUrl { get; set; } = string.Empty;
-        public string CustomerEndpointUrl { get; set; } = string.Empty;
-        public string SalesEndpointUrl { get; set; } = string.Empty;
-        public string TransactionsEndpointUrl { get; set; } = string.Empty;
+        public List<MCPServerSettings> Servers { get; set; } = new();
+        /// <summary>
+        /// Configuration settings for MCP server
+        /// </summary>
+        public class MCPServerSettings
+        {
+            public string AgentName { get; set; } = string.Empty;
+            public string BaseUrl { get; set; } = string.Empty;
+            public OAuthSettings OAuth { get; set; } = new();
+        }
 
-        // Agent tool tags for filtering
-        public string CordinatorToolTags { get; set; } = string.Empty;
-        public string CustomerToolTags { get; set; } = string.Empty;
-        public string SalesToolTags { get; set; } = string.Empty;
-        public string TransactionsToolTags { get; set; } = string.Empty;
-
-        // OAuth 2.0 Client Credentials for each agent
-        public string CordinatorClientId { get; set; } = string.Empty;
-        public string CordinatorClientSecret { get; set; } = string.Empty;
-        public string CordinatorScope { get; set; } = "mcp:tools";
-
-        public string CustomerClientId { get; set; } = string.Empty;
-        public string CustomerClientSecret { get; set; } = string.Empty;
-        public string CustomerScope { get; set; } = "mcp:tools:customer";
-
-        public string SalesClientId { get; set; } = string.Empty;
-        public string SalesClientSecret { get; set; } = string.Empty;
-        public string SalesScope { get; set; } = "mcp:tools:sales";
-
-        public string TransactionsClientId { get; set; } = string.Empty;
-        public string TransactionsClientSecret { get; set; } = string.Empty;
-        public string TransactionsScope { get; set; } = "mcp:tools:transactions";
+        /// <summary>
+        /// OAuth configuration settings
+        /// </summary>
+        public class OAuthSettings
+        {
+            public string ClientId { get; set; } = string.Empty;
+            public string ClientSecret { get; set; } = string.Empty;
+            public string TokenEndpoint { get; set; } = string.Empty;
+            public string ValidateEndpoint { get; set; } = string.Empty;
+        }
     }
 
     public enum MCPConnectionType

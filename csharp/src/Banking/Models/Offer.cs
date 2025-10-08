@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace BankingModels
+namespace Banking.Models
 {
     public class Offer
     {

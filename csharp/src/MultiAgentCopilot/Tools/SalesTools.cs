@@ -1,8 +1,8 @@
 ﻿using Microsoft.Extensions.AI;
-using BankingModels;
 using MultiAgentCopilot.Services;
 using System.ComponentModel;
-
+using Banking.Models;
+using Banking.Services;
 namespace MultiAgentCopilot.Tools
 {
     public class SalesTools : BaseTools

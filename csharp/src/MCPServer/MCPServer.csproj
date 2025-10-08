@@ -10,18 +10,22 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.9" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Identity.Web" Version="3.14.1" />
     <PackageReference Include="ModelContextProtocol" Version="0.4.0-preview.1" />
     <PackageReference Include="ModelContextProtocol.AspNetCore" Version="0.4.0-preview.1" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="7.2.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="8.1.1" />
     <PackageReference Include="OpenTelemetry" Version="1.9.0" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.9.0" />
     <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.9.0" />
     <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.9.0" />
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.9.0" />
+    <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.54.0" />
+    <PackageReference Include="Azure.Identity" Version="1.16.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\BankingModels\BankingModels.csproj" />
+    <ProjectReference Include="..\Banking\Banking.csproj" />
+    <ProjectReference Include="..\MultiAgentCopilot\MultiAgentCopilot.csproj" />
   </ItemGroup>
 
 </Project>

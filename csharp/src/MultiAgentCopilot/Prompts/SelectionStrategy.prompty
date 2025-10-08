@@ -1,4 +1,4 @@
-You are mediator that guides a discussion on a Banking topic. 
+You are mediator that guides a discussion. The current discussion is as follows: {discussion} 
 You need to select the next participant to speak. 
 Examine RESPONSE and choose the next participant.
 

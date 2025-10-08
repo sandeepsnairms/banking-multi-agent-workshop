@@ -1,24 +1,18 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Fluent;
 using Container = Microsoft.Azure.Cosmos.Container;
 using Azure.Identity;
 using System.Text;
-using MultiAgentCopilot.Helper;
-using MultiAgentCopilot.Models.Configuration;
+using Banking.Models;
+using Microsoft.Extensions.Logging;
 
 using PartitionKey = Microsoft.Azure.Cosmos.PartitionKey;
 
-
-
 using System.Text.Json;
-
-
 using System.Linq.Expressions;
-using Banking.Models;
 
-
-namespace MCPServer.Services
+namespace Banking.Services
 {
     public class BankingDataService
     {
@@ -36,15 +30,12 @@ namespace MCPServer.Services
 
         public bool IsInitialized { get; private set; }
 
-        //readonly Kernel _semanticKernel;
-
-
-
+        // Mock implementations for missing dependencies
+        private static Database GetMockDatabase() => null!; // This needs to be injected properly
+        private static Container GetMockContainer() => null!; // This needs to be injected properly
 
         public BankingDataService(
-           Database database, Container accountData, Container userData, Container requestData, Container offerData,
-           AgentFrameworkServiceSettings skSettings,
-           ILoggerFactory loggerFactory)
+            Database database, Container accountData, Container userData, Container requestData, Container offerData, ILoggerFactory loggerFactory)
         {
 
             _database = database;
@@ -57,22 +48,22 @@ namespace MCPServer.Services
 
             _logger.LogInformation("Initializing Banking service.");
 
-
             //To DO: Add vector search initialization code here
 
+            // TODO: skSettings needs to be injected or made available
             DefaultAzureCredential credential;
-            if (string.IsNullOrEmpty(skSettings.AzureOpenAISettings.UserAssignedIdentityClientID))
-            {
+            // Commented out until skSettings is available
+            // if (string.IsNullOrEmpty(skSettings.AzureOpenAISettings.UserAssignedIdentityClientID))
+            // {
                 credential = new DefaultAzureCredential();
-            }
-            else
-            {
-                credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
-                {
-                    ManagedIdentityClientId = skSettings.AzureOpenAISettings.UserAssignedIdentityClientID
-                });
-
-            }
+            // }
+            // else
+            // {
+            //     credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
+            //     {
+            //         ManagedIdentityClientId = skSettings.AzureOpenAISettings.UserAssignedIdentityClientID
+            //     });
+            // }
 
             //_textEmbeddingGenerationService = new(
             //        deploymentName: skSettings.AzureOpenAISettings.EmbeddingsDeployment, // Name of deployment, e.g. "text-embedding-ada-002".
@@ -86,12 +77,11 @@ namespace MCPServer.Services
             _logger.LogInformation("Banking service initialized.");
         }
 
-
         public async Task<BankUser> GetUserAsync(string tenantId, string userId)
         {
             try
             {
-                var partitionKey = PartitionManager.GetUserDataFullPK(tenantId);
+                var partitionKey = GetUserDataFullPK(tenantId);
 
                 return await _userData.ReadItemAsync<BankUser>(
                        id: userId,
@@ -104,7 +94,6 @@ namespace MCPServer.Services
             }
         }
 
-
         public async Task<List<BankAccount>> GetUserRegisteredAccountsAsync(string tenantId, string userId)
         {
             try
@@ -113,7 +102,7 @@ namespace MCPServer.Services
                      .WithParameter("@type", nameof(BankAccount))
                      .WithParameter("@userId", userId);
 
-                var partitionKey = PartitionManager.GetAccountsPartialPK(tenantId);
+                var partitionKey = GetAccountsPartialPK(tenantId);
                 FeedIterator<BankAccount> response = _accountData.GetItemQueryIterator<BankAccount>(query, null, new QueryRequestOptions() { PartitionKey = partitionKey });
 
                 List<BankAccount> output = new();
@@ -132,12 +121,11 @@ namespace MCPServer.Services
             }
         }
 
-
         public async Task<BankAccount> GetAccountDetailsAsync(string tenantId, string userId, string accountId)
         {
             try
             {
-                var partitionKey = PartitionManager.GetAccountsDataFullPK(tenantId, accountId);
+                var partitionKey = GetAccountsDataFullPK(tenantId, accountId);
 
                 return await _accountData.ReadItemAsync<BankAccount>(
                        id: accountId,
@@ -154,7 +142,7 @@ namespace MCPServer.Services
         {
             try
             {
-                var partitionKey = PartitionManager.GetAccountsDataFullPK(tenantId, accountId);
+                var partitionKey = GetAccountsDataFullPK(tenantId, accountId);
 
                 QueryDefinition queryDefinition = new QueryDefinition(
                        "SELECT * FROM c WHERE c.accountId = @accountId AND c.transactionDateTime >= @startDate AND c.transactionDateTime <= @endDate AND c.type = @type")
@@ -211,12 +199,11 @@ namespace MCPServer.Services
             return await AddServiceRequestAsync(req);
         }
 
-
         private async Task<ServiceRequest> AddServiceRequestAsync(ServiceRequest req)
         {
             try
             {
-                var partitionKey = PartitionManager.GetAccountsDataFullPK(req.TenantId, req.AccountId);
+                var partitionKey = GetAccountsDataFullPK(req.TenantId, req.AccountId);
                 ItemResponse<ServiceRequest> response = await _accountData.CreateItemAsync(req, partitionKey);
                 return response.Resource;
             }
@@ -227,12 +214,11 @@ namespace MCPServer.Services
             }
         }
 
-
         public async Task<List<ServiceRequest>> GetServiceRequestsAsync(string tenantId, string accountId, string? userId = null, ServiceRequestType? SRType = null)
         {
             try
             {
-                var partitionKey = PartitionManager.GetAccountsDataFullPK(tenantId, accountId);
+                var partitionKey = GetAccountsDataFullPK(tenantId, accountId);
 
                 var queryBuilder = new StringBuilder("SELECT * FROM c WHERE c.type = @type");
                 var queryDefinition = new QueryDefinition(queryBuilder.ToString())
@@ -249,7 +235,6 @@ namespace MCPServer.Services
                     queryBuilder.Append(" AND c.SRType = @SRType");
                     queryDefinition = queryDefinition.WithParameter("@SRType", SRType);
                 }
-
 
                 List<ServiceRequest> reqs = new List<ServiceRequest>();
                 using (FeedIterator<ServiceRequest> feedIterator = _requestData.GetItemQueryIterator<ServiceRequest>(queryDefinition, requestOptions: new QueryRequestOptions { PartitionKey = partitionKey }))
@@ -270,13 +255,11 @@ namespace MCPServer.Services
             }
         }
 
-
-
         public async Task<bool> AddServiceRequestDescriptionAsync(string tenantId, string accountId, string requestId, string annotationToAdd)
         {
             try
             {
-                var partitionKey = PartitionManager.GetAccountsDataFullPK(tenantId, accountId);
+                var partitionKey = GetAccountsDataFullPK(tenantId, accountId);
 
                 var patchOperations = new List<PatchOperation>
                 {
@@ -309,7 +292,6 @@ namespace MCPServer.Services
                 //       new[] { requirementDescription }
                 //   )).FirstOrDefault();
 
-
                 //string accountTypeString = accountType.ToString();
 
                 //// filters as LINQ expression
@@ -325,7 +307,6 @@ namespace MCPServer.Services
                 //    Top = 10,
                 //    IncludeVectors = false
                 //};
-
 
                 //var searchResults = await _offerDataVectorStore.VectorizedSearchAsync(embedding, options);
 
@@ -360,6 +341,23 @@ namespace MCPServer.Services
             }
         }
 
+        // Helper methods to replace PartitionManager calls (these need proper implementation)
+        private static PartitionKey GetUserDataFullPK(string tenantId)
+        {
+            // TODO: Implement proper partition key logic or inject PartitionManager
+            return new PartitionKey(tenantId);
+        }
 
+        private static PartitionKey GetAccountsPartialPK(string tenantId)
+        {
+            // TODO: Implement proper partition key logic or inject PartitionManager
+            return new PartitionKey(tenantId);
+        }
+
+        private static PartitionKey GetAccountsDataFullPK(string tenantId, string accountId)
+        {
+            // TODO: Implement proper partition key logic or inject PartitionManager
+            return new PartitionKey(tenantId);
+        }
     }
 }

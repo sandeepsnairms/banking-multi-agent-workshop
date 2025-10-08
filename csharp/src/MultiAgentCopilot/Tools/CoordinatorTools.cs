@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.AI;
 using MultiAgentCopilot.Services;
 using System.ComponentModel;
-
+using Banking.Services;
 namespace MultiAgentCopilot.Tools
 {
     public class CoordinatorTools : BaseTools

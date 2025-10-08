@@ -2,130 +2,238 @@
 
 using Azure.AI.OpenAI;
 using Azure.Identity;
-using Microsoft.Agents.Orchestration;
-using Microsoft.Extensions.AI;
 using Microsoft.Agents.AI;
-using Microsoft.Agents.AI.OpenAI;
+using Microsoft.Agents.AI.Workflows;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MultiAgentCopilot.Factories;
-using MultiAgentCopilot.Models;
 using MultiAgentCopilot.Models.Chat;
-using MultiAgentCopilot.Models.ChatInfoFormats;
 using MultiAgentCopilot.Models.Configuration;
 using MultiAgentCopilot.Models.Debug;
 using MultiAgentCopilot.MultiAgentCopilot.Factories;
 using MultiAgentCopilot.MultiAgentCopilot.Helper;
 using MultiAgentCopilot.MultiAgentCopilot.Services;
-using MultiAgentCopilot.Services;
-
-using OpenAI;
-//using Azure.AI.OpenAI;
 using OpenAI.Chat;
 using System.Text.Json;
-//using Azure.AI.OpenAI;
-
+using ChatMessage = Microsoft.Extensions.AI.ChatMessage;
+using Banking.Services;
 
 namespace MultiAgentCopilot.Services;
 
+/// <summary>
+/// Service responsible for managing AI agents and orchestrating multi-agent conversations
+/// using the Microsoft Agents AI framework.
+/// </summary>
 public class AgentFrameworkService : IDisposable
 {
+    #region Private Fields
+    
     private readonly AgentFrameworkServiceSettings _settings;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<AgentFrameworkService> _logger;
-    private readonly OpenAI.Chat.ChatClient _chatClient;
-    private BankingDataService _bankService;
-    private MCPToolService _mcpService;
-
-    private bool _serviceInitialized = false;
+    private readonly IChatClient _chatClient;
+    
+    private BankingDataService? _bankService;
+    private MCPToolService? _mcpService;
+    private List<AIAgent>? _agents;
     private List<LogProperty> _promptDebugProperties;
-    private List<Microsoft.Agents.AI.AIAgent> _agents = null;
+    
+    private bool _serviceInitialized = false;
+
+    #endregion
+
+    #region Properties
 
     public bool IsInitialized => _serviceInitialized;
+
+    #endregion
+
+    #region Constructor
 
     public AgentFrameworkService(
         IOptions<AgentFrameworkServiceSettings> options,
         ILoggerFactory loggerFactory)
     {
-        _settings = options.Value;
-        _loggerFactory = loggerFactory;
+        _settings = options?.Value ?? throw new ArgumentNullException(nameof(options));
+        _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
         _logger = _loggerFactory.CreateLogger<AgentFrameworkService>();
         _promptDebugProperties = new List<LogProperty>();
 
         _logger.LogInformation("Initializing the Agent Framework service...");
 
-        // Create Azure OpenAI chat client with improved credential handling
+        _chatClient = CreateChatClient();
 
-        DefaultAzureCredential credential;
-        if (string.IsNullOrEmpty(_settings.AzureOpenAISettings.UserAssignedIdentityClientID))
-        {
-            credential = new DefaultAzureCredential();
-        }
-        else
-        {
-            credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
-            {
-                ManagedIdentityClientId = _settings.AzureOpenAISettings.UserAssignedIdentityClientID
-            });
-        }
-
-
-        var endpoint = new Uri(_settings.AzureOpenAISettings.Endpoint);
-
-        var openAIClient = new AzureOpenAIClient(endpoint, credential);
-        // Use ChatClient directly from OpenAI SDK
-        _chatClient = openAIClient.GetChatClient(_settings.AzureOpenAISettings.CompletionsDeployment);
-
-             
-
-        _logger.LogWarning("Agent Framework Initialized.");
+        _logger.LogInformation("Agent Framework Initialized.");
 
         Task.Run(Initialize).ConfigureAwait(false);
     }
 
+    #endregion
+
+    #region Private Methods
+
+    /// <summary>
+    /// Creates and configures the Azure OpenAI chat client.
+    /// </summary>
+    private IChatClient CreateChatClient()
+    {
+        try
+        {
+            var credential = CreateAzureCredential();
+            var endpoint = new Uri(_settings.AzureOpenAISettings.Endpoint);
+            var openAIClient = new AzureOpenAIClient(endpoint, credential);
+            
+            return openAIClient
+                .GetChatClient(_settings.AzureOpenAISettings.CompletionsDeployment)
+                .AsIChatClient();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to create chat client");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Creates the appropriate Azure credential based on configuration.
+    /// </summary>
+    private DefaultAzureCredential CreateAzureCredential()
+    {
+        if (string.IsNullOrEmpty(_settings.AzureOpenAISettings.UserAssignedIdentityClientID))
+        {
+            return new DefaultAzureCredential();
+        }
+        
+        return new DefaultAzureCredential(new DefaultAzureCredentialOptions
+        {
+            ManagedIdentityClientId = _settings.AzureOpenAISettings.UserAssignedIdentityClientID
+        });
+    }
+
+    /// <summary>
+    /// Logs messages for debugging purposes.
+    /// </summary>
     private void LogMessage(string key, string value)
     {
         _promptDebugProperties.Add(new LogProperty(key, value));
     }
 
+    /// <summary>
+    /// Initializes the service asynchronously.
+    /// </summary>
+    private Task Initialize()
+    {
+        try
+        {
+            _serviceInitialized = true;
+            _logger.LogInformation("Agent Framework service initialized.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Agent Framework service was not initialized. Error: {ErrorMessage}", ex.Message);
+        }
+        return Task.CompletedTask;
+    }
 
+    #endregion
+
+
+    #region Public Methods
+
+    /// <summary>
+    /// Sets the in-process tool service for banking operations.
+    /// </summary>
+    /// <param name="bankService">The banking data service instance.</param>
+    /// <returns>True if the service was set successfully.</returns>
     public bool SetInProcessToolService(BankingDataService bankService)
     {
-         _bankService = bankService ?? throw new ArgumentNullException(nameof(bankService));
-
+        _bankService = bankService ?? throw new ArgumentNullException(nameof(bankService));
         _logger.LogInformation("InProcessToolService has been set.");
         return true;
     }
 
-
+    /// <summary>
+    /// Sets the MCP (Model Context Protocol) tool service.
+    /// </summary>
+    /// <param name="mcpService">The MCP tool service instance.</param>
+    /// <returns>True if the service was set successfully.</returns>
     public bool SetMCPToolService(MCPToolService mcpService)
     {
         _mcpService = mcpService ?? throw new ArgumentNullException(nameof(mcpService));
-
-        _logger.LogInformation("MCPToolService has been set.");
+        _logger.LogInformation("🔗 MCPToolService has been set - MCP integration ENABLED");
         return true;
     }
 
+    /// <summary>
+    /// Initializes the AI agents based on available tool services.
+    /// </summary>
+    /// <returns>True if agents were initialized successfully.</returns>
     public bool InitializeAgents()
     {
-        if (_agents == null || _agents.Count == 0)
+        try
         {
-            if(_mcpService != null) 
-                _agents = AgentFactory.CreateAllAgentsWithMCPToolsAsync(_chatClient, _mcpService, _loggerFactory).GetAwaiter().GetResult();
-
-            if(_bankService != null)
-                _agents = AgentFactory.CreateAllAgentsWithInProcessTools(_chatClient, _bankService, _loggerFactory);
+            _logger.LogInformation("🚀 InitializeAgents called - checking available services...");
+            _logger.LogInformation("🔍 MCP Service available: {McpAvailable}", _mcpService != null);
+            _logger.LogInformation("🔍 Bank Service available: {BankAvailable}", _bankService != null);
 
             if (_agents == null || _agents.Count == 0)
             {
-                _logger.LogError("No agents available for orchestration");
-               return false;
+                if (_mcpService != null)
+                {
+                    _logger.LogInformation("🌐 Creating agents with MCP Tools - PRIORITY PATH");
+                    _agents = AgentFactory.CreateAllAgentsWithMCPToolsAsync(_chatClient, _mcpService, _loggerFactory)
+                        .GetAwaiter().GetResult();
+                    _logger.LogInformation("✅ Created {AgentCount} agents using MCP tools", _agents?.Count ?? 0);
+                }
+                else if (_bankService != null)
+                {
+                    _logger.LogInformation("🏪 Creating agents with In-Process Tools - FALLBACK PATH");
+                    _agents = AgentFactory.CreateAllAgentsWithInProcessTools(_chatClient, _bankService, _loggerFactory);
+                    _logger.LogInformation("✅ Created {AgentCount} agents using in-process tools", _agents?.Count ?? 0);
+                }
+                else
+                {
+                    _logger.LogError("❌ No tool services available - cannot create agents");
+                }
+
+                if (_agents == null || _agents.Count == 0)
+                {
+                    _logger.LogError("💥 No agents available for orchestration");
+                    return false;
+                }
+
+                _logger.LogInformation("🎯 Successfully initialized {AgentCount} agents", _agents.Count);
+                
+                // Log agent details
+                foreach (var agent in _agents)
+                {
+                    _logger.LogInformation("🤖 Agent: {AgentName}, Description: {Description}", 
+                        agent.Name, agent.Description);
+                }
             }
+            else
+            {
+                _logger.LogInformation("♻️ Agents already initialized ({AgentCount} agents available)", _agents.Count);
+            }
+            return true;
         }
-        return true;
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "💥 Failed to initialize agents: {ExceptionMessage}", ex.Message);
+            return false;
+        }
     }
 
-
+    /// <summary>
+    /// Processes a user message and returns the agent's response.
+    /// </summary>
+    /// <param name="userMessage">The user's message.</param>
+    /// <param name="messageHistory">The conversation history.</param>
+    /// <param name="bankService">The banking data service.</param>
+    /// <param name="tenantId">The tenant identifier.</param>
+    /// <param name="userId">The user identifier.</param>
+    /// <returns>A tuple containing the response messages and debug logs.</returns>
     public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(
         Message userMessage,
         List<Message> messageHistory,
@@ -135,103 +243,228 @@ public class AgentFrameworkService : IDisposable
     {
         try
         {
-            // Convert message history to ChatMessage format
-            var chatHistory = new List<Microsoft.Extensions.AI.ChatMessage>();
-            foreach (var msg in messageHistory)
-            {
-                var role = msg.SenderRole.ToLowerInvariant() switch
-                {
-                    "user" => ChatMessageRole.User,
-                    "assistant" => ChatMessageRole.Assistant,
-                    "system" => ChatMessageRole.System,
-                    _ => ChatMessageRole.User
-                };
-
-                if (role == ChatMessageRole.User)
-                {
-                    chatHistory.Add(new Microsoft.Extensions.AI.ChatMessage(ChatRole.User, msg.Text));
-                }
-                else if (role == ChatMessageRole.Assistant)
-                {
-                    chatHistory.Add(new Microsoft.Extensions.AI.ChatMessage(ChatRole.Assistant, msg.Text));
-                }
-                else if (role == ChatMessageRole.System)
-                {
-                    chatHistory.Add(new Microsoft.Extensions.AI.ChatMessage(ChatRole.System, msg.Text));
-                }
-            }
-
-            // Add user message
-            chatHistory.Add(new Microsoft.Extensions.AI.ChatMessage(ChatRole.User, userMessage.Text));
+            var chatHistory = ConvertToAIChatMessages(messageHistory);
+            chatHistory.Add(new ChatMessage(ChatRole.User, userMessage.Text));
 
             _promptDebugProperties.Clear();
 
-            // Use AI-based GroupChat orchestration with selection and termination strategies
-            var (responseText, selectedAgentName) = await RunGroupChatOrchestration(chatHistory,  tenantId, userId);
+            var (responseText, selectedAgentName) = await RunGroupChatOrchestration(chatHistory, tenantId, userId);
 
-            var completionMessages = new List<Message>();
-            var completionMessagesLogs = new List<DebugLog>();
-
-            string messageId = Guid.NewGuid().ToString();
-            string debugLogId = Guid.NewGuid().ToString();
-
-            var responseMessage = new Message(
-                userMessage.TenantId,
-                userMessage.UserId,
-                userMessage.SessionId,
-                selectedAgentName,
-                "Assistant",
-                responseText,
-                messageId,
-                debugLogId);
-
-            completionMessages.Add(responseMessage);
-
-            if (_promptDebugProperties.Count > 0)
-            {
-                var debugLog = new DebugLog(userMessage.TenantId, userMessage.UserId, userMessage.SessionId, messageId, debugLogId)
-                {
-                    PropertyBag = _promptDebugProperties.ToList()
-                };
-                completionMessagesLogs.Add(debugLog);
-            }
-
-            return new Tuple<List<Message>, List<DebugLog>>(completionMessages, completionMessagesLogs);
+            return CreateResponseTuple(userMessage, responseText, selectedAgentName);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.ToString());
+            _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.Message);
             return new Tuple<List<Message>, List<DebugLog>>(new List<Message>(), new List<DebugLog>());
         }
     }
 
+    /// <summary>
+    /// Summarizes the given text.
+    /// </summary>
+    /// <param name="sessionId">The session identifier.</param>
+    /// <param name="userPrompt">The text to summarize.</param>
+    /// <returns>A summarized version of the text.</returns>
+    public async Task<string> Summarize(string sessionId, string userPrompt)
+    {
+        try
+        {
+            var agent = _chatClient.CreateAIAgent(
+                "Summarize the following text into exactly two words:", 
+                "Summarizer", 
+                "A tool to summarize text", 
+                new AIFunction[] { });
+
+            await foreach (var update in agent.RunStreamingAsync(userPrompt))
+            {
+                return update.Text;
+            }
+
+            return "No summary generated";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.Message);
+            return string.Empty;
+        }
+    }
+
+    /// <summary>
+    /// Disposes of the service resources.
+    /// </summary>
+    public void Dispose()
+    {
+        _mcpService?.Dispose();
+        GC.SuppressFinalize(this);
+    }
+
+    #endregion
+
+    #region Private Helper Methods
+
+    /// <summary>
+    /// Converts message history to AI chat message format.
+    /// </summary>
+    private List<ChatMessage> ConvertToAIChatMessages(List<Message> messageHistory)
+    {
+        var chatHistory = new List<ChatMessage>();
+        
+        foreach (var msg in messageHistory)
+        {
+            var role = msg.SenderRole.ToLowerInvariant() switch
+            {
+                "user" => ChatRole.User,
+                "assistant" => ChatRole.Assistant,
+                "system" => ChatRole.System,
+                _ => ChatRole.User
+            };
+
+            chatHistory.Add(new ChatMessage(role, msg.Text));
+        }
+
+        return chatHistory;
+    }
+
+    /// <summary>
+    /// Creates a response tuple with message and debug log.
+    /// </summary>
+    private Tuple<List<Message>, List<DebugLog>> CreateResponseTuple(
+        Message userMessage, 
+        string responseText, 
+        string selectedAgentName)
+    {
+        var completionMessages = new List<Message>();
+        var completionMessagesLogs = new List<DebugLog>();
+
+        string messageId = Guid.NewGuid().ToString();
+        string debugLogId = Guid.NewGuid().ToString();
+
+        var responseMessage = new Message(
+            userMessage.TenantId,
+            userMessage.UserId,
+            userMessage.SessionId,
+            selectedAgentName,
+            "Assistant",
+            responseText,
+            messageId,
+            debugLogId);
+
+        completionMessages.Add(responseMessage);
+
+        if (_promptDebugProperties.Count > 0)
+        {
+            var debugLog = new DebugLog(userMessage.TenantId, userMessage.UserId, userMessage.SessionId, messageId, debugLogId)
+            {
+                PropertyBag = _promptDebugProperties.ToList()
+            };
+            completionMessagesLogs.Add(debugLog);
+        }
+
+        return new Tuple<List<Message>, List<DebugLog>>(completionMessages, completionMessagesLogs);
+    }
+
+    /// <summary>
+    /// Runs the workflow asynchronously and returns the response messages and selected agent.
+    /// </summary>
+    private async Task<(List<ChatMessage> messages, string selectedAgent)> RunWorkflowAsync(
+        Workflow workflow, 
+        List<ChatMessage> messages)
+    {
+        string? lastExecutorId = null;
+        string selectedAgent = "Unknown";
+
+        await using StreamingRun run = await InProcessExecution.StreamAsync(workflow, messages);
+        await run.TrySendMessageAsync(new TurnToken(emitEvents: true));
+        
+        await foreach (WorkflowEvent evt in run.WatchStreamAsync().ConfigureAwait(false))
+        {
+            switch (evt)
+            {
+                case AgentRunUpdateEvent e when e.ExecutorId != lastExecutorId:
+                    lastExecutorId = e.ExecutorId;
+                    selectedAgent = ExtractAgentNameFromExecutorId(e.ExecutorId) ?? "Unknown";
+                    LogAgentExecution(e);
+                    break;
+                    
+                case WorkflowOutputEvent output:
+                    return (output.As<List<ChatMessage>>()!, selectedAgent);
+            }
+        }
+
+        return ([], selectedAgent);
+    }
+
+    /// <summary>
+    /// Logs agent execution information.
+    /// </summary>
+    private void LogAgentExecution(AgentRunUpdateEvent agentEvent)
+    {
+        _logger.LogInformation("🤖 Agent execution update from: {ExecutorId}", agentEvent.ExecutorId);
+        _logger.LogInformation("🤖 Agent update text: {UpdateText}", agentEvent.Update.Text);
+        
+        if (agentEvent.Update.Contents.OfType<FunctionCallContent>().FirstOrDefault() is FunctionCallContent call)
+        {
+            _logger.LogInformation("🔧 TOOL CALL DETECTED - Function: {FunctionName}, Arguments: {Arguments}", 
+                call.Name, 
+                JsonSerializer.Serialize(call.Arguments));
+                
+            // Log the specific tool being called for debugging
+            _logger.LogInformation("🎯 TOOL EXECUTION: Calling tool '{ToolName}' with arguments: {Arguments}", 
+                call.Name, 
+                JsonSerializer.Serialize(call.Arguments, new JsonSerializerOptions { WriteIndented = true }));
+        }
+        
+        if (agentEvent.Update.Contents.OfType<FunctionResultContent>().FirstOrDefault() is FunctionResultContent result)
+        {
+            _logger.LogInformation("✅ TOOL RESULT RECEIVED - Function: {FunctionName}, Result: {Result}", 
+                result.CallId, 
+                result.Result?.ToString() ?? "null");
+        }
+    }
+
+    /// <summary>
+    /// Extracts the agent name from the executor ID by removing the GUID suffix.
+    /// </summary>
+    private static string? ExtractAgentNameFromExecutorId(string? executorId)
+    {
+        if (string.IsNullOrEmpty(executorId))
+            return null;
+
+        var parts = executorId.Split('_');
+        return parts.Length > 0 ? parts[0] : executorId;
+    }
+
+    /// <summary>
+    /// Orchestrates the group chat with AI agents.
+    /// </summary>
     private async Task<(string responseText, string selectedAgentName)> RunGroupChatOrchestration(
-        List<Microsoft.Extensions.AI.ChatMessage> chatHistory,
+        List<ChatMessage> chatHistory,
         string tenantId,
         string userId)
     {
         try
         {
             _logger.LogInformation("Starting Agent Framework orchestration");
+                       
+            // Add system context
+            chatHistory.Add(new ChatMessage(ChatRole.System, $"User Id: {userId}, Tenant Id: {tenantId}"));
 
-            //OrchestrationMonitor monitor = new();
-            //monitor.History.AddRange(chatHistory);
-                     
-            // Create a custom GroupChatManager with SelectionStrategy and TerminationStrategy
-            var groupChatManager = new GroupChatManagerFactory(chatHistory.Last().Text, _chatClient, LogMessage);
+            // Create custom termination function
+            var customTerminationFunc = CreateCustomTerminationFunction();
 
-            GroupChatOrchestration groupChatOrchestration = new GroupChatOrchestration(groupChatManager, _agents.ToArray());
-            //{
-            //    LoggerFactory = this._loggerFactory,
-            //    ResponseCallback = monitor.ResponseCallbackAsync,
-            //    StreamingResponseCallback = monitor.StreamingResultCallback
-            //};
-            var orchestrationResponse = await groupChatOrchestration.RunAsync(chatHistory);
-            AgentRunResponse result = await orchestrationResponse.Task;
+            // Run the workflow
+            var (responseMessages, selectedAgentName) = await RunWorkflowAsync(
+                AgentWorkflowBuilder.CreateGroupChatBuilderWith(agents => 
+                    new GroupChatOrchestrator(_agents!, _chatClient, LogMessage, customTerminationFunc) 
+                    { 
+                        MaximumIterationCount = 5 
+                    })
+                    .AddParticipants(_agents!)
+                    .Build(), 
+                chatHistory);
 
-            string responseText = result.Text;
-            // In RunGroupChatOrchestration, ensure selectedAgentName is not null
-            string selectedAgentName = result.AgentId ?? "Unknown";
+            // Extract response text
+            string responseText = ExtractResponseText(responseMessages);
 
             _logger.LogInformation("Agent Framework orchestration completed with agent: {AgentName}", selectedAgentName);
 
@@ -244,59 +477,39 @@ public class AgentFrameworkService : IDisposable
         }
     }
 
-    
-
-
-
-    //private AgentType ParseAgentName(string agentName)
-    //{
-    //    return agentName.ToLowerInvariant() switch
-    //    {
-    //        "sales" => AgentType.Sales,
-    //        "transactions" => AgentType.Transactions,
-    //        "customersupport" => AgentType.CustomerSupport,
-    //        "coordinator" => AgentType.Coordinator,
-    //        _ => AgentType.Coordinator
-    //    };
-    //}
-
-    public async Task<string> Summarize(string sessionId, string userPrompt)
+    /// <summary>
+    /// Creates a custom termination function for the group chat orchestrator.
+    /// </summary>
+    private Func<GroupChatOrchestrator, IEnumerable<ChatMessage>, CancellationToken, ValueTask<bool>> CreateCustomTerminationFunction()
     {
-        try
+        return async (orchestrator, messages, token) =>
         {
-            var agent = _chatClient.CreateAIAgent("Summarize the following text into exactly two words:", "Summarizer", "A tool to summarize text", new AIFunction[] { });
-
-            await foreach (var update in agent.RunStreamingAsync(userPrompt))
+            try
             {
-                return update.Text;
+                // The AI-based termination logic is implemented in the GroupChatOrchestrator
+                // This function allows for additional business logic if needed
+                return false; // Let the AI make the decision
             }
-
-            return "No summary generated";
-
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.ToString());
-            return string.Empty;
-        }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in custom termination function");
+                return false; // Continue conversation on error
+            }
+        };
     }
 
-    private Task Initialize()
+    /// <summary>
+    /// Extracts the response text from the last assistant message.
+    /// </summary>
+    private static string ExtractResponseText(List<ChatMessage> responseMessages)
     {
-        try
+        if (responseMessages?.Any() == true)
         {
-            _serviceInitialized = true;
-            _logger.LogInformation("Agent Framework service initialized.");
+            var lastAssistantMessage = responseMessages.LastOrDefault(m => m.Role == ChatRole.Assistant);
+            return lastAssistantMessage?.Text ?? "";
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Agent Framework service was not initialized. The following error occurred: {ErrorMessage}.", ex.ToString());
-        }
-        return Task.CompletedTask;
+        return "";
     }
 
-    public void Dispose()
-    {
-        // Dispose resources if any
-    }
+    #endregion
 }

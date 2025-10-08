@@ -42,3 +42,19 @@ public record OAuthClient
     public string ClientSecret { get; init; } = string.Empty;
     public string[] AllowedScopes { get; init; } = Array.Empty<string>();
 }
+
+// OAuth configuration settings
+public class OAuthSettings
+{
+    public int TokenExpirationMinutes { get; set; } = 60;
+    public string TokenEndpoint { get; set; } = "/oauth/token";
+    public string Authority { get; set; } = string.Empty;
+    public List<OAuthClientConfig> Clients { get; set; } = new();
+}
+
+public class OAuthClientConfig
+{
+    public string ClientId { get; set; } = string.Empty;
+    public string ClientSecret { get; set; } = string.Empty;
+    public List<string> AllowedScopes { get; set; } = new();
+}
