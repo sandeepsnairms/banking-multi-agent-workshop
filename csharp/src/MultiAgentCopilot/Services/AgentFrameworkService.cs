@@ -60,8 +60,6 @@ public class AgentFrameworkService : IDisposable
         _logger = _loggerFactory.CreateLogger<AgentFrameworkService>();
         _promptDebugProperties = new List<LogProperty>();
 
-        _logger.LogInformation("Initializing the Agent Framework service...");
-
         _chatClient = CreateChatClient();
 
         _logger.LogInformation("Agent Framework Initialized.");
@@ -173,23 +171,16 @@ public class AgentFrameworkService : IDisposable
     {
         try
         {
-            _logger.LogInformation("🚀 InitializeAgents called - checking available services...");
-            _logger.LogInformation("🔍 MCP Service available: {McpAvailable}", _mcpService != null);
-            _logger.LogInformation("🔍 Bank Service available: {BankAvailable}", _bankService != null);
 
             if (_agents == null || _agents.Count == 0)
             {
                 if (_mcpService != null)
                 {
-                    _logger.LogInformation("🌐 Creating agents with MCP Tools - PRIORITY PATH");
                     _agents = AgentFactory.CreateAllAgentsWithMCPToolsAsync(_chatClient, _mcpService, _loggerFactory).GetAwaiter().GetResult();
-                    _logger.LogInformation("✅ Created {AgentCount} agents using MCP tools", _agents?.Count ?? 0);
                 }
                 else if (_bankService != null)
                 {
-                    _logger.LogInformation("🏪 Creating agents with In-Process Tools - FALLBACK PATH");
-                    _agents = AgentFactory.CreateAllAgentsWithInProcessTools(_chatClient, _bankService, _loggerFactory);
-                    _logger.LogInformation("✅ Created {AgentCount} agents using in-process tools", _agents?.Count ?? 0);
+                    _agents = AgentFactory.CreateAllAgentsWithInProcessTools(_chatClient, _bankService, _loggerFactory);                    
                 }
                 else
                 {
@@ -269,17 +260,11 @@ public class AgentFrameworkService : IDisposable
         try
         {
             var agent = _chatClient.CreateAIAgent(
-                "Summarize the following text into exactly two words:", 
-                "Summarizer", 
-                "A tool to summarize text", 
-                new AIFunction[] { });
+                "Summarize the text into exactly two words:", 
+                "Summarizer");
 
-            await foreach (var update in agent.RunStreamingAsync(userPrompt))
-            {
-                return update.Text;
-            }
-
-            return "No summary generated";
+            return agent.RunAsync(userPrompt).GetAwaiter().GetResult().Text;
+          
         }
         catch (Exception ex)
         {
@@ -377,6 +362,8 @@ public class AgentFrameworkService : IDisposable
         
         await foreach (WorkflowEvent evt in run.WatchStreamAsync().ConfigureAwait(false))
         {
+            Console.WriteLine($"Event: {evt.GetType().Name}, data {evt.Data?.ToString()}");
+
             switch (evt)
             {
                 case AgentRunUpdateEvent e when e.ExecutorId != lastExecutorId:
@@ -397,10 +384,7 @@ public class AgentFrameworkService : IDisposable
     /// Logs agent execution information.
     /// </summary>
     private void LogAgentExecution(AgentRunUpdateEvent agentEvent)
-    {
-        _logger.LogInformation("🤖 Agent execution update from: {ExecutorId}", agentEvent.ExecutorId);
-        _logger.LogInformation("🤖 Agent update text: {UpdateText}", agentEvent.Update.Text);
-        
+    {        
         // Check for function/tool calls
         var functionCalls = agentEvent.Update.Contents.OfType<FunctionCallContent>().ToList();
         if (functionCalls.Any())

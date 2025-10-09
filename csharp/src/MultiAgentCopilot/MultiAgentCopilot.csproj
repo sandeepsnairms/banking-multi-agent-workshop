@@ -76,9 +76,6 @@
     <None Update="Prompts\CustomerSupport.prompty">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="Prompts\FilterStrategy.prompty">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
     <None Update="Prompts\Sales.prompty">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

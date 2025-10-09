@@ -9,8 +9,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MCPServer", "MCPServer\MCPS
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Banking", "Banking\Banking.csproj", "{D0563F89-6D36-4284-9914-446B78338037}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AspNetCoreMcpServer", "..\..\..\..\..\..\temp\MCP\AspNetCoreMcpServer\AspNetCoreMcpServer.csproj", "{A9D02577-389F-1644-C95D-1854C1EE1FD4}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -36,12 +34,6 @@ Global
 		{D0563F89-6D36-4284-9914-446B78338037}.Publish|Any CPU.Build.0 = Release|Any CPU
 		{D0563F89-6D36-4284-9914-446B78338037}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D0563F89-6D36-4284-9914-446B78338037}.Release|Any CPU.Build.0 = Release|Any CPU
-		{A9D02577-389F-1644-C95D-1854C1EE1FD4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A9D02577-389F-1644-C95D-1854C1EE1FD4}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A9D02577-389F-1644-C95D-1854C1EE1FD4}.Publish|Any CPU.ActiveCfg = Release|Any CPU
-		{A9D02577-389F-1644-C95D-1854C1EE1FD4}.Publish|Any CPU.Build.0 = Release|Any CPU
-		{A9D02577-389F-1644-C95D-1854C1EE1FD4}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A9D02577-389F-1644-C95D-1854C1EE1FD4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

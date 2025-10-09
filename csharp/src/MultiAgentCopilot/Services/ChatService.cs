@@ -34,7 +34,7 @@ public class ChatService
 
         // Initialize the Agent Framework with tool service
         // Primary: MCP Tools (preferred for external tool execution)
-        bool useMCP = true;
+        bool useMCP = false;
         if (useMCP)
         {
             _afService.SetMCPToolService(_mcpService);

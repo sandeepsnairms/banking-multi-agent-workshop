@@ -46,7 +46,6 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Helper
         protected override async ValueTask<AIAgent> SelectNextAgentAsync(IReadOnlyList<ChatMessage> history, CancellationToken cancellationToken = default(CancellationToken))
         {
             // Convert chat history to a string representation for the prompt
-            // Use a simple approach with available properties
             var historyText = string.Join("\n", history.TakeLast(5).Select(msg => 
             {
                 var role = msg.Role.ToString();

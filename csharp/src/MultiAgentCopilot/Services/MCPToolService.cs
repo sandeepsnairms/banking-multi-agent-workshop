@@ -59,24 +59,13 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Services
             try
             {
                 // Get agent configuration
-                _logger.LogInformation("🔧 DEBUG: Getting MCP server settings for agent: {AgentType}", agent);
                 var settings = GetMCPServerSettings(agent);
-                _logger.LogInformation("✅ DEBUG: Got settings - Url: {Url}, Key: {KeyLength} chars", 
-                    settings.Url, settings.Key?.Length ?? 0);
 
                 // Use our factory to create an authenticated transport
-                _logger.LogInformation("🔧 DEBUG: Creating authenticated HTTP wrapper...");
-                var wrapper = new AuthenticatedHttpWrapper(settings.Url, settings.Key);
-                
-                _logger.LogInformation("🔧 DEBUG: Creating transport...");
+                var wrapper = new AuthenticatedHttpWrapper(settings.Url, settings.Key);                
                 IClientTransport clientTransport = wrapper.CreateTransport();
-                _logger.LogInformation("✅ DEBUG: Transport created successfully");
-                
-                _logger.LogInformation("🔧 DEBUG: Creating MCP client...");
                 await using var mcpClient = await McpClient.CreateAsync(clientTransport!);
-                _logger.LogInformation("✅ DEBUG: MCP client created successfully");
 
-                _logger.LogInformation("🔧 DEBUG: Calling ListToolsAsync...");
                 var tools = await mcpClient.ListToolsAsync();
                 _logger.LogInformation("✅ DEBUG: ListToolsAsync completed - Found {ToolCount} tools", tools.Count);
 
