@@ -75,8 +75,7 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Helper
             var reason = selectionInfo?.Reason;
 
             // Log the selection decision (uncomment if you have logging)
-            _logCallback?.Invoke("SelectNextAgentAsync: Value", selectedAgentName ?? "Unknown");
-            _logCallback?.Invoke("SelectNextAgentAsync: Reason", reason ?? "No reason provided");
+            _logCallback?.Invoke("SelectNextAgentAsync", $"{{Agent: {selectedAgentName}, Reason: {reason}}}");
 
             // Find the matching agent from your agents list
             var selectedAgent = _agents.FirstOrDefault(agent =>
@@ -104,13 +103,13 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Helper
                 var shouldTerminate = await ShouldTerminateWithAI(history, cancellationToken);
                 if (shouldTerminate)
                 {
-                    _logCallback?.Invoke("ShouldTerminateAsync", "AI decided to terminate the conversation");
+                    //_logCallback?.Invoke("ShouldTerminateAsync", "AI decided to terminate the conversation");
                     return true;
                 }
             }
             catch (Exception ex)
             {
-                _logCallback?.Invoke("ShouldTerminateAsync Error", ex.Message);
+                //_logCallback?.Invoke("ShouldTerminateAsync Error", ex.Message);
                 // Fall back to base implementation if AI termination fails
             }
 
@@ -157,8 +156,7 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Helper
                 var reason = terminationInfo?.Reason ?? "No reason provided";
 
                 // Log the termination decision
-                _logCallback?.Invoke("ShouldTerminateAsync: ShouldContinue", shouldContinue.ToString());
-                _logCallback?.Invoke("ShouldTerminateAsync: Reason", reason);
+                _logCallback?.Invoke("ShouldTerminateAsync", $"{{Continue: {shouldContinue.ToString()}, Reason: {reason}}}");
 
                 // Return true if we should terminate (i.e., should NOT continue)
                 return !shouldContinue;

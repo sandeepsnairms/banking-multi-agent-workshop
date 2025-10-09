@@ -5,6 +5,7 @@ using Azure.Identity;
 using Banking.Services;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Workflows;
+using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -493,7 +494,34 @@ public class AgentFrameworkService : IDisposable
                     .Build(), 
                 chatHistory);
 
-            if(selectedAgentName == "__")
+            for (int i = chatHistory.Count; i < responseMessages.Count; i++)
+            {
+                if (responseMessages[i].Role.Value == "assistant")
+                {
+                    foreach (var content in responseMessages[i].Contents)
+                    {
+                        // Enhanced logging based on content type
+                        switch (content)
+                        {
+                            case FunctionCallContent functionCall:
+                                LogMessage("Function Call", $"Name: {functionCall.Name}, CallId: {functionCall.CallId}");
+                                LogMessage("Function Arguments", JsonSerializer.Serialize(functionCall.Arguments, new JsonSerializerOptions { WriteIndented = true }));
+                                break;
+
+                            case TextContent textContent:
+                                //LogMessage("Text Content", textContent.Text);
+                                break;
+
+                            default:
+                                //LogMessage("Content Type", content.GetType().Name);
+                               // LogMessage("Content Details", content.ToString());
+                                break;
+                        }
+                    }
+                }
+            }
+
+            if (selectedAgentName == "__")
             {
                 _logger.LogError("Error in getting response");
                 return ("Sorry, I encountered an error while processing your request. Please try again.", "Error");
