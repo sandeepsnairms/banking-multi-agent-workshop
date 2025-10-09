@@ -182,8 +182,7 @@ public class AgentFrameworkService : IDisposable
                 if (_mcpService != null)
                 {
                     _logger.LogInformation("🌐 Creating agents with MCP Tools - PRIORITY PATH");
-                    _agents = AgentFactory.CreateAllAgentsWithMCPToolsAsync(_chatClient, _mcpService, _loggerFactory)
-                        .GetAwaiter().GetResult();
+                    _agents = AgentFactory.CreateAllAgentsWithMCPToolsAsync(_chatClient, _mcpService, _loggerFactory).GetAwaiter().GetResult();
                     _logger.LogInformation("✅ Created {AgentCount} agents using MCP tools", _agents?.Count ?? 0);
                 }
                 else if (_bankService != null)
@@ -402,23 +401,38 @@ public class AgentFrameworkService : IDisposable
         _logger.LogInformation("🤖 Agent execution update from: {ExecutorId}", agentEvent.ExecutorId);
         _logger.LogInformation("🤖 Agent update text: {UpdateText}", agentEvent.Update.Text);
         
-        if (agentEvent.Update.Contents.OfType<FunctionCallContent>().FirstOrDefault() is FunctionCallContent call)
+        // Check for function/tool calls
+        var functionCalls = agentEvent.Update.Contents.OfType<FunctionCallContent>().ToList();
+        if (functionCalls.Any())
         {
-            _logger.LogInformation("🔧 TOOL CALL DETECTED - Function: {FunctionName}, Arguments: {Arguments}", 
-                call.Name, 
-                JsonSerializer.Serialize(call.Arguments));
-                
-            // Log the specific tool being called for debugging
-            _logger.LogInformation("🎯 TOOL EXECUTION: Calling tool '{ToolName}' with arguments: {Arguments}", 
-                call.Name, 
-                JsonSerializer.Serialize(call.Arguments, new JsonSerializerOptions { WriteIndented = true }));
+            _logger.LogInformation("🔥 TOOL CALLS DETECTED - {ToolCount} tool(s) being called!", functionCalls.Count);
+            
+            foreach (var call in functionCalls)
+            {
+                _logger.LogInformation("🎯 TOOL EXECUTION: Calling tool '{ToolName}' with arguments: {Arguments}", 
+                    call.Name, 
+                    JsonSerializer.Serialize(call.Arguments, new JsonSerializerOptions { WriteIndented = true }));
+            }
         }
         
-        if (agentEvent.Update.Contents.OfType<FunctionResultContent>().FirstOrDefault() is FunctionResultContent result)
+        // Check for function/tool results
+        var functionResults = agentEvent.Update.Contents.OfType<FunctionResultContent>().ToList();
+        if (functionResults.Any())
         {
-            _logger.LogInformation("✅ TOOL RESULT RECEIVED - Function: {FunctionName}, Result: {Result}", 
-                result.CallId, 
-                result.Result?.ToString() ?? "null");
+            _logger.LogInformation("✅ TOOL RESULTS RECEIVED - {ResultCount} result(s)!", functionResults.Count);
+            
+            foreach (var result in functionResults)
+            {
+                _logger.LogInformation("✅ TOOL RESULT: Function {CallId} returned: {Result}", 
+                    result.CallId, 
+                    result.Result?.ToString() ?? "null");
+            }
+        }
+        
+        // If no function calls or results, log that too
+        if (!functionCalls.Any() && !functionResults.Any())
+        {
+            _logger.LogInformation("ℹ️ No tool calls detected in this agent update - agent responded with text only");
         }
     }
 
