@@ -8,6 +8,7 @@ using Microsoft.Agents.AI.Workflows;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using ModelContextProtocol.Protocol;
 using MultiAgentCopilot.Factories;
 using MultiAgentCopilot.Models.Chat;
 using MultiAgentCopilot.Models.Configuration;
@@ -17,7 +18,10 @@ using MultiAgentCopilot.MultiAgentCopilot.Helper;
 using MultiAgentCopilot.MultiAgentCopilot.Services;
 using OpenAI;
 using OpenAI.Chat;
+using System.ClientModel.Primitives;
+using System.Diagnostics.Metrics;
 using System.Text.Json;
+using static System.Net.Mime.MediaTypeNames;
 using ChatMessage = Microsoft.Extensions.AI.ChatMessage;
 
 namespace MultiAgentCopilot.Services;
@@ -76,24 +80,67 @@ public class AgentFrameworkService : IDisposable
     /// Creates and configures the Azure OpenAI chat client.
     /// </summary>
     private IChatClient CreateChatClient()
+
     {
+
         try
+
         {
+
+            //var myCustomHttpHandler = new MyCustomClientHttpHandler();
+
+            //var myCustomClient = new HttpClient(handler: myCustomHttpHandler);
+
+            var myCustomClient = new HttpClient();
             var credential = CreateAzureCredential();
+
             var endpoint = new Uri(_settings.AzureOpenAISettings.Endpoint);
-            var openAIClient = new AzureOpenAIClient(endpoint, credential);
-            
+
+            var openAIClient = new AzureOpenAIClient(endpoint, credential, new AzureOpenAIClientOptions
+
+            {
+
+                Transport = new HttpClientPipelineTransport(myCustomClient),
+
+            });
+
             return openAIClient
+
                 .GetChatClient(_settings.AzureOpenAISettings.CompletionsDeployment)
+
                 .AsIChatClient();
 
+        }
+
+        catch (Exception ex)
+
+        {
+
+            _logger.LogError(ex, "Failed to create chat client");
+
+            throw;
+
+        }
+
+    }
+
+    internal sealed class MyCustomClientHttpHandler : HttpClientHandler
+    {
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var requestJson = await request.Content!.ReadAsStringAsync(cancellationToken);
+
+            var response = await base.SendAsync(request, cancellationToken);
+
+            var responseJson = await response.Content!.ReadAsStringAsync(cancellationToken);
 
             
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to create chat client");
-            throw;
+
+            Console.WriteLine($"Request: {requestJson}");
+
+            Console.WriteLine($"Response: {responseJson}");
+
+            return response;
         }
     }
 
@@ -248,9 +295,9 @@ public class AgentFrameworkService : IDisposable
             _promptDebugProperties.Clear();
 
 
-            var responseText = _agents[3].RunAsync(chatHistory).Result.Text;
-            var selectedAgentName= _agents[3].Name;
-            //var (responseText, selectedAgentName) = await RunGroupChatOrchestration(chatHistory, tenantId, userId);
+            //var responseText = _agents[3].RunAsync(chatHistory).Result.Text;
+            //var selectedAgentName= _agents[3].Name;
+            var (responseText, selectedAgentName) = await RunGroupChatOrchestration(chatHistory, tenantId, userId);
 
             return CreateResponseTuple(userMessage, responseText, selectedAgentName);
         }
@@ -366,71 +413,44 @@ public class AgentFrameworkService : IDisposable
         Workflow workflow, 
         List<ChatMessage> messages)
     {
-        string? lastExecutorId = null;
-        string selectedAgent = "Unknown";
-
-        await using StreamingRun run = await InProcessExecution.StreamAsync(workflow, messages);
-        await run.TrySendMessageAsync(new TurnToken(emitEvents: true));
-        
-        await foreach (WorkflowEvent evt in run.WatchStreamAsync().ConfigureAwait(false))
+        try
         {
-            Console.WriteLine($"Event: {evt.GetType().Name}, data {evt.Data?.ToString()}");
 
-            switch (evt)
+            string? lastExecutorId = null;
+            string selectedAgent = "__";
+            int counter = 0;
+
+            while (selectedAgent == "__" && counter<5)
             {
-                case AgentRunUpdateEvent e when e.ExecutorId != lastExecutorId:
-                    lastExecutorId = e.ExecutorId;
-                    selectedAgent = ExtractAgentNameFromExecutorId(e.ExecutorId) ?? "Unknown";
-                    LogAgentExecution(e);
-                    break;
-                    
-                case WorkflowOutputEvent output:
-                    return (output.As<List<ChatMessage>>()!, selectedAgent);
-            }
-        }
+                await using StreamingRun run = await InProcessExecution.StreamAsync(workflow, messages);
+                await run.TrySendMessageAsync(new TurnToken(emitEvents: true));
 
-        return ([], selectedAgent);
+                await foreach (WorkflowEvent evt in run.WatchStreamAsync().ConfigureAwait(false))
+                {
+                    switch (evt)
+                    {
+                        case AgentRunUpdateEvent e when e.ExecutorId != lastExecutorId:
+                            lastExecutorId = e.ExecutorId;
+                            selectedAgent = ExtractAgentNameFromExecutorId(e.ExecutorId) ?? "__";
+                            break;
+
+                        case WorkflowOutputEvent output:
+                            return (output.As<List<ChatMessage>>()!, selectedAgent);
+                    }
+                }
+
+                counter++;
+            }
+            return ([], selectedAgent);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during workflow execution: {ErrorMessage}", ex.Message);
+            return ([], "Error");
+        }
     }
 
-    /// <summary>
-    /// Logs agent execution information.
-    /// </summary>
-    private void LogAgentExecution(AgentRunUpdateEvent agentEvent)
-    {        
-        // Check for function/tool calls
-        var functionCalls = agentEvent.Update.Contents.OfType<FunctionCallContent>().ToList();
-        if (functionCalls.Any())
-        {
-            _logger.LogInformation("🔥 TOOL CALLS DETECTED - {ToolCount} tool(s) being called!", functionCalls.Count);
-            
-            foreach (var call in functionCalls)
-            {
-                _logger.LogInformation("🎯 TOOL EXECUTION: Calling tool '{ToolName}' with arguments: {Arguments}", 
-                    call.Name, 
-                    JsonSerializer.Serialize(call.Arguments, new JsonSerializerOptions { WriteIndented = true }));
-            }
-        }
-        
-        // Check for function/tool results
-        var functionResults = agentEvent.Update.Contents.OfType<FunctionResultContent>().ToList();
-        if (functionResults.Any())
-        {
-            _logger.LogInformation("✅ TOOL RESULTS RECEIVED - {ResultCount} result(s)!", functionResults.Count);
-            
-            foreach (var result in functionResults)
-            {
-                _logger.LogInformation("✅ TOOL RESULT: Function {CallId} returned: {Result}", 
-                    result.CallId, 
-                    result.Result?.ToString() ?? "null");
-            }
-        }
-        
-        // If no function calls or results, log that too
-        if (!functionCalls.Any() && !functionResults.Any())
-        {
-            _logger.LogInformation("ℹ️ No tool calls detected in this agent update - agent responded with text only");
-        }
-    }
+
 
     /// <summary>
     /// Extracts the agent name from the executor ID by removing the GUID suffix.
@@ -473,6 +493,11 @@ public class AgentFrameworkService : IDisposable
                     .Build(), 
                 chatHistory);
 
+            if(selectedAgentName == "__")
+            {
+                _logger.LogError("Error in getting response");
+                return ("Sorry, I encountered an error while processing your request. Please try again.", "Error");
+            }
             // Extract response text
             string responseText = ExtractResponseText(responseMessages);
 

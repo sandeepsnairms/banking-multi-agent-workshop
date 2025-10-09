@@ -1,8 +1,7 @@
-using Azure.Core;
+﻿using Azure.Core;
 using Banking.Services;
 using Microsoft.Agents.AI;
 using Microsoft.AspNetCore.Components.Routing;
-using Microsoft.Exchange.WebServices.Data;
 using Microsoft.Extensions.AI;
 using MultiAgentCopilot.Models;
 using MultiAgentCopilot.MultiAgentCopilot.Services;
@@ -20,6 +19,21 @@ using System.Text.Json;
 
 namespace MultiAgentCopilot.Factories
 {
+    /// <summary>
+    /// Diagnostics information for MCP integration validation
+    /// </summary>
+    public class AgentMCPDiagnostics
+    {
+        public AgentType AgentType { get; set; }
+        public string AgentName { get; set; } = string.Empty;
+        public bool IsConfigured { get; set; }
+        public bool IsConnected { get; set; }
+        public string? ServerUrl { get; set; }
+        public int ToolCount { get; set; }
+        public List<string> Tools { get; set; } = new();
+        public string? ErrorMessage { get; set; }
+    }
+
     public static class AgentFactory
     {
 
@@ -62,7 +76,7 @@ namespace MultiAgentCopilot.Factories
                     );
 
                 agents.Add(agent);
-                logger.LogInformation("Created agent {AgentName} with {ToolCount} MCP tools", agent.Name, aiFunctions.Count());
+                logger.LogInformation("Created agent {AgentName} with {ToolCount} InProcess", agent.Name, aiFunctions.Count());
             }
 
             logger.LogInformation("Successfully created {AgentCount} banking agents", agents.Count);
@@ -73,7 +87,7 @@ namespace MultiAgentCopilot.Factories
         {
             //var aiFunctions2 = await mcpService.GetMcpTools(AgentType.Coordinator);
             //var agent2 = chatClient.CreateAIAgent(
-            //            instructions: "Your primary responsibilities include welcoming users, identifying customers based on their login.Start with identifying the currently logged -in user's information and use it to personalize the interaction.For example, Thank you for logging in, [user Name]. How can I help you with your banking needs today?",
+            //            instructions: "Your responsibility is to identify the currently logged -in user's information and welcome the user using full name.",
             //            name: "Welcome",
             //            description: "Welcome agent",
             //            tools: aiFunctions2.ToArray()
@@ -85,37 +99,30 @@ namespace MultiAgentCopilot.Factories
             //var response2 = agent2.RunAsync(history).GetAwaiter().GetResult();
 
 
-            var agents = new List<Microsoft.Agents.AI.AIAgent>();
+            var agents = new List<AIAgent>();
             ILogger logger = loggerFactory.CreateLogger("AgentFactory");
 
             // Get all agent types from the enum
             var agentTypes = Enum.GetValues<AgentType>();
 
-            // Create agents for each agent type with MCP integration
+            // Create agents for each agent type
             foreach (var agentType in agentTypes)
             {
-                try
-                {
-                    logger.LogInformation("Creating agent {AgentType} with MCP tools", agentType);
+                logger.LogInformation("Creating agent {AgentType} with MCP tools", agentType);
 
-                    // Convert MCP tools to AI functions using proper async MCP client patterns
-                    var aiFunctions = await mcpService.GetMcpTools(agentType);
+                var aiFunctions = await mcpService.GetMcpTools(agentType);
 
-                    var agent = chatClient.CreateAIAgent(                        
+                var agent = chatClient.CreateAIAgent(
                         instructions: GetAgentPrompt(agentType),
                         name: GetAgentName(agentType),
                         description: GetAgentDescription(agentType),
                         tools: aiFunctions.ToArray()
                     );
 
-                    agents.Add(agent);
-                    logger.LogInformation("Created agent {AgentName} with {ToolCount} MCP tools", agent.Name, aiFunctions.Count());
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "Failed to create agent {AgentType} with MCP tools", agentType);
-                }
+                agents.Add(agent);
+                logger.LogInformation("Created agent {AgentName} with {ToolCount} MCP tools", agent.Name, aiFunctions.Count());
             }
+
             logger.LogInformation("Successfully created {AgentCount} banking agents", agents.Count);
             return agents;
         }
@@ -170,7 +177,8 @@ namespace MultiAgentCopilot.Factories
                 _ => throw new ArgumentOutOfRangeException(nameof(agentType), agentType, null)
             };
         }
-
+               
+        
         /// <summary>
         /// Get tools for specific agent type using existing tool classes
         /// Returns null for now due to delegate binding limitations with the current Agent Framework API
@@ -180,7 +188,7 @@ namespace MultiAgentCopilot.Factories
             ILogger logger = loggerFactory.CreateLogger<AgentFrameworkService>();
             try
             {
-                logger.LogInformation("Creating tools for agent type: {AgentType}", agentType);
+                logger.LogInformation("🔧 Creating in-process tools for agent type: {AgentType}", agentType);
 
                 // Create the appropriate tools class based on agent type
                 BaseTools toolsClass = agentType switch
@@ -193,30 +201,44 @@ namespace MultiAgentCopilot.Factories
                 };
 
                 // Log the tool class creation for debugging
-                logger.LogInformation("Created {ToolClassName} for agent type: {AgentType}", toolsClass.GetType().Name, agentType);
+                logger.LogInformation("✅ Created {ToolClassName} for agent type: {AgentType}", toolsClass.GetType().Name, agentType);
 
-                // Log available methods with Description attributes
+                // Get methods with Description attributes and create AI functions
                 var methods = toolsClass.GetType().GetMethods()
                     .Where(m => m.GetCustomAttributes(typeof(DescriptionAttribute), false).Length > 0);
 
                 IList<AIFunction> functions = new List<AIFunction>();
+                
                 foreach (var method in methods)
                 {
-                    functions.Add(AIFunctionFactory.Create(method, toolsClass));
-                    var description = method.GetCustomAttribute<DescriptionAttribute>()?.Description ?? "No description";
-                    logger.LogInformation("Agent {AgentType} has method: '{MethodName}' - {Description}",
-                        agentType, method.Name, description);
+                    try
+                    {
+                        var aiFunction = AIFunctionFactory.Create(method, toolsClass);
+                        functions.Add(aiFunction);
+                        
+                        var description = method.GetCustomAttribute<DescriptionAttribute>()?.Description ?? "No description";
+                        logger.LogDebug("📋 Agent {AgentType} in-process tool: '{MethodName}' - {Description}",
+                            agentType, method.Name, description);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogWarning(ex, "⚠️ Failed to create AI function for method {MethodName} in {AgentType}: {Message}",
+                            method.Name, agentType, ex.Message);
+                    }
                 }
 
-                logger.LogInformation("Tool class created for agent type: {AgentType}. Returning null due to delegate binding limitations.", agentType);
+                logger.LogInformation("✅ Created {FunctionCount} in-process tools for agent type: {AgentType}", 
+                    functions.Count, agentType);
 
-                return functions;
+                return functions.Count > 0 ? functions : null;
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error creating tools for agent type: {AgentType}", agentType);
+                logger.LogError(ex, "❌ Error creating in-process tools for agent type: {AgentType}", agentType);
                 return null;
             }
         }
+
+        
     }
 }

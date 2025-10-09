@@ -1,0 +1,77 @@
+### Test MCP Server Authentication
+
+# Test health endpoint (should work without auth)
+GET http://localhost:5000/health
+
+###
+
+# Test MCP info endpoint (should work without auth)
+GET http://localhost:5000/mcp/info
+
+###
+
+# Test MCP endpoint without API key (should fail) - Root path where MCP actually runs
+POST http://localhost:5000/
+Content-Type: application/json
+
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/list",
+  "params": {}
+}
+
+###
+
+# Test MCP endpoint with invalid API key (should fail)
+POST http://localhost:5000/
+Content-Type: application/json
+X-MCP-API-Key: invalid-key
+
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/list",
+  "params": {}
+}
+
+###
+
+# Test MCP endpoint with valid API key (should work)
+POST http://localhost:5000/
+Content-Type: application/json
+X-MCP-API-Key: dev-mcp-api-key-12345
+
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/list",
+  "params": {}
+}
+
+###
+
+# Test streamable-http support
+POST http://localhost:5000/
+Content-Type: application/vnd.mcp
+X-MCP-API-Key: dev-mcp-api-key-12345
+
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "ping",
+  "params": {}
+}
+
+###
+
+# Test other MCP path (should also require auth)
+POST http://localhost:5000/mcp
+Content-Type: application/json
+
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/list",
+  "params": {}
+}

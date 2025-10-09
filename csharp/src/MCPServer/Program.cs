@@ -1,5 +1,4 @@
-﻿
-using OpenTelemetry;
+﻿using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
 using MCPServer.Tools;
@@ -22,6 +21,18 @@ builder.Configuration
     .AddEnvironmentVariables()
     .AddUserSecrets<Program>();
 
+// Configure CORS
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .WithExposedHeaders("X-MCP-Status", "X-MCP-Version");
+    });
+});
+
 // Configure Cosmos DB settings
 builder.Services.Configure<CosmosDBSettings>(
     builder.Configuration.GetSection("CosmosDBSettings"));
@@ -35,9 +46,9 @@ builder.Services.AddScoped<Banking.Services.BankingDataService>(serviceProvider 
     var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
     var cosmosDBService = serviceProvider.GetRequiredService<CosmosDBService>();
     var logger = loggerFactory.CreateLogger<Program>();
-    
+
     logger.LogInformation("Initializing BankingDataService with real Cosmos DB containers");
-    
+
     return new Banking.Services.BankingDataService(
         database: cosmosDBService.Database,
         accountData: cosmosDBService.AccountDataContainer,
@@ -78,16 +89,32 @@ builder.Services.AddOpenTelemetry()
 var app = builder.Build();
 Console.WriteLine("🔧 DEBUG: WebApplication built successfully");
 
+// Enable CORS (must be before other middleware)
+app.UseCors();
+
 // Add API key authentication middleware
 Console.WriteLine("🔧 DEBUG: Adding API key authentication middleware...");
 app.UseMiddleware<ApiKeyAuthenticationMiddleware>();
 
 // Add a health check endpoint
 Console.WriteLine("🔧 DEBUG: Adding health check endpoint...");
-app.MapGet("/health", () => Results.Ok(new { 
-    Status = "Healthy", 
+app.MapGet("/health", () => Results.Ok(new
+{
+    Status = "Healthy",
     Timestamp = DateTime.UtcNow,
-    Version = "4.0"
+    Version = "4.0",
+    Authentication = "Enabled",
+    SupportedTransports = new[] { "http", "streamable-http" }
+}));
+
+// Add MCP server info endpoint
+app.MapGet("/mcp/info", () => Results.Ok(new
+{
+    Name = "Banking MCP Server",
+    Version = "4.0",
+    SupportedTransports = new[] { "http", "streamable-http" },
+    RequiresAuthentication = true,
+    ApiKeyHeader = "X-MCP-API-Key"
 }));
 
 Console.WriteLine("🔧 DEBUG: Mapping MCP endpoints...");
@@ -95,8 +122,10 @@ app.MapMcp();
 Console.WriteLine("✅ DEBUG: MCP endpoints mapped successfully");
 
 Console.WriteLine("🚀 MCP Server started successfully");
-Console.WriteLine("📍 MCP endpoint available at /mcp");
-Console.WriteLine("🔐 API key authentication enabled (configure in appsettings)");
+Console.WriteLine("📍 MCP endpoint available at / (root path)");
+Console.WriteLine("📍 MCP info endpoint available at /mcp/info");
+Console.WriteLine("📍 Health check available at /health");
+Console.WriteLine("🔐 API key authentication enabled for MCP endpoints");
 Console.WriteLine("📊 OpenTelemetry tracing and metrics enabled");
 Console.WriteLine("💾 Cosmos DB integration configured");
 Console.WriteLine("🏦 Banking tools available for MCP clients");
@@ -108,7 +137,7 @@ using (var scope = app.Services.CreateScope())
     {
         var bankingTools = scope.ServiceProvider.GetService<BankingTools>();
         Console.WriteLine($"🔧 DEBUG: BankingTools service resolved: {bankingTools != null}");
-        
+
         var bankingService = scope.ServiceProvider.GetService<Banking.Services.BankingDataService>();
         Console.WriteLine($"🔧 DEBUG: BankingDataService resolved: {bankingService != null}");
     }
