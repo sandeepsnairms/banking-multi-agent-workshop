@@ -2,6 +2,7 @@
 
 using Azure.AI.OpenAI;
 using Azure.Identity;
+using Banking.Services;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Workflows;
 using Microsoft.Extensions.AI;
@@ -14,10 +15,10 @@ using MultiAgentCopilot.Models.Debug;
 using MultiAgentCopilot.MultiAgentCopilot.Factories;
 using MultiAgentCopilot.MultiAgentCopilot.Helper;
 using MultiAgentCopilot.MultiAgentCopilot.Services;
+using OpenAI;
 using OpenAI.Chat;
 using System.Text.Json;
 using ChatMessage = Microsoft.Extensions.AI.ChatMessage;
-using Banking.Services;
 
 namespace MultiAgentCopilot.Services;
 
@@ -85,6 +86,9 @@ public class AgentFrameworkService : IDisposable
             return openAIClient
                 .GetChatClient(_settings.AzureOpenAISettings.CompletionsDeployment)
                 .AsIChatClient();
+
+
+            
         }
         catch (Exception ex)
         {
@@ -163,6 +167,8 @@ public class AgentFrameworkService : IDisposable
         return true;
     }
 
+
+
     /// <summary>
     /// Initializes the AI agents based on available tool services.
     /// </summary>
@@ -174,6 +180,8 @@ public class AgentFrameworkService : IDisposable
 
             if (_agents == null || _agents.Count == 0)
             {
+
+
                 if (_mcpService != null)
                 {
                     _agents = AgentFactory.CreateAllAgentsWithMCPToolsAsync(_chatClient, _mcpService, _loggerFactory).GetAwaiter().GetResult();
@@ -233,12 +241,16 @@ public class AgentFrameworkService : IDisposable
     {
         try
         {
+            messageHistory.Add(userMessage);
             var chatHistory = ConvertToAIChatMessages(messageHistory);
             chatHistory.Add(new ChatMessage(ChatRole.User, userMessage.Text));
 
             _promptDebugProperties.Clear();
 
-            var (responseText, selectedAgentName) = await RunGroupChatOrchestration(chatHistory, tenantId, userId);
+
+            var responseText = _agents[3].RunAsync(chatHistory).Result.Text;
+            var selectedAgentName= _agents[3].Name;
+            //var (responseText, selectedAgentName) = await RunGroupChatOrchestration(chatHistory, tenantId, userId);
 
             return CreateResponseTuple(userMessage, responseText, selectedAgentName);
         }
@@ -455,7 +467,7 @@ public class AgentFrameworkService : IDisposable
                 AgentWorkflowBuilder.CreateGroupChatBuilderWith(agents => 
                     new GroupChatOrchestrator(_agents!, _chatClient, LogMessage, customTerminationFunc) 
                     { 
-                        MaximumIterationCount = 5 
+                        MaximumIterationCount = 5                        
                     })
                     .AddParticipants(_agents!)
                     .Build(), 

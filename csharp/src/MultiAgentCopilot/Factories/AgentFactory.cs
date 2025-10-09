@@ -1,5 +1,8 @@
+using Azure.Core;
 using Banking.Services;
 using Microsoft.Agents.AI;
+using Microsoft.AspNetCore.Components.Routing;
+using Microsoft.Exchange.WebServices.Data;
 using Microsoft.Extensions.AI;
 using MultiAgentCopilot.Models;
 using MultiAgentCopilot.MultiAgentCopilot.Services;
@@ -8,6 +11,8 @@ using MultiAgentCopilot.Tools;
 using OpenAI;
 using OpenAI.Chat;
 using OpenAI.Responses;
+using System;
+using System.Buffers.Text;
 using System.ComponentModel;
 using System.Net.Http;
 using System.Reflection;
@@ -23,6 +28,19 @@ namespace MultiAgentCopilot.Factories
         /// </summary>
         public static List<AIAgent> CreateAllAgentsWithInProcessTools(IChatClient chatClient, BankingDataService bankService, ILoggerFactory loggerFactory)
         {
+            //var aiFunctions2 = GetInProcessAgentTools(AgentType.Coordinator, bankService, loggerFactory).ToArray();
+            //var agent2 = chatClient.CreateAIAgent(
+            //            instructions: "Your primary responsibilities include welcoming users, identifying customers based on their login.Start with identifying the currently logged -in user's information and use it to personalize the interaction.For example, Thank you for logging in, [user Name]. How can I help you with your banking needs today?",
+            //            name: "Welcome",
+            //            description: "Welcome agent",
+            //            tools: aiFunctions2.ToArray()
+            //        );
+
+            //List<Microsoft.Extensions.AI.ChatMessage> history=new List<Microsoft.Extensions.AI.ChatMessage>();
+            //history.Add(new Microsoft.Extensions.AI.ChatMessage(Microsoft.Extensions.AI.ChatRole.User, "Hi, I just logged in. User: Mark, Tenant: Contoso"));
+
+            //var response2 = agent2.RunAsync(history).GetAwaiter().GetResult();
+
             var agents = new List<AIAgent>();
             ILogger logger = loggerFactory.CreateLogger("AgentFactory");
 
@@ -53,6 +71,20 @@ namespace MultiAgentCopilot.Factories
 
         public static async Task<List<AIAgent>> CreateAllAgentsWithMCPToolsAsync(IChatClient chatClient, MCPToolService mcpService, ILoggerFactory loggerFactory)
         {
+            //var aiFunctions2 = await mcpService.GetMcpTools(AgentType.Coordinator);
+            //var agent2 = chatClient.CreateAIAgent(
+            //            instructions: "Your primary responsibilities include welcoming users, identifying customers based on their login.Start with identifying the currently logged -in user's information and use it to personalize the interaction.For example, Thank you for logging in, [user Name]. How can I help you with your banking needs today?",
+            //            name: "Welcome",
+            //            description: "Welcome agent",
+            //            tools: aiFunctions2.ToArray()
+            //        );
+
+            //List<Microsoft.Extensions.AI.ChatMessage> history = new List<Microsoft.Extensions.AI.ChatMessage>();
+            //history.Add(new Microsoft.Extensions.AI.ChatMessage(Microsoft.Extensions.AI.ChatRole.User, "Hi, I just logged in. User: Mark, Tenant: Contoso"));
+
+            //var response2 = agent2.RunAsync(history).GetAwaiter().GetResult();
+
+
             var agents = new List<Microsoft.Agents.AI.AIAgent>();
             ILogger logger = loggerFactory.CreateLogger("AgentFactory");
 
