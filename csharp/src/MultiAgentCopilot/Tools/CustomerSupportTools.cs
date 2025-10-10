@@ -25,7 +25,7 @@ namespace MultiAgentCopilot.Tools
         public async Task<List<ServiceRequest>> CheckPendingServiceRequests(string tenantId, string userId,string? accountId = null, ServiceRequestType? srType = null)
         {
             _logger.LogTrace($"Searching database for matching requests for Tenant: {tenantId} User: {userId}");
-            return await _bankService.GetServiceRequestsAsync(tenantId, accountId ?? string.Empty, null, srType);
+            return await _bankService.GetServiceRequestsAsync(tenantId, accountId string.Empty, null, srType);
         }
 
         [Description("Adds a telebanker callback request for the specified account.")]

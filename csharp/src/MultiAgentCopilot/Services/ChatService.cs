@@ -1,13 +1,15 @@
-﻿using Microsoft.Extensions.Options;
-using MultiAgentCopilot.Models.Debug;
-using MultiAgentCopilot.Models.Configuration;
+﻿using Banking.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using MultiAgentCopilot.Models.Chat;
-using Newtonsoft.Json.Linq;
-using System.Text.Json;
-using Newtonsoft.Json;
+using MultiAgentCopilot.Models.Configuration;
+using MultiAgentCopilot.Models.Debug;
 using MultiAgentCopilot.MultiAgentCopilot.Services;
-using Banking.Services;
-
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using OpenAI.Embeddings;
+using System.Text.Json;
+using OpenAI;
 namespace MultiAgentCopilot.Services;
 
 public class ChatService
@@ -33,16 +35,20 @@ public class ChatService
 
 
         // Initialize the Agent Framework with tool service
-        // Primary: MCP Tools (preferred for external tool execution)
-        bool useMCP = true;
-        if (useMCP)
+        if (afOptions.Value.UseMCPTools)
         {
+            //MCP tools
             _afService.SetMCPToolService(_mcpService);
         }
         else
         {
             // In-Process Tools
-            _bankService = new BankingDataService(cosmosDBService.Database, cosmosDBService.AccountDataContainer, cosmosDBService.UserDataContainer, cosmosDBService.AccountDataContainer, cosmosDBService.OfferDataContainer, loggerFactory);
+
+            var embeddingClient = _afService.GetAzureOpenAIClient();
+            var embeddingDeployment = _afService.GetEmbeddingDeploymentName();
+            EmbeddingService embeddingService = new EmbeddingService(embeddingClient, embeddingDeployment);
+            
+            _bankService = new BankingDataService(embeddingService, cosmosDBService.Database, cosmosDBService.AccountDataContainer, cosmosDBService.UserDataContainer, cosmosDBService.AccountDataContainer, cosmosDBService.OfferDataContainer, loggerFactory);
             _afService.SetInProcessToolService(_bankService);
         }
 

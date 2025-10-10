@@ -1,5 +1,4 @@
 ﻿using MultiAgentCopilot.Models.Configuration;
-using MultiAgentCopilot.MultiAgentCopilot.Models.Configuration;
 using MultiAgentCopilot.MultiAgentCopilot.Services;
 using MultiAgentCopilot.Services;
 
@@ -11,18 +10,20 @@ namespace MultiAgentCopilot
     public static partial class DependencyInjection
     {
 
-        public static void AddMCPService(this IHostApplicationBuilder builder)
-        {
-            builder.Services.AddOptions<MCPSettings>()
-                .Bind(builder.Configuration.GetSection("MCPSettings"));
-            builder.Services.AddSingleton<MCPToolService>();
-        }
+   
 
         public static void AddAgentFrameworkService(this IHostApplicationBuilder builder)
         {
             builder.Services.AddOptions<AgentFrameworkServiceSettings>()
                 .Bind(builder.Configuration.GetSection("AgentFrameworkServiceSettings"));
             builder.Services.AddSingleton<AgentFrameworkService>();
+        }
+
+        public static void AddMCPService(this IHostApplicationBuilder builder)
+        {
+            builder.Services.AddOptions<MCPSettings>()
+                .Bind(builder.Configuration.GetSection("AgentFrameworkServiceSettings").GetSection("MCPSettings"));
+            builder.Services.AddSingleton<MCPToolService>();
         }
 
         public static void AddCosmosDBService(this IHostApplicationBuilder builder)

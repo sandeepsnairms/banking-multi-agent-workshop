@@ -188,7 +188,7 @@ namespace MultiAgentCopilot.Factories
             ILogger logger = loggerFactory.CreateLogger<AgentFrameworkService>();
             try
             {
-                logger.LogInformation("🔧 Creating in-process tools for agent type: {AgentType}", agentType);
+                logger.LogInformation("Creating in-process tools for agent type: {AgentType}", agentType);
 
                 // Create the appropriate tools class based on agent type
                 BaseTools toolsClass = agentType switch
@@ -201,7 +201,7 @@ namespace MultiAgentCopilot.Factories
                 };
 
                 // Log the tool class creation for debugging
-                logger.LogInformation("✅ Created {ToolClassName} for agent type: {AgentType}", toolsClass.GetType().Name, agentType);
+                logger.LogInformation("Created {ToolClassName} for agent type: {AgentType}", toolsClass.GetType().Name, agentType);
 
                 // Get methods with Description attributes and create AI functions
                 var methods = toolsClass.GetType().GetMethods()
@@ -216,25 +216,25 @@ namespace MultiAgentCopilot.Factories
                         var aiFunction = AIFunctionFactory.Create(method, toolsClass);
                         functions.Add(aiFunction);
                         
-                        var description = method.GetCustomAttribute<DescriptionAttribute>()?.Description ?? "No description";
-                        logger.LogDebug("📋 Agent {AgentType} in-process tool: '{MethodName}' - {Description}",
+                        var description = method.GetCustomAttribute<DescriptionAttribute>().Description;
+                        logger.LogDebug("Agent {AgentType} in-process tool: '{MethodName}' - {Description}",
                             agentType, method.Name, description);
                     }
                     catch (Exception ex)
                     {
-                        logger.LogWarning(ex, "⚠️ Failed to create AI function for method {MethodName} in {AgentType}: {Message}",
+                        logger.LogWarning(ex, "Failed to create AI function for method {MethodName} in {AgentType}: {Message}",
                             method.Name, agentType, ex.Message);
                     }
                 }
 
-                logger.LogInformation("✅ Created {FunctionCount} in-process tools for agent type: {AgentType}", 
+                logger.LogInformation("Created {FunctionCount} in-process tools for agent type: {AgentType}", 
                     functions.Count, agentType);
 
                 return functions.Count > 0 ? functions : null;
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "❌ Error creating in-process tools for agent type: {AgentType}", agentType);
+                logger.LogError(ex, "Error creating in-process tools for agent type: {AgentType}", agentType);
                 return null;
             }
         }

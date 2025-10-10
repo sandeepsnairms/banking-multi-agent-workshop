@@ -4,7 +4,6 @@ using Microsoft.Extensions.Options;
 using ModelContextProtocol.Client;
 using MultiAgentCopilot.Models;
 using MultiAgentCopilot.Models.Configuration;
-using MultiAgentCopilot.MultiAgentCopilot.Models.Configuration;
 using MultiAgentCopilot.Transport;
 using System.Net.Http.Headers;
 using System.Reflection;
@@ -34,7 +33,7 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Services
         {
             if (_mcpSettings.Servers == null || !_mcpSettings.Servers.Any())
             {
-                _logger.LogWarning("⚠️ No MCP servers configured in MCPSettings.Servers");
+                _logger.LogWarning("No MCP servers configured in MCPSettings.Servers");
                 return;
             }
 
@@ -42,27 +41,27 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Services
             {
                 if (string.IsNullOrWhiteSpace(server.AgentName))
                 {
-                    _logger.LogWarning("⚠️ MCP server configuration has empty AgentName");
+                    _logger.LogWarning("MCP server configuration has empty AgentName");
                 }
 
                 if (string.IsNullOrWhiteSpace(server.Url))
                 {
-                    _logger.LogWarning("⚠️ MCP server '{AgentName}' has empty Url", server.AgentName);
+                    _logger.LogWarning("MCP server '{AgentName}' has empty Url", server.AgentName);
                 }
 
                 if (string.IsNullOrWhiteSpace(server.Key))
                 {
-                    _logger.LogWarning("⚠️ MCP server '{AgentName}' has empty API Key", server.AgentName);
+                    _logger.LogWarning("MCP server '{AgentName}' has empty API Key", server.AgentName);
                 }
 
                 // Validate URL format
                 if (!string.IsNullOrWhiteSpace(server.Url) && !Uri.TryCreate(server.Url, UriKind.Absolute, out _))
                 {
-                    _logger.LogWarning("⚠️ MCP server '{AgentName}' has invalid Url format: {Url}", server.AgentName, server.Url);
+                    _logger.LogWarning("MCP server '{AgentName}' has invalid Url format: {Url}", server.AgentName, server.Url);
                 }
             }
 
-            _logger.LogInformation("✅ MCP configuration validated for {ServerCount} servers", _mcpSettings.Servers.Count);
+            _logger.LogInformation("MCP configuration validated for {ServerCount} servers", _mcpSettings.Servers.Count);
         }
 
         private MCPServerSettings GetMCPServerSettings(AgentType agentType)
@@ -116,7 +115,7 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Services
                 return existingClient;
             }
 
-            _logger.LogInformation("🔧 Creating new MCP client for agent: {AgentType}", agentType);
+            _logger.LogInformation("Creating new MCP client for agent: {AgentType}", agentType);
 
             // Get agent configuration
             var settings = GetMCPServerSettings(agentType);
@@ -136,7 +135,7 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Services
                 }
 
                 _transports[agentType] = clientTransport;
-                _logger.LogDebug("✅ Transport created successfully for agent: {AgentType}", agentType);
+                _logger.LogDebug("Transport created successfully for agent: {AgentType}", agentType);
             }
             catch (Exception ex)
             {
@@ -149,7 +148,7 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Services
             {
                 var mcpClient = await McpClient.CreateAsync(clientTransport);
                 _clients[agentType] = mcpClient;
-                _logger.LogInformation("✅ MCP client created successfully for agent: {AgentType}", agentType);
+                _logger.LogInformation("MCP client created successfully for agent: {AgentType}", agentType);
                 return mcpClient;
             }
             catch (Exception ex)
@@ -178,7 +177,7 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Services
         {
             try
             {
-                _logger.LogDebug("🔧 Configuring transport for streamable-http support...");
+                _logger.LogDebug("Configuring transport for streamable-http support...");
 
                 // Use reflection to access the underlying HttpClient
                 var transportType = transport.GetType();
@@ -201,7 +200,7 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Services
                     // Verify API key header is present
                     if (!httpClient.DefaultRequestHeaders.Contains("X-MCP-API-Key"))
                     {
-                        _logger.LogWarning("⚠️ X-MCP-API-Key header not found, adding manually...");
+                        _logger.LogWarning("X-MCP-API-Key header not found, adding manually...");
                         httpClient.DefaultRequestHeaders.Add("X-MCP-API-Key", settings.Key);
                     }
 
@@ -211,16 +210,16 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Services
                         httpClient.Timeout = TimeSpan.FromSeconds(30);
                     }
 
-                    _logger.LogDebug("✅ Transport configured for streamable-http");
+                    _logger.LogDebug("Transport configured for streamable-http");
                 }
                 else
                 {
-                    _logger.LogWarning("⚠️ Could not access HttpClient to configure streamable-http support");
+                    _logger.LogWarning("Could not access HttpClient to configure streamable-http support");
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "⚠️ Failed to configure transport for streamable-http: {Message}", ex.Message);
+                _logger.LogWarning(ex, "Failed to configure transport for streamable-http: {Message}", ex.Message);
                 // Non-fatal error, continue with default configuration
             }
 
@@ -238,12 +237,12 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Services
 
                 // List available tools from the MCP server
                 var tools = await mcpClient.ListToolsAsync();
-                _logger.LogInformation("✅ Retrieved {ToolCount} tools for agent {AgentType}", tools.Count, agent);
+                _logger.LogInformation("Retrieved {ToolCount} tools for agent {AgentType}", tools.Count, agent);
 
                 // Log each tool for debugging
                 foreach (var tool in tools)
                 {
-                    _logger.LogDebug("📋 Tool available - Name: {ToolName}, Description: {ToolDescription}", 
+                    _logger.LogDebug("Tool available - Name: {ToolName}, Description: {ToolDescription}", 
                         tool.Name, tool.Description);
                 }
 
@@ -293,13 +292,13 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Services
                 var mcpClient = await GetOrCreateMcpClientAsync(agentType);
                 var tools = await mcpClient.ListToolsAsync();
                 
-                _logger.LogInformation("✅ Connection test successful for agent {AgentType} - {ToolCount} tools available", 
+                _logger.LogInformation("Connection test successful for agent {AgentType} - {ToolCount} tools available", 
                     agentType, tools.Count);
                 return true;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Connection test failed for agent {AgentType}: {Message}", agentType, ex.Message);
+                _logger.LogError(ex, "Connection test failed for agent {AgentType}: {Message}", agentType, ex.Message);
                 return false;
             }
         }
@@ -340,11 +339,11 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Services
                 try
                 {
                     await client.DisposeAsync();
-                    _logger.LogDebug("✅ Disposed MCP client for agent: {AgentType}", agentType);
+                    _logger.LogDebug("Disposed MCP client for agent: {AgentType}", agentType);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "⚠️ Error disposing MCP client for agent {AgentType}: {Message}", agentType, ex.Message);
+                    _logger.LogWarning(ex, "Error disposing MCP client for agent {AgentType}: {Message}", agentType, ex.Message);
                 }
             }
             _clients.Clear();
@@ -362,16 +361,16 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Services
                     {
                         disposable.Dispose();
                     }
-                    _logger.LogDebug("✅ Disposed transport for agent: {AgentType}", agentType);
+                    _logger.LogDebug("Disposed transport for agent: {AgentType}", agentType);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "⚠️ Error disposing transport for agent {AgentType}: {Message}", agentType, ex.Message);
+                    _logger.LogWarning(ex, "Error disposing transport for agent {AgentType}: {Message}", agentType, ex.Message);
                 }
             }
             _transports.Clear();
 
-            _logger.LogInformation("✅ MCPToolService disposed successfully");
+            _logger.LogInformation("MCPToolService disposed successfully");
         }
 
         public void Dispose()
@@ -383,7 +382,7 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Services
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "⚠️ Error during synchronous dispose: {Message}", ex.Message);
+                _logger.LogWarning(ex, "Error during synchronous dispose: {Message}", ex.Message);
             }
             
             GC.SuppressFinalize(this);

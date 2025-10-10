@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MultiAgentCopilot.Models;
-using MultiAgentCopilot.MultiAgentCopilot.Models.Configuration;
+using MultiAgentCopilot.Models.Configuration;
 using MultiAgentCopilot.MultiAgentCopilot.Services;
 
 namespace MultiAgentCopilot.Tests

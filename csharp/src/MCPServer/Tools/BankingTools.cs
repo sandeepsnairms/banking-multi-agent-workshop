@@ -21,25 +21,25 @@ public class BankingTools
         _logger = logger;
         
         // DEBUG: Log constructor initialization
-        _logger.LogInformation("?? BankingTools initialized successfully with banking service: {BankingServiceType}", 
-            bankingService?.GetType().Name ?? "NULL");
+        _logger.LogInformation("BankingTools initialized successfully with banking service: {BankingServiceType}", 
+            bankingService?.GetType().Name);
     }
 
 
-    [McpServerTool, Description("Get the current logged-in BankUser")]
+    [McpServerTool, Description("Get the current logged-in User")]
     public async Task<BankUser> GetLoggedInUser(string tenantId, string userId)
     {
-        _logger.LogInformation("?? DEBUG: GetLoggedInUser called with TenantId={TenantId}, UserId={UserId}", tenantId, userId);
+        _logger.LogInformation("DEBUG: GetLoggedInUser called with TenantId={TenantId}, UserId={UserId}", tenantId, userId);
         
         try
         {
             var result = await _bankingService.GetUserAsync(tenantId, userId);
-            _logger.LogInformation("? DEBUG: GetLoggedInUser successful, returned user: {UserName}", result?.Name ?? "NULL");
+            _logger.LogInformation("DEBUG: GetLoggedInUser successful, returned user: {UserName}", result?.Name);
             return result;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "? DEBUG: GetLoggedInUser failed with exception: {Message}", ex.Message);
+            _logger.LogError(ex, "DEBUG: GetLoggedInUser failed with exception: {Message}", ex.Message);
             throw;
         }
     }
@@ -47,10 +47,10 @@ public class BankingTools
     [McpServerTool, Description("Get the current date time in UTC")]
     public DateTime GetCurrentDateTime()
     {
-        _logger.LogInformation("?? DEBUG: GetCurrentDateTime called");
+        _logger.LogInformation("DEBUG: GetCurrentDateTime called");
         
         var now = DateTime.Now.ToUniversalTime();
-        _logger.LogInformation("? DEBUG: GetCurrentDateTime returning: {DateTime}", now);
+        _logger.LogInformation("DEBUG: GetCurrentDateTime returning: {DateTime}", now);
         return now;
     }
 
@@ -60,7 +60,7 @@ public class BankingTools
         string requirement,
         string? tenantId = null)
     {
-        _logger.LogInformation("?? DEBUG: SearchOffers CALLED with accountType={AccountType}, requirement={Requirement}, tenantId={TenantId}", 
+        _logger.LogInformation("DEBUG: SearchOffers CALLED with accountType={AccountType}, requirement={Requirement}, tenantId={TenantId}", 
             accountType, requirement, tenantId);
         
         try
@@ -73,17 +73,17 @@ public class BankingTools
                 accType = AccountType.Savings; // Default to Savings
             }
 
-            _logger.LogInformation("?? DEBUG: Executing search for {AccountType} offers matching: {Requirement}", accountType, requirement);
+            _logger.LogInformation("DEBUG: Executing search for {AccountType} offers matching: {Requirement}", accountType, requirement);
             
             var offerTerms = await _bankingService.SearchOfferTermsAsync(tenantId, accType, requirement);
             
-            _logger.LogInformation("? DEBUG: SearchOffers completed - found {OfferCount} offers", offerTerms.Count);
+            _logger.LogInformation("DEBUG: SearchOffers completed - found {OfferCount} offers", offerTerms.Count);
            
             return offerTerms;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "?? DEBUG: SearchOffers failed with exception");
+            _logger.LogError(ex, "DEBUG: SearchOffers failed with exception");
             return new List<OfferTerm>();
         }
     }
@@ -91,11 +91,10 @@ public class BankingTools
     [McpServerTool, Description("Get detailed information for a specific banking offer")]
     public async Task<Offer> GetOfferDetails(
         string offerId,
-        string? tenantId = null)
+        string tenantId = null)
     {
         try
         {
-            tenantId ??= "default-tenant";
             
             _logger.LogInformation("Getting details for offer: {OfferId}", offerId);
             
@@ -117,11 +116,10 @@ public class BankingTools
          string accountId,
          DateTime startDate,
          DateTime endDate,
-         string? tenantId = null)
+         string tenantId = null)
     {
         try
         {
-            tenantId ??= "default-tenant";
             
             _logger.LogInformation("Getting transaction history for account {AccountId} from {StartDate} to {EndDate}", 
                 accountId, startDate, endDate);
@@ -141,11 +139,10 @@ public class BankingTools
     public async Task<BankAccount> GetAccountDetails(
         string accountId,
         string userId,
-        string? tenantId = null)
+        string tenantId = null)
     {
         try
         {
-            tenantId ??= "default-tenant";
             
             _logger.LogInformation("Getting account details for account {AccountId} and user {UserId}", accountId, userId);
             
@@ -163,12 +160,10 @@ public class BankingTools
     [McpServerTool, Description("Get all registered accounts for a user")]
     public async Task<List<BankAccount>> GetUserAccounts(
         string userId,
-        string? tenantId = null)
+        string tenantId = null)
     {
         try
-        {
-            tenantId ??= "default-tenant";
-            
+        {           
             _logger.LogInformation("Getting all accounts for user {UserId}", userId);
             
             var accounts = await _bankingService.GetUserRegisteredAccountsAsync(tenantId, userId);
@@ -187,15 +182,13 @@ public class BankingTools
     public async Task<ServiceRequest> CreateServiceRequest(
         string requestType,
         string description,
-        string? accountId = null,
-        string? userId = null,
-        string? tenantId = null)
+        string accountId,
+        string userId,
+        string tenantId)
     {
         try
         {
-            tenantId ??= "default-tenant";
-            userId ??= "default-user";
-            accountId ??= "";
+
             
             _logger.LogInformation("Creating service request of type {RequestType} for user {UserId}", requestType, userId);
             
@@ -249,14 +242,14 @@ public class BankingTools
     [McpServerTool, Description("Get service requests for an account")]
     public async Task<List<ServiceRequest>> GetServiceRequests(
         string accountId,
+        string tenantId,
         string? userId = null,
-        string? requestType = null,
-        string? tenantId = null)
+        string? requestType = null
+       )
     {
         try
         {
-            tenantId ??= "default-tenant";
-            
+           
             ServiceRequestType? srType = null;
             if (!string.IsNullOrEmpty(requestType) && Enum.TryParse<ServiceRequestType>(requestType, true, out var parsedType))
             {
@@ -281,11 +274,10 @@ public class BankingTools
         string requestId,
         string accountId,
         string annotation,
-        string? tenantId = null)
+        string tenantId)
     {
         try
         {
-            tenantId ??= "default-tenant";
             
             _logger.LogInformation("Adding annotation to service request {RequestId}", requestId);
             

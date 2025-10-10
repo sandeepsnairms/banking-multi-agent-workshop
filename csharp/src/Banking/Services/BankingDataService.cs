@@ -1,28 +1,26 @@
-using System.Diagnostics;
+using Azure.Identity;
+using Banking.Models;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Fluent;
-using Container = Microsoft.Azure.Cosmos.Container;
-using Azure.Identity;
-using System.Text;
-using Banking.Models;
+using Microsoft.Azure.Cosmos.Linq;
 using Microsoft.Extensions.Logging;
-
-using PartitionKey = Microsoft.Azure.Cosmos.PartitionKey;
-
-using System.Text.Json;
+using OpenAI;
+using System.Diagnostics;
 using System.Linq.Expressions;
+using System.Text;
+using System.Text.Json;
+using Container = Microsoft.Azure.Cosmos.Container;
+using PartitionKey = Microsoft.Azure.Cosmos.PartitionKey;
 
 namespace Banking.Services
 {
     public class BankingDataService
     {
+        private readonly EmbeddingService _embeddingService;
         private readonly Container _accountData;
         private readonly Container _userData;
         private readonly Container _requestData;
         private readonly Container _offerData;
-
-        //private readonly AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm> _offerDataVectorStore;
-        //private readonly AzureOpenAITextEmbeddingGenerationService _textEmbeddingGenerationService;
 
         private readonly Database _database;
 
@@ -30,11 +28,8 @@ namespace Banking.Services
 
         public bool IsInitialized { get; private set; }
 
-        // Mock implementations for missing dependencies
-        private static Database GetMockDatabase() => null!; // This needs to be injected properly
-        private static Container GetMockContainer() => null!; // This needs to be injected properly
 
-        public BankingDataService(
+        public BankingDataService(EmbeddingService embeddingService,
             Database database, Container accountData, Container userData, Container requestData, Container offerData, ILoggerFactory loggerFactory)
         {
 
@@ -43,37 +38,10 @@ namespace Banking.Services
             _userData = userData;
             _requestData = requestData;
             _offerData = offerData;
+            _embeddingService = embeddingService;
 
             _logger = loggerFactory.CreateLogger<BankingDataService>();
-
-            _logger.LogInformation("Initializing Banking service.");
-
-            //To DO: Add vector search initialization code here
-
-            // TODO: skSettings needs to be injected or made available
-            DefaultAzureCredential credential;
-            // Commented out until skSettings is available
-            // if (string.IsNullOrEmpty(skSettings.AzureOpenAISettings.UserAssignedIdentityClientID))
-            // {
-                credential = new DefaultAzureCredential();
-            // }
-            // else
-            // {
-            //     credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
-            //     {
-            //         ManagedIdentityClientId = skSettings.AzureOpenAISettings.UserAssignedIdentityClientID
-            //     });
-            // }
-
-            //_textEmbeddingGenerationService = new(
-            //        deploymentName: skSettings.AzureOpenAISettings.EmbeddingsDeployment, // Name of deployment, e.g. "text-embedding-ada-002".
-            //        endpoint: skSettings.AzureOpenAISettings.Endpoint,           // Name of Azure OpenAI service endpoint, e.g. https://myaiservice.openai.azure.com.
-            //        credential: credential);
-
-            var jsonSerializerOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-            //var vectorStoreOptions = new AzureCosmosDBNoSQLVectorStoreRecordCollectionOptions<OfferTerm> { PartitionKeyPropertyName = "TenantId", JsonSerializerOptions = jsonSerializerOptions };
-            //_offerDataVectorStore = new AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm>(_database, _offerData.Id, vectorStoreOptions);
-
+                        
             _logger.LogInformation("Banking service initialized.");
         }
 
@@ -285,37 +253,55 @@ namespace Banking.Services
         {
             try
             {
-                return new List<OfferTerm>();
+                // Generate embeddings for the requirement description
+                var queryVector = await _embeddingService.GenerateEmbeddingAsync(requirementDescription);
 
-                //// Generate Embedding
-                //ReadOnlyMemory<float> embedding = (await _textEmbeddingGenerationService.GenerateEmbeddingsAsync(
-                //       new[] { requirementDescription }
-                //   )).FirstOrDefault();
 
-                //string accountTypeString = accountType.ToString();
+                // Build the vector search query with filters
+                var query = new QueryDefinition(@"
+                            SELECT 
+                                c.id, 
+                                c.tenantId, 
+                                c.offerId, 
+                                c.name, 
+                                c.text, 
+                                c.type, 
+                                c.accountType, 
+                                VectorDistance(c.vector, @queryVector) AS similarityScore
+                            FROM c 
+                            WHERE c.type = @type 
+                              AND c.tenantId = @tenantId 
+                              AND c.accountType = @accountType
+                            ORDER BY VectorDistance(c.vector, @queryVector)
+                        ")
+                .WithParameter("@queryVector", queryVector)
+                .WithParameter("@type", "Term")
+                .WithParameter("@tenantId", tenantId)
+                .WithParameter("@accountType", accountType.ToString());
 
-                //// filters as LINQ expression
-                //Expression<Func<OfferTerm, bool>> linqFilter = term =>
-                //    term.TenantId == tenantId &&
-                //    term.Type == "Term" &&
-                //    term.AccountType == "Savings";
+                // Define partition key
+                var partitionKey = new PartitionKey(tenantId);
 
-                //var options = new VectorSearchOptions<OfferTerm>
-                //{
-                //    VectorProperty = term => term.Vector, // Correctly specify the vector property as a lambda expression
-                //    Filter = linqFilter, // Use the LINQ expression here
-                //    Top = 10,
-                //    IncludeVectors = false
-                //};
+                // Run query
+                var offerTerms = new List<OfferTerm>();
+                using (FeedIterator<OfferTerm> feedIterator = _offerData.GetItemQueryIterator<OfferTerm>(
+                    query,
+                    requestOptions: new QueryRequestOptions
+                    {
+                        PartitionKey = partitionKey,
+                        MaxItemCount = 10 // Limit for performance
+                    }))
+                {
+                    while (feedIterator.HasMoreResults)
+                    {
+                        FeedResponse<OfferTerm> response = await feedIterator.ReadNextAsync();
+                        offerTerms.AddRange(response);
+                    }
+                }
 
-                //var searchResults = await _offerDataVectorStore.VectorizedSearchAsync(embedding, options);
+                return offerTerms;
 
-                //List<OfferTerm> offerTerms = new();
-                //await foreach (var result in searchResults.Results)
-                //{
-                //    offerTerms.Add(result.Record);
-                //}
-                //return offerTerms;
+
             }
             catch (Exception ex)
             {

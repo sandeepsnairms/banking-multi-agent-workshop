@@ -15,29 +15,29 @@ public static class AuthenticatedHttpTransportFactory
     /// </summary>
     public static HttpClientTransport Create(string endpoint, string apiKey)
     {
-        Console.WriteLine($"?? DEBUG: Creating authenticated HTTP transport for endpoint: {endpoint}");
-        Console.WriteLine($"?? DEBUG: API Key length: {apiKey?.Length ?? 0} chars, first 4 chars: {(apiKey != null && apiKey.Length >= 4 ? apiKey[..4] : apiKey ?? "null")}...");
+        Console.WriteLine($"DEBUG: Creating authenticated HTTP transport for endpoint: {endpoint}");
+        Console.WriteLine($"DEBUG: API Key length: {apiKey?.Length 0} chars, first 4 chars: {(apiKey != null && apiKey.Length >= 4 ? apiKey[..4] : apiKey "null")}...");
 
         // Create the standard transport first
-        Console.WriteLine($"?? DEBUG: Creating HttpClientTransport with endpoint: {endpoint}");
+        Console.WriteLine($"DEBUG: Creating HttpClientTransport with endpoint: {endpoint}");
         var transport = new HttpClientTransport(new HttpClientTransportOptions
         {
             Endpoint = new Uri(endpoint)
         });
-        Console.WriteLine($"? DEBUG: HttpClientTransport created successfully");
+        Console.WriteLine($"DEBUG: HttpClientTransport created successfully");
 
         // Try to inject authentication headers using reflection
         try
         {
-            Console.WriteLine($"?? DEBUG: Attempting to inject authentication headers...");
+            Console.WriteLine($"DEBUG: Attempting to inject authentication headers...");
             InjectAuthenticationHeaders(transport, apiKey);
-            Console.WriteLine("? DEBUG: Successfully injected authentication headers into HTTP transport");
+            Console.WriteLine("DEBUG: Successfully injected authentication headers into HTTP transport");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"? DEBUG: Could not inject authentication headers: {ex.Message}");
-            Console.WriteLine($"?? DEBUG: The transport will work but without authentication headers.");
-            Console.WriteLine($"?? DEBUG: Exception details: {ex}");
+            Console.WriteLine($"DEBUG: Could not inject authentication headers: {ex.Message}");
+            Console.WriteLine($"DEBUG: The transport will work but without authentication headers.");
+            Console.WriteLine($"DEBUG: Exception details: {ex}");
         }
 
         return transport;
@@ -48,7 +48,7 @@ public static class AuthenticatedHttpTransportFactory
         // Get the type of HttpClientTransport
         var transportType = transport.GetType();
         
-        Console.WriteLine($"?? DEBUG: Attempting to inject headers into transport type: {transportType.Name}");
+        Console.WriteLine($"DEBUG: Attempting to inject headers into transport type: {transportType.Name}");
         
         // Try multiple approaches to find the HttpClient
         HttpClient? httpClient = null;
@@ -61,7 +61,7 @@ public static class AuthenticatedHttpTransportFactory
             if (field != null && field.FieldType == typeof(HttpClient))
             {
                 httpClient = field.GetValue(transport) as HttpClient;
-                Console.WriteLine($"? DEBUG: Found HttpClient in field: {fieldName}");
+                Console.WriteLine($"DEBUG: Found HttpClient in field: {fieldName}");
                 break;
             }
         }
@@ -76,7 +76,7 @@ public static class AuthenticatedHttpTransportFactory
                 if (prop != null && prop.PropertyType == typeof(HttpClient) && prop.CanRead)
                 {
                     httpClient = prop.GetValue(transport) as HttpClient;
-                    Console.WriteLine($"? DEBUG: Found HttpClient in property: {propName}");
+                    Console.WriteLine($"DEBUG: Found HttpClient in property: {propName}");
                     break;
                 }
             }
@@ -85,15 +85,15 @@ public static class AuthenticatedHttpTransportFactory
         // Approach 3: Look for any field/property that contains an HttpClient
         if (httpClient == null)
         {
-            Console.WriteLine($"?? DEBUG: Searching all fields for HttpClient...");
+            Console.WriteLine($"DEBUG: Searching all fields for HttpClient...");
             var allFields = transportType.GetFields(BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public);
             foreach (var field in allFields)
             {
-                Console.WriteLine($"  ?? DEBUG: Field {field.Name}: {field.FieldType.Name}");
+                Console.WriteLine($"  DEBUG: Field {field.Name}: {field.FieldType.Name}");
                 if (field.FieldType == typeof(HttpClient))
                 {
                     httpClient = field.GetValue(transport) as HttpClient;
-                    Console.WriteLine($"? DEBUG: Found HttpClient in field: {field.Name}");
+                    Console.WriteLine($"DEBUG: Found HttpClient in field: {field.Name}");
                     break;
                 }
             }
@@ -102,11 +102,11 @@ public static class AuthenticatedHttpTransportFactory
         // Approach 4: Search all properties
         if (httpClient == null)
         {
-            Console.WriteLine($"?? DEBUG: Searching all properties for HttpClient...");
+            Console.WriteLine($"DEBUG: Searching all properties for HttpClient...");
             var allProperties = transportType.GetProperties(BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public);
             foreach (var prop in allProperties)
             {
-                Console.WriteLine($"  ?? DEBUG: Property {prop.Name}: {prop.PropertyType.Name}");
+                Console.WriteLine($"  DEBUG: Property {prop.Name}: {prop.PropertyType.Name}");
                 if (prop.PropertyType == typeof(HttpClient) && prop.CanRead)
                 {
                     try
@@ -114,13 +114,13 @@ public static class AuthenticatedHttpTransportFactory
                         httpClient = prop.GetValue(transport) as HttpClient;
                         if (httpClient != null)
                         {
-                            Console.WriteLine($"? DEBUG: Found HttpClient in property: {prop.Name}");
+                            Console.WriteLine($"DEBUG: Found HttpClient in property: {prop.Name}");
                             break;
                         }
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"?? DEBUG: Exception accessing property {prop.Name}: {ex.Message}");
+                        Console.WriteLine($"DEBUG: Exception accessing property {prop.Name}: {ex.Message}");
                     }
                 }
             }
@@ -128,22 +128,22 @@ public static class AuthenticatedHttpTransportFactory
 
         if (httpClient != null)
         {
-            Console.WriteLine($"?? DEBUG: HttpClient found, attempting to add authentication header...");
+            Console.WriteLine($"DEBUG: HttpClient found, attempting to add authentication header...");
             // Add the authentication header
             try
             {
                 // Check if header already exists
                 if (httpClient.DefaultRequestHeaders.Contains("X-MCP-API-Key"))
                 {
-                    Console.WriteLine($"?? DEBUG: Removing existing X-MCP-API-Key header...");
+                    Console.WriteLine($"DEBUG: Removing existing X-MCP-API-Key header...");
                     httpClient.DefaultRequestHeaders.Remove("X-MCP-API-Key");
                 }
                 
                 httpClient.DefaultRequestHeaders.Add("X-MCP-API-Key", apiKey);
-                Console.WriteLine($"? DEBUG: Successfully added X-MCP-API-Key header to HttpClient");
+                Console.WriteLine($"DEBUG: Successfully added X-MCP-API-Key header to HttpClient");
                 
                 // Log all headers for debugging
-                Console.WriteLine($"?? DEBUG: All HttpClient headers after injection:");
+                Console.WriteLine($"DEBUG: All HttpClient headers after injection:");
                 foreach (var header in httpClient.DefaultRequestHeaders)
                 {
                     var headerValue = header.Key.Contains("Key", StringComparison.OrdinalIgnoreCase) ? "***REDACTED***" : string.Join(", ", header.Value);
@@ -152,21 +152,21 @@ public static class AuthenticatedHttpTransportFactory
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"? DEBUG: Failed to add header: {ex.Message}");
+                Console.WriteLine($"DEBUG: Failed to add header: {ex.Message}");
                 throw;
             }
         }
         else
         {
-            Console.WriteLine($"? DEBUG: Could not find HttpClient in transport");
+            Console.WriteLine($"DEBUG: Could not find HttpClient in transport");
             // Print debugging information
-            Console.WriteLine("?? DEBUG: Available fields:");
+            Console.WriteLine("DEBUG: Available fields:");
             foreach (var field in transportType.GetFields(BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public))
             {
                 Console.WriteLine($"  - {field.Name}: {field.FieldType.Name}");
             }
             
-            Console.WriteLine("?? DEBUG: Available properties:");
+            Console.WriteLine("DEBUG: Available properties:");
             foreach (var prop in transportType.GetProperties(BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public))
             {
                 Console.WriteLine($"  - {prop.Name}: {prop.PropertyType.Name}");
@@ -210,12 +210,12 @@ public class AuthenticatedHttpWrapper
 
     public HttpClientTransport CreateTransport()
     {
-        Console.WriteLine($"?? DEBUG: AuthenticatedHttpWrapper.CreateTransport called");
-        Console.WriteLine($"?? DEBUG: Endpoint: {_endpoint}");
-        Console.WriteLine($"?? DEBUG: API Key length: {_apiKey?.Length ?? 0}");
+        Console.WriteLine($"DEBUG: AuthenticatedHttpWrapper.CreateTransport called");
+        Console.WriteLine($"DEBUG: Endpoint: {_endpoint}");
+        Console.WriteLine($"DEBUG: API Key length: {_apiKey?.Length 0}");
         
         var transport = AuthenticatedHttpTransportFactory.Create(_endpoint, _apiKey);
-        Console.WriteLine($"? DEBUG: Transport created and returned");
+        Console.WriteLine($"DEBUG: Transport created and returned");
         return transport;
     }
 }

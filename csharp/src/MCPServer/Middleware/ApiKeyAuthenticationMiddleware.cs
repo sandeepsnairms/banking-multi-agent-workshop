@@ -26,7 +26,7 @@ namespace MCPServer.Middleware
             if (context.Request.Path.StartsWithSegments("/health") || 
                 context.Request.Path.StartsWithSegments("/mcp/info"))
             {
-                _logger.LogDebug("📋 DEBUG: Skipping authentication for public endpoint: {Path}", requestPath);
+                _logger.LogDebug("DEBUG: Skipping authentication for public endpoint: {Path}", requestPath);
                 await _next(context);
                 return;
             }
@@ -38,7 +38,7 @@ namespace MCPServer.Middleware
 
             if (!shouldAuthenticate)
             {
-                _logger.LogDebug("📋 DEBUG: Skipping authentication for non-MCP endpoint: {Path}", requestPath);
+                _logger.LogDebug("DEBUG: Skipping authentication for non-MCP endpoint: {Path}", requestPath);
                 await _next(context);
                 return;
             }
@@ -48,13 +48,13 @@ namespace MCPServer.Middleware
             var apiKey = _configuration["McpServer:ApiKey"];
             var enforceAuth = _configuration.GetValue<bool>("McpServer:EnforceAuthentication", true); // Default to true for security
 
-            _logger.LogInformation("🔧 DEBUG: Auth config - ApiKey configured: {HasApiKey}, EnforceAuth: {EnforceAuth}", 
+            _logger.LogInformation("DEBUG: Auth config - ApiKey configured: {HasApiKey}, EnforceAuth: {EnforceAuth}", 
                 !string.IsNullOrEmpty(apiKey), enforceAuth);
 
             // If no API key is configured, log warning but continue (for development)
             if (string.IsNullOrEmpty(apiKey))
             {
-                _logger.LogWarning("⚠️ WARNING: No API key configured. MCP server is running without authentication.");
+                _logger.LogWarning("WARNING: No API key configured. MCP server is running without authentication.");
                 await _next(context);
                 return;
             }
@@ -68,7 +68,7 @@ namespace MCPServer.Middleware
             }
 
             // Log all headers for debugging
-            _logger.LogDebug("📋 DEBUG: Request headers:");
+            _logger.LogDebug("DEBUG: Request headers:");
             foreach (var header in context.Request.Headers)
             {
                 var headerValue = header.Key.Contains("Key", StringComparison.OrdinalIgnoreCase) ? "***REDACTED***" : string.Join(", ", header.Value.ToArray());
@@ -78,7 +78,7 @@ namespace MCPServer.Middleware
             // Check for API key in headers
             if (!context.Request.Headers.TryGetValue("X-MCP-API-Key", out var extractedApiKey))
             {
-                _logger.LogWarning("❌ DEBUG: API key missing from request headers");
+                _logger.LogWarning("DEBUG: API key missing from request headers");
                 context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
                 context.Response.ContentType = "application/json";
                 await context.Response.WriteAsync("{\"error\": \"API Key is required\", \"code\": \"MISSING_API_KEY\"}");
@@ -89,9 +89,9 @@ namespace MCPServer.Middleware
             var extractedApiKeyValue = extractedApiKey.ToString();
             if (!apiKey.Equals(extractedApiKeyValue))
             {
-                _logger.LogWarning("❌ DEBUG: Invalid API key provided. Expected: {ExpectedKey}, Received: {ReceivedKey}", 
+                _logger.LogWarning("DEBUG: Invalid API key provided. Expected: {ExpectedKey}, Received: {ReceivedKey}", 
                     apiKey, extractedApiKeyValue);
-                _logger.LogWarning("❌ DEBUG: Key comparison - Expected length: {ExpectedLength}, Received length: {ReceivedLength}", 
+                _logger.LogWarning("DEBUG: Key comparison - Expected length: {ExpectedLength}, Received length: {ReceivedLength}", 
                     apiKey.Length, extractedApiKeyValue.Length);
                 context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
                 context.Response.ContentType = "application/json";
@@ -103,7 +103,7 @@ namespace MCPServer.Middleware
             var contentType = context.Request.ContentType;
             var acceptHeader = context.Request.Headers.Accept.ToString();
             
-            _logger.LogDebug("📋 DEBUG: Content-Type: {ContentType}, Accept: {Accept}", contentType, acceptHeader);
+            _logger.LogDebug("DEBUG: Content-Type: {ContentType}, Accept: {Accept}", contentType, acceptHeader);
             
             // Support for streamable-http and standard MCP requests
             if (!string.IsNullOrEmpty(contentType))
@@ -112,15 +112,15 @@ namespace MCPServer.Middleware
                     contentType.Contains("text/plain") ||
                     contentType.Contains("application/vnd.mcp"))
                 {
-                    _logger.LogDebug("✅ DEBUG: Supported content type detected: {ContentType}", contentType);
+                    _logger.LogDebug("DEBUG: Supported content type detected: {ContentType}", contentType);
                 }
                 else
                 {
-                    _logger.LogDebug("⚠️ DEBUG: Unknown content type, but proceeding: {ContentType}", contentType);
+                    _logger.LogDebug("DEBUG: Unknown content type, but proceeding: {ContentType}", contentType);
                 }
             }
 
-            _logger.LogInformation("✅ DEBUG: API key authentication successful");
+            _logger.LogInformation("DEBUG: API key authentication successful");
             await _next(context);
         }
     }

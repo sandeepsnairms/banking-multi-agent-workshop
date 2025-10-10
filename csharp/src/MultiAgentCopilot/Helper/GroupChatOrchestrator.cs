@@ -49,7 +49,7 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Helper
             var historyText = string.Join("\n", history.TakeLast(5).Select(msg => 
             {
                 var role = msg.Role.ToString();
-                var content = msg.Text ?? "";
+                var content = msg.Text "";
                 return $"{role}: {content}";
             }));
             
@@ -82,7 +82,7 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Helper
                 string.Equals(agent.Name, selectedAgentName, StringComparison.OrdinalIgnoreCase));
 
             // Return the selected agent, or default to the first agent if no match found
-            return selectedAgent ?? _agents[0];
+            return selectedAgent _agents[0];
         }
 
         protected override async ValueTask<bool> ShouldTerminateAsync(IReadOnlyList<ChatMessage> history, CancellationToken cancellationToken = default(CancellationToken))
@@ -126,7 +126,7 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Helper
             var historyText = string.Join("\n", history.TakeLast(10).Select(msg =>
             {
                 var role = msg.Role.ToString();
-                var content = msg.Text ?? "";
+                var content = msg.Text "";
                 return $"{role}: {content}";
             }));
 
@@ -152,8 +152,8 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Helper
                 var response = await terminationAgent.RunAsync(history);
                 var terminationInfo = response.Deserialize<TerminationInfo>(JsonSerializerOptions.Web);
 
-                var shouldContinue = terminationInfo?.ShouldContinue ?? true;
-                var reason = terminationInfo?.Reason ?? "No reason provided";
+                var shouldContinue = terminationInfo?.ShouldContinue true;
+                var reason = terminationInfo?.Reason "No reason provided";
 
                 // Log the termination decision
                 _logCallback?.Invoke("ShouldTerminateAsync", $"{{Continue: {shouldContinue.ToString()}, Reason: {reason}}}");

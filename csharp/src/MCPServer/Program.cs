@@ -1,12 +1,19 @@
-﻿using OpenTelemetry;
+﻿using Azure.AI.OpenAI;
+using Azure.Identity;
+using Banking.Services;
+using MCPServer.Middleware;
+using MCPServer.Models.Configuration;
+using MCPServer.Services;
+using MCPServer.Tools;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Identity.Client.Platforms.Features.DesktopOs.Kerberos;
+using OpenAI.Embeddings;
+using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
-using MCPServer.Tools;
-using MCPServer.Middleware;
-using MCPServer.Services;
-using MCPServer.Models.Configuration;
-using Banking.Services;
+using System.ClientModel.Primitives;
 using System.Net.Http.Headers;
+using System.Runtime;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -37,6 +44,9 @@ builder.Services.AddCors(options =>
 builder.Services.Configure<CosmosDBSettings>(
     builder.Configuration.GetSection("CosmosDBSettings"));
 
+builder.Services.Configure<AzureOpenAISettings>(
+    builder.Configuration.GetSection("AzureOpenAISettings"));
+
 // Register Cosmos DB service
 builder.Services.AddSingleton<CosmosDBService>();
 
@@ -47,9 +57,33 @@ builder.Services.AddScoped<Banking.Services.BankingDataService>(serviceProvider 
     var cosmosDBService = serviceProvider.GetRequiredService<CosmosDBService>();
     var logger = loggerFactory.CreateLogger<Program>();
 
+
+    //creating EmbeddingClient using AzureOpenAISettings using Azure.Identity credentaial like DefaultAzureCredential
+    var azureOpenAISettings = builder.Configuration.GetSection("AzureOpenAISettings").Get<AzureOpenAISettings>();
+
+    var endpoint = new Uri(azureOpenAISettings.Endpoint);
+
+    DefaultAzureCredential credential;
+    if (string.IsNullOrEmpty(azureOpenAISettings.UserAssignedIdentityClientID))
+    {
+        credential = new DefaultAzureCredential();
+    }
+    else
+    {
+        credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
+        {
+            ManagedIdentityClientId = azureOpenAISettings.UserAssignedIdentityClientID
+        });
+    }
+
+
+    AzureOpenAIClient client = new AzureOpenAIClient(endpoint, credential);
+    
+    EmbeddingService embeddingService=new EmbeddingService(client, azureOpenAISettings.EmbeddingsDeployment);
+
     logger.LogInformation("Initializing BankingDataService with real Cosmos DB containers");
 
-    return new Banking.Services.BankingDataService(
+    return new Banking.Services.BankingDataService(embeddingService,
         database: cosmosDBService.Database,
         accountData: cosmosDBService.AccountDataContainer,
         userData: cosmosDBService.UserDataContainer,
@@ -69,11 +103,11 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 });
 
 // Configure MCP Server with BankingTools
-Console.WriteLine("🔧 DEBUG: Configuring MCP Server with BankingTools...");
+Console.WriteLine("DEBUG: Configuring MCP Server with BankingTools...");
 builder.Services.AddMcpServer()
     .WithHttpTransport()
     .WithTools<BankingTools>();
-Console.WriteLine("✅ DEBUG: MCP Server configured successfully");
+Console.WriteLine("DEBUG: MCP Server configured successfully");
 
 // Add OpenTelemetry
 builder.Services.AddOpenTelemetry()
@@ -87,17 +121,17 @@ builder.Services.AddOpenTelemetry()
     .UseOtlpExporter();
 
 var app = builder.Build();
-Console.WriteLine("🔧 DEBUG: WebApplication built successfully");
+Console.WriteLine("DEBUG: WebApplication built successfully");
 
 // Enable CORS (must be before other middleware)
 app.UseCors();
 
 // Add API key authentication middleware
-Console.WriteLine("🔧 DEBUG: Adding API key authentication middleware...");
+Console.WriteLine("DEBUG: Adding API key authentication middleware...");
 app.UseMiddleware<ApiKeyAuthenticationMiddleware>();
 
 // Add a health check endpoint
-Console.WriteLine("🔧 DEBUG: Adding health check endpoint...");
+Console.WriteLine("DEBUG: Adding health check endpoint...");
 app.MapGet("/health", () => Results.Ok(new
 {
     Status = "Healthy",
@@ -117,9 +151,9 @@ app.MapGet("/mcp/info", () => Results.Ok(new
     ApiKeyHeader = "X-MCP-API-Key"
 }));
 
-Console.WriteLine("🔧 DEBUG: Mapping MCP endpoints...");
+Console.WriteLine("DEBUG: Mapping MCP endpoints...");
 app.MapMcp();
-Console.WriteLine("✅ DEBUG: MCP endpoints mapped successfully");
+Console.WriteLine("DEBUG: MCP endpoints mapped successfully");
 
 Console.WriteLine("🚀 MCP Server started successfully");
 Console.WriteLine("📍 MCP endpoint available at / (root path)");
@@ -136,17 +170,18 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var bankingTools = scope.ServiceProvider.GetService<BankingTools>();
-        Console.WriteLine($"🔧 DEBUG: BankingTools service resolved: {bankingTools != null}");
+        Console.WriteLine($"DEBUG: BankingTools service resolved: {bankingTools != null}");
 
         var bankingService = scope.ServiceProvider.GetService<Banking.Services.BankingDataService>();
-        Console.WriteLine($"🔧 DEBUG: BankingDataService resolved: {bankingService != null}");
+        Console.WriteLine($"DEBUG: BankingDataService resolved: {bankingService != null}");
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"❌ DEBUG: Error checking service registration: {ex.Message}");
+        Console.WriteLine($"DEBUG: Error checking service registration: {ex.Message}");
     }
 }
 
 Console.WriteLine("Press Ctrl+C to stop the server");
 
 app.Run();
+

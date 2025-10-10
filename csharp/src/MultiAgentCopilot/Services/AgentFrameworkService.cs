@@ -1,6 +1,4 @@
-﻿
-
-using Azure.AI.OpenAI;
+﻿using Azure.AI.OpenAI;
 using Azure.Identity;
 using Banking.Services;
 using Microsoft.Agents.AI;
@@ -24,6 +22,7 @@ using System.Diagnostics.Metrics;
 using System.Text.Json;
 using static System.Net.Mime.MediaTypeNames;
 using ChatMessage = Microsoft.Extensions.AI.ChatMessage;
+using OpenAI.Embeddings;
 
 namespace MultiAgentCopilot.Services;
 
@@ -145,6 +144,11 @@ public class AgentFrameworkService : IDisposable
         }
     }
 
+    public string GetEmbeddingDeploymentName()
+    {
+        return _settings.AzureOpenAISettings.EmbeddingsDeployment;
+    }
+
     /// <summary>
     /// Creates the appropriate Azure credential based on configuration.
     /// </summary>
@@ -240,7 +244,7 @@ public class AgentFrameworkService : IDisposable
                 }
                 else
                 {
-                    _logger.LogError("❌ No tool services available - cannot create agents");
+                    _logger.LogError("No tool services available - cannot create agents");
                 }
 
                 if (_agents == null || _agents.Count == 0)
@@ -575,4 +579,19 @@ public class AgentFrameworkService : IDisposable
     }
 
     #endregion
+
+    public AzureOpenAIClient GetAzureOpenAIClient()
+    {
+        try
+        {
+            var credential = CreateAzureCredential();
+            var endpoint = new Uri(_settings.AzureOpenAISettings.Endpoint);
+            return new AzureOpenAIClient(endpoint, credential);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to create AzureOpenAI client");
+            throw;
+        }
+    }
 }
