@@ -26,7 +26,7 @@ public class BankingTools
     }
 
 
-    [McpServerTool, Description("Get the current logged-in User")]
+    [McpServerTool, Description("Get the current logged-in User [TAGS: General]")]
     public async Task<BankUser> GetLoggedInUser(string tenantId, string userId)
     {
         _logger.LogInformation("DEBUG: GetLoggedInUser called with TenantId={TenantId}, UserId={UserId}", tenantId, userId);
@@ -44,7 +44,7 @@ public class BankingTools
         }
     }
 
-    [McpServerTool, Description("Get the current date time in UTC")]
+    [McpServerTool, Description("Get the current date time in UTC [TAGS: General]")]
     public DateTime GetCurrentDateTime()
     {
         _logger.LogInformation("DEBUG: GetCurrentDateTime called");
@@ -54,7 +54,7 @@ public class BankingTools
         return now;
     }
 
-    [McpServerTool, Description("Search for banking offers and products using semantic search")]
+    [McpServerTool, Description("Search for banking offers and products using semantic search [TAGS: Offers]")]
     public async Task<List<OfferTerm>> SearchOffers(
         string accountType,
         string requirement,
@@ -88,7 +88,7 @@ public class BankingTools
         }
     }
 
-    [McpServerTool, Description("Get detailed information for a specific banking offer")]
+    [McpServerTool, Description("Get detailed information for a specific banking offer [TAGS: Offers]")]
     public async Task<Offer> GetOfferDetails(
         string offerId,
         string tenantId = null)
@@ -111,7 +111,7 @@ public class BankingTools
     }
 
 
-    [McpServerTool, Description("Get transaction history for a bank account")]
+    [McpServerTool, Description("Get transaction history for a bank account [TAGS: Transactions]")]
     public async Task<List<BankTransaction>> GetTransactionHistory(
          string accountId,
          DateTime startDate,
@@ -120,8 +120,7 @@ public class BankingTools
     {
         try
         {
-            
-            _logger.LogInformation("Getting transaction history for account {AccountId} from {StartDate} to {EndDate}", 
+            _logger.LogInformation("Getting transaction history for account {AccountId} from {StartDate} to {EndDate}",
                 accountId, startDate, endDate);
             
             var transactions = await _bankingService.GetTransactionsAsync(tenantId, accountId, startDate, endDate);
@@ -135,7 +134,7 @@ public class BankingTools
         }
     }
 
-    [McpServerTool, Description("Get account details for a user")]
+    [McpServerTool, Description("Get account details for a user [TAGS: Accounts, Transactions]")]
     public async Task<BankAccount> GetAccountDetails(
         string accountId,
         string userId,
@@ -157,7 +156,7 @@ public class BankingTools
         }
     }
 
-    [McpServerTool, Description("Get all registered accounts for a user")]
+    [McpServerTool, Description("Get all registered accounts for a user [TAGS: Accounts]")]
     public async Task<List<BankAccount>> GetUserAccounts(
         string userId,
         string tenantId = null)
@@ -178,7 +177,7 @@ public class BankingTools
     }
 
 
-    [McpServerTool, Description("Create a customer service request")]
+    [McpServerTool, Description("Create a customer service request [TAGS: ServiceRequests]")]
     public async Task<ServiceRequest> CreateServiceRequest(
         string requestType,
         string description,
@@ -239,7 +238,7 @@ public class BankingTools
         }
     }
 
-    [McpServerTool, Description("Get service requests for an account")]
+    [McpServerTool, Description("Get service requests for an account [TAGS: ServiceRequests]")]
     public async Task<List<ServiceRequest>> GetServiceRequests(
         string accountId,
         string tenantId,
@@ -269,7 +268,7 @@ public class BankingTools
         }
     }
 
-    [McpServerTool, Description("Add annotation to an existing service request")]
+    [McpServerTool, Description("Add annotation to an existing service request [TAGS: ServiceRequests]")]
     public async Task<bool> AddServiceRequestAnnotation(
         string requestId,
         string accountId,
@@ -293,7 +292,7 @@ public class BankingTools
         }
     }
 
-    [McpServerTool, Description("Get telebanker availability information")]
+    [McpServerTool, Description("Get telebanker availability information [TAGS: General]")]
     public async Task<string> GetTeleBankerAvailability()
     {
         try

@@ -55,16 +55,7 @@ namespace MultiAgentCopilot.Tests
                 // Test configuration validation
                 Console.WriteLine("? Configuration validation passed");
 
-                // Test connection status for all agents
-                Console.WriteLine("\n?? Testing connection status for all agents:");
-                var connectionStatus = await mcpToolService.GetConnectionStatusAsync();
-                
-                foreach (var (agent, isConnected) in connectionStatus)
-                {
-                    var status = isConnected ? "? Connected" : "? Disconnected";
-                    Console.WriteLine($"  {agent}: {status}");
-                }
-
+              
                 // Test specific agent connections
                 Console.WriteLine("\n?? Testing individual agent connections:");
                 

@@ -16,8 +16,7 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Services
         private readonly ILogger<MCPToolService> _logger;
         private readonly MCPSettings _mcpSettings;
         private readonly ILoggerFactory _loggerFactory;
-        private readonly Dictionary<AgentType, IClientTransport> _transports = new();
-        private readonly Dictionary<AgentType, McpClient> _clients = new();
+
 
         public MCPToolService(IOptions<MCPSettings> mcpOptions, ILogger<MCPToolService> logger, ILoggerFactory loggerFactory)
         {
@@ -107,18 +106,8 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Services
         /// <summary>
         /// Creates or retrieves a cached MCP client for the specified agent type
         /// </summary>
-        private async Task<McpClient> GetOrCreateMcpClientAsync(AgentType agentType)
+        private async Task<McpClient> CreateMcpClientAsync(AgentType agentType, MCPServerSettings settings)
         {
-            if (_clients.TryGetValue(agentType, out var existingClient))
-            {
-                _logger.LogDebug("🔄 Using cached MCP client for agent: {AgentType}", agentType);
-                return existingClient;
-            }
-
-            _logger.LogInformation("Creating new MCP client for agent: {AgentType}", agentType);
-
-            // Get agent configuration
-            var settings = GetMCPServerSettings(agentType);
 
             // Create authenticated transport with enhanced error handling
             IClientTransport clientTransport;
@@ -134,8 +123,6 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Services
                     await ConfigureTransportForStreamableHttp(httpTransport, settings);
                 }
 
-                _transports[agentType] = clientTransport;
-                _logger.LogDebug("Transport created successfully for agent: {AgentType}", agentType);
             }
             catch (Exception ex)
             {
@@ -147,7 +134,6 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Services
             try
             {
                 var mcpClient = await McpClient.CreateAsync(clientTransport);
-                _clients[agentType] = mcpClient;
                 _logger.LogInformation("MCP client created successfully for agent: {AgentType}", agentType);
                 return mcpClient;
             }
@@ -155,17 +141,7 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Services
             {
                 _logger.LogError(ex, "💥 Failed to create MCP client for agent {AgentType}: {Message}", agentType, ex.Message);
                 
-                // Clean up transport if client creation failed
-                if (_transports.TryGetValue(agentType, out var transport))
-                {
-                    if (transport is IAsyncDisposable asyncDisposable)
-                        await asyncDisposable.DisposeAsync();
-                    else if (transport is IDisposable disposable)
-                        disposable.Dispose();
-                    
-                    _transports.Remove(agentType);
-                }
-
+                
                 throw new InvalidOperationException($"Failed to create MCP client for agent '{agentType}': {ex.Message}", ex);
             }
         }
@@ -232,21 +208,27 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Services
 
             try
             {
+                // Get agent configuration
+                var settings = GetMCPServerSettings(agent);
+
                 // Get or create MCP client with authentication and streamable-http support
-                var mcpClient = await GetOrCreateMcpClientAsync(agent);
+                var mcpClient = await CreateMcpClientAsync(agent,settings);
 
                 // List available tools from the MCP server
-                var tools = await mcpClient.ListToolsAsync();
-                _logger.LogInformation("Retrieved {ToolCount} tools for agent {AgentType}", tools.Count, agent);
+                var tools = await  mcpClient.ListToolsAsync();
+
+                var filteredTools = FilterToolsByTags(tools, settings.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(t => t.Trim()).ToArray());
+
+                _logger.LogInformation("Filtered {ToolCount} tools for agent {AgentType} with {Tags}", filteredTools.Count, agent, settings.Tags);
 
                 // Log each tool for debugging
-                foreach (var tool in tools)
+                foreach (var tool in filteredTools)
                 {
                     _logger.LogDebug("Tool available - Name: {ToolName}, Description: {ToolDescription}", 
                         tool.Name, tool.Description);
                 }
 
-                return tools;
+                return filteredTools;
             }
             catch (InvalidOperationException)
             {
@@ -281,96 +263,59 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Services
         }
 
         /// <summary>
-        /// Tests the connection to the MCP server for a specific agent
+        ///  Filter MCP tools  by tags from the tool's description or metadata
         /// </summary>
-        public async Task<bool> TestConnectionAsync(AgentType agentType)
+        public IList<McpClientTool> FilterToolsByTags(IList<McpClientTool> allTools, params string[] tags)
         {
-            _logger.LogInformation("🔍 Testing MCP connection for agent: {AgentType}", agentType);
+             if (!tags.Any())
+                return allTools;
 
-            try
+            // Filter tools by tags - now parse embedded tags from description and exclude tag pattern from description search
+            var filteredTools = allTools.Where(tool =>
             {
-                var mcpClient = await GetOrCreateMcpClientAsync(agentType);
-                var tools = await mcpClient.ListToolsAsync();
+                var toolTags = ExtractTagsFromDescription(tool.Description);                
+                return tags.Any(tag =>
+                    tool.Description.Contains(tag, StringComparison.OrdinalIgnoreCase));
+            }).ToList();
+
+
+            _logger.LogInformation("Filtered to {FilteredCount} tools from {TotalCount} total tools", 
+                filteredTools.Count, allTools.Count);
+
+            return filteredTools;
+        }
                 
-                _logger.LogInformation("Connection test successful for agent {AgentType} - {ToolCount} tools available", 
-                    agentType, tools.Count);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Connection test failed for agent {AgentType}: {Message}", agentType, ex.Message);
-                return false;
-            }
-        }
-
         /// <summary>
-        /// Gets connection status for all configured agents
+        /// Extracts tags from tool description that are embedded in [TAGS: ...] format
         /// </summary>
-        public async Task<Dictionary<AgentType, bool>> GetConnectionStatusAsync()
+        private List<string> ExtractTagsFromDescription(string description)
         {
-            var status = new Dictionary<AgentType, bool>();
-            var allAgents = Enum.GetValues<AgentType>();
+            var tags = new List<string>();
+            
+            if (string.IsNullOrEmpty(description))
+                return tags;
 
-            foreach (var agent in allAgents)
+            // Look for [TAGS: tag1,tag2,tag3] pattern
+            var tagPattern = @"\[TAGS:\s*([^\]]+)\]";
+            var match = System.Text.RegularExpressions.Regex.Match(description, tagPattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            
+            if (match.Success)
             {
-                try
-                {
-                    // Check if we have configuration for this agent
-                    GetMCPServerSettings(agent);
-                    status[agent] = await TestConnectionAsync(agent);
-                }
-                catch (InvalidOperationException)
-                {
-                    // No configuration for this agent
-                    status[agent] = false;
-                }
+                var tagString = match.Groups[1].Value;
+                tags.AddRange(tagString.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(tag => tag.Trim())
+                    .Where(tag => !tag.StartsWith("priority:", StringComparison.OrdinalIgnoreCase)));
             }
 
-            return status;
+            return tags;
         }
+
+       
 
         public async ValueTask DisposeAsync()
         {
             _logger.LogInformation("🧹 Disposing MCPToolService...");
 
-            // Dispose all MCP clients
-            foreach (var (agentType, client) in _clients)
-            {
-                try
-                {
-                    await client.DisposeAsync();
-                    _logger.LogDebug("Disposed MCP client for agent: {AgentType}", agentType);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Error disposing MCP client for agent {AgentType}: {Message}", agentType, ex.Message);
-                }
-            }
-            _clients.Clear();
-
-            // Dispose all transports
-            foreach (var (agentType, transport) in _transports)
-            {
-                try
-                {
-                    if (transport is IAsyncDisposable asyncDisposable)
-                    {
-                        await asyncDisposable.DisposeAsync();
-                    }
-                    else if (transport is IDisposable disposable)
-                    {
-                        disposable.Dispose();
-                    }
-                    _logger.LogDebug("Disposed transport for agent: {AgentType}", agentType);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Error disposing transport for agent {AgentType}: {Message}", agentType, ex.Message);
-                }
-            }
-            _transports.Clear();
-
-            _logger.LogInformation("MCPToolService disposed successfully");
         }
 
         public void Dispose()

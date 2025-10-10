@@ -16,7 +16,7 @@ public static class AuthenticatedHttpTransportFactory
     public static HttpClientTransport Create(string endpoint, string apiKey)
     {
         Console.WriteLine($"DEBUG: Creating authenticated HTTP transport for endpoint: {endpoint}");
-        Console.WriteLine($"DEBUG: API Key length: {apiKey?.Length 0} chars, first 4 chars: {(apiKey != null && apiKey.Length >= 4 ? apiKey[..4] : apiKey "null")}...");
+        Console.WriteLine($"DEBUG: API Key length: {apiKey?.Length ?? 0} chars, first 4 chars: {(apiKey != null && apiKey.Length >= 4 ? apiKey[..4] : apiKey ?? "null")}...");
 
         // Create the standard transport first
         Console.WriteLine($"DEBUG: Creating HttpClientTransport with endpoint: {endpoint}");
@@ -212,7 +212,7 @@ public class AuthenticatedHttpWrapper
     {
         Console.WriteLine($"DEBUG: AuthenticatedHttpWrapper.CreateTransport called");
         Console.WriteLine($"DEBUG: Endpoint: {_endpoint}");
-        Console.WriteLine($"DEBUG: API Key length: {_apiKey?.Length 0}");
+        Console.WriteLine($"DEBUG: API Key length: {_apiKey?.Length ?? 0}");
         
         var transport = AuthenticatedHttpTransportFactory.Create(_endpoint, _apiKey);
         Console.WriteLine($"DEBUG: Transport created and returned");
