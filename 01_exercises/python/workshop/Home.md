@@ -11,3 +11,4 @@ The workshop follows a progressive learning path with the following Modules
 - Module 2: Connecting Agents to Memory
 - Module 3: Agent Specialization
 - Module 4: Multi-Agent Orchestration
+- Module 5: MCP Integration
