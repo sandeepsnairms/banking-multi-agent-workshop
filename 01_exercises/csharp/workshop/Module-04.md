@@ -2,14 +2,14 @@
 
 ## Introduction
 
-In this Module you'll learn how to implement the multi-agent orchestration to tie all of the agents you have created so far together into a single system. You'll also learn how to test the system as a whole is working correctly and how to debug and monitor the agents performance and behavior and troubleshoot them.
+In this module, you'll learn how to implement multi-agent orchestration to coordinate multiple specialized agents within a single system. You'll also learn how to test the system as a whole, debug agent interactions, and monitor agent performance and behavior.
 
 ## Learning Objectives
 
-- Learn how to write prompts for agents
-- Define agent routing
-- Learn how to define API contracts for a multi-agent system
-- Learn how to test and debug agents, monitoring
+- Understand multi-agent coordination patterns and orchestration strategies
+- Learn how to implement agent routing and selection logic
+- Define communication protocols and handoff mechanisms between agents
+- Implement monitoring, debugging, and tracing capabilities for multi-agent systems
 
 ## Module Exercises
 
@@ -23,424 +23,313 @@ When dealing with multiple agents, clear agent roles is important to avoid confl
 
 ### Add Selection Strategy for Agent Selection
 
-SelectionStrategy is the mechanism in SemanticKernel that determines the next participant. By using the SelectionStrategy, we can identify the available agents and guide the LLM by defining the selection rule in natural language.
+SelectionStrategy is the mechanism in Microsoft Agent Framework that determines the next participant in a multi-agent conversation. By using the SelectionStrategy, we can identify the available agents and guide the LLM by defining the selection rule in natural language.
 
 1. In VS Code, navigate to the **/Prompts** folder
 1. Review the contents of **SelectionStrategy.prompty**
 
+This prompt template guides the LLM in selecting the most appropriate agent. It provides clear routing rules based on the conversation context and user intent.
+
 ```text
+You are mediator that guides a discussion. The current discussion is as follows: {discussion} 
+You need to select the next participant to speak. 
 Examine RESPONSE and choose the next participant.
 
-Choose only from these participants:
-- Coordinator
-- CustomerSupport
-- Sales
-- Transactions
+Choose only from these participants:{participants}
 
 Always follow these rules when choosing the next participant:
 - Determine the nature of the user's request and route it to the appropriate agent
 - If the user is responding to an agent, select that same agent.
 - If the agent is responding after fetching or verifying data , select that same agent.
 - If unclear, select Coordinator.
+                    
+Please respond with only the name of the participant you would like to select.
 
 ```
 
 ### Add Termination Strategy for Agent response
 
-Similar to how SelectionStrategy selects an agent, TerminationStrategy decides when agents should stop responding. This is crucial to prevent multiple unwanted agent chatter in response to a user prompt. TerminationStrategy is the mechanism in SemanticKernel that determines when to stop. It is defined in natural language and instructs the LLM to return YES if more agent participation is required, otherwise it should return NO.
+Similar to how SelectionStrategy selects an agent, TerminationStrategy decides when agents should stop responding. This is crucial to prevent multiple unwanted agent responses in multi-agent conversations. TerminationStrategy is the mechanism in Microsoft Agent Framework that determines when to stop the conversation loop.
 
 1. In VS Code, navigate to the **/Prompts** folder.
 1. Review the contents of **TerminationStrategy.prompty**
 
+This prompt template helps the LLM determine when a conversation should end. It identifies when user input is needed or when the query has been fully addressed.
+
 ```text
-Determine if agent has requested user input or has responded to the user's query.
-Respond with the word NO (without explanation) if agent has requested user input.
-Otherwise, respond with the word YES (without explanation) if any the following conditions are met:
+Determine if agent has requested user input or has responded to the user's query based on the following conversation:
+
+{topic}
+
+Respond with a JSON object indicating whether the conversation should continue.
+Set "ShouldContinue" to false (conversation should terminate) if agent has requested user input.
+Set "ShouldContinue" to true (conversation should continue) if any of the following conditions are met:
 - An action is pending by an agent.
 - Further participation from an agent is required
 - The information requested by the user was not provided by the current agent.
+
+Also provide a "Reason" explaining your decision.
 ```
 
 ### ChatResponseFormat
 
 By default, the LLM responds to user prompts in natural language. However, we can enforce a structured format in its responses. A structured format allows us to parse the response and utilize it in our code for decision-making.
 
-Lets define the models for the response.
-
-#### ContinuationInfo
+Let's define the models for the response.
 
 1. In VS Code, navigate to the **/Models/ChatInfoFormats** folder.
 1. Review the contents of **ContinuationInfo.cs**.
+
+This model defines the structure for agent selection responses. It includes the selected agent name and the reasoning behind the selection.
 
 ```c#
 namespace MultiAgentCopilot.Models.ChatInfoFormats
 {
     public class ContinuationInfo
     {
-        public string AgentName { get; set; } = string.Empty;
-        public string Reason { get; set; } = string.Empty;
+        public string AgentName { get; set; }
+        public string Reason { get; set; }
     }
+   
 }
 ```
-
-### TerminationInfo
 
 1. Remain in the same **ChatInfoFormats** folder.
 1. Review the contents of **TerminationInfo.cs**
 
+This model defines the structure for termination decision responses. It includes a boolean flag and reasoning for whether the conversation should continue.
+
 ```csharp
 namespace MultiAgentCopilot.Models.ChatInfoFormats
 {
-    internal class TerminationInfo
+    public class TerminationInfo
     {
         public bool ShouldContinue { get; set; }
-        public string Reason { get; set; } = string.Empty;
+        public string Reason { get; set; }
     }
 }
 ```
 
-Let's define a format builder that the LLM can use to output the Continuation and Termination models as responses.
+Let's create an Agent to decide the next agent in the conversation, using the ContinuationInfo model as the response format.
 
-1. In VS Code, navigate to the **/StructuredFormats** folder.
-1. Review the contents of **ChatResponseFormat.cs**.
+1. In VS Code, navigate to the **/Helper** folder.
+1. Replace the **SelectNextAgentAsync()** with the below code.
 
-```csharp
-namespace MultiAgentCopilot.StructuredFormats
-{
-    internal static class ChatResponseFormatBuilder
-    {
-        internal enum ChatResponseStrategy
-        {
-            Continuation,
-            Termination
-
-        }
-
-        internal static string BuildFormat(ChatResponseStrategy strategyType)
-        {
-            switch (strategyType)
-            {
-                case ChatResponseStrategy.Continuation:
-                    string jsonSchemaFormat_Continuation = """
-                    {
-                        "type": "object", 
-                            "properties": {
-                                "AgentName": { "type": "string", "description":"name of the selected agent" },
-                                "Reason": { "type": "string","description":"reason for selecting the agent" }
-                            },
-                            "required": ["AgentName", "Reason"],
-                            "additionalProperties": false
-                    }
-                    """;
-
-                    return jsonSchemaFormat_Continuation;
-                case ChatResponseStrategy.Termination:
-                    string jsonSchemaFormat_termination = """
-                    {
-                        "type": "object", 
-                            "properties": {
-                                "ShouldContinue": { "type": "boolean", "description":"Does conversation require further agent participation" },
-                                "Reason": { "type": "string","description":"List the conditions that evaluated to true for further agent participation" }
-                            },
-                            "required": ["ShouldContinue", "Reason"],
-                            "additionalProperties": false
-                    }
-                    """;
-
-                    return jsonSchemaFormat_termination;
-                default:
-                    return "";
-            }
-        }
-    }
-}
-```
-
-### StrategyPrompts
-
-Just like Agent System Prompts lets return StrategyPrompts based on strategyType.
-
-1. In VS Code, navigate to the **/Factories** folder.
-1. Open the **AgentFactory.cs**.
-1. Navigate to the bottom of the file and locate the end of the **GetAgentKernel()** function.
-1. Add the following code as five new functions to the bottom of the class.
+This method implements the agent selection logic using a moderator agent. It analyzes conversation history and selects the most appropriate next agent.
 
 ```csharp
-       
-       public delegate void LogCallback(string key, string value);
-  
-       public static string GetStrategyPrompts(ChatResponseStrategy strategyType)
-       {
-          string prompt = string.Empty;
-          switch (strategyType)
-          {
-                case ChatResponseStrategy.Continuation:
-                   prompt = File.ReadAllText("Prompts/SelectionStrategy.prompty");
-                   break;
-                case ChatResponseStrategy.Termination:
-                   prompt = File.ReadAllText("Prompts/TerminationStrategy.prompty");
-                   break;
-          }
-          return prompt;
-       }
+ protected override async ValueTask<AIAgent> SelectNextAgentAsync(IReadOnlyList<ChatMessage> history, CancellationToken cancellationToken = default(CancellationToken))
+ {
+     // Convert chat history to a string representation for the prompt
+     var historyText = string.Join("\n", history.TakeLast(5).Select(msg => 
+     {
+         var role = msg.Role.ToString();
+         var content = msg.Text ?? "";
+         return $"{role}: {content}";
+     }));
+     
+     // Create a moderator agent to decide which agent should respond next
+     ChatClientAgentOptions agentOptions = new(name: "Moderator", instructions: PromptFactory.Selection(historyText, GetAgentNames()))
+     {
+         ChatOptions = new()
+         {
+             ResponseFormat = Microsoft.Extensions.AI.ChatResponseFormat.ForJsonSchema(
+                 schema: AIJsonUtilities.CreateJsonSchema(typeof(ContinuationInfo)),
+                 schemaName: "ContinuationInfo",
+                 schemaDescription: "Information about selecting next agent in a conversation.")
+         }
+     };
 
-       public AgentGroupChat BuildAgentGroupChat(Kernel kernel, ILoggerFactory loggerFactory, LogCallback logCallback, BankingDataService bankService, string tenantId, string userId)
-        {
-            AgentGroupChat agentGroupChat = new AgentGroupChat();
-            var chatModel = kernel.GetRequiredService<IChatCompletionService>();
+     var moderatorAgent = _chatClient.CreateAIAgent(agentOptions);
 
-            //kernel.AutoFunctionInvocationFilters.Add(new AutoFunctionInvocationLoggingFilter(loggerFactory.CreateLogger<AutoFunctionInvocationLoggingFilter>()));
+     // Get the selection recommendation from the moderator
+     var response = await moderatorAgent.RunAsync(history);
+     var selectionInfo = response.Deserialize<ContinuationInfo>(JsonSerializerOptions.Web);
 
-            foreach (AgentType agentType in Enum.GetValues(typeof(AgentType)))
-            {
-                agentGroupChat.AddAgent(BuildAgent(kernel, agentType, loggerFactory, bankService, tenantId, userId));
-            }
+     var selectedAgentName = selectionInfo?.AgentName?.ToString();
+     var reason = selectionInfo?.Reason;
 
-            agentGroupChat.ExecutionSettings = GetAgentGroupChatSettings(kernel, logCallback);
+     // Log the selection decision (uncomment if you have logging)
+     _logCallback?.Invoke("SelectNextAgentAsync", $"{{Agent: {selectedAgentName}, Reason: {reason}}}");
 
+     // Find the matching agent from your agents list
+     var selectedAgent = _agents.FirstOrDefault(agent =>
+         string.Equals(agent.Name, selectedAgentName, StringComparison.OrdinalIgnoreCase));
 
-            return agentGroupChat;
-        }
+     // Return the selected agent, or default to the first agent if no match found
+     return selectedAgent ?? _agents[0];
+     
+ }
+```
+### Termination Decider
 
-        private OpenAIPromptExecutionSettings GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStrategy strategyType)
-        {
-            ChatResponseFormat infoFormat;
-            infoFormat = ChatResponseFormat.CreateJsonSchemaFormat(
-            jsonSchemaFormatName: $"agent_result_{strategyType.ToString()}",
-            jsonSchema: BinaryData.FromString($"""
-                {ChatResponseFormatBuilder.BuildFormat(strategyType)}
-                """));
-            var executionSettings = new OpenAIPromptExecutionSettings
-            {
-                ResponseFormat = infoFormat
-            };
+1. In VS Code, stay to the **/Helper** folder.
+1. Replace the **ShouldTerminateWithAI()** with the below code.
 
-            return executionSettings;
-        }
+```csharp
+ private async Task<bool> ShouldTerminateWithAI(IReadOnlyList<ChatMessage> history, CancellationToken cancellationToken)
+ {
+     if (history == null || !history.Any())
+         return false;
 
-        private KernelFunction GetStrategyFunction(ChatResponseFormatBuilder.ChatResponseStrategy strategyType)
-        {
+     // Convert chat history to a string representation for the prompt
+     var historyText = string.Join("\n", history.TakeLast(10).Select(msg =>
+     {
+         var role = msg.Role.ToString();
+         var content = msg.Text ?? "";
+         return $"{role}: {content}";
+     }));
 
-            KernelFunction function =
-                AgentGroupChat.CreatePromptFunctionForStrategy(
-                    $$$"""
-                    {{{GetStrategyPrompts(strategyType)}}}
-                    
-                    RESPONSE:
-                    {{$lastmessage}}
-                    """,
-                    safeParameterNames: "lastmessage");
+     // Create a termination decision agent using the TerminationStrategy.prompty
+     ChatClientAgentOptions agentOptions = new(
+         name: "TerminationDecider",
+         instructions: PromptFactory.Termination(historyText))
+     {
+         ChatOptions = new()
+         {
+             ResponseFormat = Microsoft.Extensions.AI.ChatResponseFormat.ForJsonSchema(
+                 schema: AIJsonUtilities.CreateJsonSchema(typeof(TerminationInfo)),
+                 schemaName: "TerminationInfo",
+                 schemaDescription: "Information about whether the conversation should continue or terminate.")
+         }
+     };
 
-            return function;
-        }
+     var terminationAgent = _chatClient.CreateAIAgent(agentOptions);
 
-        private AgentGroupChatSettings GetAgentGroupChatSettings(Kernel kernel, LogCallback logCallback)
-        {
-            ChatHistoryTruncationReducer historyReducer = new(5);
+     try
+     {
+         // Get the termination decision from the AI agent
+         var response = await terminationAgent.RunAsync(history);
+         var terminationInfo = response.Deserialize<TerminationInfo>(JsonSerializerOptions.Web);
 
-            AgentGroupChatSettings ExecutionSettings = new AgentGroupChatSettings
-            {
-                SelectionStrategy =
-                    new KernelFunctionSelectionStrategy(GetStrategyFunction(ChatResponseFormatBuilder.ChatResponseStrategy.Continuation), kernel)
-                    {
-                        Arguments = new KernelArguments(GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStrategy.Continuation)),
-                        // Save tokens by only including the final few responses
-                        HistoryReducer = historyReducer,
-                        // The prompt variable name for the history argument.
-                        HistoryVariableName = "lastmessage",
-                        // Returns the entire result value as a string.
-                        ResultParser = (result) =>
-                        {
-                            var resultString = result.GetValue<string>();
-                            if (!string.IsNullOrEmpty(resultString))
-                            {
-                                var ContinuationInfo = JsonSerializer.Deserialize<ContinuationInfo>(resultString);
-                                //logCallback("SELECTION - Agent", ContinuationInfo!.AgentName); 
-                                //logCallback("SELECTION - Reason", ContinuationInfo!.Reason);                       
-                                return ContinuationInfo!.AgentName;
-                            }
-                            else
-                            {
-                                return string.Empty;
-                            }
-                        }
-                    },
-                TerminationStrategy =
-                    new KernelFunctionTerminationStrategy(GetStrategyFunction(ChatResponseFormatBuilder.ChatResponseStrategy.Termination), kernel)
-                    {
-                        Arguments = new KernelArguments(GetExecutionSettings(ChatResponseFormatBuilder.ChatResponseStrategy.Termination)),
-                        // Save tokens by only including the final response
-                        HistoryReducer = historyReducer,
-                        // The prompt variable name for the history argument.
-                        HistoryVariableName = "lastmessage",
-                        // Limit total number of turns
-                        MaximumIterations = 8,
-                        // user result parser to determine if the response is "yes"
-                        ResultParser = (result) =>
-                        {
-                            var resultString = result.GetValue<string>();
-                            if (!string.IsNullOrEmpty(resultString))
-                            {
-                                var terminationInfo = JsonSerializer.Deserialize<TerminationInfo>(resultString);
-                                //logCallback("TERMINATION - Continue", terminationInfo!.ShouldContinue.ToString()); 
-                                //logCallback("TERMINATION - Reason", terminationInfo!.Reason); 
-                                return !terminationInfo!.ShouldContinue;
-                            }
-                            else
-                            {
-                                return false;
-                            }
-                        }
-                    },
-            };
+         var shouldContinue = terminationInfo?.ShouldContinue ?? true;
+         var reason = terminationInfo?.Reason ?? "No reason provided";
 
-            return ExecutionSettings;
-        }
+         // Log the termination decision
+         _logCallback?.Invoke("ShouldTerminateAsync", $"{{Continue: {shouldContinue.ToString()}, Reason: {reason}}}");
+
+         // Return true if we should terminate (i.e., should NOT continue)
+         return !shouldContinue;
+     }
+     catch (Exception ex)
+     {
+         _logCallback?.Invoke("ShouldTerminateWithAI Error", ex.Message);
+         // Default to continue if there's an error
+         return false;
+     }
+
+ }
 ```
 
-### Replace Agent with AgentGroupChat in SemanticKernel
+### Replace Agent with a GroupChat Workflow
 
 Until now the responses we received were from a single agent, lets use AgentGroupChat to orchestrate a chat where multiple agents participate.
 
-1. In VS Code, navigate to **Services/SemanticKernelService.cs**
-1. Locate the **GetResponse()** function.
-1. Add the below code after the **GetResponse()** function.
-
+1. In VS Code, navigate to **Services/AgentFrameworkService.cs**
+1. Search for **//TO DO: Add RunGroupChatOrchestration** and paste the code below
 ```csharp
-    private void LogMessage(string key, string value)
+    /// <summary>
+    /// Orchestrates the group chat with AI agents.
+    /// </summary>
+    private async Task<(string responseText, string selectedAgentName)> RunGroupChatOrchestration(
+        List<ChatMessage> chatHistory,
+        string tenantId,
+        string userId)
     {
-        _promptDebugProperties.Add(new LogProperty(key, value));
-    }
+        try
+        {
+            _logger.LogInformation("Starting Agent Framework Group Chat");
+                       
+            // Add system context
+            chatHistory.Add(new ChatMessage(ChatRole.System, $"User Id: {userId}, Tenant Id: {tenantId}"));
 
-```
+            // Create custom termination function
+            var customTerminationFunc = CreateCustomTerminationFunction();
 
-1. Next, update the the **GetResponse()** function. Inside, the **Try** block, replace with the code below:
+            // Create the workflow
+            var workflow = AgentWorkflowBuilder.CreateGroupChatBuilderWith(agents =>
+                    new GroupChatWorkflowHelper(_agents!, _chatClient, LogMessage, customTerminationFunc)
+                    {
+                        MaximumIterationCount = 5
+                    })
+                    .AddParticipants(_agents!)
+                    .Build();
 
-```csharp
-            AgentFactory agentFactory = new AgentFactory();
+            //run the workflow
+            var (responseMessages, selectedAgentName) = await RunWorkflowAsync(workflow,chatHistory);
 
-            var agentGroupChat = agentFactory.BuildAgentGroupChat(_semanticKernel, _loggerFactory, LogMessage, bankService, tenantId, userId);
-
-            // Load history
-            foreach (var chatMessage in messageHistory)
+            //log the function calls from the response messages
+            for (int i = chatHistory.Count; i < responseMessages.Count; i++)
             {
-                AuthorRole? role = AuthorRoleHelper.FromString(chatMessage.SenderRole);
-                var chatMessageContent = new ChatMessageContent
+                if (responseMessages[i].Role.Value == "assistant")
                 {
-                    Role = role ?? AuthorRole.User,
-                    Content = chatMessage.Text
-                };
-                agentGroupChat.AddChatMessage(chatMessageContent);
-            }
-
-            _promptDebugProperties = new List<LogProperty>();
-
-            List<Message> completionMessages = new();
-            List<DebugLog> completionMessagesLogs = new();
-            do
-            {
-                var userResponse = new ChatMessageContent(AuthorRole.User, userMessage.Text);
-                agentGroupChat.AddChatMessage(userResponse);
-
-                agentGroupChat.IsComplete = false;
-
-                await foreach (ChatMessageContent response in agentGroupChat.InvokeAsync())
-                {
-                    string messageId = Guid.NewGuid().ToString();
-                    string debugLogId = Guid.NewGuid().ToString();
-                    completionMessages.Add(new Message(userMessage.TenantId, userMessage.UserId, userMessage.SessionId, response.AuthorName ?? string.Empty, response.Role.ToString(), response.Content ?? string.Empty, messageId, debugLogId));
-
-                    // TO DO : Add DebugLog code here
-
+                    foreach (var content in responseMessages[i].Contents)
+                    {
+                        // Enhanced logging based on content type
+                        switch (content)
+                        {
+                            case FunctionCallContent functionCall:
+                                LogMessage("Function Call", $"Name: {functionCall.Name}, CallId: {functionCall.CallId}");
+                                LogMessage("Function Arguments", JsonSerializer.Serialize(functionCall.Arguments, new JsonSerializerOptions { WriteIndented = true }));
+                                break;
+                        }
+                    }
                 }
             }
-            while (!agentGroupChat.IsComplete);
-          
 
-            return new Tuple<List<Message>, List<DebugLog>>(completionMessages, completionMessagesLogs);
+            if (selectedAgentName == "__")
+            {
+                _logger.LogError("Error in getting response");
+                return ("Sorry, I encountered an error while processing your request. Please try again.", "Error");
+            }
+            // Extract response text
+            string responseText = ExtractResponseText(responseMessages);
+
+            _logger.LogInformation("Agent Framework orchestration completed with agent: {AgentName}", selectedAgentName);
+
+            return (responseText, selectedAgentName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in Agent Framework orchestration");
+            return ("Sorry, I encountered an error while processing your request. Please try again.", "Error");
+        }
+    }
+
 ```
 
-## Activity 2: Implement Agent Tracing and Monitoring
+1. Next replace the **GetResponse()** method with the code below.
 
-**Note:** This activity is optional. If you are running short on time during this lab, skip to [Activity 3: Test your work](#activity-3-test-your-work).
 
-In this activity, you will learn how to define an API service layer for a multi-agent backend and learn how to configure tracing and monitoring to enable testing and debugging for agents.
-
-You may have noticed when chatting with the agents you are unable to see which functions are invoked and why the LLM selects an agent. Lets add some code to bring visibility to behind the scene decision making process.
-
-### Log the kernel function selection
-
-To log the data used by the LLM to invoke functions, we will create a class named **AutoFunctionInvocationLoggingFilter**.
-
-1. In VS Code, navigate to **LogFilter** folder.
-1. Review the contents of **AutoFunctionInvocationLoggingFilter.cs**.
-
-```c#
-using Microsoft.SemanticKernel;
-using System.Text.Json;
-
-namespace MultiAgentCopilot.Logs
+```csharp
+/// <summary>
+/// Processes a user message and returns the agent's response.
+/// </summary>
+/// <param name="userMessage">The user's message.</param>
+/// <param name="messageHistory">The conversation history.</param>
+/// <param name="bankService">The banking data service.</param>
+/// <param name="tenantId">The tenant identifier.</param>
+/// <param name="userId">The user identifier.</param>
+/// <returns>A tuple containing the response messages and debug logs.</returns>
+public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(
+    Message userMessage,
+    List<Message> messageHistory,
+    BankingDataService bankService,
+    string tenantId,
+    string userId)
 {
-    public sealed class AutoFunctionInvocationLoggingFilter : IAutoFunctionInvocationFilter
+    try
     {
-        private readonly ILogger<AutoFunctionInvocationLoggingFilter> _logger;
+        var (responseText, selectedAgentName) = await RunGroupChatOrchestration(chatHistory, tenantId, userId);
 
-        public AutoFunctionInvocationLoggingFilter(ILogger<AutoFunctionInvocationLoggingFilter> logger)
-        {
-            _logger = logger;
-        }
-
-        public async Task OnAutoFunctionInvocationAsync(AutoFunctionInvocationContext context, Func<AutoFunctionInvocationContext, Task> next)
-        {
-            var functionCalls = FunctionCallContent.GetFunctionCalls(context.ChatHistory.Last()).ToList();
-
-            if (_logger.IsEnabled(LogLevel.Trace))
-            {
-                functionCalls.ForEach(functionCall
-                    => _logger.LogTrace(
-                        "Function call requests: {PluginName}-{FunctionName}({Arguments})",
-                        functionCall.PluginName,
-                        functionCall.FunctionName,
-                        JsonSerializer.Serialize(functionCall.Arguments)));
-            }
-
-            await next(context);
-        }
+        return CreateResponseTuple(userMessage, responseText, selectedAgentName);
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.Message);
+        return new Tuple<List<Message>, List<DebugLog>>(new List<Message>(), new List<DebugLog>());
     }
 }
-```
-
-#### Update Semantic Kernel's AutoFunctionInvocationFilters
-
-1. In VS Code, navigate to the **AgentFactory.cs** class.
-1. Uncomment the following line in the **BuildAgentGroupChat()** function.
-
-```csharp
-    //kernel.AutoFunctionInvocationFilters.Add(new AutoFunctionInvocationLoggingFilter(loggerFactory.CreateLogger<AutoFunctionInvocationLoggingFilter>()));
-```
-
-#### Logging the Termination and selection Strategy
-
-1. Search for **\\logCallback** inside **GetAgentGroupChatSettings()** function.
-1. Uncomment it in 4 places it appears.
-
-### Store the log information along with the chat response
-
-Now that we have log information for AgentSelection and Termination, we also need to persist these logs for later retrieval. Storing these DebugLogs in the ChatData container of Cosmos DB along with the other chat data will help us view the logs in the context of the conversation.
-
-1. In VS Code, navigate to **Services/SemanticKernelService.cs**.
-1. Locate the **GetResponse()** function.
-1. Search for **// TO DO : Add DebugLog code here**
-1. Add the code below:
-
-```csharp
-
-    if (_promptDebugProperties.Count > 0)
-    {
-        var completionMessagesLog = new DebugLog(userMessage.TenantId, userMessage.UserId, userMessage.SessionId, messageId, debugLogId);
-        completionMessagesLog.PropertyBag = _promptDebugProperties;
-        completionMessagesLogs.Add(completionMessagesLog);
-    }
 ```
 
 ## Activity 3: Test your Work
@@ -458,10 +347,10 @@ For each response in our testing below, click on the *Bug* icon to see the Debug
 
 1. Return to the frontend application in your browser.
 1. Start a new conversation.
-1. Try the below prompts. Provide more infomration if prompted.
+1. Try the below prompts. Provide more information if prompted.
     1. Who can help me here?
     1. Transfer $50 to my friend.
-    1. When prompted for account and email, enter, "Account is Acc001 and Email is Sandeep@contoso.com"
+    1. When prompted for account and email, enter, "Account is Acc001 and Email is sandeep@contoso.com"
     1. Looking for a Savings account with high interest rate.
     1. File a complaint about theft from my account.
     1. When prompted confirm its the same account or enter a new account (Acc001 to Acc009) and provide any details it asks for.
@@ -497,16 +386,16 @@ For each response in our testing below, click on the *Bug* icon to see the Debug
 The following sections include the completed code for this Module. Copy and paste these into your project if you run into issues and cannot resolve.
 
 <details>
-  <summary>Completed code for <strong>\Services\SemanticKernelService.cs</strong></summary>
+  <summary>Completed code for <strong>\Services\AgentFrameworkService.cs</strong></summary>
 <br>
 
 ```csharp
 using Microsoft.Extensions.Options;
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Connectors.OpenAI;
+using Microsoft.Agent Framework;
+using Microsoft.Agent Framework.Connectors.OpenAI;
 using MultiAgentCopilot.Helper;
-using Microsoft.SemanticKernel.ChatCompletion;
-using Microsoft.SemanticKernel.Embeddings;
+using Microsoft.Agent Framework.ChatCompletion;
+using Microsoft.Agent Framework.Embeddings;
 using Microsoft.Extensions.AI;
 
 using Azure.Identity;
@@ -517,16 +406,16 @@ using MultiAgentCopilot.Models.Configuration;
 
 using System.Text;
 using MultiAgentCopilot.Models;
-using Microsoft.SemanticKernel.Agents;
+using Microsoft.Agent Framework.Agents;
 using AgentFactory = MultiAgentCopilot.Factories.AgentFactory;
 namespace MultiAgentCopilot.Services;
 
-public class SemanticKernelService :  IDisposable
+public class Agent FrameworkService :  IDisposable
 {
-    readonly SemanticKernelServiceSettings _skSettings;
+    readonly Agent FrameworkServiceSettings _skSettings;
     readonly ILoggerFactory _loggerFactory;
-    readonly ILogger<SemanticKernelService> _logger;
-    readonly Kernel _semanticKernel;
+    readonly ILogger<Agent FrameworkService> _logger;
+    readonly Kernel _Agent Framework;
 
 
     bool _serviceInitialized = false;
@@ -537,20 +426,20 @@ public class SemanticKernelService :  IDisposable
 
     public bool IsInitialized => _serviceInitialized;
 
-    public SemanticKernelService(
-        IOptions<SemanticKernelServiceSettings> skOptions,
+    public Agent FrameworkService(
+        IOptions<Agent FrameworkServiceSettings> skOptions,
         ILoggerFactory loggerFactory)
     {
         _skSettings = skOptions.Value;
         _loggerFactory = loggerFactory;
-        _logger = _loggerFactory.CreateLogger<SemanticKernelService>();
+        _logger = _loggerFactory.CreateLogger<Agent FrameworkService>();
         _promptDebugProperties = new List<LogProperty>();
 
         _logger.LogInformation("Initializing the Semantic Kernel service...");
 
         var builder = Kernel.CreateBuilder();
 
-        //TO DO: Update SemanticKernelService constructor
+        //TO DO: Update Agent FrameworkService constructor
         builder.Services.AddSingleton<ILoggerFactory>(loggerFactory);
 
         DefaultAzureCredential credential;
@@ -571,7 +460,7 @@ public class SemanticKernelService :  IDisposable
            _skSettings.AzureOpenAISettings.Endpoint,
            credential);
 
-        _semanticKernel = builder.Build();
+        _Agent Framework = builder.Build();
 
 
         Task.Run(Initialize).ConfigureAwait(false);
@@ -591,7 +480,7 @@ public class SemanticKernelService :  IDisposable
         {
             AgentFactory agentFactory = new AgentFactory();
 
-            var agentGroupChat = agentFactory.BuildAgentGroupChat(_semanticKernel, _loggerFactory, LogMessage, bankService, tenantId, userId);
+            var agentGroupChat = agentFactory.BuildAgentGroupChat(_Agent Framework, _loggerFactory, LogMessage, bankService, tenantId, userId);
 
             // Load history
             foreach (var chatMessage in messageHistory)
@@ -654,13 +543,13 @@ public class SemanticKernelService :  IDisposable
         try
         {
             // Use an AI function to summarize the text in 2 words
-            var summarizeFunction = _semanticKernel.CreateFunctionFromPrompt(
+            var summarizeFunction = _Agent Framework.CreateFunctionFromPrompt(
                 "Summarize the following text into exactly two words:\n\n{{$input}}",
                 executionSettings: new OpenAIPromptExecutionSettings { MaxTokens = 10 }
             );
 
             // Invoke the function
-            var summary = await _semanticKernel.InvokeAsync(summarizeFunction, new() { ["input"] = userPrompt });
+            var summary = await _Agent Framework.InvokeAsync(summarizeFunction, new() { ["input"] = userPrompt });
 
             return summary.GetValue<string>() ?? "No summary generated";
         }
@@ -701,12 +590,12 @@ public class SemanticKernelService :  IDisposable
 <br>
 
 ```csharp
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Agents;
-using Microsoft.SemanticKernel.Agents.Chat;
-using Microsoft.SemanticKernel.ChatCompletion;
-using Microsoft.SemanticKernel.Connectors.OpenAI;
-using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
+using Microsoft.Agent Framework;
+using Microsoft.Agent Framework.Agents;
+using Microsoft.Agent Framework.Agents.Chat;
+using Microsoft.Agent Framework.ChatCompletion;
+using Microsoft.Agent Framework.Connectors.OpenAI;
+using Microsoft.Agent Framework.Connectors.AzureOpenAI;
 
 using OpenAI.Chat;
 using System.Text.Json;

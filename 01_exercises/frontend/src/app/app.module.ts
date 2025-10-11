@@ -12,6 +12,7 @@ import { SidebarComponent } from './components/sidebar/sidebar.component';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { MainContentComponent } from "./components/main-content/main-content.component";
+import { DashboardComponent } from "./components/dashboard/dashboard.component";
 import { MarkdownModule } from 'ngx-markdown';
 import { NgFor, NgIf } from '@angular/common';
 import { ChatOptionsComponent } from './components/chat-options/chat-options.component';
@@ -35,6 +36,8 @@ import {ReactiveFormsModule } from '@angular/forms';
 import {MatSelectModule} from '@angular/material/select';
 import { MatDialogActions, MatDialogClose, MatDialogContent, MatDialogModule } from '@angular/material/dialog';
 import { LogPopupComponent } from './components/log-popup/log-popup.component';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 @NgModule({
   imports: [
     MarkdownModule,
@@ -49,7 +52,7 @@ import { LogPopupComponent } from './components/log-popup/log-popup.component';
     BrowserModule,
     NgIf,
     MatIconModule,
-    RouterModule.forRoot(appRoutes),
+    RouterModule.forRoot(appRoutes, { useHash: false }),
     MatSidenavModule,
     MatSidenavModule,
     MatListModule,
@@ -60,12 +63,14 @@ import { LogPopupComponent } from './components/log-popup/log-popup.component';
     MatFormFieldModule,
     MatCardModule,
     ReactiveFormsModule,
-    MatDialogModule ,
+    MatDialogModule,
     MatDialogContent,
-    MatDialogActions
+    MatDialogActions,
+    MatDividerModule,
+    MatProgressSpinnerModule
  
 ],
-  declarations: [AppComponent, LogPopupComponent, AssistantComponent, ChatOptionsComponent, LoginComponent, SidebarComponent, MainContentComponent, LoadingSpinnerComponent , ToastComponent],
+  declarations: [AppComponent, LogPopupComponent, AssistantComponent, ChatOptionsComponent, LoginComponent, SidebarComponent, MainContentComponent, DashboardComponent, LoadingSpinnerComponent, ToastComponent],
   providers: [provideHttpClient(), provideAnimations(), { provide: HTTP_INTERCEPTORS, useClass: LoadingInterceptor, multi: true  }],
 
   bootstrap: [AppComponent]

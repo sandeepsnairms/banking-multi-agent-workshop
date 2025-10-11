@@ -1,0 +1,187 @@
+﻿using Azure.AI.OpenAI;
+using Azure.Identity;
+using Banking.Services;
+using MCPServer.Middleware;
+using MCPServer.Models.Configuration;
+using MCPServer.Services;
+using MCPServer.Tools;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Identity.Client.Platforms.Features.DesktopOs.Kerberos;
+using OpenAI.Embeddings;
+using OpenTelemetry;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Trace;
+using System.ClientModel.Primitives;
+using System.Net.Http.Headers;
+using System.Runtime;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
+// DIAGNOSTIC: This should appear in logs if changes are applied
+Console.WriteLine("🚀 STARTING MCP SERVER - UPDATED VERSION 4.0 with Simplified Architecture");
+Console.WriteLine($"🕐 Startup Time: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add configuration sources
+builder.Configuration
+    .AddEnvironmentVariables()
+    .AddUserSecrets<Program>();
+
+// Configure CORS
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .WithExposedHeaders("X-MCP-Status", "X-MCP-Version");
+    });
+});
+
+// Configure Cosmos DB settings
+builder.Services.Configure<CosmosDBSettings>(
+    builder.Configuration.GetSection("CosmosDBSettings"));
+
+builder.Services.Configure<AzureOpenAISettings>(
+    builder.Configuration.GetSection("AzureOpenAISettings"));
+
+// Register Cosmos DB service
+builder.Services.AddSingleton<CosmosDBService>();
+
+// Register the banking service with real Cosmos DB containers
+builder.Services.AddScoped<Banking.Services.BankingDataService>(serviceProvider =>
+{
+    var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+    var cosmosDBService = serviceProvider.GetRequiredService<CosmosDBService>();
+    var logger = loggerFactory.CreateLogger<Program>();
+
+
+    //creating EmbeddingClient using AzureOpenAISettings using Azure.Identity credentaial like DefaultAzureCredential
+    var azureOpenAISettings = builder.Configuration.GetSection("AzureOpenAISettings").Get<AzureOpenAISettings>();
+
+    var endpoint = new Uri(azureOpenAISettings.Endpoint);
+
+    DefaultAzureCredential credential;
+    if (string.IsNullOrEmpty(azureOpenAISettings.UserAssignedIdentityClientID))
+    {
+        credential = new DefaultAzureCredential();
+    }
+    else
+    {
+        credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
+        {
+            ManagedIdentityClientId = azureOpenAISettings.UserAssignedIdentityClientID
+        });
+    }
+
+
+    AzureOpenAIClient client = new AzureOpenAIClient(endpoint, credential);
+    
+    EmbeddingService embeddingService=new EmbeddingService(client, azureOpenAISettings.EmbeddingsDeployment);
+
+    logger.LogInformation("Initializing BankingDataService with real Cosmos DB containers");
+
+    return new Banking.Services.BankingDataService(embeddingService,
+        database: cosmosDBService.Database,
+        accountData: cosmosDBService.AccountDataContainer,
+        userData: cosmosDBService.UserDataContainer,
+        requestData: cosmosDBService.RequestDataContainer,
+        offerData: cosmosDBService.OfferDataContainer,
+        loggerFactory);
+});
+
+// Configure JSON serialization for banking models (use reflection-based)
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    options.SerializerOptions.WriteIndented = true;
+    // Use default reflection-based serialization for complex types
+    options.SerializerOptions.UnmappedMemberHandling = JsonUnmappedMemberHandling.Skip;
+});
+
+// Configure MCP Server with BankingTools
+Console.WriteLine("DEBUG: Configuring MCP Server with BankingTools...");
+builder.Services.AddMcpServer()
+    .WithHttpTransport()
+    .WithTools<BankingTools>();
+Console.WriteLine("DEBUG: MCP Server configured successfully");
+
+// Add OpenTelemetry
+builder.Services.AddOpenTelemetry()
+    .WithTracing(b => b.AddSource("*")
+        .AddAspNetCoreInstrumentation()
+        .AddHttpClientInstrumentation())
+    .WithMetrics(b => b.AddMeter("*")
+        .AddAspNetCoreInstrumentation()
+        .AddHttpClientInstrumentation())
+    .WithLogging()
+    .UseOtlpExporter();
+
+var app = builder.Build();
+Console.WriteLine("DEBUG: WebApplication built successfully");
+
+// Enable CORS (must be before other middleware)
+app.UseCors();
+
+// Add API key authentication middleware
+Console.WriteLine("DEBUG: Adding API key authentication middleware...");
+app.UseMiddleware<ApiKeyAuthenticationMiddleware>();
+
+// Add a health check endpoint
+Console.WriteLine("DEBUG: Adding health check endpoint...");
+app.MapGet("/health", () => Results.Ok(new
+{
+    Status = "Healthy",
+    Timestamp = DateTime.UtcNow,
+    Version = "4.0",
+    Authentication = "Enabled",
+    SupportedTransports = new[] { "http", "streamable-http" }
+}));
+
+// Add MCP server info endpoint
+app.MapGet("/mcp/info", () => Results.Ok(new
+{
+    Name = "Banking MCP Server",
+    Version = "4.0",
+    SupportedTransports = new[] { "http", "streamable-http" },
+    RequiresAuthentication = true,
+    ApiKeyHeader = "X-MCP-API-Key"
+}));
+
+Console.WriteLine("DEBUG: Mapping MCP endpoints...");
+app.MapMcp();
+Console.WriteLine("DEBUG: MCP endpoints mapped successfully");
+
+Console.WriteLine("🚀 MCP Server started successfully");
+Console.WriteLine("📍 MCP endpoint available at / (root path)");
+Console.WriteLine("📍 MCP info endpoint available at /mcp/info");
+Console.WriteLine("📍 Health check available at /health");
+Console.WriteLine("🔐 API key authentication enabled for MCP endpoints");
+Console.WriteLine("📊 OpenTelemetry tracing and metrics enabled");
+Console.WriteLine("💾 Cosmos DB integration configured");
+Console.WriteLine("🏦 Banking tools available for MCP clients");
+
+// DEBUG: Try to verify service registration
+using (var scope = app.Services.CreateScope())
+{
+    try
+    {
+        var bankingTools = scope.ServiceProvider.GetService<BankingTools>();
+        Console.WriteLine($"DEBUG: BankingTools service resolved: {bankingTools != null}");
+
+        var bankingService = scope.ServiceProvider.GetService<Banking.Services.BankingDataService>();
+        Console.WriteLine($"DEBUG: BankingDataService resolved: {bankingService != null}");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"DEBUG: Error checking service registration: {ex.Message}");
+    }
+}
+
+Console.WriteLine("Press Ctrl+C to stop the server");
+
+app.Run();
+

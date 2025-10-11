@@ -4,7 +4,6 @@ using Microsoft.Azure.Cosmos.Fluent;
 using Microsoft.Extensions.Options;
 using Microsoft.Identity.Client;
 using MultiAgentCopilot.Helper;
-using MultiAgentCopilot.Models.Banking;
 using MultiAgentCopilot.Models.Chat;
 using MultiAgentCopilot.Models.Configuration;
 using MultiAgentCopilot.Models.Debug;
@@ -19,6 +18,8 @@ using Container = Microsoft.Azure.Cosmos.Container;
 using Message = MultiAgentCopilot.Models.Chat.Message;
 using PartitionKey = Microsoft.Azure.Cosmos.PartitionKey;
 using Session = MultiAgentCopilot.Models.Chat.Session;
+using Banking.Models;
+using CosmosDBSettings = MultiAgentCopilot.Models.Configuration.CosmosDBSettings;
 
 namespace MultiAgentCopilot.Services
 {
@@ -39,7 +40,7 @@ namespace MultiAgentCopilot.Services
 
 
         public CosmosDBService(
-            IOptions<CosmosDBSettings> settings,
+            IOptions<Models.Configuration.CosmosDBSettings> settings,
             ILogger<CosmosDBService> logger)
         {
             _settings = settings.Value;

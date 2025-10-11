@@ -2,144 +2,144 @@
 
 ## Introduction
 
-In this Module, you'll implement your first agent as part of a multi-agent banking system implemented using Semantic Kernel Agent Framework. You will get an introduction to Semantic Kernel and their plug-in integration with OpenAI for generating completions.
+In this module, you'll implement your first agent as part of a multi-agent banking system using Microsoft Agent Framework. You will get an introduction to the Microsoft Extensions AI framework and their integration with Azure OpenAI for generating intelligent responses in conversational interfaces.
 
-## Learning Objectives and Activities
+## Learning Objectives
 
-- Learn the basics for Semantic Kernel Agent Framework
-- Learn how to integrate agent frameworks to Azure OpenAI
-- Build a simple chat agent
+- Learn the fundamentals of Microsoft Agent Framework and Extensions AI
+- Understand how to integrate agent frameworks with Azure OpenAI services
+- Build and configure a simple chat agent with basic conversational capabilities
+- Implement agent response handling and message processing
 
 ## Module Exercises
 
-1. [Activity 1: Instantiate Agent Framework](#activity-1-instantiate-semantic-kernel-agent-framework)
+1. [Activity 1: Instantiate Agent Framework](#activity-1-instantiate-agent-framework)
 1. [Activity 2: Create a Simple Agent](#activity-2-create-a-simple-agent)
 1. [Activity 3: Test your Work](#activity-3-test-your-work)
 
-## Activity 1: Instantiate Semantic Kernel Agent Framework
+## Activity 1: Instantiate Agent Framework
 
-In this hands-on exercise, you will learn how to initialize an agent framework and integrate it with a Large Language Model(LLM).
+In this hands-on exercise, you will learn how to initialize an agent framework and integrate it with a Large Language Model (LLM).
 
-The Semantic Kernel Agent Framework is a platform within Microsoft's Semantic Kernel ecosystem designed to facilitate the creation and orchestration of AI agents. It enables developers to incorporate agentic patterns into applications. Agents built using this framework can collaborate, manage multiple concurrent conversations, and integrate human input, making it suitable for complex, multi-agent workflows.
+The Microsoft Agent Framework is built on top of Microsoft Extensions AI, a unified API layer that provides a consistent interface for AI services. It enables developers to incorporate agentic patterns into applications by abstracting the complexities of different AI providers and offering a standardized way to build intelligent agents. Agents built using this framework can collaborate, manage multiple concurrent conversations, and integrate human input, making it suitable for complex, multi-agent workflows.
 
-There are a few key components and concepts necessary to build multi-agent apps using this framework.
+There are several key components and concepts necessary to build multi-agent apps using this framework:
 
-- **AgentChat** - In the Semantic Kernel framework, AgentChat is an abstract class designed to facilitate interactions among multiple agents, even if they are of different types. This design allows, for example, a *ChatCompletionAgent* and an *OpenAIAssistantAgent* which are concrete implementations to collaborate within the same conversation. The AgentChat class defines entry points for initiating collaboration between agents, supporting scenarios where multiple responses or a single agent response are required. As an abstract class, AgentChat can be subclassed to support custom scenarios.
+- **IChatClient** - The core interface in Microsoft Extensions AI that provides a unified way to interact with different chat completion services. It abstracts the underlying AI provider (like Azure OpenAI, OpenAI, or others) and provides a consistent API for sending messages and receiving responses. The chat client handles the communication protocol, authentication, and request/response formatting, allowing developers to focus on building agent logic rather than managing provider-specific APIs.
 
-- **Functions** - Functions in Semantic Kernel are discrete units of work that can be executed within the AI application. They come in two primary forms:
-  - **Native** - These are standard methods that perform specific tasks, such as accessing a database, calling an external API, or processing data. To define a native function, you create a method in your codebase and annotate it with attributes that describe its purpose and parameters. This metadata allows the Semantic Kernel to understand and utilize the function appropriately.
-  - **Semantic** - These functions are defined using natural language prompts and are designed to interact with LLMs. They guide the model to generate responses or perform tasks based on the provided prompt. Semantic functions are typically stored as text files, (for example, Prompty) containing the prompt and are loaded into the application at runtime. They can include variables and expressions to make the prompts dynamic and context-aware.
+- **AIAgent** - A higher-level abstraction built on top of IChatClient that represents an individual agent with specific behavior, personality, and capabilities. An AIAgent encapsulates the agent's instructions (system prompt), tools/functions it can use, and conversation handling logic. It provides methods like RunAsync() to process user input and generate responses based on the agent's configuration.
 
-- **Plugins** - A plugin in Semantic Kernel is a collection of related functions—both native and semantic—that are grouped to provide a cohesive set of capabilities. Plugins serve as modular components that can be easily integrated into AI applications to extend their functionality.​ A plugin is typically implemented as a class containing multiple functions. Each function within the plugin is annotated with descriptive metadata, enabling the Semantic Kernel to understand its purpose and how to invoke it. Plugins encapsulate functionality that can be reused across different parts of an application or even across multiple applications. They promote modularity and maintainability by organizing related functions into a single, coherent unit. To use a plugin, it is imported into the Semantic Kernel, which then makes its functions available for invocation. This integration allows AI applications to dynamically utilize the plugin's capabilities as needed.
+- **Tools and Functions** - Tools in the Microsoft Agent Framework are callable functions that extend an agent's capabilities beyond text generation. They come in two primary forms:
+  - **Native Functions** - These are standard C# methods that perform specific tasks, such as accessing a database, calling an external API, or processing data. To define a native function, you create a method in your codebase and annotate it with attributes that describe its purpose and parameters. This metadata allows the agent framework to understand and utilize the function appropriately.
+  - **Semantic Functions** - These functions are defined using natural language prompts and are designed to interact with LLMs for specific tasks. They guide the model to generate responses or perform tasks based on the provided prompt. Semantic functions can include variables and expressions to make the prompts dynamic and context-aware.
 
-- **Connectors** - ​In the Semantic Kernel framework, Connectors serve as essential bridges that facilitate seamless integration between the kernel and various external services and AI models. These connectors enable developers to incorporate diverse AI functionalities—such as text generation, chat completion, embeddings, Vector Search, and more—into their applications without delving into the complexities of each AI provider's API. There are two types of connectors we will use in this workshop, AI Connectors and Vector Store Connectors.
-  - **AI Connectors** - AI Connectors provide a uniform interface to interact with multiple AI services, such as Chat Completion and Embedding Generation, allowing developers to switch between different AI providers effortlessly. This flexibility is particularly beneficial for experimenting with various models to determine the best fit for specific use cases.
-  - **Vector Store Connectors** - Beyond direct AI service integrations, Semantic Kernel provides connectors for various vector databases, including Azure Cosmos DB, facilitating tasks like semantic search and retrieval-augmented generation (RAG).
+- **Agent Groups and Orchestration** - The framework supports multi-agent scenarios where multiple agents can collaborate on complex tasks. Agent groups allow for orchestration patterns where agents can hand off conversations, work in parallel, or follow specific workflows. This enables building sophisticated AI systems where different agents specialize in different domains or capabilities.
+
+- **Connectors and Integrations** - The Microsoft Extensions AI framework provides connectors that facilitate seamless integration with various external services and AI models. These connectors enable developers to incorporate diverse AI functionalities—such as text generation, chat completion, embeddings, and vector search—into their applications without dealing with provider-specific APIs. There are two types of connectors we will use in this workshop:
+  - **AI Service Connectors** - These provide a uniform interface to interact with multiple AI services, allowing developers to switch between different AI providers effortlessly. This flexibility is particularly beneficial for experimenting with various models.
+  - **Vector Store Connectors** - Beyond direct AI service integrations, the framework provides connectors for various vector databases, including Azure Cosmos DB, facilitating tasks like semantic search and retrieval-augmented generation (RAG).
 
 Let's dive into the starter solution for our workshop and get started completing the implementation for our multi-agent application.
 
-### Implement the SemanticKernelService
+### Implement the AgentFrameworkService
 
-We are going to define two functions as part of our multi-agent application.
+We are going to define two primary functions as part of our multi-agent application:
 
 - **GetResponse()** will be the entry point called by the front end to interact with the multi-agent service. Everything happens behind this function.
 - **Summarize()** will be used to summarize the conversations users are having with the agent service.
 
-1. In VS Code, use the explorer on the left-hand side of the IDE to open the **csharp\src\MultiAgentCopilot\Services** folder.
-1. Within the **\Services** folder navigate to **SemanticKernelService.cs**.
-1. Search for **//TO DO: Update SemanticKernelService constructor** and paste the code below.
+1. In VS Code, use the explorer on the left-hand side of the IDE to open the **Services** folder.
+1. Within the **\Services** folder navigate to **AgentFrameworkService.cs**.
+1. Search for **//TO DO: CreateChatClient** and replace **CreateChatClient()** method with the code below.
 
 **Note:** To paste code, place your cursor exactly where you want it in the code, including any tabs or spaces, then click the `T` in the lab guide. This will paste the code directly into your app. You may need to tab or format the code a little after pasting.
 
+This method creates and configures an Azure OpenAI chat client with proper authentication. It uses DefaultAzureCredential for seamless authentication across different environments.
+
 ```csharp
-    builder.Services.AddSingleton<ILoggerFactory>(loggerFactory);
-
-        DefaultAzureCredential credential;
-        if (string.IsNullOrEmpty(_skSettings.AzureOpenAISettings.UserAssignedIdentityClientID))
+private IChatClient CreateChatClient()
+{
+    try
+    {
+        var credential = CreateAzureCredential();
+        var endpoint = new Uri(_settings.AzureOpenAISettings.Endpoint);
+        var openAIClient = new AzureOpenAIClient(endpoint, credential, new AzureOpenAIClientOptions
         {
-            credential = new DefaultAzureCredential();
-        }
-        else
-        {
-            credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
-            {
-                ManagedIdentityClientId = _skSettings.AzureOpenAISettings.UserAssignedIdentityClientID
-            });
-        }
+            Transport = new HttpClientPipelineTransport(),
+        });
 
-        builder.AddAzureOpenAIChatCompletion(
-           _skSettings.AzureOpenAISettings.CompletionsDeployment,
-           _skSettings.AzureOpenAISettings.Endpoint,
-           credential);
+        return openAIClient
+            .GetChatClient(_settings.AzureOpenAISettings.CompletionsDeployment)
+            .AsIChatClient();
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Failed to create chat client");
+        throw;
+    }
+}
+
 ```
 
 ## Activity 2: Create a Simple Agent
 
 Let's create a very simple agent for our workshop that is powered by an LLM. This agent will simply greet users and translate their requests into French. We will also implement a summarize function that renames the current chat session based upon the current topic from the user.
 
-1. Search for **//TO DO: Add GetResponse function** and paste the code below.
+1. Search for **//TO DO: Add GetResponse function** and replace **GetResponse()** method with the code below.
+
+This method creates a simple AI agent with specific instructions and runs it with user input. The agent is configured to greet users and translate requests into French.
+
 
 ```csharp
-public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(Message userMessage, List<Message> messageHistory, BankingDataService bankService, string tenantId, string userId)
+public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(
+    Message userMessage,
+    List<Message> messageHistory,
+    BankingDataService bankService,
+    string tenantId,
+    string userId)
+{
+    try
     {
-        try
-        {
-            ChatCompletionAgent agent = new ChatCompletionAgent
-            {
-                Name = "BasicAgent",
-                Instructions = "Greet the user and translate the request into French",
-                Kernel = _semanticKernel.Clone()
-            };
+        var agent = _chatClient.CreateAIAgent(
+            "Greet the user and translate the request into French",
+            "Translator");
+        
 
-            
-            // Create an null AgentThread 
-            AgentThread agentThread = null;
+        var responseText= agent.RunAsync(userMessage.Text).GetAwaiter().GetResult().Text;
+        return CreateResponseTuple(userMessage, responseText, "Translator");      
 
-            _promptDebugProperties = new List<LogProperty>();
-
-            List<Message> completionMessages = new();
-            List<DebugLog> completionMessagesLogs = new();
-
-
-            await foreach (ChatMessageContent response in agent.InvokeAsync(userMessage.Text, agentThread))
-            {
-                string messageId = Guid.NewGuid().ToString();
-                completionMessages.Add(new Message(userMessage.TenantId, userMessage.UserId, userMessage.SessionId, response.AuthorName ?? string.Empty, response.Role.ToString(), response.Content ?? string.Empty, messageId));
-            }
-            return new Tuple<List<Message>, List<DebugLog>>(completionMessages, completionMessagesLogs);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.ToString());
-            return new Tuple<List<Message>, List<DebugLog>>(new List<Message>(), new List<DebugLog>());
-        }
     }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.Message);
+        return new Tuple<List<Message>, List<DebugLog>>(new List<Message>(), new List<DebugLog>());
+    }
+}
 ```
 
-1. Search for **//TO DO: Add Summarize function** and  paste the code below.
+1. Search for **//TO DO: Add Summarize function** and replace **Summarize()** method with the code below.
+
+This method creates a summarization agent that condenses user input into exactly two words. It's useful for generating concise session titles or quick content summaries.
 
 ```csharp
+
 public async Task<string> Summarize(string sessionId, string userPrompt)
+{
+    try
     {
-        try
-        {
-            // Use an AI function to summarize the text in 2 words
-            var summarizeFunction = _semanticKernel.CreateFunctionFromPrompt(
-                "Summarize the following text into exactly two words:\n\n{{$input}}",
-                executionSettings: new OpenAIPromptExecutionSettings { MaxTokens = 10 }
-            );
+        var agent = _chatClient.CreateAIAgent(
+            "Summarize the text into exactly two words:", 
+            "Summarizer");
 
-            // Invoke the function
-            var summary = await _semanticKernel.InvokeAsync(summarizeFunction, new() { ["input"] = userPrompt });
-
-            return summary.GetValue<string>() ?? "No summary generated";
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.ToString());
-            return string.Empty;
-        }
+        return agent.RunAsync(userPrompt).GetAwaiter().GetResult().Text;        
+      
     }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.Message);
+        return string.Empty;
+    }
+}   
 
 ```
 
@@ -149,20 +149,15 @@ public async Task<string> Summarize(string sessionId, string userPrompt)
 1. Navigate to **ChatService.cs**.
 1. Replace the code for **GetChatCompletionAsync()** method with code below.
 
+This method integrates the agent framework service with the chat service. It processes user messages and returns the agent's response through the framework.
+
 ```csharp
     public async Task<List<Message>> GetChatCompletionAsync(string tenantId, string userId, string? sessionId, string userPrompt)
     {
         try
         {
-            ArgumentNullException.ThrowIfNull(sessionId);
-
-            // Add both prompt and completion to cache, then persist in Cosmos DB
-            var userMessage = new Message(tenantId, userId, sessionId, "User", "User", userPrompt);
-
-            // Generate the completion to return to the user
-            var result = await _skService.GetResponse(userMessage, new List<Message>(), _bankService, tenantId, userId);
-
-            return result.Item1;
+           var result = await _afService.GetResponse(userMessage, archivedMessages, _bankService, tenantId, userId);
+           return result.Item1;
         }
         catch (Exception ex)
         {
@@ -176,26 +171,23 @@ public async Task<string> Summarize(string sessionId, string userPrompt)
 Replace the code for **SummarizeChatSessionNameAsync** method with code below.
 
 ```csharp
-public async Task<string> SummarizeChatSessionNameAsync(string tenantId, string userId,string? sessionId, string prompt)
+public async Task<string> Summarize(string sessionId, string userPrompt)
+{
+    try
     {
-        try
-        {
-            ArgumentNullException.ThrowIfNull(sessionId);
+        var agent = _chatClient.CreateAIAgent(
+            "Summarize the text into exactly two words:", 
+            "Summarizer");
 
-            var summary = await _skService.Summarize(sessionId, prompt);
-
-            var session = await RenameChatSessionAsync(tenantId, userId,sessionId, summary);
-
-            return session.Name;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, $"Error getting a summary in session {sessionId} for user prompt [{prompt}].");
-            return $"Error getting a summary in session {sessionId} for user prompt [{prompt}].";
-        }
-
+        return agent.RunAsync(userPrompt).GetAwaiter().GetResult().Text;
+      
     }
-
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.Message);
+        return string.Empty;
+    }
+}
 ```
 
 ## Activity 3: Test your Work
@@ -421,7 +413,7 @@ public class ChatService
 </details>
 
 <details>
-  <summary>Completed code for <strong>\Services\SemanticKernelService.cs</strong></summary>
+  <summary>Completed code for <strong>\Services\AgentFrameworkService.cs</strong></summary>
 <br>
 
 ```csharp

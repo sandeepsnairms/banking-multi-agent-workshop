@@ -2,32 +2,34 @@
 
 ## Introduction
 
-In this Module you'll learn how to implement agent specialization by creating Semantic Kernel Functions that provide the functionality necessary to power individual agents that comprise a multi-agent system.
+In this module, you'll learn how to implement agent specialization by creating specialized tools and functions that provide domain-specific functionality. You'll build individual agents that comprise a multi-agent system, each with their own expertise and capabilities.
 
-## Learning Objectives and Activities
+## Learning Objectives
 
-- Learn the basics for Semantic Kernel Agent Framework Functions
-- Learn how to implement semantic and natural language features using Vector indexing and search integration from Azure Cosmos DB.
-- Learn how to define tasks and communication protocols for seamless collaboration.
+- Understand Microsoft Agent Framework tool and function architecture
+- Implement semantic search and vector indexing integration with Azure Cosmos DB
+- Learn how to define specialized agent roles and communication protocols
+- Build domain-specific tools for banking operations and customer service
 
 ## Module Exercises
 
 1. [Activity 1: Defining Bank Domain Data Models](#activity-1-defining-bank-domain-data-models)  
 1. [Activity 2: Defining Agent Behavior](#activity-2-defining-agent-behavior)  
-1. [Activity 3: Integrating Bank Domain Functions as Plugins](#activity-3-integrating-bank-domain-functions-as-plugins)  
-1. [Activity 4: Adding a Plugin to the Agent](#activity-4-adding-a-plugin-to-the-agent)  
+1. [Activity 3: Integrating Bank Domain Functions as Tools](#activity-3-integrating-bank-domain-functions-as-Tools)  
+1. [Activity 4: Adding a Tool to the Agent](#activity-4-adding-a-Tool-to-the-agent)  
 1. [Activity 5: Building an Agent Dynamically](#activity-5-building-an-agent-dynamically)
 1. [Activity 6: Semantic Search](#activity-6-semantic-search)
 1. [Activity 7: Test your Work](#activity-7-test-your-work)
 
-## Activity 1: Defining Bank Domain Data Models
+## Activity 1: Defining Bank Domain Data Models and Functions
 
 It is important to understand the need for agent specialization and have a basic grasp of how to build and integrate them. For the remainder of this module we will do just that for our banking scenario.
 
 When working with any kind of data we need to review our data models.
 
-1. In VS Code, navigate to the **/Models/Banking** folder.
-1. Take a look at the names of the models here. These are the domain-specific functions for this bank we will create specialized agents for.
+1. In VS Code, navigate to the **Banking** project.
+1. Take a look at the names of the **Models** here. These are the domain-specific models we will utilize in our banking scenario.
+1. Also review the **BankingDataService** class and understand the various database CRUD operations based on the models.
 
 ## Activity 2: Defining Agent Behavior
 
@@ -84,163 +86,290 @@ We are now ready to complete the implementation for the **Agent Factory** create
 1. In VS Code, navigate to the **/Factories** folder.
 1. Next, open the **AgentFactory.cs** class.
 
-Next we need to replace our original hard-coded implementation from Module 2 to use the AgentType enum for our banking agents. It is also worth noting that it is here where the contents of the **CommonAgentsRules.prompty** are included as part of the system prompts that define our agents.
+Next we need to replace our original hard-coded implementation from Module 2 to use the AgentType enum for our banking agents. It is also worth noting that it is here where the contents of the **CommonAgentRules.prompty** are included as part of the system prompts that define our agents.
 
-1. Replace the code for both **GetAgentName()** and **GetAgentPrompts()** with the code below:
+1. Search for **TO DO: Add Agent Details** and paste below code for **GetAgentName()**, **GetAgentDescription()** and **GetAgentPrompt()** :
 
 **Note:** You will notice build errors for some of the updates you make during the activities in this module. These will be fixed in subsequent Activities.
 
+These methods provide agent metadata and behavior definitions based on agent type. They load prompts from .prompty files and combine them with common agent rules.
+
 ```csharp
-        private string GetAgentName(AgentType agentType)
+        /// <summary>
+        /// Get agent prompt based on type
+        /// </summary>
+        private static string GetAgentPrompt(AgentType agentType)
         {
+            string promptFile = $"{GetAgentName(agentType)}.prompty";
 
-            string name = string.Empty;
-            switch (agentType)
-            {
-                case AgentType.Sales:
-                    name = "Sales";
-                    break;
-                case AgentType.Transactions:
-                    name = "Transactions";
-                    break;
-                case AgentType.CustomerSupport:
-                    name = "CustomerSupport";
-                    break;
-                case AgentType.Coordinator:
-                    name = "Coordinator";
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(agentType), agentType, null);
-            }
-
-            return name;
-        }
-
-        private string GetAgentPrompts(AgentType agentType)
-        {
-
-            string promptFile = string.Empty;
-            switch (agentType)
-            {
-                case AgentType.Sales:
-                    promptFile = "Sales.prompty";
-                    break;
-                case AgentType.Transactions:
-                    promptFile = "Transactions.prompty";
-                    break;
-                case AgentType.CustomerSupport:
-                    promptFile = "CustomerSupport.prompty";
-                    break;
-                case AgentType.Coordinator:
-                    promptFile = "Coordinator.prompty";
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(agentType), agentType, null);
-            }
-
-            string prompt = $"{File.ReadAllText("Prompts/" + promptFile)}{File.ReadAllText("Prompts/CommonAgentRules.prompty")}";
+            string prompt = $"{File.ReadAllText($"Prompts/{promptFile}")}{File.ReadAllText("Prompts/CommonAgentRules.prompty")}";
 
             return prompt;
         }
 
+        /// <summary>
+        /// Get agent name based on type
+        /// </summary>
+        public static string GetAgentName(AgentType agentType)
+        {
+            return agentType switch
+            {
+                AgentType.Sales => "Sales",
+                AgentType.Transactions => "Transactions",
+                AgentType.CustomerSupport => "CustomerSupport",
+                AgentType.Coordinator => "Coordinator",
+                _ => throw new ArgumentOutOfRangeException(nameof(agentType), agentType, null)
+            };
+        }
+
+        /// <summary>
+        /// Get agent description
+        /// </summary>
+        private static string GetAgentDescription(AgentType agentType)
+        {
+            return agentType switch
+            {
+                AgentType.Sales => "Handles sales inquiries, account registration, and offers",
+                AgentType.Transactions => "Manages transactions, transfers, and transaction history",
+                AgentType.CustomerSupport => "Provides customer support, handles complaints and service requests",
+                AgentType.Coordinator => "Coordinates and routes requests to appropriate agents",
+                _ => throw new ArgumentOutOfRangeException(nameof(agentType), agentType, null)
+            };
+        }
+
 ```
 
-## Activity 3: Integrating Bank Domain Functions as Plugins
+## Activity 3: Integrating Bank Domain Functions as Tools
 
-All banking domain code is encapsulated in a separate **BankingDataService** class. Let's add the banking domain functions to the agent plugins. For simplicity in this workshop, all functions reference BankingServices. However, kernel functions can be any managed code that enables the LLM to interact with the outside world. The Base plugin, inherited by all plugins, contains common code for all plugins. For best results the **KernelFunction** available in the agent plugin should be consistent with the agent system prompts.
+All banking domain code is encapsulated in a separate **BankingDataService** class. Let's add the banking domain functions to the agent Tools. For simplicity in this workshop, all functions reference BankingServices. However, agent tools can be any managed code that enables the LLM to interact with the outside world. The Base Tool, inherited by all Tools, contains common code for all Tools. For best results, the **Tool Functions** available to the agent should be consistent with the agent system prompts.
 
-To save time, the code for BasePlugin, SalesPlugin, and CustomerSupportPlugin are already implemented. The code for TransactionPlugin is left for you to implement.
+To save time, the code for SalesTools, CustomerSupportTools, and CoordinatorTools are already implemented. The code for TransactionTools is left for you to implement.
 
-1. In VS Code, navigate to the **/AgentPlugins** folder.
-1. Open the **TransactionPlugin.cs** file.
+1. In VS Code, navigate to the **/Tools** folder.
+1. Open the **TransactionTools.cs** file.
 1. Paste the following code into the class below the constructor.
 
+This tool function enables agents to add new account transactions to the banking system. It validates input parameters and delegates to the banking data service for persistence.
+
 ```csharp
-    [KernelFunction]
-    [Description("Adds a new Account Transaction request")]
-    public async Task<ServiceRequest> AddFunTransferRequest(
-        string debitAccountId,
-        decimal amount,
-        string requestAnnotation,
-        string? recipientPhoneNumber = null,
-        string? recipientEmailId = null)
-    {
-       _logger.LogTrace("Adding AccountTransaction request for User ID: {UserId}, Debit Account: {DebitAccountId}", _userId, debitAccountId);
-    
-       // Ensure non-null values for recipientEmailId and recipientPhoneNumber
-       string emailId = recipientEmailId ?? string.Empty;
-       string phoneNumber = recipientPhoneNumber ?? string.Empty;
-    
-       return await _bankService.CreateFundTransferRequestAsync(_tenantId, debitAccountId, _userId, requestAnnotation, emailId, phoneNumber, amount);
-    }
-    
-    [KernelFunction]
-    [Description("Get the transactions history between 2 dates")]
-    public async Task<List<BankTransaction>> GetTransactionHistory(string accountId, DateTime startDate, DateTime endDate)
-    {
-       _logger.LogTrace("Fetching AccountTransaction history for Account: {AccountId}, From: {StartDate} To: {EndDate}", accountId, startDate, endDate);
-       return await _bankService.GetTransactionsAsync(_tenantId, accountId, startDate, endDate);
-    }
+        [Description("Adds a new Account Transaction request")]
+        public async Task<ServiceRequest> AddFunTransferRequest(string tenantId, string userId,
+            string debitAccountId,
+            decimal amount,
+            string requestAnnotation,
+            string? recipientPhoneNumber = null,
+            string? recipientEmailId = null)
+        {
+            _logger.LogTrace("Adding AccountTransaction request for User ID: {UserId}, Debit Account: {DebitAccountId}", userId, debitAccountId);
+
+            // Ensure non-null values for recipientEmailId and recipientPhoneNumber
+            string emailId = recipientEmailId ?? string.Empty;
+            string phoneNumber = recipientPhoneNumber ?? string.Empty;
+
+            return await _bankService.CreateFundTransferRequestAsync(tenantId, debitAccountId, userId, requestAnnotation, emailId, phoneNumber, amount);
+        }
+
+        [Description("Get the transactions history between 2 dates")]
+        public async Task<List<BankTransaction>> GetTransactionHistory(string tenantId, string userId,string accountId, DateTime startDate, DateTime endDate)
+        {
+            _logger.LogTrace("Fetching AccountTransaction history for Account: {AccountId}, From: {StartDate} To: {EndDate}", accountId, startDate, endDate);
+            return await _bankService.GetTransactionsAsync(tenantId, accountId, startDate, endDate);
+        }
 ```
 
-## Activity 4: Adding a Plugin to the Agent
+## Activity 4: Create Agent Tools
+1. In VS Code, navigate to the **/Factories** folder
+1. Open the **AgentFactory.cs** class.
+1. Search for **//TO DO: Create Agent Tools** and paste code below .
 
-Similar to generating system prompts based on agent type, we need the plugins to be created dynamically. Next, we will implement a **GetAgentKernel()** function that dynamically generates a plugin based on the agent type.
+```csharp
+        /// <summary>
+        /// Get tools for specific agent type using existing tool classes
+        /// </summary>
+        private static IList<AIFunction>? GetInProcessAgentTools(AgentType agentType, BankingDataService bankService, ILoggerFactory loggerFactory)
+        {
+            ILogger logger = loggerFactory.CreateLogger<AgentFrameworkService>();
+            try
+            {
+                logger.LogInformation("Creating in-process tools for agent type: {AgentType}", agentType);
+
+                // Create the appropriate tools class based on agent type
+                BaseTools toolsClass = agentType switch
+                {
+                    AgentType.Sales => new SalesTools(loggerFactory.CreateLogger<SalesTools>(), bankService),
+                    AgentType.Transactions => new TransactionTools(loggerFactory.CreateLogger<TransactionTools>(), bankService),
+                    AgentType.CustomerSupport => new CustomerSupportTools(loggerFactory.CreateLogger<CustomerSupportTools>(), bankService),
+                    AgentType.Coordinator => new CoordinatorTools(loggerFactory.CreateLogger<CoordinatorTools>(), bankService),
+                    _ => throw new ArgumentOutOfRangeException(nameof(agentType), agentType, null)
+                };
+
+                // Log the tool class creation for debugging
+                logger.LogInformation("Created {ToolClassName} for agent type: {AgentType}", toolsClass.GetType().Name, agentType);
+
+                // Get methods with Description attributes and create AI functions
+                var methods = toolsClass.GetType().GetMethods()
+                    .Where(m => m.GetCustomAttributes(typeof(DescriptionAttribute), false).Length > 0);
+
+                IList<AIFunction> functions = new List<AIFunction>();
+                
+                foreach (var method in methods)
+                {
+                    try
+                    {
+                        var aiFunction = AIFunctionFactory.Create(method, toolsClass);
+                        functions.Add(aiFunction);
+                        
+                        var description = method.GetCustomAttribute<DescriptionAttribute>().Description;
+                        logger.LogDebug("Agent {AgentType} in-process tool: '{MethodName}' - {Description}",
+                            agentType, method.Name, description);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogWarning(ex, "Failed to create AI function for method {MethodName} in {AgentType}: {Message}",
+                            method.Name, agentType, ex.Message);
+                    }
+                }
+
+                logger.LogInformation("Created {FunctionCount} in-process tools for agent type: {AgentType}", 
+                    functions.Count, agentType);
+
+                return functions.Count > 0 ? functions : null;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error creating in-process tools for agent type: {AgentType}", agentType);
+                return null;
+            }
+        }
+
+```
+### Adding InProcess too Agent Framework Service
+1. In VS Code, navigate to the **/Services** folder
+1. Open the **AgentFrameworkService.cs** class.
+1. Search for **TO DO: Add In Process Tools** and paste code below .
+
+```csharp
+if (_bankService != null)
+{
+    _agents = AgentFactory.CreateAllAgentsWithInProcessTools(_chatClient, _bankService, _loggerFactory);
+}
+``` 
+
+## Activity 5: Adding a Tool to the Agent
+
+Similar to generating system prompts based on agent type, we need the Tools to be created dynamically. Next, we will implement a **CreateAllAgentsWithInProcessTools()** function that dynamically generates a Tool based on the agent type.
 
 1. In VS Code, navigate to the **/Factories** folder
 1. Open the **AgentFactory.cs** class.
-1. Paste the code below at the end of the class.
+1. Search for **//TO DO: Add Agent Creation with Tools** and paste code below .
 
 ```csharp
-        private Kernel GetAgentKernel(Kernel kernel, AgentType agentType, ILoggerFactory loggerFactory, BankingDataService bankService, string tenantId, string userId)
-        {
-            Kernel agentKernel = kernel.Clone();
-            switch (agentType)
+        /// <summary>
+        /// Create all banking agents with proper instructions and tools
+        /// </summary>
+        public static List<AIAgent> CreateAllAgentsWithInProcessTools(IChatClient chatClient, BankingDataService bankService, ILoggerFactory loggerFactory)
+        {           
+
+            var agents = new List<AIAgent>();
+            ILogger logger = loggerFactory.CreateLogger("AgentFactory");
+
+            // Get all agent types from the enum
+            var agentTypes = Enum.GetValues<AgentType>();
+
+            // Create agents for each agent type
+            foreach (var agentType in agentTypes)
             {
-                case AgentType.Sales:
-                    var salesPlugin = new SalesPlugin(loggerFactory.CreateLogger<SalesPlugin>(), bankService, tenantId, userId);
-                    agentKernel.Plugins.AddFromObject(salesPlugin);
-                    break;
-                case AgentType.Transactions:
-                    var transactionsPlugin = new TransactionPlugin(loggerFactory.CreateLogger<TransactionPlugin>(), bankService, tenantId, userId);
-                    agentKernel.Plugins.AddFromObject(transactionsPlugin);
-                    break;
-                case AgentType.CustomerSupport:
-                    var customerSupportPlugin = new CustomerSupportPlugin(loggerFactory.CreateLogger<CustomerSupportPlugin>(), bankService, tenantId, userId);
-                    agentKernel.Plugins.AddFromObject(customerSupportPlugin);
-                    break;
-                case AgentType.Coordinator:
-                    var CoordinatorPlugin = new CoordinatorPlugin(loggerFactory.CreateLogger<CoordinatorPlugin>(), bankService, tenantId, userId);
-                    agentKernel.Plugins.AddFromObject(CoordinatorPlugin);
-                    break;
-                default:
-                    throw new ArgumentException("Invalid plugin name");
+                logger.LogInformation("Creating agent {AgentType} with InProcess tools", agentType);
+                
+                var aiFunctions = GetInProcessAgentTools(agentType, bankService, loggerFactory).ToArray();
+
+                var agent = chatClient.CreateAIAgent(
+                        instructions: GetAgentPrompt(agentType),
+                        name: GetAgentName(agentType),
+                        description: GetAgentDescription(agentType)
+                    );
+
+                agents.Add(agent);
+                logger.LogInformation("Created agent {AgentName} with {ToolCount} InProcess", agent.Name, aiFunctions.Count());
             }
 
-            return agentKernel;
+            logger.LogInformation("Successfully created {AgentCount} banking agents", agents.Count);
+            return agents;
         }
 ```
 
-## Activity 5: Building an Agent Dynamically
+### Configure AgentFrameworkService to use In-Process tools
 
-Now that we have dynamically generated Agent Prompt and  Agent Kernel, we can make the agent build process dynamic based on the **agentType** parameter. Next, we will modify the **BuildAgent()** function within the **AgentFactory** class to dynamically add plugins to the agents.
-
-1. Remain in the **AgentFactory** class.
-1. Replace the **BuildAgent()** function with this code below.
+1. In VS Code, navigate to the **/Services** folder
+1. Open the **AgentFrameworkService.cs** class.
+1. Search for **TO DO: Add SetInProcessToolService** and paste code below .
 
 ```csharp
-        public ChatCompletionAgent BuildAgent(Kernel kernel, AgentType agentType, ILoggerFactory loggerFactory, BankingDataService bankService, string tenantId, string userId)
-        {
-            ChatCompletionAgent agent = new ChatCompletionAgent
-            {
-                Name = GetAgentName(agentType),
-                Instructions = $"""{GetAgentPrompts(agentType)}""",
-                Kernel = GetAgentKernel(kernel, agentType, loggerFactory, bankService, tenantId, userId),
-                Arguments = new KernelArguments(new AzureOpenAIPromptExecutionSettings() { FunctionChoiceBehavior = FunctionChoiceBehavior.Auto() })
-            };
+    /// <summary>
+    /// Sets the in-process tool service for banking operations.
+    /// </summary>
+    /// <param name="bankService">The banking data service instance.</param>
+    /// <returns>True if the service was set successfully.</returns>
+    
+    public bool SetInProcessToolService(BankingDataService bankService)
+    {
+        _bankService = bankService ?? throw new ArgumentNullException(nameof(bankService));
+        _logger.LogInformation("InProcessToolService has been set.");
+        return true;
+    }
+```
 
-            return agent;
+1. Navigate to **ChatService.cs** class.
+1. Search for **// TO DO: Invoke SetInProcessToolService** and paste code below .
+
+```csharp
+            var embeddingClient = _afService.GetAzureOpenAIClient();
+            var embeddingDeployment = _afService.GetEmbeddingDeploymentName();
+            EmbeddingService embeddingService = new EmbeddingService(embeddingClient, embeddingDeployment);
+            _bankService = new BankingDataService(embeddingService, cosmosDBService.Database, cosmosDBService.AccountDataContainer, cosmosDBService.UserDataContainer, cosmosDBService.AccountDataContainer, cosmosDBService.OfferDataContainer, loggerFactory);
+
+            _afService.SetInProcessToolService(_bankService);
+
+```
+## Activity 6: Building an Agent Dynamically
+
+Now that we have dynamically generated Agent Prompt and  Agent Kernel, we can make the agent build process dynamic based on the **agentType** parameter. Next, we will modify the **BuildAgent()** function within the **AgentFactory** class to dynamically add Tools to the agents.
+
+1. In VS Code, navigate to the **/Services** folder
+1. Open the **AgentFrameworkService.cs** class.
+1. Update the **GetResponse()**method with the code below .
+
+```csharp
+    /// <summary>
+    /// Processes a user message and returns the agent's response.
+    /// </summary>
+    /// <param name="userMessage">The user's message.</param>
+    /// <param name="messageHistory">The conversation history.</param>
+    /// <param name="bankService">The banking data service.</param>
+    /// <param name="tenantId">The tenant identifier.</param>
+    /// <param name="userId">The user identifier.</param>
+    /// <returns>A tuple containing the response messages and debug logs.</returns>
+    public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(
+        Message userMessage,
+        List<Message> messageHistory,
+        BankingDataService bankService,
+        string tenantId,
+        string userId)
+    {
+        try
+        {
+            var agentName="Coordinator";
+            var bankAgent = _agents.FirstOrDefault(s => s.Name == agentName);
+            var responseText = bankAgent.RunAsync(chatHistory).GetAwaiter().GetResult().Text;
+            return CreateResponseTuple(userMessage, responseText, agentName);
+            
         }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.Message);
+            return new Tuple<List<Message>, List<DebugLog>>(new List<Message>(), new List<DebugLog>());
+        }
+    }
 ```
 
 ## Activity 6: Semantic Search
@@ -251,172 +380,97 @@ The Sales Agent in this banking application performs a vector search in Cosmos D
 
 Data Models used for Vector Search in Semantic Kernel need to be enhanced with additional attributes. We will use **OfferTerm** as vector search enabled data model.
 
-1. In VS Code, navigate to the **/Models/Banking** folder.
-1. Open the **OfferTerm.cs** class.
-1. Paste this code within the class.
+1. In VS Code, navigate to the **Banking** project.
+1. Navigate to the **/Models** folder.
+1. Review the **OfferTerm.cs** class. Notice Vector attribute is of type `ReadOnlyMemory<float>`
+
+
+### Initialize the Embedding client to vectorize terms
+
+1. Remain in the **Banking** project.
+1. Open the the **Services/EmbeddingService.cs** file.
+1. Search for **// TO DO: Update GenerateEmbeddingAsync** and replace teh code for **GenerateEmbeddingAsync()**method with the code 
 
 ```csharp
+        public async Task<float[]> GenerateEmbeddingAsync(string text)
+        {
 
-        [VectorStoreRecordKey]
-        public required string Id { get; set; }
+            var embeddingClient = _client.GetEmbeddingClient(_deployment);
+            var result = await embeddingClient.GenerateEmbeddingsAsync(new List<string> { text });
+            var vector = result.Value[0].ToFloats().ToArray();
 
-        [VectorStoreRecordData]
-        public required string TenantId { get; set; }
+            return vector;
 
-        [VectorStoreRecordData]
-        public required string OfferId { get; set; }
-
-        [VectorStoreRecordData]
-        public required string Name { get; set; }
-
-        [VectorStoreRecordData]
-        public required string Text { get; set; }
-
-        [VectorStoreRecordData]
-        public required string Type { get; set; }
-
-        [VectorStoreRecordData]
-        public required string AccountType { get; set; }
-
-        [VectorStoreRecordVector(Dimensions: 1536, DistanceFunction: DistanceFunction.CosineSimilarity, IndexKind: IndexKind.QuantizedFlat)]
-        public ReadOnlyMemory<float>? Vector { get; set; }
-    
+        }
 ```
-
 ### Update BankingDataService to include vector search
-
-1. In VS Code, navigate to the **/Services** folder.
-1. Open the the **BankingDataService.cs** file.
-1. In the constructor of the class search for **//To DO: Add vector search initialization code here**.
-1. Replace with the below code.
-
-```csharp
-DefaultAzureCredential credential;
-        if (string.IsNullOrEmpty(skSettings.AzureOpenAISettings.UserAssignedIdentityClientID))
-        {
-            credential = new DefaultAzureCredential();
-        }
-        else
-        {
-            credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
-            {
-                ManagedIdentityClientId = skSettings.AzureOpenAISettings.UserAssignedIdentityClientID
-            });
-
-        }
-
-        _textEmbeddingGenerationService = new(
-                deploymentName: skSettings.AzureOpenAISettings.EmbeddingsDeployment,
-                endpoint: skSettings.AzureOpenAISettings.Endpoint,
-                credential: credential);
-
-        var jsonSerializerOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
-        var vectorStoreOptions = new AzureCosmosDBNoSQLVectorStoreRecordCollectionOptions<OfferTerm> { PartitionKeyPropertyName = "TenantId", JsonSerializerOptions = jsonSerializerOptions };
-        _offerDataVectorStore = new AzureCosmosDBNoSQLVectorStoreRecordCollection<OfferTerm>(_database, _offerData.Id, vectorStoreOptions);
-```
-
-1. Within the same file, navigate below the constructor in which you just pasted the code above.
-1. Then paste the following two functions.
+1. Remain in the **Banking** project.
+1. Open the the **Services/BankingDataService.cs** file.
+1. Search for **//TO DO : Update SearchOfferTermsAsync** and replace teh code for **SearchOfferTermsAsync()**method with the code below.
 
 ```csharp
         public async Task<List<OfferTerm>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription)
         {
             try
             {
-                // Generate Embedding
-                ReadOnlyMemory<float> embedding = (await _textEmbeddingGenerationService.GenerateEmbeddingsAsync(
-                       new[] { requirementDescription }
-                   )).FirstOrDefault();
-        
-        
-               string accountTypeString = accountType.ToString();
-        
-                // filters as LINQ expression
-                Expression<Func<OfferTerm, bool>> linqFilter = term =>
-                    term.TenantId == tenantId &&
-                    term.Type == "Term" &&
-                    term.AccountType == "Savings";
-        
-                var options = new VectorSearchOptions<OfferTerm>
+
+                // Generate embeddings for the requirement description
+                var queryVector = await _embeddingService.GenerateEmbeddingAsync(requirementDescription);
+
+
+                // Build the vector search query with filters
+                var query = new QueryDefinition(@"
+                            SELECT 
+                                c.id, 
+                                c.tenantId, 
+                                c.offerId, 
+                                c.name, 
+                                c.text, 
+                                c.type, 
+                                c.accountType, 
+                                VectorDistance(c.vector, @queryVector) AS similarityScore
+                            FROM c 
+                            WHERE c.type = @type 
+                              AND c.tenantId = @tenantId 
+                              AND c.accountType = @accountType
+                            ORDER BY VectorDistance(c.vector, @queryVector)
+                        ")
+                .WithParameter("@queryVector", queryVector)
+                .WithParameter("@type", "Term")
+                .WithParameter("@tenantId", tenantId)
+                .WithParameter("@accountType", accountType.ToString());
+
+                // Define partition key
+                var partitionKey = new PartitionKey(tenantId);
+
+                // Run query
+                var offerTerms = new List<OfferTerm>();
+                using (FeedIterator<OfferTerm> feedIterator = _offerData.GetItemQueryIterator<OfferTerm>(
+                    query,
+                    requestOptions: new QueryRequestOptions
+                    {
+                        PartitionKey = partitionKey,
+                        MaxItemCount = 10 // Limit for performance
+                    }))
                 {
-                    VectorProperty = term => term.Vector, // Correctly specify the vector property as a lambda expression
-                    Filter = linqFilter, // Use the LINQ expression here
-                    Top = 10,
-                    IncludeVectors = false
-                };
-        
-        
-                var searchResults = await _offerDataVectorStore.VectorizedSearchAsync(embedding, options);
-        
-                List<OfferTerm> offerTerms = new();
-                await foreach (var result in searchResults.Results)
-                {
-                    offerTerms.Add(result.Record);
+                    while (feedIterator.HasMoreResults)
+                    {
+                        FeedResponse<OfferTerm> response = await feedIterator.ReadNextAsync();
+                        offerTerms.AddRange(response);
+                    }
                 }
+
                 return offerTerms;
+
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex.ToString());
+                _logger.LogError("Error searching offer terms: {Message}", ex.Message);
                 return new List<OfferTerm>();
             }
         }
-
-        public async Task<Offer> GetOfferDetailsAsync(string tenantId, string offerId)
-        {
-            try
-            {
-                var partitionKey = new PartitionKey(tenantId);
-
-                return await _offerData.ReadItemAsync<Offer>(
-                       id: offerId,
-                       partitionKey: new PartitionKey(tenantId));
-            }
-            catch (CosmosException ex)
-            {
-                _logger.LogError(ex.ToString());
-                return null;
-            }
-        }
 ```
 
-Next, we need to then connect the Sales Agent to our new functions.
-
-1. In VS Code, navigate to the **/AgentPlugins** folder.
-1. Open the **SalesPlugin.cs** file.
-1. Navigate below the constructor.
-1. Add these two functions to perform vector searches.
-
-```csharp
-    [KernelFunction]
-    [Description("Search offer terms of all available offers using vector search")]
-    public async Task<List<OfferTerm>> SearchOfferTerms(AccountType accountType, string requirementDescription)
-    {
-        _logger.LogTrace($"Searching terms of all available offers matching '{requirementDescription}'");
-        return await _bankService.SearchOfferTermsAsync(_tenantId, accountType, requirementDescription);
-    }
-    
-    [KernelFunction]
-    [Description("Get detail for an offer")]
-    public async Task<Offer> GetOfferDetails(string offerId)
-    {
-        _logger.LogTrace($"Fetching Offer");
-        return await _bankService.GetOfferDetailsAsync(_tenantId, offerId);
-    }
-```
-
-### Select the Agent to get response
-
-1. In VS Code, navigate to the **/Services** folder.
-1. Open the **SemanticKernelService.cs** file.
-1. Locate the **GetResponse()** function.
-1. Locate this line of code, *var agent = agentFactory.BuildAgent(_semanticKernel, _loggerFactory, bankService, tenantId, userId);*
-1. It should be easy to spot as *.BuildAgent* should have a red squiggly line below it.
-1. Replace it with the line of code below.
-
-```c#
-var agent = agentFactory.BuildAgent(_semanticKernel, AgentType.Sales, _loggerFactory, bankService, tenantId, userId);
-```
 
 ## Activity 7: Test your Work
 
@@ -429,23 +483,34 @@ With the activities in this module complete, it is time to test your work.
 ### Start a Chat Session
 
 1. Return to the frontend application in your browser.
-1. Send a message to test the current *Sales* AgentType.
+1. Send the below message to test the current *Coordinator* AgentType.
+```text
+Hi
+```
 1. View the response in the frontend.
-
+1. Return to VS Code, Notice the output in the terminal showing the action taken by the Coordinator Agent to your prompt.
+1. Within the backend terminal, press **Ctrl + C** to stop the backend application.
+1. Locate this line of code, *var agentName="Coordinator";* in **\Services\AgentFrameworkService.cs**
+1. Replace it with the line of code below.
+```c#
+var agentName="Sales";
+```
+1. Return to the open terminal for the backend app in VS Code and type `dotnet run`
+1. Return to the frontend application in your browser.
+1. Send the below message to test the current *Sales* AgentType.
 ```text
 I'm looking for a high interest savings account
 ```
+1. View the response in the frontend.
 
-1. Return to VS Code.
-1. Notice the output in the terminal showing the action taken by the Sales Agent to your prompt.
-
+ 
 ### Stop the Application
 
 1. Within the backend terminal, press **Ctrl + C** to stop the backend application.
 
 ## Validation Checklist
 
-- [ ] Each Agent response is per the corresponding prompty file contents and the plugin functions.
+- [ ] Each Agent response is per the corresponding prompty file contents and the Tool functions.
 - [ ] Semantic Search functions correctly
 
 ## Module Solution
@@ -453,7 +518,7 @@ I'm looking for a high interest savings account
 The following sections include the completed code for this Module. Copy and paste these into your project if you run into issues and cannot resolve.
 
 <details>
-  <summary>Completed code for <strong>\Services\SemanticKernelService.cs</strong></summary>
+  <summary>Completed code for <strong>\Services\AgentFrameworkService.cs</strong></summary>
 <br>
 
 ```csharp
@@ -654,7 +719,7 @@ using MultiAgentCopilot.Logs;
 using MultiAgentCopilot.Models;
 using MultiAgentCopilot.Services;
 using static MultiAgentCopilot.StructuredFormats.ChatResponseFormatBuilder;
-using MultiAgentCopilot.Plugins;
+using MultiAgentCopilot.Tools;
 
 
 namespace MultiAgentCopilot.Factories
@@ -734,23 +799,23 @@ namespace MultiAgentCopilot.Factories
             switch (agentType)
             {
                 case AgentType.Sales:
-                    var salesPlugin = new SalesPlugin(loggerFactory.CreateLogger<SalesPlugin>(), bankService, tenantId, userId);
-                    agentKernel.Plugins.AddFromObject(salesPlugin);
+                    var salesTool = new SalesTool(loggerFactory.CreateLogger<SalesTool>(), bankService, tenantId, userId);
+                    agentKernel.Tools.AddFromObject(salesTool);
                     break;
                 case AgentType.Transactions:
-                    var transactionsPlugin = new TransactionPlugin(loggerFactory.CreateLogger<TransactionPlugin>(), bankService, tenantId, userId);
-                    agentKernel.Plugins.AddFromObject(transactionsPlugin);
+                    var transactionsTool = new TransactionTool(loggerFactory.CreateLogger<TransactionTool>(), bankService, tenantId, userId);
+                    agentKernel.Tools.AddFromObject(transactionsTool);
                     break;
                 case AgentType.CustomerSupport:
-                    var customerSupportPlugin = new CustomerSupportPlugin(loggerFactory.CreateLogger<CustomerSupportPlugin>(), bankService, tenantId, userId);
-                    agentKernel.Plugins.AddFromObject(customerSupportPlugin);
+                    var customerSupportTool = new CustomerSupportTool(loggerFactory.CreateLogger<CustomerSupportTool>(), bankService, tenantId, userId);
+                    agentKernel.Tools.AddFromObject(customerSupportTool);
                     break;
                 case AgentType.Coordinator:
-                    var CoordinatorPlugin = new CoordinatorPlugin(loggerFactory.CreateLogger<CoordinatorPlugin>(), bankService, tenantId, userId);
-                    agentKernel.Plugins.AddFromObject(CoordinatorPlugin);
+                    var CoordinatorTool = new CoordinatorTool(loggerFactory.CreateLogger<CoordinatorTool>(), bankService, tenantId, userId);
+                    agentKernel.Tools.AddFromObject(CoordinatorTool);
                     break;
                 default:
-                    throw new ArgumentException("Invalid plugin name");
+                    throw new ArgumentException("Invalid Tool name");
             }
 
             return agentKernel;
@@ -762,7 +827,7 @@ namespace MultiAgentCopilot.Factories
 </details>
 
 <details>
-  <summary>Completed code for <strong>\AgentPlugins\TransactionPlugin.cs</strong></summary>
+  <summary>Completed code for <strong>\AgentTools\TransactionTool.cs</strong></summary>
 <br>
 
 ```csharp
@@ -771,11 +836,11 @@ using System.ComponentModel;
 using MultiAgentCopilot.Models.Banking;
 using MultiAgentCopilot.Services;
 
-namespace MultiAgentCopilot.Plugins
+namespace MultiAgentCopilot.Tools
 {
-    public class TransactionPlugin : BasePlugin
+    public class TransactionTool : BaseTool
     {
-        public TransactionPlugin(ILogger<BasePlugin> logger, BankingDataService bankService, string tenantId, string userId)
+        public TransactionTool(ILogger<BaseTool> logger, BankingDataService bankService, string tenantId, string userId)
          : base(logger, bankService, tenantId, userId)
         {
         }
@@ -813,7 +878,7 @@ namespace MultiAgentCopilot.Plugins
 </details>
 
 <details>
-  <summary>Completed code for <strong>\AgentPlugins\SalesPlugin.cs</strong></summary>
+  <summary>Completed code for <strong>\AgentTools\SalesTool.cs</strong></summary>
 <br>
 
 ```csharp
@@ -822,11 +887,11 @@ using System.ComponentModel;
 using  MultiAgentCopilot.Models.Banking;
 using MultiAgentCopilot.Services;
 
-namespace MultiAgentCopilot.Plugins
+namespace MultiAgentCopilot.Tools
 {
-    internal class SalesPlugin : BasePlugin
+    internal class SalesTool : BaseTool
     {
-        public SalesPlugin(ILogger<BasePlugin> logger, BankingDataService bankService, string tenantId, string userId )
+        public SalesTool(ILogger<BaseTool> logger, BankingDataService bankService, string tenantId, string userId )
             : base(logger, bankService, tenantId, userId)
         {
         }

@@ -1,32 +1,60 @@
-﻿using Microsoft.Extensions.Options;
-using MultiAgentCopilot.Models.Debug;
-using MultiAgentCopilot.Models.Configuration;
+﻿using Banking.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using MultiAgentCopilot.Models.Chat;
-using Newtonsoft.Json.Linq;
-using System.Text.Json;
+using MultiAgentCopilot.Models.Configuration;
+using MultiAgentCopilot.Models.Debug;
+using MultiAgentCopilot.MultiAgentCopilot.Services;
 using Newtonsoft.Json;
-
-
+using Newtonsoft.Json.Linq;
+using OpenAI.Embeddings;
+using System.Text.Json;
+using OpenAI;
 namespace MultiAgentCopilot.Services;
 
 public class ChatService
 {
     private readonly CosmosDBService _cosmosDBService;
     private readonly BankingDataService _bankService;
-    private readonly SemanticKernelService _skService;
+    private readonly MCPToolService _mcpService;
+    private readonly  AgentFrameworkService _afService;
     private readonly ILogger _logger;
 
 
     public ChatService(
         IOptions<CosmosDBSettings> cosmosOptions,
-        IOptions<SemanticKernelServiceSettings> skOptions,
+        IOptions<AgentFrameworkServiceSettings> afOptions,
         CosmosDBService cosmosDBService,
-        SemanticKernelService skService,
+        AgentFrameworkService afService,
+        MCPToolService mcpService,
         ILoggerFactory loggerFactory)
     {
         _cosmosDBService = cosmosDBService;
-        _skService = skService;
-        _bankService = new BankingDataService(cosmosDBService.Database, cosmosDBService.AccountDataContainer, cosmosDBService.UserDataContainer, cosmosDBService.AccountDataContainer, cosmosDBService.OfferDataContainer, skOptions.Value, loggerFactory);
+        _afService = afService;
+        _mcpService = mcpService;
+
+
+        // Initialize the Agent Framework with tool service
+        if (afOptions.Value.UseMCPTools)
+        {
+            //MCP tools
+            _afService.SetMCPToolService(_mcpService);
+        }
+        else
+        {
+            // In-Process Tools
+
+            var embeddingClient = _afService.GetAzureOpenAIClient();
+            var embeddingDeployment = _afService.GetEmbeddingDeploymentName();
+            EmbeddingService embeddingService = new EmbeddingService(embeddingClient, embeddingDeployment);
+            
+            _bankService = new BankingDataService(embeddingService, cosmosDBService.Database, cosmosDBService.AccountDataContainer, cosmosDBService.UserDataContainer, cosmosDBService.AccountDataContainer, cosmosDBService.OfferDataContainer, loggerFactory);
+            _afService.SetInProcessToolService(_bankService);
+        }
+
+        if (!_afService.InitializeAgents())
+            throw new Exception("Error initializing agents in ChatService.");
+
         _logger = loggerFactory.CreateLogger<ChatService>();
     }
 
@@ -92,7 +120,7 @@ public class ChatService
             var userMessage = new Message(tenantId, userId, sessionId, "User", "User", userPrompt);
 
             // Generate the completion to return to the user
-            var result = await _skService.GetResponse(userMessage, archivedMessages, _bankService, tenantId, userId);
+            var result = await _afService.GetResponse(userMessage, archivedMessages, _bankService, tenantId, userId);
 
             await AddPromptCompletionMessagesAsync(tenantId, userId, sessionId, userMessage, result.Item1, result.Item2);
 
@@ -124,7 +152,7 @@ public class ChatService
         {
             ArgumentNullException.ThrowIfNull(sessionId);
 
-            var summary = await _skService.Summarize(sessionId, prompt);
+            var summary = await _afService.Summarize(sessionId, prompt);
 
             var session = await RenameChatSessionAsync(tenantId, userId, sessionId, summary);
 
