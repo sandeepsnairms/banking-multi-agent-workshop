@@ -1,7 +1,7 @@
 ﻿using Microsoft.Azure.Cosmos;
 using PartitionKey = Microsoft.Azure.Cosmos.PartitionKey;
 
-namespace  MultiAgentCopilot.Helper
+namespace MultiAgentCopilot.Helper
 {
 
     public static class PartitionManager
@@ -25,7 +25,7 @@ namespace  MultiAgentCopilot.Helper
             return partitionKey;
         }
 
-        public static PartitionKey GetAccountsDataFullPK(string tenantId,string accountId)
+        public static PartitionKey GetAccountsDataFullPK(string tenantId, string accountId)
         {
             PartitionKey partitionKey = new PartitionKeyBuilder()
                 .Add(tenantId)
@@ -41,14 +41,5 @@ namespace  MultiAgentCopilot.Helper
                 .Build();
             return partitionKey;
         }
-
-        public static PartitionKey GetUserDataFullPK(string tenantId)
-        {
-            PartitionKey partitionKey = new PartitionKeyBuilder()
-                .Add(tenantId)
-                .Build();
-            return partitionKey;
-        }
     }
-
 }

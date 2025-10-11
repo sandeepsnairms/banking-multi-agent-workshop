@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import time
 from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
 from dotenv import load_dotenv
 from langchain_openai import AzureChatOpenAI
@@ -22,10 +23,22 @@ def get_azure_ad_token():
 
 
 def generate_embedding(text):
+    start_time = time.time()
+    print(f"⏱️  AZURE_OPENAI: Starting embedding generation for {len(text)} chars")
+    
     response = aoai_client.embeddings.create(input=text, model=os.getenv("AZURE_OPENAI_EMBEDDINGDEPLOYMENTID"))
+    
+    duration_ms = (time.time() - start_time) * 1000
+    print(f"⏱️  AZURE_OPENAI: Embedding API call took {duration_ms:.2f}ms")
+    
     json_response = response.model_dump_json(indent=2)
     parsed_response = json.loads(json_response)
-    return parsed_response['data'][0]['embedding']
+    embedding = parsed_response['data'][0]['embedding']
+    
+    total_duration_ms = (time.time() - start_time) * 1000
+    print(f"⏱️  AZURE_OPENAI: Total embedding processing took {total_duration_ms:.2f}ms, returned {len(embedding)} dimensions")
+    
+    return embedding
 
 
 # Fetch AD Token
@@ -33,7 +46,7 @@ azure_ad_token = get_azure_ad_token()
 
 try:
     azure_openai_api_version = "2023-05-15"
-    azure_deployment_name = model=os.getenv("AZURE_OPENAI_COMPLETIONSDEPLOYMENTID")
+    azure_deployment_name = os.getenv("AZURE_OPENAI_COMPLETIONSDEPLOYMENTID")
     model = AzureChatOpenAI(
         azure_deployment=azure_deployment_name,
         api_version=azure_openai_api_version,
@@ -49,3 +62,14 @@ try:
 except Exception as e:
     print(f"[ERROR] Error initializing Azure OpenAI model: {e}")
     raise e
+
+
+def get_openai_client():
+    """Return the initialized Azure OpenAI client"""
+    return aoai_client
+
+
+def get_cosmos_client():
+    """Return the initialized Cosmos client (imported from azure_cosmos_db)"""
+    from src.app.services.azure_cosmos_db import cosmos_client
+    return cosmos_client

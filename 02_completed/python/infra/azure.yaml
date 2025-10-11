@@ -1,0 +1,96 @@
+name: MultiAgentBankingPython
+metadata:
+    template: azd-init@1.5.1
+infra:
+    provider: bicep
+    path: .
+hooks:
+    preprovision:
+      posix:
+        shell: sh
+        interactive: false
+        continueOnError: false
+        run: |
+          # Check if OWNER_EMAIL is already set in azd environment
+          EXISTING_OWNER=$(azd env get-value OWNER_EMAIL 2>/dev/null || echo "")
+          if [ -z "$EXISTING_OWNER" ]; then
+            CURRENT_USER=$(az account show --query user.name -o tsv 2>/dev/null || echo "user@example.com")
+            echo "Auto-setting OWNER_EMAIL to: $CURRENT_USER"
+            azd env set OWNER_EMAIL "$CURRENT_USER"
+          else
+            echo "OWNER_EMAIL already set to: $EXISTING_OWNER"
+          fi
+      windows:
+        shell: pwsh
+        interactive: false
+        continueOnError: false
+        run: |
+          # Check if OWNER_EMAIL is already set in azd environment
+          try {
+            $existingOwner = azd env get-value OWNER_EMAIL 2>$null
+          } catch {
+            $existingOwner = ""
+          }
+          if ([string]::IsNullOrEmpty($existingOwner)) {
+            try {
+              $currentUser = az account show --query user.name -o tsv
+              Write-Host "Auto-setting OWNER_EMAIL to: $currentUser"
+              azd env set OWNER_EMAIL "$currentUser"
+            } catch {
+              Write-Host "Could not get current user, setting default"
+              azd env set OWNER_EMAIL "user@example.com"
+            }
+          } else {
+            Write-Host "OWNER_EMAIL already set to: $existingOwner"
+          }
+    postdeploy:
+      shell: pwsh
+      continueOnError: false
+      interactive: true
+      run: ../azd-hooks/postdeploy.ps1
+    postprovision:
+      posix:
+        shell: sh
+        interactive: true
+        continueOnError: false
+        run: |
+          echo "
+          COSMOSDB_ENDPOINT=\"$COSMOSDB_ENDPOINT\"
+          AZURE_OPENAI_ENDPOINT=\"$AZURE_OPENAI_ENDPOINT\"
+          AZURE_OPENAI_EMBEDDINGDEPLOYMENTID=\"$AZURE_OPENAI_EMBEDDINGDEPLOYMENTID\"
+          AZURE_OPENAI_COMPLETIONSDEPLOYMENTID=\"$AZURE_OPENAI_COMPLETIONSDEPLOYMENTID\"
+          APPLICATIONINSIGHTS_CONNECTION_STRING=\"$APPLICATIONINSIGHTS_CONNECTION_STRING\"
+          AZURE_OPENAI_API_VERSION=\"2024-02-15-preview\"
+          MCP_SERVER_BASE_URL=\"$SERVICE_MCPSERVER_ENDPOINT_URL\"
+          MCP_AUTH_TOKEN=\"banking-server-prod-token-2025\"
+          USE_REMOTE_MCP_SERVER=\"true\"
+          " > ../.env
+      windows:
+        shell: pwsh
+        interactive: true
+        continueOnError: false
+        run: |
+          echo "
+          COSMOSDB_ENDPOINT=\"\"$env:COSMOSDB_ENDPOINT\"\"
+          AZURE_OPENAI_ENDPOINT=\"\"$env:AZURE_OPENAI_ENDPOINT\"\"
+          AZURE_OPENAI_EMBEDDINGDEPLOYMENTID=\"\"$env:AZURE_OPENAI_EMBEDDINGDEPLOYMENTID\"\"
+          AZURE_OPENAI_COMPLETIONSDEPLOYMENTID=\"\"$env:AZURE_OPENAI_COMPLETIONSDEPLOYMENTID\"\"
+          APPLICATIONINSIGHTS_CONNECTION_STRING=\"\"$env:APPLICATIONINSIGHTS_CONNECTION_STRING\"\"
+          AZURE_OPENAI_API_VERSION=\"\"2024-02-15-preview\"\"
+          MCP_SERVER_BASE_URL=\"\"$env:SERVICE_MCPSERVER_ENDPOINT_URL\"\"
+          MCP_AUTH_TOKEN=\"\"banking-server-prod-token-2025\"\"
+          USE_REMOTE_MCP_SERVER=\"\"true\"\"
+          " > ../.env
+services:
+    MCPServer:
+        project: ../../mcpserver
+        host: containerapp
+        language: python
+        docker:
+            path: ./Dockerfile
+    ChatServiceWebApi:
+        project: ..
+        host: containerapp
+        language: python
+        docker:
+            path: ./Dockerfile

@@ -8,9 +8,11 @@ export class DataService {
   private sessionData = new BehaviorSubject<any>(null);
   sessionData$ = this.sessionData.asObservable();
   private messageSource = new BehaviorSubject<string>("Default Message");
+  private predefinedMessageSource = new BehaviorSubject<string>("");
   public loggedInUser: string = '';
   public loggedInTenant: string = '';
   currentMessage = this.messageSource.asObservable();
+  predefinedMessage$ = this.predefinedMessageSource.asObservable();
 
   constructor(private ngZone: NgZone) {
     // Load the logged in user and tenant from localStorage if they exist
@@ -20,6 +22,10 @@ export class DataService {
 
   changeMessage(message: string) {
     this.messageSource.next(message);
+  }
+
+  setPredefinedMessage(message: string) {
+    this.predefinedMessageSource.next(message);
   }
 
   updateSession(data: any) {     

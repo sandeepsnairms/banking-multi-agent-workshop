@@ -1,5 +1,7 @@
 namespace MultiAgentCopilot
 {
+    
+
     public class Program
     {
         public static void Main(string[] args)
@@ -40,7 +42,8 @@ namespace MultiAgentCopilot
             //builder.AddApplicationInsightsTelemetry();
 
             builder.AddCosmosDBService();
-            builder.AddSemanticKernelService();
+            builder.AddAgentFrameworkService();
+            builder.AddMCPService();
 
             builder.AddChatService();
             builder.Services.AddScoped<ChatEndpoints>();

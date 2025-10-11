@@ -1,5 +1,7 @@
 namespace MultiAgentCopilot
 {
+    
+
     public class Program
     {
         public static void Main(string[] args)
@@ -40,7 +42,8 @@ namespace MultiAgentCopilot
             //builder.AddApplicationInsightsTelemetry();
 
             builder.AddCosmosDBService();
-            builder.AddSemanticKernelService();
+            builder.AddAgentFrameworkService();
+            builder.AddMCPService();
 
             builder.AddChatService();
             builder.Services.AddScoped<ChatEndpoints>();
@@ -68,11 +71,13 @@ namespace MultiAgentCopilot
             // Map the chat REST endpoints:
             using (var scope = app.Services.CreateScope())
             {
-                var service = scope.ServiceProvider.GetService<MultiAgentCopilot.ChatEndpoints>();
+                var service = scope.ServiceProvider.GetService<ChatEndpoints>();
                 service?.Map(app);
             }
 
             app.Run();
+
+
         }
     }
 }
