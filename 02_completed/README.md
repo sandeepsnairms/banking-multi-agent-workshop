@@ -2,7 +2,7 @@
 
 Welcome to our multi-agent samples repository showcasing a retail banking scenario using 
 
-- Semantic Kernel Agents in C#
+- Agent Framework Agents in C#
 - LangGraph in Python
 
 This folder contains the completed files for the exercises. Follow the step-by-step instructions to deploy the resources and run the sample application.
@@ -10,7 +10,7 @@ This folder contains the completed files for the exercises. Follow the step-by-s
 Use the final code and artifacts to run the demo:
 
 - [LangGraph (Python)](python/README.md)  
-- [Semantic Kernel (C#)](csharp/README.md)
+- [Agent Framework (C#)](csharp/README.md)
 
 If you prefer to begin with the minimal scaffolding code and follow the step-by-step instructions to complete each exercise [go to the excercises](../01_exercises/README.md)
 
@@ -46,6 +46,6 @@ To learn more about the services and features demonstrated in this sample, see t
 
 - [Azure Cosmos DB for NoSQL Vector Search announcement](https://aka.ms/CosmosDBDiskANNBlog/)
 - [Azure OpenAI Service documentation](https://learn.microsoft.com/azure/cognitive-services/openai/)
-- [Semantic Kernel](https://learn.microsoft.com/semantic-kernel/overview)
+- [Agent Framework](https://learn.microsoft.com/semantic-kernel/overview)
 - [Azure App Service documentation](https://learn.microsoft.com/azure/app-service/)
 - [ASP.NET Core Blazor documentation](https://dotnet.microsoft.com/apps/aspnet/web-apps/blazor)
