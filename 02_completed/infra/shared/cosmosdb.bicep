@@ -19,6 +19,7 @@ resource cosmosDb 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' = {
       defaultConsistencyLevel: 'Session'
     }
     databaseAccountOfferType: 'Standard'
+	disableLocalAuth: true
     locations: [
       {
         failoverPriority: 0

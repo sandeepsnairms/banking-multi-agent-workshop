@@ -70,14 +70,22 @@ using var readerAccounts = new StreamReader(accountsDataPath);
     //Iterate through the accounts and insert them into the Cosmos DB container
     foreach (var account in accounts)
     {
-        PartitionKey partitionKey = new PartitionKeyBuilder()
-        // Create a new partition key with the tenantId and accountId
-            .Add(account["tenantId"].ToString())
-            .Add(account["accountId"].ToString())
-            .Build();
+        try
+        {
+            PartitionKey partitionKey = new PartitionKeyBuilder()
+            // Create a new partition key with the tenantId and accountId
+                .Add(account["tenantId"].ToString())
+                .Add(account["accountId"].ToString())
+                .Build();
 
-        // Create a new item in the container with a hierarchical partition key
-        await accountsData.CreateItemAsync(account, partitionKey);
+            // Create a new item in the container with a hierarchical partition key
+            await accountsData.CreateItemAsync(account, partitionKey);
+        }
+        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
+        {
+            // Ignore 409 conflict errors (item already exists)
+            Console.WriteLine($"Account {account["accountId"]} already exists, skipping...");
+        }
     }
 }
 
@@ -91,8 +99,16 @@ using var readerOffers = new StreamReader(offersDataPath);
     //Iterate through the offers and insert them into the Cosmos DB container
     foreach (var offer in offers)
     {
-        // Create a new item in the container with a hierarchical partition key
-        await offersData.CreateItemAsync(offer, new PartitionKey(offer["tenantId"].ToString()));
+        try
+        {
+            // Create a new item in the container with a hierarchical partition key
+            await offersData.CreateItemAsync(offer, new PartitionKey(offer["tenantId"].ToString()));
+        }
+        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
+        {
+            // Ignore 409 conflict errors (item already exists)
+            Console.WriteLine($"Offer {offer["id"]} already exists, skipping...");
+        }
     }
 }
 
@@ -106,8 +122,16 @@ using var readerUsers = new StreamReader(userDataPath);
     //Iterate through the users and insert them into the Cosmos DB container
     foreach (var user in users)
     {
-        // Create a new item in the container with a hierarchical partition key
-        await userData.CreateItemAsync(user, new PartitionKey(user["tenantId"].ToString()));
+        try
+        {
+            // Create a new item in the container with a hierarchical partition key
+            await userData.CreateItemAsync(user, new PartitionKey(user["tenantId"].ToString()));
+        }
+        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
+        {
+            // Ignore 409 conflict errors (item already exists)
+            Console.WriteLine($"User {user["id"]} already exists, skipping...");
+        }
     }
 }
 

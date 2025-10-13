@@ -48,7 +48,7 @@ We are going to define two primary functions as part of our multi-agent applicat
 - **GetResponse()** will be the entry point called by the front end to interact with the multi-agent service. Everything happens behind this function.
 - **Summarize()** will be used to summarize the conversations users are having with the agent service.
 
-1. In VS Code, use the explorer on the left-hand side of the IDE to open the **Services** folder.
+1. In VS Code, use the explorer on the left-hand side of the IDE to open the **MultiAgentCopilot\Services** folder.
 1. Within the **\Services** folder navigate to **AgentFrameworkService.cs**.
 1. Search for **//TO DO: CreateChatClient** and replace **CreateChatClient()** method with the code below.
 
@@ -156,8 +156,10 @@ This method integrates the agent framework service with the chat service. It pro
     {
         try
         {
-           var result = await _afService.GetResponse(userMessage, archivedMessages, _bankService, tenantId, userId);
-           return result.Item1;
+            var archivedMessages = new List<Message>();
+            var userMessage = new Message(tenantId, userId, sessionId, "User", "User", userPrompt); 
+            var result = await _afService.GetResponse(userMessage, archivedMessages, _bankService, tenantId, userId);
+            return result.Item1;
         }
         catch (Exception ex)
         {
@@ -168,27 +170,6 @@ This method integrates the agent framework service with the chat service. It pro
 
 ```
 
-Replace the code for **SummarizeChatSessionNameAsync** method with code below.
-
-```csharp
-public async Task<string> Summarize(string sessionId, string userPrompt)
-{
-    try
-    {
-        var agent = _chatClient.CreateAIAgent(
-            "Summarize the text into exactly two words:", 
-            "Summarizer");
-
-        return agent.RunAsync(userPrompt).GetAwaiter().GetResult().Text;
-      
-    }
-    catch (Exception ex)
-    {
-        _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.Message);
-        return string.Empty;
-    }
-}
-```
 
 ## Activity 3: Test your Work
 
@@ -196,7 +177,7 @@ With the activities in this module complete, it is time to test your work. The a
 
 ### Start the Backend
 
-1. Return to the open terminal for the backend app in VS Code and type `dotnet run`
+1. Return to the open terminal for the backend app in VS Code. Ensure you are in `01_exercises\csharp\src\MultiAgentCopilot` folder. Type `dotnet run`
 
 ### Start a Chat Session
 
