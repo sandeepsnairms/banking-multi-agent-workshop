@@ -12,8 +12,12 @@ param location string
 @description('Id of the user or app to assign application roles')
 param principalId string
 
+@description('Owner tag for resource tagging')
+param owner string = 'defaultuser@example.com'
+
 var tags = {
   'azd-env-name': environmentName
+  'owner': owner
 }
 
 var abbrs = loadJsonContent('./abbreviations.json')
@@ -44,7 +48,7 @@ module cosmos './shared/cosmosdb.bicep' = {
     location: location
     tags: tags
     databaseName: 'MultiAgentBanking'
-	  chatsContainerName: 'Chat'
+	  chatsContainerName: 'ChatsData'
 	  accountsContainerName: 'AccountsData'
 	  offersContainerName:'OffersData'
 	  usersContainerName:'Users'
@@ -79,7 +83,7 @@ var deployments = [
   {
     name: 'text-embedding-3-small'
     skuCapacity: 5
-	skuName: 'Standard'
+	skuName: 'GlobalStandard'
     modelName: 'text-embedding-3-small'
     modelVersion: '1'
   }

@@ -48,7 +48,7 @@ module cosmos './shared/cosmosdb.bicep' = {
     location: location
     tags: tags
     databaseName: 'MultiAgentBanking'
-	  chatsContainerName: 'Chat'
+	  chatsContainerName: 'ChatsData'
 	  accountsContainerName: 'AccountsData'
 	  offersContainerName:'OffersData'
 	  usersContainerName:'Users'
@@ -83,7 +83,7 @@ var deployments = [
   {
     name: 'text-embedding-3-small'
     skuCapacity: 5
-	skuName: 'Standard'
+	skuName: 'GlobalStandard'
     modelName: 'text-embedding-3-small'
     modelVersion: '1'
   }

@@ -2,6 +2,40 @@ name: MultiAgentBanking
 metadata:
     template: azd-init@1.5.1
 hooks:
+    preprovision:
+      posix:
+        shell: sh
+        interactive: false
+        continueOnError: false
+        run: |
+          # Check if OWNER_EMAIL is already set in azd environment
+          EXISTING_OWNER=$(azd env get-value OWNER_EMAIL 2>/dev/null || echo "")
+          if [ -z "$EXISTING_OWNER" ]; then
+            CURRENT_USER=$(az account show --query user.name -o tsv 2>/dev/null || echo "user@example.com")
+            echo "Auto-setting OWNER_EMAIL to: $CURRENT_USER"
+            azd env set OWNER_EMAIL "$CURRENT_USER"
+          else
+            echo "OWNER_EMAIL already set to: $EXISTING_OWNER"
+          fi
+      windows:
+        shell: pwsh
+        interactive: false
+        continueOnError: false
+        run: |
+          # Set OWNER_EMAIL from current Azure user
+          try {
+            $currentUser = az account show --query user.name -o tsv
+            if ($currentUser -and $currentUser.Trim() -ne "") {
+              Write-Host "Setting OWNER_EMAIL to: $($currentUser.Trim())"
+              azd env set OWNER_EMAIL $currentUser.Trim()
+            } else {
+              Write-Host "Could not get current user, setting default"
+              azd env set OWNER_EMAIL "user@example.com"
+            }
+          } catch {
+            Write-Host "Could not get current user, setting default"
+            azd env set OWNER_EMAIL "user@example.com"
+          }
     postdeploy:
       shell: pwsh
       continueOnError: false
@@ -21,17 +55,101 @@ hooks:
           " > ./python/.env
       
           echo "{
-            ""CosmosDBSettings"": {
-              ""CosmosUri"": ""$env:COSMOSDB_ENDPOINT""
+            \"Logging\": {
+              \"ApplicationInsights\": {
+                \"LogLevel\": {
+                  \"Default\": \"Trace\",
+                  \"Microsoft\": \"Warning\",
+                  \"System\": \"Warning\"
+                }
+              },
+              \"LogLevel\": {
+                \"Default\": \"Trace\",
+                \"Microsoft\": \"Warning\",
+                \"System\": \"Warning\"
+              }
             },
-            ""SemanticKernelServiceSettings"": {
-              ""AzureOpenAISettings"": {
-                ""Endpoint"": ""$env:AZURE_OPENAI_ENDPOINT"",
-                ""EmbeddingDeployment"": ""$env:AZURE_OPENAI_EMBEDDINGDEPLOYMENTID"",
-                ""CompletionsDeployment"": ""$env:AZURE_OPENAI_COMPLETIONSDEPLOYMENTID""
+            \"AllowedHosts\": \"*\",
+            \"CosmosDBSettings\": {
+              \"CosmosUri\": \"$COSMOSDB_ENDPOINT\",
+              \"Database\": \"MultiAgentBanking\",
+              \"ChatDataContainer\": \"Chat\",
+              \"UserDataContainer\": \"Users\",
+              \"AccountsContainer\": \"AccountsData\",
+              \"OfferDataContainer\": \"OffersData\",
+              \"RequestDataContainer\": \"AccountsData\",
+              \"EnableTracing\": true
+            },
+            \"AgentFrameworkServiceSettings\": {
+              \"UseMCPTools\": false,
+              \"AzureOpenAISettings\": {
+                \"Endpoint\": \"$AZURE_OPENAI_ENDPOINT\",
+                \"EmbeddingsDeployment\": \"$AZURE_OPENAI_EMBEDDINGDEPLOYMENTID\",
+                \"CompletionsDeployment\": \"$AZURE_OPENAI_COMPLETIONSDEPLOYMENTID\"
+              },
+              \"EnableTracing\": true,
+              \"MCPSettings\": {
+                \"ConnectionType\": \"HTTP\",
+                \"Servers\": [
+                  {
+                    \"AgentName\": \"Transactions\",
+                    \"Url\": \"http://localhost:5000\",
+                    \"Key\": \"dev-mcp-api-key-12345\",
+                    \"Tags\": \"Accounts,Transactions\"
+                  },
+                  {
+                    \"AgentName\": \"Sales\",
+                    \"Url\": \"http://localhost:5000\",
+                    \"Key\": \"dev-mcp-api-key-12345\",
+                    \"Tags\": \"Offers\"
+                  },
+                  {
+                    \"AgentName\": \"CustomerSupport\",
+                    \"Url\": \"http://localhost:5000\",
+                    \"Key\": \"dev-mcp-api-key-12345\",
+                    \"Tags\": \"ServiceRequests\"
+                  },
+                  {
+                    \"AgentName\": \"Coordinator\",
+                    \"Url\": \"http://localhost:5000\",
+                    \"Key\": \"dev-mcp-api-key-12345\",
+                    \"Tags\": \"General\"
+                  }
+                ]
               }
             }
           }" > ./csharp/src/MultiAgentCopilot/appsettings.development.json
+
+          echo "{
+            \"Logging\": {
+              \"LogLevel\": {
+                \"Default\": \"Information\",
+                \"Microsoft.AspNetCore\": \"Warning\",
+                \"MCPServer\": \"Debug\"
+              }
+            },
+            \"AllowedHosts\": \"*\",
+            \"McpServer\": {
+              \"ApiKey\": \"dev-mcp-api-key-12345\",
+              \"EnforceAuthentication\": true
+            },
+            \"CosmosDBSettings\": {
+              \"CosmosUri\": \"$COSMOSDB_ENDPOINT\",
+              \"Database\": \"MultiAgentBanking\",
+              \"ChatDataContainer\": \"ChatsData\",
+              \"UserDataContainer\": \"Users\",
+              \"AccountsContainer\": \"AccountsData\",
+              \"OfferDataContainer\": \"OffersData\",
+              \"RequestDataContainer\": \"AccountsData\",
+              \"EnableTracing\": true,
+              \"UserAssignedIdentityClientID\": \"\"
+            },
+            \"AzureOpenAISettings\": {
+              \"Endpoint\": \"$AZURE_OPENAI_ENDPOINT\",
+              \"EmbeddingsDeployment\": \"$AZURE_OPENAI_EMBEDDINGDEPLOYMENTID\",
+              \"CompletionsDeployment\": \"$AZURE_OPENAI_COMPLETIONSDEPLOYMENTID\"
+            }
+          }" > ./mcpserver/csharp/appsettings.development.json
 
           echo "export const environment = {
             production: false,
@@ -51,17 +169,100 @@ hooks:
           " > ./python/.env
 
           echo "{
-            ""CosmosDBSettings"": {
-              ""CosmosUri"": ""$env:COSMOSDB_ENDPOINT""
-            },
-            ""SemanticKernelServiceSettings"": {
-              ""AzureOpenAISettings"": {
-                ""Endpoint"": ""$env:AZURE_OPENAI_ENDPOINT"",
-                ""EmbeddingDeployment"": ""$env:AZURE_OPENAI_EMBEDDINGDEPLOYMENTID"",
-                ""CompletionsDeployment"": ""$env:AZURE_OPENAI_COMPLETIONSDEPLOYMENTID""
+          "Logging": {
+            "ApplicationInsights": {
+              "LogLevel": {
+                "Default": "Trace",
+                "Microsoft": "Warning",
+                "System": "Warning"
               }
+            },
+            "LogLevel": {
+              "Default": "Trace",
+              "Microsoft": "Warning",
+              "System": "Warning"
+            }
+          },
+          "AllowedHosts": "*",
+          "CosmosDBSettings": {
+            "CosmosUri": ""$env:COSMOSDB_ENDPOINT"",
+            "Database": "MultiAgentBanking",
+            "ChatDataContainer": "ChatsData",
+            "UserDataContainer": "Users",
+            "AccountsContainer": "AccountsData",
+            "OfferDataContainer": "OffersData",
+            "RequestDataContainer": "AccountsData",
+            "EnableTracing": true
+          },
+          "AgentFrameworkServiceSettings": {
+            "UseMCPTools": false,
+            "AzureOpenAISettings": {
+              "Endpoint": ""$env:AZURE_OPENAI_ENDPOINT"",
+              "EmbeddingsDeployment": ""$env:AZURE_OPENAI_EMBEDDINGDEPLOYMENTID"",
+              "CompletionsDeployment": ""$env:AZURE_OPENAI_COMPLETIONSDEPLOYMENTID""
+            },
+            "EnableTracing": true,
+            "MCPSettings": {
+              "ConnectionType": "HTTP",
+              "Servers": [
+                {
+                  "AgentName": "Transactions",
+                  "Url": "http://localhost:5000",
+                  "Key": "dev-mcp-api-key-12345",
+                  "Tags": "Accounts,Transactions"
+                },
+                {
+                  "AgentName": "Sales",
+                  "Url": "http://localhost:5000",
+                  "Key": "dev-mcp-api-key-12345",
+                  "Tags": "Offers"
+                },
+                {
+                  "AgentName": "CustomerSupport",
+                  "Url": "http://localhost:5000",
+                  "Key": "dev-mcp-api-key-12345",
+                  "Tags": "ServiceRequests"
+                },
+                {
+                  "AgentName": "Coordinator",
+                  "Url": "http://localhost:5000",
+                  "Key": "dev-mcp-api-key-12345",
+                  "Tags": "General"
+                }
+              ]
             }
           }" > ./csharp/src/MultiAgentCopilot/appsettings.development.json
+
+          echo "{
+            `"Logging`": {
+              `"LogLevel`": {
+                `"Default`": `"Information`",
+                `"Microsoft.AspNetCore`": `"Warning`",
+                `"MCPServer`": `"Debug`"
+              }
+            },
+            `"AllowedHosts`": `"*`",
+            `"McpServer`": {
+              `"ApiKey`": `"dev-mcp-api-key-12345`",
+              `"EnforceAuthentication`": true
+            },
+            `"CosmosDBSettings`": {
+              `"CosmosUri`": `"$env:COSMOSDB_ENDPOINT`",
+              `"Database`": `"MultiAgentBanking`",
+              `"ChatDataContainer`": `"ChatsData`",
+              `"UserDataContainer`": `"Users`",
+              `"AccountsContainer`": `"AccountsData`",
+              `"OfferDataContainer`": `"OffersData`",
+              `"RequestDataContainer`": `"AccountsData`",
+              `"EnableTracing`": true,
+              `"UserAssignedIdentityClientID`": `"`"
+            },
+            `"AzureOpenAISettings`": {
+              `"Endpoint`": `"$env:AZURE_OPENAI_ENDPOINT`",
+              `"EmbeddingsDeployment`": `"$env:AZURE_OPENAI_EMBEDDINGDEPLOYMENTID`",
+              `"CompletionsDeployment`": `"$env:AZURE_OPENAI_COMPLETIONSDEPLOYMENTID`"
+            }
+          }" > ./mcpserver/csharp/appsettings.development.json
 
           echo "export const environment = {
             production: false,

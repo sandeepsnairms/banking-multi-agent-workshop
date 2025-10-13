@@ -31,7 +31,7 @@ Let's deploy the Azure Services needed to run the application.
 1. Open the PowerShell terminal on the Start Bar and navigate to the multi-agent-hol folder.
 
 ```shell
-cd C:\repos\HOL_AFandLangGraph\
+cd C:\repos\HOL_AFandLangGraph\01_exercises\
 ```
 
 1. Authenticate  yourself
@@ -63,7 +63,7 @@ azd up
 ### 1. Start the Backend App
 
 1. Open the PowerShell terminal on the Start bar.
-1. Navigate to `C:\Users\LabUser\multi-agent-hol\csharp\src\MultiAgentCopilot`.
+1. Navigate to `C:\repos\HOL_AFandLangGraph\01_exercises\csharp\src\MultiAgentCopilot`.
 1. Type `code .`
 1. Open the Terminal in VS Code.
 1. Type `dotnet run` to start the multi-agent service.
@@ -73,7 +73,7 @@ azd up
 ### 2. Run the Frontend App
 
 1. Within VS Code, open a new terminal.
-1. Navigate to the `frontend` folder, `cd C:\Users\LabUser\multi-agent-hol\frontend`
+1. Navigate to the `frontend` folder, `C:\repos\HOL_AFandLangGraph\01_exercises\frontend`
 1. Copy and run the following:
 
    ```sh
@@ -87,7 +87,7 @@ azd up
 ### 3. Start a Conversation
 
 1. In the Login dialog, select a user and company and click, Login.
-1. Start a new conversation.
+1. Click New Chat.
 1. Send the message:
 
    ```text

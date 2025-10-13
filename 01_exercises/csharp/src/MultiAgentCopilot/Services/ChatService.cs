@@ -108,8 +108,11 @@ public class ChatService
     {       
         try
         {
-            return new List<Message> { new Message(tenantId, userId, sessionId!, "TBD", "Error", "## Replay user message ## " + userPrompt) };
-           
+            var archivedMessages = new List<Message>();
+            var userMessage = new Message(tenantId, userId, sessionId, "User", "User", userPrompt);
+            var result = await _afService.GetResponse(userMessage, archivedMessages, _bankService, tenantId, userId);
+            return result.Item1;
+
         }
         catch (Exception ex)
         {

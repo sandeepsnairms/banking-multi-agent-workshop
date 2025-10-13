@@ -243,7 +243,7 @@ This tool function enables agents to add new account transactions to the banking
         }
 
 ```
-### Adding InProcess too Agent Framework Service
+### Adding InProcess tools in Agent Framework Service
 1. In VS Code, navigate to the **/Services** folder
 1. Open the **AgentFrameworkService.cs** class.
 1. Search for **TO DO: Add In Process Tools** and paste code below .
@@ -339,16 +339,7 @@ Now that we have dynamically generated Agent Prompt and  Agent Kernel, we can ma
 1. Open the **AgentFrameworkService.cs** class.
 1. Update the **GetResponse()**method with the code below .
 
-```csharp
-    /// <summary>
-    /// Processes a user message and returns the agent's response.
-    /// </summary>
-    /// <param name="userMessage">The user's message.</param>
-    /// <param name="messageHistory">The conversation history.</param>
-    /// <param name="bankService">The banking data service.</param>
-    /// <param name="tenantId">The tenant identifier.</param>
-    /// <param name="userId">The user identifier.</param>
-    /// <returns>A tuple containing the response messages and debug logs.</returns>
+```csharp    
     public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(
         Message userMessage,
         List<Message> messageHistory,
@@ -358,6 +349,10 @@ Now that we have dynamically generated Agent Prompt and  Agent Kernel, we can ma
     {
         try
         {
+
+            messageHistory.Add(userMessage);
+            var chatHistory = ConvertToAIChatMessages(messageHistory);
+            chatHistory.Add(new ChatMessage(ChatRole.User, userMessage.Text));
             var agentName="Coordinator";
             var bankAgent = _agents.FirstOrDefault(s => s.Name == agentName);
             var responseText = bankAgent.RunAsync(chatHistory).GetAwaiter().GetResult().Text;
@@ -478,14 +473,14 @@ With the activities in this module complete, it is time to test your work.
 
 ### Start the Backend
 
-1. Return to the open terminal for the backend app in VS Code and type `dotnet run`
+1. Return to the open terminal for the backend app in VS Code. Ensure you are in '01_exercises\csharp\src\MultiAgentCopilot'. Type `dotnet run`
 
 ### Start a Chat Session
 
 1. Return to the frontend application in your browser.
 1. Send the below message to test the current *Coordinator* AgentType.
 ```text
-Hi
+I'm looking for a high interest savings account
 ```
 1. View the response in the frontend.
 1. Return to VS Code, Notice the output in the terminal showing the action taken by the Coordinator Agent to your prompt.
@@ -497,7 +492,7 @@ var agentName="Sales";
 ```
 1. Return to the open terminal for the backend app in VS Code and type `dotnet run`
 1. Return to the frontend application in your browser.
-1. Send the below message to test the current *Sales* AgentType.
+1. Send the same message to test the current *Sales* AgentType.
 ```text
 I'm looking for a high interest savings account
 ```

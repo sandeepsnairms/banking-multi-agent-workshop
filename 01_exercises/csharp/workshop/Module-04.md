@@ -112,7 +112,8 @@ namespace MultiAgentCopilot.Models.ChatInfoFormats
 
 Let's create an Agent to decide the next agent in the conversation, using the ContinuationInfo model as the response format.
 
-1. In VS Code, navigate to the **/Helper** folder.
+1. In VS Code, Navigate to the **/Helper** folder.
+1. Navigate to **GroupChatWorkflowHelper.cs.cs**.
 1. Replace the **SelectNextAgentAsync()** with the below code.
 
 This method implements the agent selection logic using a moderator agent. It analyzes conversation history and selects the most appropriate next agent.
@@ -163,7 +164,6 @@ This method implements the agent selection logic using a moderator agent. It ana
 ```
 ### Termination Decider
 
-1. In VS Code, stay to the **/Helper** folder.
 1. Replace the **ShouldTerminateWithAI()** with the below code.
 
 ```csharp
@@ -302,15 +302,6 @@ Until now the responses we received were from a single agent, lets use AgentGrou
 
 
 ```csharp
-/// <summary>
-/// Processes a user message and returns the agent's response.
-/// </summary>
-/// <param name="userMessage">The user's message.</param>
-/// <param name="messageHistory">The conversation history.</param>
-/// <param name="bankService">The banking data service.</param>
-/// <param name="tenantId">The tenant identifier.</param>
-/// <param name="userId">The user identifier.</param>
-/// <returns>A tuple containing the response messages and debug logs.</returns>
 public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(
     Message userMessage,
     List<Message> messageHistory,
@@ -320,6 +311,9 @@ public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(
 {
     try
     {
+        messageHistory.Add(userMessage);
+        var chatHistory = ConvertToAIChatMessages(messageHistory);
+        chatHistory.Add(new ChatMessage(ChatRole.User, userMessage.Text));
         var (responseText, selectedAgentName) = await RunGroupChatOrchestration(chatHistory, tenantId, userId);
 
         return CreateResponseTuple(userMessage, responseText, selectedAgentName);
@@ -338,7 +332,7 @@ In the previous module we tested each agent independently. With the code changes
 
 ### Start the Backend
 
-- Return to the open terminal for the backend app in VS Code and type `dotnet run`
+- Return to the open terminal for the backend app in VS Code. Ensure you are in '01_exercises\csharp\src\MultiAgentCopilot'. Type `dotnet run`
 
 ### Start a Chat Session
 

@@ -274,11 +274,16 @@ _afService.SetMCPToolService(_mcpService);
 
 ## Activity 3: Test your Work
 
+### Start the MCPServer
+1. Within VS Code, open a new terminal.
+1. Navigate to the `mcpserver` folder, `C:\repos\HOL_AFandLangGraph\01_exercises\mcpserver\csharp\`
+1. Type `dotnet run`
+
 In the previous module we tested each agent independently. With the code changes in this module we should now be able to orchestrate a multi-agent chat where agent selection is automated based on the SelectionStrategy and agent prompts. Lets go ahead and test if the code works as expected.
 
 ### Start the Backend
 
-- Return to the open terminal for the backend app in VS Code and type `dotnet run`
+- Return to the open terminal for the backend app in VS Code. Ensure you are in '01_exercises\csharp\src\MultiAgentCopilot'. Type `dotnet run`
 
 ### Start a Chat Session
 
