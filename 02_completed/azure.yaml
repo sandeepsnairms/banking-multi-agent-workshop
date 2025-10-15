@@ -86,7 +86,7 @@ hooks:
               \"Endpoint\": \"$env:AZURE_OPENAI_ENDPOINT\",
               \"EmbeddingsDeployment\": \"$env:AZURE_OPENAI_EMBEDDINGDEPLOYMENTID\",
               \"CompletionsDeployment\": \"$env:AZURE_OPENAI_COMPLETIONSDEPLOYMENTID\"
-            },
+            }},
             \"EnableTracing\": true,
             \"MCPSettings\": {
               \"ConnectionType\": \"HTTP\",
@@ -199,7 +199,7 @@ hooks:
               `"Endpoint`": `"$env:AZURE_OPENAI_ENDPOINT`",
               `"EmbeddingsDeployment`": `"$env:AZURE_OPENAI_EMBEDDINGDEPLOYMENTID`",
               `"CompletionsDeployment`": `"$env:AZURE_OPENAI_COMPLETIONSDEPLOYMENTID`"
-            },
+            }},
             `"EnableTracing`": true,
             `"MCPSettings`": {
               `"ConnectionType`": `"HTTP`",
