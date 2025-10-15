@@ -1,4 +1,4 @@
-#  Multi Agent Workshop using Microsoft Agent Framework in C# (Module 00)
+#  Multi Agent Workshop using Microsoft Agent Framework in C#
 
 This module contains the exercise files, including minimal scaffolding code and step-by-step instructions to the exercises. 
 

@@ -269,7 +269,7 @@ _afService.SetMCPToolService(_mcpService);
 
 ### Enable MCP Tools as the Preferred Option
 
-1. Finally, open **appsettings.json** and set the value of **UseMCPTools** to true.
+1. Finally, open **MultiAgentCopilot\appsettings.development.json** and set the value of **UseMCPTools** to true.
 
 
 ## Activity 3: Test your Work
