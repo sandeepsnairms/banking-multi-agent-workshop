@@ -1,3 +1,3 @@
-# Semantic Kernel Agents Workshop
+# Agent Framework Workshop
 
-Navigate to the [Semantic Kernel Csharp Workshop](./csharp/workshop/Module-0.md)
+Navigate to the [Agent Framework Csharp Workshop](./csharp/workshop/Module-0.md)

@@ -1,5 +1,4 @@
-#  Multi Agent Workshop using LangChain in Python (Module 00)
-
+#  Multi Agent Workshop using LangChain in Python
 This module contains the exercise files, including minimal scaffolding code and step-by-step instructions to the exercises. 
 
 To run the multi-agent application using Azure Cosmos DB and LangChain in Python, follow these steps:
@@ -15,13 +14,13 @@ If you prefer to view the final code, see the [exercises](../../../02_completed/
 
 Let's clone the repository to download the files to your machine.
 
-1. Create a working directory on your machine, for example: `C:\repos\HOL_SKandLangGraph`.
+1. Create a working directory on your machine, for example: `C:\repos\HOL_v2_AFandLangGraph`.
 2. Open PowerShell from the Start menu.
-3. Navigate to the `C:\repos\HOL_SKandLangGraph` folder.
+3. Navigate to the `C:\repos\HOL_v2_AFandLangGraph` folder.
 4. Clone the GitHub repository by running the following command:
 
 ```shell
-git clone --branch HOL_SKandLangGraph https://github.com/AzureCosmosDB/banking-multi-agent-workshop.git C:\repos\HOL_SKandLangGraph
+git clone --branch HOL_v2_AFandLangGraph https://github.com/AzureCosmosDB/banking-multi-agent-workshop.git C:\repos\HOL_v2_AFandLangGraph
 ```
 
 ### Resource Provisioning
@@ -31,7 +30,7 @@ Let's deploy the Azure Services needed to run the application.
 1. Open the PowerShell terminal on the Start Bar and navigate to the multi-agent-hol folder.
 
 ```shell
-cd C:\repos\HOL_SKandLangGraph\
+cd C:\repos\HOL_v2_AFandLangGraph\
 ```
 
 1. Authenticate  yourself
@@ -67,11 +66,11 @@ When you deploy this solution it automatically injects endpoints and configurati
 But you will still need to install dependencies to run the solution locally.
 
 1. Open VS Code from the desktop.
-1. From the menu, select File, Open Folder, then select the *"C:\Users\LabUser\multi-agent-hol\"* folder.
+1. From the menu, select File, Open Folder, then select the *"C:\repos\HOL_v2_AFandLangGraph\01_exercises\"* folder.
 1. From the menu, select Terminal, New Terminal, then open a new PowerShell terminal and navigate to the python HOL folder.
 
 ```shell
-cd C:\Users\LabUser\multi-agent-hol\python
+cd C:\repos\HOL_v2_AFandLangGraph\01_exercises\python
 ```
 
 1. Create a virtual environment *(If prompted, create the environement for the workspace folder.)*
@@ -111,7 +110,7 @@ The API will be available at <http://localhost:63280/docs>. This has been pre-bu
 1. Navigate to the *multi-agent-hol\frontend* folder
 
 ```shell
-cd C:\Users\LabUser\multi-agent-hol\frontend
+cd C:\repos\HOL_v2_AFandLangGraph\01_exercises\frontend
 ```
 
 1. Run the following to install npm and start the application:
@@ -138,7 +137,7 @@ npm start
 
 ### Keep the backend and frontend running
 
-Thoughout this lab we will keep the frontend and backend applications in this lab running. The backend will reload on every change we make throughout this lab. The frontend will reload when refreshed in the browser.
+Throughout this lab we will keep the frontend and backend applications in this lab running. The backend will reload on every change we make throughout this lab. The frontend will reload when refreshed in the browser.
 
 Next, we will start building the agents that will be served by the API layer and interact with Cosmos DB and Azure OpenAI using LangGraph!
 
