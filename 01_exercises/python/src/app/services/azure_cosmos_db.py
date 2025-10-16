@@ -41,7 +41,7 @@ try:
     database = cosmos_client.get_database_client(DATABASE_NAME)
     print(f"[DEBUG] Connected to Cosmos DB: {DATABASE_NAME}")
 
-    chat_container = database.get_container_client("Chat")
+    chat_container = database.get_container_client("ChatsData")
     checkpoint_container = database.get_container_client("Checkpoints")
     chat_history_container = database.get_container_client("ChatHistory")
     users_container = database.get_container_client("Users")

@@ -8,7 +8,6 @@ from dotenv import load_dotenv
 
 from datetime import datetime
 from fastapi import BackgroundTasks
-from azure.monitor.opentelemetry import configure_azure_monitor
 
 
 from azure.cosmos.exceptions import CosmosHttpResponseError
@@ -46,8 +45,6 @@ if startup_delay > 0:
 logging.basicConfig(level=logging.ERROR)
 
 load_dotenv(override=False)
-
-configure_azure_monitor()
 
 
 endpointTitle = "ChatEndpoints"
@@ -367,8 +364,14 @@ def create_thread(tenantId: str, userId: str):
         "ChatName": ChatName,
         "messages": messages
     })
-    return Session(id=sessionId, sessionId=sessionId, tenantId=tenantId, userId=userId, name=name, age=age,
-                   address=address, activeAgent=activeAgent, ChatName=ChatName, messages=messages)
+    return Session(
+        id=sessionId, 
+        sessionId=sessionId, 
+        tenantId=tenantId, 
+        userId=userId, 
+        name=name, 
+        messages=messages
+    )
 
 
 @app.get("/status", tags=[endpointTitle], description="Gets the service status", operation_id="GetServiceStatus",

@@ -7,7 +7,6 @@ from dotenv import load_dotenv
 from datetime import datetime
 from enum import IntEnum
 from fastapi import BackgroundTasks
-from azure.monitor.opentelemetry import configure_azure_monitor
 
 from azure.cosmos.exceptions import CosmosHttpResponseError
 
@@ -31,8 +30,6 @@ import logging
 logging.basicConfig(level=logging.ERROR)
 
 load_dotenv(override=False)
-
-configure_azure_monitor()
 
 endpointTitle = "ChatEndpoints"
 dataLoadTitle = "DataLoadEndpoints"

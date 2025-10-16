@@ -52,7 +52,22 @@ hooks:
           AZURE_OPENAI_ENDPOINT=\"$AZURE_OPENAI_ENDPOINT\"
           AZURE_OPENAI_EMBEDDINGDEPLOYMENTID=\"$AZURE_OPENAI_EMBEDDINGDEPLOYMENTID\"
           AZURE_OPENAI_COMPLETIONSDEPLOYMENTID=\"$AZURE_OPENAI_COMPLETIONSDEPLOYMENTID\"
+          AZURE_OPENAI_API_VERSION=\"2024-02-15-preview\"
+          MCP_AUTH_SECRET_KEY=\"banking-mcp-server-jwt-secret-for-local-development\"
+          MCP_AUTH_TOKEN=banking-server-dev-token-2024
+          MCP_SERVER_BASE_URL=\"http://localhost:8080\"
           " > ./python/.env
+
+          echo "
+          COSMOSDB_ENDPOINT=\"$COSMOSDB_ENDPOINT\"
+          AZURE_OPENAI_ENDPOINT=\"$AZURE_OPENAI_ENDPOINT\"
+          AZURE_OPENAI_EMBEDDINGDEPLOYMENTID=\"$AZURE_OPENAI_EMBEDDINGDEPLOYMENTID\"
+          AZURE_OPENAI_COMPLETIONSDEPLOYMENTID=\"$AZURE_OPENAI_COMPLETIONSDEPLOYMENTID\"
+          AZURE_OPENAI_API_VERSION=\"2024-02-15-preview\"
+          MCP_AUTH_SECRET_KEY=\"banking-mcp-server-jwt-secret-for-local-development\"
+          MCP_AUTH_TOKEN=banking-server-dev-token-2024
+          PORT=8080
+          " > ./mcpserver/python/.env
       
           echo "{
           \"Logging\": {
@@ -165,7 +180,22 @@ hooks:
           AZURE_OPENAI_ENDPOINT=""$env:AZURE_OPENAI_ENDPOINT""
           AZURE_OPENAI_EMBEDDINGDEPLOYMENTID=""$env:AZURE_OPENAI_EMBEDDINGDEPLOYMENTID""
           AZURE_OPENAI_COMPLETIONSDEPLOYMENTID=""$env:AZURE_OPENAI_COMPLETIONSDEPLOYMENTID""
+          AZURE_OPENAI_API_VERSION=""2024-02-15-preview""
+          MCP_AUTH_SECRET_KEY=""banking-mcp-server-jwt-secret-for-local-development""
+          MCP_AUTH_TOKEN=banking-server-dev-token-2024
+          MCP_SERVER_BASE_URL=""http://localhost:8080""
           " > ./python/.env
+
+          echo "
+          COSMOSDB_ENDPOINT=""$env:COSMOSDB_ENDPOINT""
+          AZURE_OPENAI_ENDPOINT=""$env:AZURE_OPENAI_ENDPOINT""
+          AZURE_OPENAI_EMBEDDINGDEPLOYMENTID=""$env:AZURE_OPENAI_EMBEDDINGDEPLOYMENTID""
+          AZURE_OPENAI_COMPLETIONSDEPLOYMENTID=""$env:AZURE_OPENAI_COMPLETIONSDEPLOYMENTID""
+          AZURE_OPENAI_API_VERSION=""2024-02-15-preview""
+          MCP_AUTH_SECRET_KEY=""banking-mcp-server-jwt-secret-for-local-development""
+          MCP_AUTH_TOKEN=banking-server-dev-token-2024
+          PORT=8080
+          " > ./mcpserver/python/.env
 
           echo "{
           `"Logging`": {
