@@ -127,7 +127,7 @@ To run the solution locally after deployment:
 
 #### Terminal 1 - Start the MCP Server:
 
-Open new terminal, navigate to the `mcpserver`, then run:
+Open new terminal, navigate to the `mcpserver/python` folder, then run:
 
 ```shell
 source .venv/bin/activate
