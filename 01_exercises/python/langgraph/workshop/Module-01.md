@@ -451,13 +451,31 @@ if __name__ == "__main__":
 
 For the rest of the lab, we're going to be testing using the front end by wiring up the API layer, so you can skip to that section below. But for reference, if you wanted bypass the front end and test the backend in a command line fashion, you could run the below:
 
+**Linux/Mac/WSL/Codespaces:**
 ```shell
+python -m src.app.banking_agents
+```
+
+**Windows (PowerShell):**
+```powershell
 python -m src.app.banking_agents
 ```
 
 You would see the following output like below, where you can input text after "you"
 
+**Linux/Mac/WSL/Codespaces:**
 ```shell
+[DEBUG] Retrieved Azure AD token successfully using DefaultAzureCredential.
+[DEBUG] Azure OpenAI model initialized successfully.
+Loading prompt for coordinator_agent from prompts\coordinator_agent.prompty
+Welcome to the single-agent banking assistant.
+Type 'exit' to end the conversation.
+
+You: 
+```
+
+**Windows (PowerShell):**
+```powershell
 [DEBUG] Retrieved Azure AD token successfully using DefaultAzureCredential.
 [DEBUG] Azure OpenAI model initialized successfully.
 Loading prompt for coordinator_agent from prompts\coordinator_agent.prompty
@@ -605,10 +623,16 @@ We should now be done wiring up the API layer.
 If you stopped the backend, restart it. You can keep both running during the lab.
 
 1. In VS Code, return to the Terminal session with the python folder.
-1. Start the fastapi server.
+1. Start the fastapi server:
 
+**Linux/Mac/WSL/Codespaces:**
 ```shell
 uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 63280
+```
+
+**Windows (PowerShell):**
+```powershell
+uvicorn src.app.banking_agents_api:app --host 0.0.0.0 --port 63280
 ```
 
 ### Start the Frontend
@@ -616,7 +640,13 @@ uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 63280
 1. If you stopped the frontend, restart it.
 1. In VS Code, return to the terminal session for your frontend app.
 
+**Linux/Mac/WSL/Codespaces:**
 ```sh
+npm start
+```
+
+**Windows (PowerShell):**
+```powershell
 npm start
 ```
 

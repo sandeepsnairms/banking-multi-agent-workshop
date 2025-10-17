@@ -339,7 +339,13 @@ def bank_balance(config: RunnableConfig, account_number: str) -> str:
 
 1. In VS Code, run the following command in your terminal.
 
+**Linux/Mac/WSL/Codespaces:**
 ```bash
+python -m src.app.banking_agents
+```
+
+**Windows (PowerShell):**
+```powershell
 python -m src.app.banking_agents
 ```
 
@@ -352,7 +358,18 @@ python -m src.app.banking_agents
 
 Try asking about banking offers to invoke a vector search again:
 
+**Linux/Mac/WSL/Codespaces:**
 ```shell
+Welcome to the single-agent banking assistant.
+Type 'exit' to end the conversation.
+
+You: Tell me about banking offers
+transfer_to_sales_agent...
+sales_agent: Would you like information about Credit Card offers or Savings offers? Let me know so I can provide the most relevant details for you!
+```
+
+**Windows (PowerShell):**
+```powershell
 Welcome to the single-agent banking assistant.
 Type 'exit' to end the conversation.
 
@@ -367,7 +384,20 @@ You can see in the below image that the app starts with the coordinator agent, w
 
 Try asking about credit card offers.
 
+**Linux/Mac/WSL/Codespaces:**
 ```shell
+Welcome to the single-agent banking assistant.
+Type 'exit' to end the conversation.
+
+You: Tell me about banking offers
+transfer_to_sales_agent...
+sales_agent: Would you like information about Credit Card offers or Savings offers? Let me know so I can provide the most relevant details for you!
+
+You: Credit Card
+```
+
+**Windows (PowerShell):**
+```powershell
 Welcome to the single-agent banking assistant.
 Type 'exit' to end the conversation.
 
@@ -392,7 +422,20 @@ You can see the result produced by the LLM after getting the result back from th
 
 You can try with the below example as well to monitor trace of the transactions agent. Please type `exit` to end the conversation and start a new one, before trying this example.
 
+**Linux/Mac/WSL/Codespaces:**
 ```shell
+Welcome to the single-agent banking assistant.
+Type 'exit' to end the conversation.
+
+You: Show me transactions for account Acc001
+transfer_to_transactions_agent...
+transactions_agent: Please provide the start and end dates for the transaction history you would like to view for account Acc001.
+
+You: start date as 2025-02-07 and end date as 2025-02-12
+```
+
+**Windows (PowerShell):**
+```powershell
 Welcome to the single-agent banking assistant.
 Type 'exit' to end the conversation.
 
@@ -419,8 +462,14 @@ Start the FastAPI server:
 
 1. If the backend is closed, restart the backend:
 
+**Linux/Mac/WSL/Codespaces:**
 ```shell
 uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 63280
+```
+
+**Windows (PowerShell):**
+```powershell
+uvicorn src.app.banking_agents_api:app --host 0.0.0.0 --port 63280
 ```
 
 Next, open a new browser tab and navigate to <http://localhost:63280/docs> to view the swagger UI.

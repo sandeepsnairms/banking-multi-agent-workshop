@@ -578,27 +578,57 @@ The MCP server is provided in the `mcpserver/python/` directory and includes all
 
 ### 1. Navigate to MCP Server Directory
 
+**Linux/Mac/WSL/Codespaces:**
 ```bash
 cd /path/to/banking-multi-agent-workshop/01_exercises/mcpserver/python
 ```
 
+**Windows (PowerShell):**
+```powershell
+cd C:\path\to\banking-multi-agent-workshop\01_exercises\mcpserver\python
+```
+
 ### 2. Install Dependencies
 
+**Linux/Mac/WSL/Codespaces:**
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+**Windows (PowerShell):**
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
 ### 3. Start the MCP Server
 
+**Linux/Mac/WSL/Codespaces:**
 ```bash
 PYTHONPATH=src python src/mcp_http_server.py
 ```
 
+**Windows (PowerShell):**
+```powershell
+$env:PYTHONPATH="src"; python src/mcp_http_server.py
+```
+
 You should see output like:
 
+**Linux/Mac/WSL/Codespaces:**
 ```shell
+🚀 Initializing MCP Server...
+✅ Banking Tools MCP server initialized with Simple Token Auth
+🔐 DEVELOPMENT AUTHENTICATION: Bearer token required
+🌐 Server will be available at: http://0.0.0.0:8080
+INFO:     Uvicorn running on http://0.0.0.0:8080
+```
+
+**Windows (PowerShell):**
+```powershell
 🚀 Initializing MCP Server...
 ✅ Banking Tools MCP server initialized with Simple Token Auth
 🔐 DEVELOPMENT AUTHENTICATION: Bearer token required
@@ -632,10 +662,18 @@ MCP_AUTH_TOKEN=banking-server-prod-token-2025
 
 Navigate to python/langgraph folder and start the API:
 
+**Linux/Mac/WSL/Codespaces:**
 ```bash
 python -m venv .venv # if not already done
 source .venv/bin/activate # if not already activated
 uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 63280
+```
+
+**Windows (PowerShell):**
+```powershell
+python -m venv .venv # if not already done
+.venv\Scripts\Activate.ps1 # if not already activated
+uvicorn src.app.banking_agents_api:app --host 0.0.0.0 --port 63280
 ```
 
 When the server has fully start, you should now see something like:
@@ -671,8 +709,16 @@ INFO:     Application startup complete.
 
 ### 3. Start the Frontend
 
+**Linux/Mac/WSL/Codespaces:**
 ```bash
 cd /path/to/banking-multi-agent-workshop/01_exercises/frontend
+npm install
+ng serve
+```
+
+**Windows (PowerShell):**
+```powershell
+cd C:\path\to\banking-multi-agent-workshop\01_exercises\frontend
 npm install
 ng serve
 ```
@@ -829,15 +875,31 @@ VS Code has built-in support for MCP servers, allowing you to interact with your
 
 First, make sure your MCP server is running locally:
 
+**Linux/Mac/WSL/Codespaces:**
 ```bash
 cd /path/to/banking-multi-agent-workshop/01_exercises/mcpserver/python
 source .venv/bin/activate
 PYTHONPATH=src python3 src/mcp_http_server.py
 ```
 
+**Windows (PowerShell):**
+```powershell
+cd C:\path\to\banking-multi-agent-workshop\01_exercises\mcpserver\python
+.venv\Scripts\Activate.ps1
+$env:PYTHONPATH="src"; python src/mcp_http_server.py
+```
+
 You should see output like:
 
+**Linux/Mac/WSL/Codespaces:**
 ```shell
+🚀 Initializing MCP Server...
+✅ Banking Tools MCP server initialized with Simple Token Auth
+🌐 Server will be available at: http://0.0.0.0:8080
+```
+
+**Windows (PowerShell):**
+```powershell
 🚀 Initializing MCP Server...
 ✅ Banking Tools MCP server initialized with Simple Token Auth
 🌐 Server will be available at: http://0.0.0.0:8080
