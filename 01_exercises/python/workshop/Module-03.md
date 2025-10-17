@@ -1,5 +1,7 @@
 # Module 03 - Agent Specialization
 
+**[< Connecting Agents to Memory](./Module-02.md)** - **[Multi-Agent Orchestration >](./Module-04.md)**
+
 ## Introduction
 
 In this Module you'll learn how to implement agent specialization by creating Semantic Kernel Functions or LangGraph Tools that provide the functionality necessary to power individual agents that comprise a multi-agent system.

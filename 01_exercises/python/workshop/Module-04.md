@@ -1,5 +1,7 @@
 # Module 04 - Multi-Agent Orchestration
 
+**[< Agent Specialization](./Module-03.md)** - **[Converting to Model Context Protocol >](./Module-05.md)**
+
 ## Introduction
 
 In this Module you'll learn how to implement the multi-agent orchestration to tie all of the agents you have created so far together into a single system. You'll also learn how to test the system as a whole is working correctly and how to debug and monitor the agents performance and behavior and troubleshoot them.
@@ -200,7 +202,7 @@ LANGCHAIN_PROJECT="multi-agent-banking-app"
 COSMOSDB_ENDPOINT="<your_cosmos_db_uri>"
 AZURE_OPENAI_ENDPOINT="<your_azure_open_ai_uri>"
 AZURE_OPENAI_EMBEDDINGDEPLOYMENTID="text-embedding-3-small"
-AZURE_OPENAI_COMPLETIONSDEPLOYMENTID="gpt-4o"
+AZURE_OPENAI_COMPLETIONSDEPLOYMENTID="gpt-4.1-mini"
 APPLICATIONINSIGHTS_CONNECTION_STRING="<your_applications_insights_conn_string>"
 LANGCHAIN_API_KEY="<your_langsmith_api_key>"
 LANGCHAIN_TRACING_V2="true"
@@ -341,10 +343,10 @@ def bank_balance(config: RunnableConfig, account_number: str) -> str:
 python -m src.app.banking_agents
 ```
 
-1. Next, open a new tab in your browser and navigate to, <https://smith.langchain.com/> to make sure our project is listed under traces. 
+1. Next, open a new tab in your browser and navigate to, <https://smith.langchain.com/> to make sure our project is listed under traces.
 1. The project name will be `multi-agent-banking-app` as we mentioned in our .env file.
 
-**Note:** If you are not able to see your project under traces, search for banking in the search bar, and then you should be able to see it.
+:warning: **Note:** If you are not able to see your project under traces, search for banking in the search bar, and then you should be able to see it.
 
 ![LangSmith_1](./media/module-04/lang_smith_1.png)
 
@@ -1784,4 +1786,4 @@ async def put_offerdata(data: Dict):
 
 ## Next Steps
 
-Congratulations!!! You have completed this workshop!!!
+Proceed to [Converting to Model Context Protocol (MCP)](./Module-05.md)

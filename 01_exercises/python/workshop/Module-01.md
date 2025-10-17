@@ -1,5 +1,7 @@
 # Module 01 - Creating Your First Agent
 
+**[< Deployment and Setup](./Module-00.md)** - **[Connecting Agents to Memory >](./Module-02.md)**
+
 ## Introduction
 
 In this Module, you'll implement your first agent as part of a multi-agent banking system implemented using LangGraph. You will get an introduction to the LangChain framework and their tool integration with OpenAI for generating completions.
@@ -477,7 +479,7 @@ Paste the following with the imports at the top of the file:
 
 ```python
 from src.app.banking_agents import graph, checkpointer
-```   
+```
 
 Below the imports, paste the function below to return the graph that is :
 
@@ -500,7 +502,7 @@ Then add this line of code immediately above it:
 background_tasks.add_task(delete_all_thread_records, checkpointer, sessionId)
 ```
 
-Next, locate this function, `get_chat_completion`. 
+Next, locate this function, `get_chat_completion`.
 
 Currently it looks like this:
 
@@ -595,6 +597,7 @@ async def get_chat_completion(
 
     return messages
 ```
+
 We should now be done wiring up the API layer.
 
 ### Start the Backend
@@ -620,11 +623,9 @@ npm start
 ### Start a Conversation
 
 1. Return to the frontend app in your browser and hit refresh. If you closed it, open a new tab and navigate to <http://localhost:4200/>.
-1. In the Login dialog, select a user and company and click, Login.
-
+1. In the Login dialog, select a user and company and click, Login. You will be presented with a dashboard that looks like the below, with two methods of initiating a chat; and AI assistant window, or full screen chat when clicking the left hand side bar.
 ![Final User Interface](./media/module-01/frontend.png)
-
-1. Create a new conversation.
+1. Create a new conversation. For now, use the left hand side bar.
 1. Send the message:
 
 ```text
