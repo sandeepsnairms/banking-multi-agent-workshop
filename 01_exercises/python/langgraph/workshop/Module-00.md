@@ -125,7 +125,7 @@ You can run this sample app and workshop virtually by using GitHub Codespaces. T
 1. Navigate to the correct folder:
 
    ```bash
-   cd 01_exercises/python/infra
+   cd 01_exercises/python/langgraph/infra
    ```
 
 1. Log in to Azure using AZD.
@@ -193,11 +193,11 @@ This workshop consists of 6 progressive modules:
 
 ## Activity 4: Configure Environment Variables
 
-When you deploy this solution it automatically injects endpoints and configuration values for the required resources into a `.env` file at root (python) folder.
+When you deploy this solution it automatically injects endpoints and configuration values for the required resources into a `.env` file at root (python/langgraph) folder.
 
 But you will still need to install dependencies to run the solution locally.
 
-1. Navigate to the python folder of the project.
+1. Navigate to the python/langgraph folder of the project.
 2. Create and activate a virtual environment (Linux/Mac/WSL/Codespaces):
 
    ```shell
@@ -217,7 +217,7 @@ But you will still need to install dependencies to run the solution locally.
 
 ### Running the solution
 
-1. Navigate to the python folder of the project.
+1. Navigate to the python/langgraph folder of the project.
 2. Start the fastapi server.
 
    ```shell
@@ -305,8 +305,8 @@ Use the steps below to validate that the solution was deployed successfully.
    Start the backend, go to the Terminal
 
    ```sh
-   # Navigate to the python folder
-   cd 01_exercises/python
+   # Navigate to the python/langgraph folder
+   cd 01_exercises/python/langgraph
 
    # start the virtual environment
    source .venv/bin/activate

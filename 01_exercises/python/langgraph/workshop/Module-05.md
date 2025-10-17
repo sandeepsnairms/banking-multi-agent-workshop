@@ -661,10 +661,10 @@ When the server has fully start, you should now see something like:
   - get_transaction_history
   - bank_balance
   - server_info
-Loading prompt for coordinator_agent from /home/path/to/banking-multi-agent-workshop/01_exercises/python/src/app/prompts/coordinator_agent.prompty
-Loading prompt for customer_support_agent from /home/path/to/banking-multi-agent-workshop/01_exercises/python/src/app/prompts/customer_support_agent.prompty
-Loading prompt for sales_agent from /home/path/to/banking-multi-agent-workshop/01_exercises/python/src/app/prompts/sales_agent.prompty
-Loading prompt for transactions_agent from /home/path/to/banking-multi-agent-workshop/01_exercises/python/src/app/prompts/transactions_agent.prompty
+Loading prompt for coordinator_agent from /home/path/to/banking-multi-agent-workshop/01_exercises/python/langgraph/src/app/prompts/coordinator_agent.prompty
+Loading prompt for customer_support_agent from /home/path/to/banking-multi-agent-workshop/01_exercises/python/langgraph/src/app/prompts/customer_support_agent.prompty
+Loading prompt for sales_agent from /home/path/to/banking-multi-agent-workshop/01_exercises/python/langgraph/src/app/prompts/sales_agent.prompty
+Loading prompt for transactions_agent from /home/path/to/banking-multi-agent-workshop/01_exercises/python/langgraph/src/app/prompts/transactions_agent.prompty
 ✅ Agents initialized successfully!
 INFO:     Application startup complete.
 ```
