@@ -77,10 +77,10 @@ You can run this sample app using GitHub Codespaces (requires a GitHub account).
 
 ### Deployment
 
-1. Navigate to the `python/infra` folder:
+1. Navigate to the `python/langgraph/infra` folder:
 
    ```bash
-   cd 02_completed/python/infra
+   cd 02_completed/python/langgraph/infra
    ```
 
 2. Log in to Azure using AZD. Follow the prompts to complete authentication:
@@ -137,7 +137,7 @@ PYTHONPATH=src python src/mcp_http_server.py
 
 #### Terminal 2 - Start the Banking API:
 
-Open a new terminal, navigate to `python` folder, then run:
+Open a new terminal, navigate to `python/langgraph` folder, then run:
 
 ```bash
 python -m venv .venv

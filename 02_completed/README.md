@@ -9,7 +9,7 @@ This folder contains the completed files for the exercises. Follow the step-by-s
 
 Use the final code and artifacts to run the demo:
 
-- [LangGraph (Python)](python/README.md)  
+- [LangGraph (Python)](python/langgraph/README.md)  
 - [Agent Framework (C#)](csharp/README.md)
 
 If you prefer to begin with the minimal scaffolding code and follow the step-by-step instructions to complete each exercise [go to the excercises](../01_exercises/README.md)

@@ -630,7 +630,7 @@ MCP_AUTH_TOKEN=banking-server-prod-token-2025
 
 ### 2. Start the Banking API
 
-Navigate to python folder and start the API:
+Navigate to python/langgraph folder and start the API:
 
 ```bash
 python -m venv .venv # if not already done
