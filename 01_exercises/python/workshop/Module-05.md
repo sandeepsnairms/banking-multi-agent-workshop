@@ -64,7 +64,7 @@ all_tools = await load_mcp_tools(session)
 
 ### MCP Server Tools
 
-The MCP server (in `/mcpserver/`) provides these banking tools using `@mcp.tool()` decorators:
+The MCP server (in `/mcpserver/python/`) provides these banking tools using `@mcp.tool()` decorators:
 
 ```python
 # Example from mcp_http_server.py
@@ -571,15 +571,15 @@ Replace it with the below, making the `invoke` calls asynchronous:
 
 ## Activity 3: Start the MCP Server
 
-The MCP server is provided in the `mcpserver/` directory and includes all banking tools implemented with native `@mcp.tool()` decorators.
+The MCP server is provided in the `mcpserver/python/` directory and includes all banking tools implemented with native `@mcp.tool()` decorators.
 
 > :warning: [!NOTE]
-> There should be a `.env` file in the `mcpserver/` directory with the necessary environment variables that was created when you did your initial deployment. If this did not work for any reason, refer to the `.env.sample` file.
+> There should be a `.env` file in the `mcpserver/python/` directory with the necessary environment variables that was created when you did your initial deployment. If this did not work for any reason, refer to the `.env.sample` file.
 
 ### 1. Navigate to MCP Server Directory
 
 ```bash
-cd /path/to/banking-multi-agent-workshop/01_exercises/mcpserver
+cd /path/to/banking-multi-agent-workshop/01_exercises/mcpserver/python
 ```
 
 ### 2. Install Dependencies
@@ -830,7 +830,7 @@ VS Code has built-in support for MCP servers, allowing you to interact with your
 First, make sure your MCP server is running locally:
 
 ```bash
-cd /path/to/banking-multi-agent-workshop/01_exercises/mcpserver
+cd /path/to/banking-multi-agent-workshop/01_exercises/mcpserver/python
 source .venv/bin/activate
 PYTHONPATH=src python3 src/mcp_http_server.py
 ```
@@ -931,8 +931,8 @@ But you don't need to edit this manually - VS Code handles it all through the co
 
 Proceed to [Lessons Learned, Agent Futures, Q&A](./Module-06.md)
 
-- Explore the MCP server implementation in `/mcpserver/src/mcp_http_server.py`
-- Learn about production authentication options in `/mcpserver/SECURITY.md`
+- Explore the MCP server implementation in `/mcpserver/python/src/mcp_http_server.py`
+- Learn about production authentication options in `/mcpserver/python/SECURITY.md`
 - Consider implementing additional MCP tools for your specific use cases
 
 Return to **[Home](Home.md)**
