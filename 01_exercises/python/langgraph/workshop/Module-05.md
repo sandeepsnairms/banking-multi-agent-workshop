@@ -64,7 +64,7 @@ all_tools = await load_mcp_tools(session)
 
 ### MCP Server Tools
 
-The MCP server (in `/mcpserver/`) provides these banking tools using `@mcp.tool()` decorators:
+The MCP server (in `/mcpserver/python/`) provides these banking tools using `@mcp.tool()` decorators:
 
 ```python
 # Example from mcp_http_server.py
@@ -571,34 +571,64 @@ Replace it with the below, making the `invoke` calls asynchronous:
 
 ## Activity 3: Start the MCP Server
 
-The MCP server is provided in the `mcpserver/` directory and includes all banking tools implemented with native `@mcp.tool()` decorators.
+The MCP server is provided in the `mcpserver/python/` directory and includes all banking tools implemented with native `@mcp.tool()` decorators.
 
 > :warning: [!NOTE]
-> There should be a `.env` file in the `mcpserver/` directory with the necessary environment variables that was created when you did your initial deployment. If this did not work for any reason, refer to the `.env.sample` file.
+> There should be a `.env` file in the `mcpserver/python/` directory with the necessary environment variables that was created when you did your initial deployment. If this did not work for any reason, refer to the `.env.sample` file.
 
 ### 1. Navigate to MCP Server Directory
 
+**Linux/Mac/WSL/Codespaces:**
 ```bash
-cd /path/to/banking-multi-agent-workshop/01_exercises/mcpserver
+cd /path/to/banking-multi-agent-workshop/01_exercises/mcpserver/python
+```
+
+**Windows (PowerShell):**
+```powershell
+cd C:\path\to\banking-multi-agent-workshop\01_exercises\mcpserver\python
 ```
 
 ### 2. Install Dependencies
 
+**Linux/Mac/WSL/Codespaces:**
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+**Windows (PowerShell):**
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
 ### 3. Start the MCP Server
 
+**Linux/Mac/WSL/Codespaces:**
 ```bash
 PYTHONPATH=src python src/mcp_http_server.py
 ```
 
+**Windows (PowerShell):**
+```powershell
+$env:PYTHONPATH="src"; python src/mcp_http_server.py
+```
+
 You should see output like:
 
+**Linux/Mac/WSL/Codespaces:**
 ```shell
+🚀 Initializing MCP Server...
+✅ Banking Tools MCP server initialized with Simple Token Auth
+🔐 DEVELOPMENT AUTHENTICATION: Bearer token required
+🌐 Server will be available at: http://0.0.0.0:8080
+INFO:     Uvicorn running on http://0.0.0.0:8080
+```
+
+**Windows (PowerShell):**
+```powershell
 🚀 Initializing MCP Server...
 ✅ Banking Tools MCP server initialized with Simple Token Auth
 🔐 DEVELOPMENT AUTHENTICATION: Bearer token required
@@ -630,12 +660,20 @@ MCP_AUTH_TOKEN=banking-server-prod-token-2025
 
 ### 2. Start the Banking API
 
-Navigate to python folder and start the API:
+Navigate to python/langgraph folder and start the API:
 
+**Linux/Mac/WSL/Codespaces:**
 ```bash
 python -m venv .venv # if not already done
 source .venv/bin/activate # if not already activated
 uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 63280
+```
+
+**Windows (PowerShell):**
+```powershell
+python -m venv .venv # if not already done
+.venv\Scripts\Activate.ps1 # if not already activated
+uvicorn src.app.banking_agents_api:app --host 0.0.0.0 --port 63280
 ```
 
 When the server has fully start, you should now see something like:
@@ -661,18 +699,26 @@ When the server has fully start, you should now see something like:
   - get_transaction_history
   - bank_balance
   - server_info
-Loading prompt for coordinator_agent from /home/path/to/banking-multi-agent-workshop/01_exercises/python/src/app/prompts/coordinator_agent.prompty
-Loading prompt for customer_support_agent from /home/path/to/banking-multi-agent-workshop/01_exercises/python/src/app/prompts/customer_support_agent.prompty
-Loading prompt for sales_agent from /home/path/to/banking-multi-agent-workshop/01_exercises/python/src/app/prompts/sales_agent.prompty
-Loading prompt for transactions_agent from /home/path/to/banking-multi-agent-workshop/01_exercises/python/src/app/prompts/transactions_agent.prompty
+Loading prompt for coordinator_agent from /home/path/to/banking-multi-agent-workshop/01_exercises/python/langgraph/src/app/prompts/coordinator_agent.prompty
+Loading prompt for customer_support_agent from /home/path/to/banking-multi-agent-workshop/01_exercises/python/langgraph/src/app/prompts/customer_support_agent.prompty
+Loading prompt for sales_agent from /home/path/to/banking-multi-agent-workshop/01_exercises/python/langgraph/src/app/prompts/sales_agent.prompty
+Loading prompt for transactions_agent from /home/path/to/banking-multi-agent-workshop/01_exercises/python/langgraph/src/app/prompts/transactions_agent.prompty
 ✅ Agents initialized successfully!
 INFO:     Application startup complete.
 ```
 
 ### 3. Start the Frontend
 
+**Linux/Mac/WSL/Codespaces:**
 ```bash
 cd /path/to/banking-multi-agent-workshop/01_exercises/frontend
+npm install
+ng serve
+```
+
+**Windows (PowerShell):**
+```powershell
+cd C:\path\to\banking-multi-agent-workshop\01_exercises\frontend
 npm install
 ng serve
 ```
@@ -829,15 +875,31 @@ VS Code has built-in support for MCP servers, allowing you to interact with your
 
 First, make sure your MCP server is running locally:
 
+**Linux/Mac/WSL/Codespaces:**
 ```bash
-cd /path/to/banking-multi-agent-workshop/01_exercises/mcpserver
+cd /path/to/banking-multi-agent-workshop/01_exercises/mcpserver/python
 source .venv/bin/activate
 PYTHONPATH=src python3 src/mcp_http_server.py
 ```
 
+**Windows (PowerShell):**
+```powershell
+cd C:\path\to\banking-multi-agent-workshop\01_exercises\mcpserver\python
+.venv\Scripts\Activate.ps1
+$env:PYTHONPATH="src"; python src/mcp_http_server.py
+```
+
 You should see output like:
 
+**Linux/Mac/WSL/Codespaces:**
 ```shell
+🚀 Initializing MCP Server...
+✅ Banking Tools MCP server initialized with Simple Token Auth
+🌐 Server will be available at: http://0.0.0.0:8080
+```
+
+**Windows (PowerShell):**
+```powershell
 🚀 Initializing MCP Server...
 ✅ Banking Tools MCP server initialized with Simple Token Auth
 🌐 Server will be available at: http://0.0.0.0:8080
@@ -931,8 +993,8 @@ But you don't need to edit this manually - VS Code handles it all through the co
 
 Proceed to [Lessons Learned, Agent Futures, Q&A](./Module-06.md)
 
-- Explore the MCP server implementation in `/mcpserver/src/mcp_http_server.py`
-- Learn about production authentication options in `/mcpserver/SECURITY.md`
+- Explore the MCP server implementation in `/mcpserver/python/src/mcp_http_server.py`
+- Learn about production authentication options in `/mcpserver/python/SECURITY.md`
 - Consider implementing additional MCP tools for your specific use cases
 
 Return to **[Home](Home.md)**

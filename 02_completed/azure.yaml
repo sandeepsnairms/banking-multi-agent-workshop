@@ -56,7 +56,7 @@ hooks:
           MCP_AUTH_SECRET_KEY=\"banking-mcp-server-jwt-secret-for-local-development\"
           MCP_AUTH_TOKEN=banking-server-dev-token-2024
           MCP_SERVER_BASE_URL=\"http://localhost:8080\"
-          " > ./python/.env
+          " > ./python/langgraph/.env
 
           echo "
           COSMOSDB_ENDPOINT=\"$COSMOSDB_ENDPOINT\"
@@ -184,7 +184,7 @@ hooks:
           MCP_AUTH_SECRET_KEY=""banking-mcp-server-jwt-secret-for-local-development""
           MCP_AUTH_TOKEN=banking-server-dev-token-2024
           MCP_SERVER_BASE_URL=""http://localhost:8080""
-          " > ./python/.env
+          " > ./python/langgraph/.env
 
           echo "
           COSMOSDB_ENDPOINT=""$env:COSMOSDB_ENDPOINT""

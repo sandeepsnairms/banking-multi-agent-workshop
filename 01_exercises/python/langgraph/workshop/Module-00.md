@@ -125,7 +125,7 @@ You can run this sample app and workshop virtually by using GitHub Codespaces. T
 1. Navigate to the correct folder:
 
    ```bash
-   cd 01_exercises/python/infra
+   cd 01_exercises/python/langgraph/infra
    ```
 
 1. Log in to Azure using AZD.
@@ -168,10 +168,14 @@ Do you want to add some dummy data for testing? (yes/no): y
 
 ⚠️ You may run into errors trying to deploy the web app from WSL. If so, modify your DNS to use public DNS server.
 
+**Linux/WSL:**
 ```shell
 sudo cp /etc/resolv.conf /etc/resolv.conf.backup
 echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf
 ```
+
+**Windows:**
+If you encounter DNS issues on Windows, try changing your DNS settings to use Google's public DNS (8.8.8.8) through the Windows network settings.
 
 ## Activity 3: Workshop Structure and Overview Session
 
@@ -193,21 +197,34 @@ This workshop consists of 6 progressive modules:
 
 ## Activity 4: Configure Environment Variables
 
-When you deploy this solution it automatically injects endpoints and configuration values for the required resources into a `.env` file at root (python) folder.
+When you deploy this solution it automatically injects endpoints and configuration values for the required resources into a `.env` file at root (python/langgraph) folder.
 
 But you will still need to install dependencies to run the solution locally.
 
-1. Navigate to the python folder of the project.
-2. Create and activate a virtual environment (Linux/Mac/WSL/Codespaces):
+1. Navigate to the python/langgraph folder of the project.
+2. Create and activate a virtual environment:
 
+   **Linux/Mac/WSL/Codespaces:**
    ```shell
    python -m venv .venv
    source .venv/bin/activate
    ```
 
-3. Install the required dependencies for the project.
+   **Windows (PowerShell):**
+   ```powershell
+   python -m venv .venv
+   .venv\Scripts\Activate.ps1
+   ```
 
+3. Install the required dependencies for the project:
+
+   **Linux/Mac/WSL/Codespaces:**
    ```shell
+   pip install -r src/app/requirements.txt
+   ```
+
+   **Windows (PowerShell):**
+   ```powershell
    pip install -r src/app/requirements.txt
    ```
 
@@ -217,11 +234,17 @@ But you will still need to install dependencies to run the solution locally.
 
 ### Running the solution
 
-1. Navigate to the python folder of the project.
-2. Start the fastapi server.
+1. Navigate to the python/langgraph folder of the project.
+2. Start the fastapi server:
 
+   **Linux/Mac/WSL/Codespaces:**
    ```shell
    uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 63280
+   ```
+
+   **Windows (PowerShell):**
+   ```powershell
+   uvicorn src.app.banking_agents_api:app --host 0.0.0.0 --port 63280
    ```
 
 The API will be available at `http://localhost:63280/docs`. This has been pre-built with boilerplate code that will create chat sessions and store the chat history in Cosmos DB.
@@ -230,7 +253,14 @@ The API will be available at `http://localhost:63280/docs`. This has been pre-bu
 
 1. Open a **new terminal**, navigate to the `01_exercises/frontend` folder and run the following to start the application:
 
+   **Linux/Mac/WSL/Codespaces:**
    ```sh
+   npm install
+   ng serve
+   ```
+
+   **Windows (PowerShell):**
+   ```powershell
    npm install
    ng serve
    ```
@@ -242,7 +272,14 @@ The API will be available at `http://localhost:63280/docs`. This has been pre-bu
 
 1. Open a **new terminal**, navigate to the `01_exercises/frontend` folder and run the following to start the application:
 
+   **Linux/Mac/WSL/Codespaces:**
    ```sh
+   npm install
+   ng serve
+   ```
+
+   **Windows (PowerShell):**
+   ```powershell
    npm install
    ng serve
    ```
@@ -304,9 +341,10 @@ Use the steps below to validate that the solution was deployed successfully.
 
    Start the backend, go to the Terminal
 
+   **Linux/Mac/WSL/Codespaces:**
    ```sh
-   # Navigate to the python folder
-   cd 01_exercises/python
+   # Navigate to the python/langgraph folder
+   cd 01_exercises/python/langgraph
 
    # start the virtual environment
    source .venv/bin/activate
@@ -315,9 +353,31 @@ Use the steps below to validate that the solution was deployed successfully.
    uvicorn src.app.banking_agents_api:app --reload --host 0.0.0.0 --port 63280
    ```
 
+   **Windows (PowerShell):**
+   ```powershell
+   # Navigate to the python/langgraph folder
+   cd 01_exercises/python/langgraph
+
+   # start the virtual environment
+   .venv\Scripts\Activate.ps1
+
+   #Restart the backend
+   uvicorn src.app.banking_agents_api:app --host 0.0.0.0 --port 63280
+   ```
+
    Start the front end, open a **New Terminal**
 
+   **Linux/Mac/WSL/Codespaces:**
    ```sh
+   # Navigate to the frontend folder
+   cd 01_exercises/frontend
+
+   # start the frontend
+   ng serve
+   ```
+
+   **Windows (PowerShell):**
+   ```powershell
    # Navigate to the frontend folder
    cd 01_exercises/frontend
 

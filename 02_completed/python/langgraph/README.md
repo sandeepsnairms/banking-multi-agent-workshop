@@ -70,17 +70,17 @@ You can run this sample app using GitHub Codespaces (requires a GitHub account).
    ```bash
    git clone https://github.com/AzureCosmosDB/banking-multi-agent-workshop/
    cd banking-multi-agent-workshop/02_completed
-   git checkout WorkShop_v2_PythonLangGraph
+   git checkout HOL_v2_AFandLangGraph
    ```
 
 3. Move on to the [Deployment](readme.md#deployment) section.
 
 ### Deployment
 
-1. Navigate to the `python/infra` folder:
+1. Navigate to the `infra` folder:
 
    ```bash
-   cd 02_completed/python/infra
+   cd infra
    ```
 
 2. Log in to Azure using AZD. Follow the prompts to complete authentication:
@@ -129,15 +129,39 @@ To run the solution locally after deployment:
 
 Open new terminal, navigate to the `mcpserver/python` folder, then run:
 
+Windows:
+
 ```shell
-source .venv/bin/activate
+python -m venv .venv
+.\.venv\Scripts\activate
 pip install -r requirements.txt
+$env:PYTHONPATH="src"; python src/mcp_http_server.py
+```
+
+Linux/Mac:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt  
 PYTHONPATH=src python src/mcp_http_server.py
 ```
 
 #### Terminal 2 - Start the Banking API:
 
-Open a new terminal, navigate to `python` folder, then run:
+Open a new terminal, navigate to `02_completed/python/langgraph` folder, then run:
+
+
+Windows:
+
+```shell
+python -m venv .venv
+.\.venv\Scripts\activate
+pip install -r src/app/requirements.txt
+uvicorn src.app.banking_agents_api:app --host 0.0.0.0 --port 63280
+```
+
+Linux/Mac:
 
 ```bash
 python -m venv .venv

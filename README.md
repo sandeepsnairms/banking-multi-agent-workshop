@@ -44,5 +44,5 @@ Work through the exercises to build the application step by step:
 
 If you prefer to skip the exercises and run as demo directly, use the final code and artifacts:
 
-- [LangGraph (Python)](02_completed/python/README.md)  
+- [LangGraph (Python)](02_completed/python/langgraph/README.md)  
 - [Agent Framework (C#)](02_completed/csharp/README.md)
