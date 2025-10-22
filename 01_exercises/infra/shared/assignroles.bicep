@@ -6,6 +6,9 @@ param openAIName string
 @description('Id of the user principals to assign database and application roles.')    
 param userPrincipalId string = '' 
 
+@description('Type of the principal - User or ServicePrincipal')
+param principalType string = 'User' 
+
 
 resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' existing = {
   name: identityName
@@ -31,14 +34,14 @@ resource cognitiveServicesRoleAssignmentUAMI 'Microsoft.Authorization/roleAssign
   }
 }
 
-// Role Assignment for Cognitive Services User to Current User
-resource cognitiveServicesRoleAssignmentCU 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+// Role Assignment for Cognitive Services User to Current User/Service Principal
+resource cognitiveServicesRoleAssignmentCU 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(userPrincipalId)) {
   name: guid(userPrincipalId, openAi.id, 'cognitive-services-user')  // Unique GUID for role assignment
   scope: openAi
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a97b65f3-24c7-4388-baec-2e87135dc908')  // Cognitive Services User Role ID
     principalId: userPrincipalId
-    principalType: 'User'
+    principalType: principalType
   }
 }
 
@@ -55,8 +58,8 @@ resource cosmosAccessRoleUAMI 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssi
 }
 
 
-// Role Assignment for Cosmos DB role to current user
-resource cosmosAccessRoleCU 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2023-11-15' = {
+// Role Assignment for Cosmos DB role to current user/service principal
+resource cosmosAccessRoleCU 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2023-11-15' = if (!empty(userPrincipalId)) {
   name: guid('00000000-0000-0000-0000-000000000002', userPrincipalId, cosmosDb.id)
   parent: cosmosDb
   properties: {

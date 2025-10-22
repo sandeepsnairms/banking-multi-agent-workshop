@@ -11,30 +11,65 @@ hooks:
           # Check if OWNER_EMAIL is already set in azd environment
           EXISTING_OWNER=$(azd env get-value OWNER_EMAIL 2>/dev/null || echo "")
           if [ -z "$EXISTING_OWNER" ]; then
-            CURRENT_USER=$(az account show --query user.name -o tsv 2>/dev/null || echo "user@example.com")
-            echo "Auto-setting OWNER_EMAIL to: $CURRENT_USER"
-            azd env set OWNER_EMAIL "$CURRENT_USER"
+            # Check if we're using Service Principal authentication
+            AUTH_TYPE=$(az account show --query 'user.type' -o tsv 2>/dev/null || echo "")
+            
+            if [ "$AUTH_TYPE" = "servicePrincipal" ]; then
+              # We're using Service Principal authentication
+              SP_OBJECT_ID=$(az account show --query 'user.name' -o tsv)
+              echo "Using Service Principal authentication. Object ID: $SP_OBJECT_ID"
+              azd env set AZURE_PRINCIPAL_TYPE "ServicePrincipal"
+              azd env set OWNER_EMAIL "serviceprincial@deployment.local"
+            else
+              # We're using user authentication
+              CURRENT_USER=$(az account show --query user.name -o tsv 2>/dev/null || echo "user@example.com")
+              echo "Auto-setting OWNER_EMAIL to: $CURRENT_USER"
+              azd env set OWNER_EMAIL "$CURRENT_USER"
+              azd env set AZURE_PRINCIPAL_TYPE "User"
+            fi
           else
             echo "OWNER_EMAIL already set to: $EXISTING_OWNER"
+            # Still need to set the principal type
+            AUTH_TYPE=$(az account show --query 'user.type' -o tsv 2>/dev/null || echo "")
+            if [ "$AUTH_TYPE" = "servicePrincipal" ]; then
+              azd env set AZURE_PRINCIPAL_TYPE "ServicePrincipal"
+            else
+              azd env set AZURE_PRINCIPAL_TYPE "User"
+            fi
           fi
       windows:
         shell: pwsh
         interactive: false
         continueOnError: false
         run: |
-          # Set OWNER_EMAIL from current Azure user
+          # Set OWNER_EMAIL and AZURE_PRINCIPAL_TYPE based on authentication method
           try {
-            $currentUser = az account show --query user.name -o tsv
-            if ($currentUser -and $currentUser.Trim() -ne "") {
-              Write-Host "Setting OWNER_EMAIL to: $($currentUser.Trim())"
-              azd env set OWNER_EMAIL $currentUser.Trim()
+            # Check if we're using Service Principal authentication
+            $authInfo = az account show --query 'user.type' -o tsv 2>/dev/null
+            
+            if ($authInfo -eq "servicePrincipal") {
+              # We're using Service Principal authentication
+              $spObjectId = az account show --query 'user.name' -o tsv
+              Write-Host "Using Service Principal authentication. Object ID: $spObjectId"
+              azd env set AZURE_PRINCIPAL_TYPE "ServicePrincipal"
+              azd env set OWNER_EMAIL "serviceprincial@deployment.local"
             } else {
-              Write-Host "Could not get current user, setting default"
-              azd env set OWNER_EMAIL "user@example.com"
+              # We're using user authentication
+              $currentUser = az account show --query user.name -o tsv
+              if ($currentUser -and $currentUser.Trim() -ne "") {
+                Write-Host "Setting OWNER_EMAIL to: $($currentUser.Trim())"
+                azd env set OWNER_EMAIL $currentUser.Trim()
+                azd env set AZURE_PRINCIPAL_TYPE "User"
+              } else {
+                Write-Host "Could not get current user, setting default"
+                azd env set OWNER_EMAIL "user@example.com"
+                azd env set AZURE_PRINCIPAL_TYPE "User"
+              }
             }
           } catch {
-            Write-Host "Could not get current user, setting default"
+            Write-Host "Could not determine authentication method, setting defaults"
             azd env set OWNER_EMAIL "user@example.com"
+            azd env set AZURE_PRINCIPAL_TYPE "User"
           }
     postdeploy:
       shell: pwsh
