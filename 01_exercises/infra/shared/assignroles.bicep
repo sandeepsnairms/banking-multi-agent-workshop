@@ -126,3 +126,13 @@ resource cosmosAccessRoleCombined 'Microsoft.DocumentDB/databaseAccounts/sqlRole
 
 output identityId string = identity.properties.principalId
 output identityName string = identity.name
+output debugInfo object = {
+  servicePrincipalId: servicePrincipalId
+  currentUserId: currentUserId
+  hasSP: hasSP
+  hasCurrentUser: hasCurrentUser
+  isDuplicatePrincipal: isDuplicatePrincipal
+  shouldCreateSPRole: shouldCreateSPRole
+  shouldCreateCurrentUserRole: shouldCreateCurrentUserRole
+  shouldCreateCombinedRole: shouldCreateCombinedRole
+}
