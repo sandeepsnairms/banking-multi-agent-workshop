@@ -37,6 +37,15 @@ try {
     Write-Host "Connecting to Azure with Service Principal..." -ForegroundColor Yellow
     Connect-AzAccount -ServicePrincipal -Credential $spCredential -TenantId $TenantId -Subscription $SubscriptionId -SkipContextPopulation
 
+    # Get the Service Principal Object ID for role assignments
+    Write-Host "Getting Service Principal Object ID..." -ForegroundColor Yellow
+    $servicePrincipal = Get-AzADServicePrincipal -ApplicationId $AppId
+    if (-not $servicePrincipal) {
+        throw "Could not find Service Principal with App ID: $AppId"
+    }
+    $servicePrincipalObjectId = $servicePrincipal.Id
+    Write-Host "Found Service Principal Object ID: $servicePrincipalObjectId" -ForegroundColor Green
+
     # Get the user's Azure AD Object ID (this is what we need for role assignments)
     Write-Host "Getting Azure AD User Object ID..." -ForegroundColor Yellow
     $azureUser = Get-AzADUser -UserPrincipalName $UserPrincipalName
@@ -52,14 +61,16 @@ try {
     # Set environment variables for azd
     $env:AZURE_ENV_NAME = "agenthol-$LabInstanceId"
     $env:AZURE_LOCATION = $Location
-    $env:AZURE_PRINCIPAL_ID = $azureUserId
-    $env:AZURE_PRINCIPAL_TYPE = "User"  # This is for the user who will use the application
+    $env:AZURE_PRINCIPAL_ID = $servicePrincipalObjectId  # Service Principal Object ID
+    $env:AZURE_CURRENT_USER_ID = $azureUserId           # Current User Object ID
+    $env:AZURE_PRINCIPAL_TYPE = "ServicePrincipal"      # Type for the Service Principal
     $env:OWNER_EMAIL = $UserPrincipalName
 
     Write-Host "Environment variables set:" -ForegroundColor Green
     Write-Host "  AZURE_ENV_NAME: $env:AZURE_ENV_NAME"
     Write-Host "  AZURE_LOCATION: $env:AZURE_LOCATION"
-    Write-Host "  AZURE_PRINCIPAL_ID: $env:AZURE_PRINCIPAL_ID"
+    Write-Host "  AZURE_PRINCIPAL_ID (SP): $env:AZURE_PRINCIPAL_ID"
+    Write-Host "  AZURE_CURRENT_USER_ID: $env:AZURE_CURRENT_USER_ID"
     Write-Host "  AZURE_PRINCIPAL_TYPE: $env:AZURE_PRINCIPAL_TYPE"
     Write-Host "  OWNER_EMAIL: $env:OWNER_EMAIL"
 
@@ -106,8 +117,9 @@ try {
 
     # Set the required environment variables in azd
     Write-Host "Setting azd environment variables..." -ForegroundColor Yellow
-    & azd env set AZURE_PRINCIPAL_ID $azureUserId
-    & azd env set AZURE_PRINCIPAL_TYPE "User"
+    & azd env set AZURE_PRINCIPAL_ID $servicePrincipalObjectId   # Service Principal for deployment
+    & azd env set AZURE_CURRENT_USER_ID $azureUserId            # Current User for development
+    & azd env set AZURE_PRINCIPAL_TYPE "ServicePrincipal"
     & azd env set OWNER_EMAIL $UserPrincipalName
 
     # Deploy the application
