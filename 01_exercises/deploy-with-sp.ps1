@@ -144,6 +144,12 @@ try {
     # Deploy the application
     Write-Host "Starting deployment from base directory: $LocalPath" -ForegroundColor Yellow
     Set-Location $LocalPath  # Ensure we're in the base directory with azure.yaml
+    
+    # Debug: Show what azd will use
+    Write-Host "`n🔍 Current azd environment values:" -ForegroundColor Cyan
+    & azd env get-values
+    
+    Write-Host "`n🚀 Running azd up..." -ForegroundColor Yellow
     & azd up -e $envName --no-prompt
     if ($LASTEXITCODE -ne 0) {
         throw "azd up failed with exit code: $LASTEXITCODE"
