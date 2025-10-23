@@ -51,6 +51,7 @@ try {
 
     # Get the Service Principal Object ID for role assignments
     Write-Host "Getting Service Principal Object ID..." -ForegroundColor Yellow
+    Write-Host "  Looking up Service Principal with App ID: $AppId" -ForegroundColor Cyan
     $servicePrincipal = Get-AzADServicePrincipal -ApplicationId $AppId
     if (-not $servicePrincipal) {
         throw "Could not find Service Principal with App ID: $AppId"
@@ -59,6 +60,17 @@ try {
     Write-Host "Found Service Principal Object ID: $servicePrincipalObjectId" -ForegroundColor Green
 
     Write-Host "Using provided UserObjectId: $UserObjectId" -ForegroundColor Green
+    
+    # Debug: Check if IDs are the same
+    if ($servicePrincipalObjectId -eq $UserObjectId) {
+        Write-Host "WARNING: Service Principal Object ID and User Object ID are the SAME!" -ForegroundColor Red
+        Write-Host "  Service Principal Object ID: $servicePrincipalObjectId" -ForegroundColor Red
+        Write-Host "  User Object ID: $UserObjectId" -ForegroundColor Red
+    } else {
+        Write-Host "✅ Service Principal and User Object IDs are different (expected)" -ForegroundColor Green
+        Write-Host "  Service Principal Object ID: $servicePrincipalObjectId" -ForegroundColor Cyan
+        Write-Host "  User Object ID: $UserObjectId" -ForegroundColor Cyan
+    }
 
     # Set Azure context
     Set-AzContext -Subscription $SubscriptionId -Tenant $TenantId
@@ -118,11 +130,15 @@ try {
 
     # Set azd environment variables
     Write-Host "Setting azd environment variables..." -ForegroundColor Yellow
+    Write-Host "  🔹 AZURE_PRINCIPAL_ID (SP): $servicePrincipalObjectId" -ForegroundColor Cyan
+    Write-Host "  🔹 AZURE_CURRENT_USER_ID: $UserObjectId" -ForegroundColor Cyan
     & azd env set AZURE_PRINCIPAL_ID $servicePrincipalObjectId   # Service Principal for deployment
     & azd env set AZURE_CURRENT_USER_ID $UserObjectId           # Current User for development
     & azd env set AZURE_PRINCIPAL_TYPE "ServicePrincipal"
     & azd env set DEPLOY_OPENAI $DeployOpenAI.ToString().ToLower()
     & azd env set OWNER_EMAIL $UserPrincipalName
+    
+    Write-Host "✅ All azd environment variables set successfully" -ForegroundColor Green
 
     # Deploy the application
     Write-Host "Starting deployment from base directory: $LocalPath" -ForegroundColor Yellow
