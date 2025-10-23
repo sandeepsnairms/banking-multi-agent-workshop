@@ -146,10 +146,12 @@ try {
     Set-Location $LocalPath  # Ensure we're in the base directory with azure.yaml
     
     # Debug: Show what azd will use
-    Write-Host "`n🔍 Current azd environment values:" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "🔍 Current azd environment values:" -ForegroundColor Cyan
     & azd env get-values
     
-    Write-Host "`n🚀 Running azd up..." -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "🚀 Running azd up..." -ForegroundColor Yellow
     & azd up -e $envName --no-prompt
     if ($LASTEXITCODE -ne 0) {
         throw "azd up failed with exit code: $LASTEXITCODE"
