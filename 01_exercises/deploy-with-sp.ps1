@@ -140,36 +140,7 @@ try {
     
     Write-Host "✅ All azd environment variables set successfully" -ForegroundColor Green
 
-    # Optional: Check existing role assignments before deployment
-    Write-Host "`n🔍 Checking existing Cosmos DB role assignments..." -ForegroundColor Yellow
-    try {
-        $cosmosAccounts = @(Get-AzCosmosDBAccount -ResourceGroupName "rg-agenthol-$LabInstanceId" -ErrorAction SilentlyContinue)
-        if ($cosmosAccounts -and $cosmosAccounts.Count -gt 0) {
-            foreach ($cosmosAccount in $cosmosAccounts) {
-                Write-Host "  📊 Checking role assignments in $($cosmosAccount.Name)..." -ForegroundColor Cyan
-                try {
-                    $roleAssignments = @(Get-AzCosmosDBSqlRoleAssignment -AccountName $cosmosAccount.Name -ResourceGroupName $cosmosAccount.ResourceGroupName -ErrorAction SilentlyContinue)
-                    if ($roleAssignments -and $roleAssignments.Count -gt 0) {
-                        Write-Host "    Found $($roleAssignments.Count) existing role assignments:" -ForegroundColor Cyan
-                        for ($i = 0; $i -lt $roleAssignments.Count; $i++) {
-                            $assignment = $roleAssignments[$i]
-                            Write-Host "      [$($i+1)] Principal: $($assignment.PrincipalId)" -ForegroundColor Gray
-                        }
-                    } else {
-                        Write-Host "    No existing role assignments found" -ForegroundColor Gray
-                    }
-                } catch {
-                    Write-Host "    ⚠️ Could not retrieve role assignments for $($cosmosAccount.Name): $($_.Exception.Message)" -ForegroundColor Yellow
-                }
-            }
-        } else {
-            Write-Host "  ℹ️ No existing Cosmos DB accounts found (this is expected for new deployments)" -ForegroundColor Gray
-        }
-    } catch {
-        Write-Host "  ⚠️ Could not check existing role assignments: $($_.Exception.Message)" -ForegroundColor Gray
-        Write-Host "    This is normal if the resource group doesn't exist yet" -ForegroundColor Gray
-    }
-
+    
     # Deploy the application
     Write-Host "Starting deployment from base directory: $LocalPath" -ForegroundColor Yellow
     Set-Location $LocalPath  # Ensure we're in the base directory with azure.yaml
