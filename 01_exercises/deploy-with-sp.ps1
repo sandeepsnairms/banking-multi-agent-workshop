@@ -14,8 +14,8 @@ param(
     [Parameter(Mandatory=$true)]
     [string]$UserPrincipalName,
    
-    [Parameter(Mandatory=$true)]
-    [string]$UserObjectId,  # **Mandatory now** for guest MSA accounts
+    [Parameter()]
+    [string]$UserObjectId,  # Optional - will auto-lookup if not provided
    
     [Parameter(Mandatory=$true)]
     [string]$LabInstanceId,
@@ -59,7 +59,21 @@ try {
     $servicePrincipalObjectId = $servicePrincipal.Id
     Write-Host "Found Service Principal Object ID: $servicePrincipalObjectId" -ForegroundColor Green
 
-    Write-Host "Using provided UserObjectId: $UserObjectId" -ForegroundColor Green
+    # Auto-lookup User Object ID if not provided
+    if ([string]::IsNullOrEmpty($UserObjectId)) {
+        Write-Host "UserObjectId not provided. Looking up Object ID for: $UserPrincipalName" -ForegroundColor Yellow
+        try {
+            $userObject = Get-AzADUser -UserPrincipalName $UserPrincipalName -ErrorAction Stop
+            $UserObjectId = $userObject.Id
+            Write-Host "Found User Object ID: $UserObjectId" -ForegroundColor Green
+        } catch {
+            Write-Error "Failed to lookup User Object ID for $UserPrincipalName. Error: $($_.Exception.Message)"
+            Write-Host "Please provide the UserObjectId parameter manually." -ForegroundColor Red
+            exit 1
+        }
+    } else {
+        Write-Host "Using provided UserObjectId: $UserObjectId" -ForegroundColor Green
+    }
     
     # Debug: Check if IDs are the same
     if ($servicePrincipalObjectId -eq $UserObjectId) {
