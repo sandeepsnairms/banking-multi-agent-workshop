@@ -1,7 +1,7 @@
 
 param cosmosDbAccountName string
 param identityName string
-param openAIName string
+param openAIName string = ''
 
 @description('Id of the service principal to assign database and application roles.')    
 param servicePrincipalId string = '' 
@@ -17,7 +17,7 @@ resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' 
   name: identityName
 }
 
-resource openAi 'Microsoft.CognitiveServices/accounts@2024-10-01' existing = {
+resource openAi 'Microsoft.CognitiveServices/accounts@2024-10-01' existing = if (!empty(openAIName)) {
   name: openAIName
 }
 
@@ -26,8 +26,8 @@ resource cosmosDb 'Microsoft.DocumentDB/databaseAccounts@2023-11-15' existing = 
 }
 
 
-// Role Assignment for Cognitive Services User to UAMI
-resource cognitiveServicesRoleAssignmentUAMI 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+// Role Assignment for Cognitive Services User to UAMI (conditional)
+resource cognitiveServicesRoleAssignmentUAMI 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(openAIName)) {
   name: guid(identity.id, openAi.id, 'cognitive-services-user')  // Unique GUID for role assignment
   scope: openAi
   properties: {
@@ -37,8 +37,8 @@ resource cognitiveServicesRoleAssignmentUAMI 'Microsoft.Authorization/roleAssign
   }
 }
 
-// Role Assignment for Cognitive Services User to Service Principal
-resource cognitiveServicesRoleAssignmentSP 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(servicePrincipalId)) {
+// Role Assignment for Cognitive Services User to Service Principal (conditional)
+resource cognitiveServicesRoleAssignmentSP 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(servicePrincipalId) && !empty(openAIName)) {
   name: guid(servicePrincipalId, openAi.id, 'cognitive-services-user-sp')  // Unique GUID for role assignment
   scope: openAi
   properties: {
@@ -48,8 +48,8 @@ resource cognitiveServicesRoleAssignmentSP 'Microsoft.Authorization/roleAssignme
   }
 }
 
-// Role Assignment for Cognitive Services User to Current User
-resource cognitiveServicesRoleAssignmentCU 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(currentUserId)) {
+// Role Assignment for Cognitive Services User to Current User (conditional)
+resource cognitiveServicesRoleAssignmentCU 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(currentUserId) && !empty(openAIName)) {
   name: guid(currentUserId, openAi.id, 'cognitive-services-user-cu')  // Unique GUID for role assignment
   scope: openAi
   properties: {

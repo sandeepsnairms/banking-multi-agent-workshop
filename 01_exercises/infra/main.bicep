@@ -18,6 +18,9 @@ param principalType string = 'User'
 @description('Id of the current user to assign application roles')
 param currentUserId string = ''
 
+@description('Whether to deploy OpenAI resources')
+param deployOpenAI bool = true
+
 @description('Owner tag for resource tagging')
 param owner string = 'defaultuser@example.com'
 
@@ -70,8 +73,8 @@ module cosmos './shared/cosmosdb.bicep' = {
   scope: rg
 }
 
-// Deploy OpenAI
-module openAi './shared/openai.bicep' = {
+// Deploy OpenAI (conditional)
+module openAi './shared/openai.bicep' = if (deployOpenAI) {
   name: 'openai-account'
   params: {
     name: '${abbrs.openAiAccounts}${resourceToken}'
@@ -82,7 +85,7 @@ module openAi './shared/openai.bicep' = {
   scope: rg
 }
 
-//Deploy OpenAI Deployments
+//Deploy OpenAI Deployments (conditional)
 var deployments = [
   {
     name: 'gpt-4.1-mini'
@@ -102,7 +105,7 @@ var deployments = [
 
 @batchSize(1)
 module openAiModelDeployments './shared/modeldeployment.bicep' = [
-  for (deployment, _) in deployments: {
+  for (deployment, _) in deployments: if (deployOpenAI) {
     name: 'openai-model-deployment-${deployment.name}'
     params: {
       name: deployment.name
@@ -122,23 +125,25 @@ module AssignRoles './shared/assignroles.bicep' = if (hasValidPrincipals) {
   name: 'AssignRoles'
   params: {
     cosmosDbAccountName: cosmos.outputs.name
-    openAIName: openAi.outputs.name
+    openAIName: deployOpenAI ? '${abbrs.openAiAccounts}${resourceToken}' : ''
     identityName: managedIdentity.outputs.name
     servicePrincipalId: principalId  // Service Principal ID
     currentUserId: currentUserId     // Current User ID  
     principalType: principalType
   }
   scope: rg
-  dependsOn: [
+  dependsOn: deployOpenAI ? [
+    openAi
     openAiModelDeployments  // Ensure deployments are complete before assigning roles
-  ]
+  ] : []
 }
 
 
-// Outputs
+// Outputs (conditional)
 output RG_NAME string = 'rg-${environmentName}'
 output COSMOSDB_ENDPOINT string = cosmos.outputs.endpoint
-output AZURE_OPENAI_ENDPOINT string = openAi.outputs.endpoint
-output AZURE_OPENAI_COMPLETIONSDEPLOYMENTID string = openAiModelDeployments[0].outputs.name
-output AZURE_OPENAI_EMBEDDINGDEPLOYMENTID string = openAiModelDeployments[1].outputs.name
+output AZURE_OPENAI_ENDPOINT string = deployOpenAI ? openAi.name : 'Not deployed'
+output AZURE_OPENAI_COMPLETIONSDEPLOYMENTID string = deployOpenAI ? deployments[0].name : 'Not deployed'
+output AZURE_OPENAI_EMBEDDINGDEPLOYMENTID string = deployOpenAI ? deployments[1].name : 'Not deployed'
 output MANAGED_IDENTITY_NAME string = managedIdentity.outputs.name
+output OPENAI_DEPLOYED bool = deployOpenAI

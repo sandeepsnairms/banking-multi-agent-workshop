@@ -17,6 +17,9 @@
     "currentUserId": {
       "value": "${AZURE_CURRENT_USER_ID}"
     },
+    "deployOpenAI": {
+      "value": "${DEPLOY_OPENAI}"
+    },
     "owner": {
       "value": "${OWNER_EMAIL}"
     }
