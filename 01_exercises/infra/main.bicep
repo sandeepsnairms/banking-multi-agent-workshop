@@ -10,17 +10,25 @@ param environmentName string
 param location string
 
 @description('Id of the user or app to assign application roles')
-param principalId string
+param principalId string = ''
 
 @description('Type of the principal - User or ServicePrincipal')
 param principalType string = 'User'
 
+@description('Id of the current user to assign application roles')
+param currentUserId string = ''
+
 @description('Owner tag for resource tagging')
 param owner string = 'defaultuser@example.com'
 
+// Validation: At least one of principalId or currentUserId must be provided
+var hasPrincipalId = !empty(principalId)
+var hasCurrentUserId = !empty(currentUserId)
+var hasValidPrincipals = hasPrincipalId || hasCurrentUserId
+
 var tags = {
   'azd-env-name': environmentName
-  'owner': owner
+  owner: owner
 }
 
 var abbrs = loadJsonContent('./abbreviations.json')
@@ -109,17 +117,21 @@ module openAiModelDeployments './shared/modeldeployment.bicep' = [
   }
 ]
 
-//Assign Roles to Managed Identities
-module AssignRoles './shared/assignroles.bicep' = {
+//Assign Roles to Managed Identity and Current User/Service Principal
+module AssignRoles './shared/assignroles.bicep' = if (hasValidPrincipals) {
   name: 'AssignRoles'
   params: {
     cosmosDbAccountName: cosmos.outputs.name
     openAIName: openAi.outputs.name
     identityName: managedIdentity.outputs.name
-	  userPrincipalId: !empty(principalId) ? principalId : null
+    servicePrincipalId: principalId  // Service Principal ID
+    currentUserId: currentUserId     // Current User ID  
     principalType: principalType
   }
   scope: rg
+  dependsOn: [
+    openAiModelDeployments  // Ensure deployments are complete before assigning roles
+  ]
 }
 
 
@@ -129,3 +141,4 @@ output COSMOSDB_ENDPOINT string = cosmos.outputs.endpoint
 output AZURE_OPENAI_ENDPOINT string = openAi.outputs.endpoint
 output AZURE_OPENAI_COMPLETIONSDEPLOYMENTID string = openAiModelDeployments[0].outputs.name
 output AZURE_OPENAI_EMBEDDINGDEPLOYMENTID string = openAiModelDeployments[1].outputs.name
+output MANAGED_IDENTITY_NAME string = managedIdentity.outputs.name
