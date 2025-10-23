@@ -24,7 +24,7 @@ param(
     [string]$Location,
    
     [Parameter()]
-    [string]$LocalPath = 'C:\Sandy\HOL_AFandLangGraph\01_exercises',
+    [string]$LocalPath = 'C:\Lab\HOL_AFandLangGraph\01_exercises',
 
     [Parameter()]
     [bool]$DeployOpenAI = $true
