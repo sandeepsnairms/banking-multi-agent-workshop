@@ -1,32 +1,44 @@
-# Enhanced PowerShell script for Service Principal deployment with azd
-
 param(
     [Parameter(Mandatory=$true)]
     [string]$AppId,
-    
+   
     [Parameter(Mandatory=$true)]
     [string]$TenantId,
-    
+   
     [Parameter(Mandatory=$true)]
     [string]$AppSecret,
-    
+   
     [Parameter(Mandatory=$true)]
     [string]$SubscriptionId,
-    
+   
     [Parameter(Mandatory=$true)]
     [string]$UserPrincipalName,
-    
+   
+    [Parameter(Mandatory=$true)]
+    [string]$UserObjectId,  # **Mandatory now** for guest MSA accounts
+   
     [Parameter(Mandatory=$true)]
     [string]$LabInstanceId,
-    
+   
     [Parameter(Mandatory=$true)]
     [string]$Location,
-    
+   
     [Parameter()]
-    [string]$LocalPath = 'C:\Lab\01_exercises\infra\main.parameters.json'
+    [string]$LocalPath = 'C:\Sandy\HOL_AFandLangGraph\01_exercises',
+
+    [Parameter()]
+    [string]$DeployOpenAI = $true
 )
 
 Write-Host "Starting deployment with Service Principal..." -ForegroundColor Green
+
+# Calculate the full path to the parameters file
+$parametersFilePath = Join-Path $LocalPath "infra\main.parameters.json"
+$infraDir = Join-Path $LocalPath "infra"
+
+Write-Host "Using base directory: $LocalPath" -ForegroundColor Cyan
+Write-Host "Parameters file path: $parametersFilePath" -ForegroundColor Cyan
+Write-Host "Infrastructure directory: $infraDir" -ForegroundColor Cyan
 
 try {
     # Create secure credential for Service Principal
@@ -46,14 +58,7 @@ try {
     $servicePrincipalObjectId = $servicePrincipal.Id
     Write-Host "Found Service Principal Object ID: $servicePrincipalObjectId" -ForegroundColor Green
 
-    # Get the user's Azure AD Object ID (this is what we need for role assignments)
-    Write-Host "Getting Azure AD User Object ID..." -ForegroundColor Yellow
-    $azureUser = Get-AzADUser -UserPrincipalName $UserPrincipalName
-    if (-not $azureUser) {
-        throw "Could not find user with UPN: $UserPrincipalName"
-    }
-    $azureUserId = $azureUser.Id
-    Write-Host "Found user ID: $azureUserId" -ForegroundColor Green
+    Write-Host "Using provided UserObjectId: $UserObjectId" -ForegroundColor Green
 
     # Set Azure context
     Set-AzContext -Subscription $SubscriptionId -Tenant $TenantId
@@ -62,8 +67,9 @@ try {
     $env:AZURE_ENV_NAME = "agenthol-$LabInstanceId"
     $env:AZURE_LOCATION = $Location
     $env:AZURE_PRINCIPAL_ID = $servicePrincipalObjectId  # Service Principal Object ID
-    $env:AZURE_CURRENT_USER_ID = $azureUserId           # Current User Object ID
+    $env:AZURE_CURRENT_USER_ID = $UserObjectId          # Current User Object ID
     $env:AZURE_PRINCIPAL_TYPE = "ServicePrincipal"      # Type for the Service Principal
+    $env:DEPLOY_OPENAI = $DeployOpenAI.ToString().ToLower()  # Whether to deploy OpenAI
     $env:OWNER_EMAIL = $UserPrincipalName
 
     Write-Host "Environment variables set:" -ForegroundColor Green
@@ -72,23 +78,19 @@ try {
     Write-Host "  AZURE_PRINCIPAL_ID (SP): $env:AZURE_PRINCIPAL_ID"
     Write-Host "  AZURE_CURRENT_USER_ID: $env:AZURE_CURRENT_USER_ID"
     Write-Host "  AZURE_PRINCIPAL_TYPE: $env:AZURE_PRINCIPAL_TYPE"
+    Write-Host "  DEPLOY_OPENAI: $env:DEPLOY_OPENAI"
     Write-Host "  OWNER_EMAIL: $env:OWNER_EMAIL"
 
-    # Modify Bicep parameters file to ensure proper principal ID is used
-    if (Test-Path $LocalPath) {
+    # Update Bicep parameters file
+    if (Test-Path $parametersFilePath) {
         Write-Host "Updating parameters file..." -ForegroundColor Yellow
         $FindPrincipalId = '"value": "${AZURE_PRINCIPAL_ID}"'
-        $ReplacePrincipalId = '"value": "' + $azureUserId + '"'
-        (Get-Content -Path $LocalPath -Raw).Replace($FindPrincipalId, $ReplacePrincipalId) | Set-Content -Path $LocalPath
+        $ReplacePrincipalId = '"value": "' + $servicePrincipalObjectId + '"'
+        (Get-Content -Path $parametersFilePath -Raw).Replace($FindPrincipalId, $ReplacePrincipalId) | Set-Content -Path $parametersFilePath
         Write-Host "Parameters file updated successfully" -ForegroundColor Green
     } else {
-        Write-Warning "Parameters file not found at: $LocalPath"
+        Write-Warning "Parameters file not found at: $parametersFilePath"
     }
-
-    # Change to infrastructure directory
-    $infraDir = 'C:\Lab\01_exercises'
-    Set-Location $infraDir
-    Write-Host "Changed to directory: $infraDir" -ForegroundColor Yellow
 
     # Authenticate azd with Service Principal
     Write-Host "Authenticating azd with Service Principal..." -ForegroundColor Yellow
@@ -98,12 +100,11 @@ try {
     }
     Write-Host "azd authentication successful" -ForegroundColor Green
 
-    # Check if environment already exists
+    # Check if environment exists
     $envName = "agenthol-$LabInstanceId"
     Write-Host "Checking if environment '$envName' exists..." -ForegroundColor Yellow
-    
     $existingEnv = & azd env list --output json | ConvertFrom-Json | Where-Object { $_.Name -eq $envName }
-    
+   
     if ($existingEnv) {
         Write-Host "Environment '$envName' already exists. Using existing environment." -ForegroundColor Yellow
         & azd env select $envName
@@ -115,15 +116,17 @@ try {
         }
     }
 
-    # Set the required environment variables in azd
+    # Set azd environment variables
     Write-Host "Setting azd environment variables..." -ForegroundColor Yellow
     & azd env set AZURE_PRINCIPAL_ID $servicePrincipalObjectId   # Service Principal for deployment
-    & azd env set AZURE_CURRENT_USER_ID $azureUserId            # Current User for development
+    & azd env set AZURE_CURRENT_USER_ID $UserObjectId           # Current User for development
     & azd env set AZURE_PRINCIPAL_TYPE "ServicePrincipal"
+    & azd env set DEPLOY_OPENAI $DeployOpenAI.ToString().ToLower()
     & azd env set OWNER_EMAIL $UserPrincipalName
 
     # Deploy the application
-    Write-Host "Starting deployment..." -ForegroundColor Yellow
+    Write-Host "Starting deployment from base directory: $LocalPath" -ForegroundColor Yellow
+    Set-Location $LocalPath  # Ensure we're in the base directory with azure.yaml
     & azd up -e $envName --no-prompt
     if ($LASTEXITCODE -ne 0) {
         throw "azd up failed with exit code: $LASTEXITCODE"
