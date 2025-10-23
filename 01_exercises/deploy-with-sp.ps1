@@ -130,15 +130,15 @@ try {
 
     # Set azd environment variables
     Write-Host "Setting azd environment variables..." -ForegroundColor Yellow
-    Write-Host "  🔹 AZURE_PRINCIPAL_ID (SP): $servicePrincipalObjectId" -ForegroundColor Cyan
-    Write-Host "  🔹 AZURE_CURRENT_USER_ID: $UserObjectId" -ForegroundColor Cyan
+    Write-Host "  AZURE_PRINCIPAL_ID (SP): $servicePrincipalObjectId" -ForegroundColor Cyan
+    Write-Host "  AZURE_CURRENT_USER_ID: $UserObjectId" -ForegroundColor Cyan
     & azd env set AZURE_PRINCIPAL_ID $servicePrincipalObjectId   # Service Principal for deployment
     & azd env set AZURE_CURRENT_USER_ID $UserObjectId           # Current User for development
     & azd env set AZURE_PRINCIPAL_TYPE "ServicePrincipal"
     & azd env set DEPLOY_OPENAI $DeployOpenAI.ToString().ToLower()
     & azd env set OWNER_EMAIL $UserPrincipalName
     
-    Write-Host "✅ All azd environment variables set successfully" -ForegroundColor Green
+    Write-Host " All azd environment variables set successfully" -ForegroundColor Green
 
     
     # Deploy the application
@@ -147,11 +147,11 @@ try {
     
     # Debug: Show what azd will use
     Write-Host ""
-    Write-Host "🔍 Current azd environment values:" -ForegroundColor Cyan
+    Write-Host "Current azd environment values:" -ForegroundColor Cyan
     & azd env get-values
     
     Write-Host ""
-    Write-Host "🚀 Running azd up..." -ForegroundColor Yellow
+    Write-Host "Running azd up..." -ForegroundColor Yellow
     & azd up -e $envName --no-prompt
     if ($LASTEXITCODE -ne 0) {
         throw "azd up failed with exit code: $LASTEXITCODE"
@@ -164,3 +164,4 @@ try {
     Write-Error "Stack trace: $($_.ScriptStackTrace)"
     exit 1
 }
+
