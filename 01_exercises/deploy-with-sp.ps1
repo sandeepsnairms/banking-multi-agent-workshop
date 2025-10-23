@@ -27,7 +27,7 @@ param(
     [string]$LocalPath = 'C:\Sandy\HOL_AFandLangGraph\01_exercises',
 
     [Parameter()]
-    [string]$DeployOpenAI = $true
+    [bool]$DeployOpenAI = $true
 )
 
 Write-Host "Starting deployment with Service Principal..." -ForegroundColor Green
