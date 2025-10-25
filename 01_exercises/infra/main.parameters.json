@@ -11,17 +11,12 @@
     "principalId": {
       "value": "${AZURE_PRINCIPAL_ID}"
     },
-    "principalType": {
-      "value": "${AZURE_PRINCIPAL_TYPE}"
-    },
-    "currentUserId": {
-      "value": "${AZURE_CURRENT_USER_ID}"
-    },
-    "deployOpenAI": {
-      "value": "${DEPLOY_OPENAI}"
+    "servicePrincipalId": {
+      "value": "${AZURE_SERVICE_PRINCIPAL_ID=}"
     },
     "owner": {
       "value": "${OWNER_EMAIL}"
     }
   }
 }
+
