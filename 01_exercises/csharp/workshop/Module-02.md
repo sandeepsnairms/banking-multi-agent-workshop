@@ -13,12 +13,11 @@ In this module, you'll connect your agent to Azure Cosmos DB to provide persiste
 
 ## Module Exercises
 
-1. [Activity 1: Create a Simple Banking Agent](#activity-1-create-a-simple-banking-agent)
-1. [Activity 2: Connecting Agent Frameworks to Azure Cosmos DB](#activity-2-connecting-agent-frameworks-to-azure-cosmos-db)
-1. [Activity 3: Test your Work](#activity-3-test-your-work)
+1. [Activity 1: Connecting Agent Frameworks to Azure Cosmos DB](#activity-1-connecting-agent-frameworks-to-azure-cosmos-db)
+1. [Activity 2: Test your Work](#activity-2-test-your-work)
 
 
-## Activity 2: Connecting Agent Frameworks to Azure Cosmos DB
+## Activity 1: Connecting Agent Frameworks to Azure Cosmos DB
 
 In this activity, you will learn how to initialize Azure Cosmos DB and integrate with an agent framework to provide persistent memory for chat history and state management.
 
@@ -54,7 +53,7 @@ This method handles message history management and creates a specialized banking
              "Banker");
 
          var responseText= agent.RunAsync(chatHistory).GetAwaiter().GetResult().Text;
-         return CreateResponseTuple(userMessage, responseText, "Banker");         
+         return CreateResponseTuple(userMessage, responseText, "Banker");
      }
      catch (Exception ex)
      {
@@ -76,7 +75,7 @@ Let's view the data model for our chat session object.
 With a reference to the current session returned from the CosmosDBService, this function calls our newly implemented function to update the messages within the session object with any new or updated messages. Typically, this would include a single user prompt, followed by one or more responses from the agents.
 
 1. In VS Code, navigate to the **/Services** folder and open the **ChatService.cs** class.
-1. Search for **TO DO : Add AddPromptCompletionMessagesAsync** and paste the the below code.
+1. Search for **TO DO : Add AddPromptCompletionMessagesAsync** and paste the below code.
 
 This method handles the persistence of conversation messages to Cosmos DB. It retrieves the session, adds new messages, and performs a batch upsert operation.
 
@@ -118,13 +117,13 @@ This method orchestrates the complete chat flow: retrieving history, processing 
             return result.Item1;
 ```
 
-## Activity 3: Test your Work
+## Activity 2: Test your Work
 
 With the activities in this module complete, it is time to test your work.
 
 ### Start the Backend
 
-1. Return to the open terminal for the backend app in VS Code. Ensure you are in '01_exercises\csharp\src\MultiAgentCopilot'. Type `dotnet run`
+1. Return to the open terminal for the backend app in VS Code. Ensure you are in `01_exercises\csharp\src\MultiAgentCopilot`. Type `dotnet run`
 
 ### Start a Chat Session
 
@@ -144,7 +143,7 @@ Can a senior citizen open a savings account?
 Does the interest rate vary?
 ```
 
-1. Expected response: The Agent's response is contextually correct for the  whole chat session.
+1. Expected response: The Agent's response is contextually correct for the whole chat session.
 1. You should see something like the output below.
 
     ![Test output Module 2](./media/module-02/test-output.png)

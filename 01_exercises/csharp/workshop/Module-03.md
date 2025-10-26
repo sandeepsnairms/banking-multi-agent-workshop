@@ -13,17 +13,15 @@ In this module, you'll learn how to implement agent specialization by creating s
 
 ## Module Exercises
 
-1. [Activity 1: Defining Bank Domain Data Models](#activity-1-defining-bank-domain-data-models)  
+1. [Activity 1: Defining Bank Domain Data Models and Functions](#activity-1-defining-bank-domain-data-models-and-functions)  
 1. [Activity 2: Defining Agent Behavior](#activity-2-defining-agent-behavior)  
-1. [Activity 3: Integrating Bank Domain Functions as Tools](#activity-3-integrating-bank-domain-functions-as-Tools)  
-1. [Activity 4: Adding a Tool to the Agent](#activity-4-adding-a-Tool-to-the-agent)  
+1. [Activity 3: Integrating Bank Domain Functions as Tools](#activity-3-integrating-bank-domain-functions-as-tools)  
+1. [Activity 4: Adding a Tool to the Agent](#activity-4-adding-a-tool-to-the-agent)  
 1. [Activity 5: Building an Agent Dynamically](#activity-5-building-an-agent-dynamically)
 1. [Activity 6: Semantic Search](#activity-6-semantic-search)
 1. [Activity 7: Test your Work](#activity-7-test-your-work)
 
 ## Activity 1: Defining Bank Domain Data Models and Functions
-
-It is important to understand the need for agent specialization and have a basic grasp of how to build and integrate them. For the remainder of this module we will do just that for our banking scenario.
 
 When working with any kind of data we need to review our data models.
 
@@ -46,7 +44,7 @@ In this activity we will review the existing Prompty files.
 1. In VS Code, navigate to the **/Prompts** folder.
 1. Review the contents of **CommonAgentRules.prompty**.
 
-The contents of this file doesn't define a single agent's behavior but provides a baseline for how all agents will behave. Think of it like a set of global rules for agents. All agents import the text from this prompt to govern their responses.
+The contents of this file don't define a single agent's behavior but provides a baseline for how all agents will behave. Think of it like a set of global rules for agents. All agents import the text from this prompt to govern their responses.
 
 #### Coordinator Agent
 
@@ -88,7 +86,7 @@ We are now ready to complete the implementation for the **Agent Factory** create
 
 Next we need to replace our original hard-coded implementation from Module 2 to use the AgentType enum for our banking agents. It is also worth noting that it is here where the contents of the **CommonAgentRules.prompty** are included as part of the system prompts that define our agents.
 
-1. Search for **TO DO: Add Agent Details** and paste below code for **GetAgentName()**, **GetAgentDescription()** and **GetAgentPrompt()** :
+1. Search for **TO DO: Add Agent Details** and paste the below code for **GetAgentName()**, **GetAgentDescription()** and **GetAgentPrompt()** :
 
 **Note:** You will notice build errors for some of the updates you make during the activities in this module. These will be fixed in subsequent Activities.
 
@@ -177,7 +175,7 @@ This tool function enables agents to add new account transactions to the banking
         }
 ```
 
-## Activity 4: Create Agent Tools
+## Activity 4: Adding a Tool to the Agent
 1. In VS Code, navigate to the **/Factories** folder
 1. Open the **AgentFactory.cs** class.
 1. Search for **//TO DO: Create Agent Tools** and paste code below .
@@ -246,7 +244,7 @@ This tool function enables agents to add new account transactions to the banking
 ### Adding InProcess tools in Agent Framework Service
 1. In VS Code, navigate to the **/Services** folder
 1. Open the **AgentFrameworkService.cs** class.
-1. Search for **TO DO: Add In Process Tools** and paste code below .
+1. Search for **TO DO: Add In Process Tools** and paste the code below .
 
 ```csharp
 if (_bankService != null)
@@ -255,7 +253,7 @@ if (_bankService != null)
 }
 ``` 
 
-## Activity 5: Adding a Tool to the Agent
+## Activity 5: Building an Agent Dynamically
 
 Similar to generating system prompts based on agent type, we need the Tools to be created dynamically. Next, we will implement a **CreateAllAgentsWithInProcessTools()** function that dynamically generates a Tool based on the agent type.
 
@@ -331,7 +329,6 @@ Similar to generating system prompts based on agent type, we need the Tools to b
             _afService.SetInProcessToolService(_bankService);
 
 ```
-## Activity 6: Building an Agent Dynamically
 
 Now that we have dynamically generated Agent Prompt and  Agent Kernel, we can make the agent build process dynamic based on the **agentType** parameter. Next, we will modify the **BuildAgent()** function within the **AgentFactory** class to dynamically add Tools to the agents.
 
@@ -384,7 +381,7 @@ Data Models used for Vector Search in Semantic Kernel need to be enhanced with a
 
 1. Remain in the **Banking** project.
 1. Open the the **Services/EmbeddingService.cs** file.
-1. Search for **// TO DO: Update GenerateEmbeddingAsync** and replace teh code for **GenerateEmbeddingAsync()**method with the code 
+1. Search for **// TO DO: Update GenerateEmbeddingAsync** and replace the code for **GenerateEmbeddingAsync()**method with the code 
 
 ```csharp
         public async Task<float[]> GenerateEmbeddingAsync(string text)
@@ -400,8 +397,8 @@ Data Models used for Vector Search in Semantic Kernel need to be enhanced with a
 ```
 ### Update BankingDataService to include vector search
 1. Remain in the **Banking** project.
-1. Open the the **Services/BankingDataService.cs** file.
-1. Search for **//TO DO : Update SearchOfferTermsAsync** and replace teh code for **SearchOfferTermsAsync()**method with the code below.
+1. Open the **Services/BankingDataService.cs** file.
+1. Search for **//TO DO : Update SearchOfferTermsAsync** and replace the code for **SearchOfferTermsAsync()**method with the code below.
 
 ```csharp
         public async Task<List<OfferTerm>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription)
@@ -473,7 +470,7 @@ With the activities in this module complete, it is time to test your work.
 
 ### Start the Backend
 
-1. Return to the open terminal for the backend app in VS Code. Ensure you are in '01_exercises\csharp\src\MultiAgentCopilot'. Type `dotnet run`
+1. Return to the open terminal for the backend app in VS Code. Ensure you are in `01_exercises\csharp\src\MultiAgentCopilot`. Type `dotnet run`
 
 ### Start a Chat Session
 
@@ -487,9 +484,11 @@ I'm looking for a high interest savings account
 1. Within the backend terminal, press **Ctrl + C** to stop the backend application.
 1. Locate this line of code, *var agentName="Coordinator";* in **\Services\AgentFrameworkService.cs**
 1. Replace it with the line of code below.
-```c#
+
+```csharp
 var agentName="Sales";
 ```
+
 1. Return to the open terminal for the backend app in VS Code and type `dotnet run`
 1. Return to the frontend application in your browser.
 1. Send the same message to test the current *Sales* AgentType.

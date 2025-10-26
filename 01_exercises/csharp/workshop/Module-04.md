@@ -19,7 +19,7 @@ In this module, you'll learn how to implement multi-agent orchestration to coord
 
 ## Activity 1: Define Agents and Roles
 
-When dealing with multiple agents, clear agent roles is important to avoid conflicts and making sure  customer gets the most appropriate response.
+When dealing with multiple agents, clear agent roles are important to avoid conflicts and making sure the customer gets the most appropriate response.
 
 ### Add Selection Strategy for Agent Selection
 
@@ -40,7 +40,7 @@ Choose only from these participants:{participants}
 Always follow these rules when choosing the next participant:
 - Determine the nature of the user's request and route it to the appropriate agent
 - If the user is responding to an agent, select that same agent.
-- If the agent is responding after fetching or verifying data , select that same agent.
+- If the agent is responding after fetching or verifying data, select that same agent.
 - If unclear, select Coordinator.
                     
 Please respond with only the name of the participant you would like to select.
@@ -113,7 +113,7 @@ namespace MultiAgentCopilot.Models.ChatInfoFormats
 Let's create an Agent to decide the next agent in the conversation, using the ContinuationInfo model as the response format.
 
 1. In VS Code, Navigate to the **/Helper** folder.
-1. Navigate to **GroupChatWorkflowHelper.cs.cs**.
+1. Navigate to **GroupChatWorkflowHelper.cs**.
 1. Replace the **SelectNextAgentAsync()** with the below code.
 
 This method implements the agent selection logic using a moderator agent. It analyzes conversation history and selects the most appropriate next agent.
@@ -332,7 +332,7 @@ In the previous module we tested each agent independently. With the code changes
 
 ### Start the Backend
 
-- Return to the open terminal for the backend app in VS Code. Ensure you are in '01_exercises\csharp\src\MultiAgentCopilot'. Type `dotnet run`
+- Return to the open terminal for the backend app in VS Code. Ensure you are in `01_exercises\csharp\src\MultiAgentCopilot`. Type `dotnet run`
 
 ### Start a Chat Session
 
@@ -358,9 +358,9 @@ For each response in our testing below, click on the *Bug* icon to see the Debug
 ## Validation Checklist
 
 - [ ] Depending on the user prompt the agent selection is dynamic.
-- [ ] All the agents  context of the previous messages in teh conversation.
+- [ ] All the agents have context of the previous messages in the conversation.
 - [ ] The agents are able to invoke the right plugin function to interact with **BankingService**.
-- [ ] Vector search  works as expected.
+- [ ] Vector search works as expected.
 
 ## Common Issues and Solutions
 
@@ -370,7 +370,7 @@ For each response in our testing below, click on the *Bug* icon to see the Debug
    - Study the Termination Reason
    - Edit the appropriate Prompty files to resolve the conflict.
 
-1. Agent response are invalid:
+1. Agent responses are invalid:
 
    - Change in model and/or its version can cause invalid/irrelevant agent behavior.
    - Thorough testing with updated prompts will be required.

@@ -5,8 +5,10 @@ Determine if agent has requested user input or has responded to the user's query
 Respond with a JSON object indicating whether the conversation should continue.
 Set "ShouldContinue" to false (conversation should terminate) if agent has requested user input.
 Set "ShouldContinue" to true (conversation should continue) if any of the following conditions are met:
+- User request is a greeting.
 - An action is pending by an agent.
 - Further participation from an agent is required
 - The information requested by the user was not provided by the current agent.
+- Agent has requested specific details for processing the user's request but user response is unclear.
 
 Also provide a "Reason" explaining your decision.

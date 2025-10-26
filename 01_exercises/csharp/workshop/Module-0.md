@@ -64,6 +64,14 @@ azd up
 
 1. Open the PowerShell terminal on the Start bar.
 1. Navigate to `C:\repos\HOL_AFandLangGraph\01_exercises\csharp\src\MultiAgentCopilot`.
+
+1 . Execute the below command to add the preview Nugget packages.
+
+    ```shell
+    dotnet add package Azure.AI.OpenAI --prerelease
+    dotnet add package Azure.Identity
+    dotnet add package Microsoft.Agents.AI.OpenAI --prerelease
+    ```
 1. Type `code .`
 1. Open the Terminal in VS Code.
 1. Type `dotnet run` to start the multi-agent service.

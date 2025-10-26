@@ -7,7 +7,7 @@ In this Module, you'll configure the lab resources then start the application to
 1. Open a browser locally on the VM and navigate to +++https://portal.azure.com+++
 1. Login using the credentials below
 1. User name +++@lab.CloudPortalCredential(User1).Username+++
-1. Password +++@lab.CloudPortalCredential(User1).Password+++
+1. Temporary Access Pass +++@lab.CloudPortalCredential(User1).AccessToken+++
 1. In the Search box at the top of the Azure Portal, type in `resource group`. Open the Resource groups blade
 1. Open the resource group that starts with: *rg-agenthol-*.
 1. If the resource group does not appear wait a few moments then refresh.
