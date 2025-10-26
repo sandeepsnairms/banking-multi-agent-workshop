@@ -7,7 +7,7 @@ In this Module, you'll configure the lab resources then start the application to
 1. Open a browser locally on the VM and navigate to +++https://portal.azure.com+++
 1. Login using the credentials below
 1. User name +++@lab.CloudPortalCredential(User1).Username+++
-1. Password +++@lab.CloudPortalCredential(User1).Password+++
+1. Temporary Access Pass +++@lab.CloudPortalCredential(User1).AccessToken+++
 1. In the Search box at the top of the Azure Portal, type in `resource group`. Open the Resource groups blade
 1. Open the resource group that starts with: *rg-agenthol-*.
 1. If the resource group does not appear wait a few moments then refresh.
@@ -29,9 +29,17 @@ In this Module, you'll configure the lab resources then start the application to
 
 ```shell
 cd csharp\src\MultiAgentCopilot
+
+```
+1. Execute the below command in the Terminal to add the preview Nuget packages.
+
+```shell
+dotnet add package Azure.AI.OpenAI --prerelease
+dotnet add package Azure.Identity
+dotnet add package Microsoft.Agents.AI.OpenAI --prerelease
 ```
 
-1. Type `dotnet run` to start the multi-agent service.
+1. Type  `dotnet run` to start the multi-agent service.
 1. You will notice some warnings when the app starts. You can ignore these.
 1. When you see *No agents initialized in ChatService* the app has started.
 1. Leave the app running.

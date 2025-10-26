@@ -202,7 +202,7 @@ Hello, how are you?
 Your implementation is successful if:
 
 - [ ] Your app compiles with no errors.
-- [ ] Your agent successfully processes user input and generates and appropriate response.
+- [ ] Your agent successfully processes user input and generates an appropriate response.
 
 ## Module Solution
 
@@ -228,7 +228,6 @@ public class ChatService
 {
     private readonly CosmosDBService _cosmosDBService;
     private readonly BankingDataService _bankService;
-    private readonly SemanticKernelService _skService;
     private readonly ILogger _logger;
 
     

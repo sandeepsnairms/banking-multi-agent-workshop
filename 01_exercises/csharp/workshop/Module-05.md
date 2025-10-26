@@ -185,7 +185,7 @@ public async Task<IList<McpClientTool>> GetMcpTools(AgentType agent)
 ### Update Agent Factory to Use MCP Tools
 
 1. In VS Code, navigate to the **/Factories** folder
-1. Navigate to in **AgentFactory.cs**
+1. Navigate to **AgentFactory.cs**
 1. Search for **//TO DO: Add Agent Creation with Tools** and paste the code below
 
 ```csharp
@@ -222,7 +222,7 @@ public static async Task<List<AIAgent>> CreateAllAgentsWithMCPToolsAsync(IChatCl
 
 ## Integrate MCP Tools with Agent Framework
 
-1. Navigate to in **AgentFrameworkService.cs**
+1. Navigate to **AgentFrameworkService.cs**
 1. Search for **// TO DO: Add MCP Service Option** and paste the code below
 
 This code integrates MCP tool service as an option for agent creation. It provides a fallback mechanism when MCP tools are preferred over in-process tools.
@@ -258,7 +258,7 @@ This method enables setting the MCP tool service for agent framework integration
 
 ## Set MCP Tools in Chat Service
 
-1. Navigate to in **ChatService.cs**
+1. Navigate to **ChatService.cs**
 1. Search for **TO DO: Invoke SetMCPToolService** and paste the code below
 
 ```csharp
@@ -277,13 +277,25 @@ _afService.SetMCPToolService(_mcpService);
 ### Start the MCPServer
 1. Within VS Code, open a new terminal.
 1. Navigate to the `mcpserver` folder, `C:\repos\HOL_AFandLangGraph\01_exercises\mcpserver\csharp\`
-1. Type `dotnet run`
+1. Execute the below command in the Terminal to add the preview Nuget packages.
 
-In the previous module we tested each agent independently. With the code changes in this module we should now be able to orchestrate a multi-agent chat where agent selection is automated based on the SelectionStrategy and agent prompts. Lets go ahead and test if the code works as expected.
+    ```shell
+
+    dotnet add package Azure.AI.OpenAI --prerelease
+    dotnet add package Azure.Identity
+    dotnet add package Microsoft.Agents.AI.OpenAI --prerelease
+    ```
+1. Run the below command to run the MCP Server.
+    ```shell
+    
+    dotnet run
+    
+    ```
+
 
 ### Start the Backend
 
-- Return to the open terminal for the backend app in VS Code. Ensure you are in '01_exercises\csharp\src\MultiAgentCopilot'. Type `dotnet run`
+- Return to the open terminal for the backend app in VS Code. Ensure you are in `01_exercises\csharp\src\MultiAgentCopilot`. Type `dotnet run`
 
 ### Start a Chat Session
 
@@ -292,7 +304,7 @@ For each response in our testing below, click on the *Bug* icon to see the Debug
 
 1. Return to the frontend application in your browser.
 1. Start a new conversation.
-1. Try the below prompts. Provide more infomration if prompted.
+1. Try the below prompts. Provide more information if prompted.
     1. Who can help me here?
     1. Transfer $50 to my friend.
     1. When prompted for account and email, enter, "Account is Acc001 and Email is Sandeep@contoso.com"
@@ -309,7 +321,7 @@ For each response in our testing below, click on the *Bug* icon to see the Debug
 ## Validation Checklist
 
 - [ ] Depending on the user prompt the agent selection is dynamic.
-- [ ] All the agents  context of the previous messages in teh conversation.
+- [ ] All the agents have context of the previous messages in the conversation.
 - [ ] The agents are able to invoke the right plugin function to interact with **BankingService**.
 - [ ] Vector search  works as expected.
 
@@ -321,7 +333,7 @@ For each response in our testing below, click on the *Bug* icon to see the Debug
    - Study the Termination Reason
    - Edit the appropriate Prompty files to resolve the conflict.
 
-1. Agent response are invalid:
+1. Agent responses are invalid:
 
    - Change in model and/or its version can cause invalid/irrelevant agent behavior.
    - Thorough testing with updated prompts will be required.
