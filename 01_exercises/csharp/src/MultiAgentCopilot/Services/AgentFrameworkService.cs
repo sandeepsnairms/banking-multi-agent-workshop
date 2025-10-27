@@ -210,7 +210,7 @@ public class AgentFrameworkService : IDisposable
     {
         try
         {
-            return new Tuple<List<Message>, List<DebugLog>>(new List<Message>(), new List<DebugLog>());
+            return CreateResponseTuple(userMessage, $"##Replaying user Message: {userMessage.Text} ##", "Starter Agent");
             //TO DO: Add GetResponse function
 
             

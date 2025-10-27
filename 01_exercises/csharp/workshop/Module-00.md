@@ -25,15 +25,16 @@ In this Module, you'll configure the lab resources then start the application to
 1. Open VS Code from the desktop.
 1. This should open this folder by default, *"C:\Users\LabUser\multi-agent-hol\01_exercises\"*. If not, navigate to and open this folder.
 1. From the menu, select Terminal, New Terminal, then open a new PowerShell terminal.
-1. Navigate to *csharp\src\MultiAgentCopilot*.
+1. Navigate to *01_exercises\csharp\src\MultiAgentCopilot* .
 
 ```shell
-cd csharp\src\MultiAgentCopilot
+cd 01_exercises\csharp\src\MultiAgentCopilot
 
 ```
 1. Execute the below command in the Terminal to add the preview Nuget packages.
 
 ```shell
+dotnet nuget add source https://api.nuget.org/v3/index.json -n nuget.org
 dotnet add package Azure.AI.OpenAI --prerelease
 dotnet add package Azure.Identity
 dotnet add package Microsoft.Agents.AI.OpenAI --prerelease
@@ -42,16 +43,17 @@ dotnet add package Microsoft.Agents.AI.OpenAI --prerelease
 1. Type  `dotnet run` to start the multi-agent service.
 1. You will notice some warnings when the app starts. You can ignore these.
 1. When you see *No agents initialized in ChatService* the app has started.
+![module0_buildsucess](./media/module-00/module0_buildsucess.png)
 1. Leave the app running.
 
 ### Start the Frontend App
 
 1. Next we will start the frontend application. We will leave this running for the duration of the lab.
 1. Within VS Code, open a new terminal.
-1. Navigate to the *frontend* folder.
+1. Navigate to the *01_exercises\frontend* folder.
 
 ```shell
-cd frontend
+cd 01_exercises\frontend
 ```
 
 1. Copy and run the following:

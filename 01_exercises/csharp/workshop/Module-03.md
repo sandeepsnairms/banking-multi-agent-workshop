@@ -41,6 +41,7 @@ In this activity we will review the existing Prompty files.
 
 #### Common Agent Rules
 
+1. In VS Code, navigate to the **MultiAgentCopilot** project.
 1. In VS Code, navigate to the **/Prompts** folder.
 1. Review the contents of **CommonAgentRules.prompty**.
 
@@ -330,13 +331,14 @@ Similar to generating system prompts based on agent type, we need the Tools to b
 
 ```
 
-Now that we have dynamically generated Agent Prompt and  Agent Kernel, we can make the agent build process dynamic based on the **agentType** parameter. Next, we will modify the **BuildAgent()** function within the **AgentFactory** class to dynamically add Tools to the agents.
+Now that we can build Agents, we can make the agent build process dynamic based on the **agentType** parameter. Next, we will modify the **BuildAgent()** function within the **AgentFactory** class to dynamically add Tools to the agents.
 
 1. In VS Code, navigate to the **/Services** folder
 1. Open the **AgentFrameworkService.cs** class.
-1. Update the **GetResponse()**method with the code below .
+1. Update the **GetResponse()** method with the code below .
 
-```csharp    
+```csharp
+
     public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(
         Message userMessage,
         List<Message> messageHistory,
