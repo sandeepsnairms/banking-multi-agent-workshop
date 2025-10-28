@@ -34,10 +34,9 @@ cd 01_exercises\csharp\src\MultiAgentCopilot
 1. Execute the below command in the Terminal to add the preview Nuget packages.
 
 ```shell
-dotnet nuget add source https://api.nuget.org/v3/index.json -n nuget.org
-dotnet add package Azure.AI.OpenAI --prerelease
-dotnet add package Azure.Identity
-dotnet add package Microsoft.Agents.AI.OpenAI --prerelease
+dotnet add package Azure.AI.OpenAI --prerelease --source https://api.nuget.org/v3/index.json
+dotnet add package Microsoft.Agents.AI.OpenAI --prerelease --source https://api.nuget.org/v3/index.json
+dotnet add package Microsoft.Agents.AI.Workflows --prerelease --source https://api.nuget.org/v3/index.json
 ```
 
 1. Type  `dotnet run` to start the multi-agent service.
