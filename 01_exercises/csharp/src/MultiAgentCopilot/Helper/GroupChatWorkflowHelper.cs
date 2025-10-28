@@ -10,7 +10,7 @@ using ChatMessage = Microsoft.Extensions.AI.ChatMessage;
 
 namespace MultiAgentCopilot.MultiAgentCopilot.Helper
 {
-    public class GroupChatWorkflowHelper : AgentWorkflowBuilder.GroupChatManager
+    public class GroupChatWorkflowHelper : GroupChatManager
     {
         private readonly IReadOnlyList<AIAgent> _agents;
         private readonly Func<GroupChatWorkflowHelper, IEnumerable<ChatMessage>, CancellationToken, ValueTask<bool>>? _shouldTerminateFunc;
