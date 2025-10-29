@@ -77,7 +77,8 @@ Let's view the data model for our chat session object.
 With a reference to the current session returned from the CosmosDBService, this function calls our newly implemented function to update the messages within the session object with any new or updated messages. Typically, this would include a single user prompt, followed by one or more responses from the agents.
 
 1. In VS Code, navigate to the **/Services** folder and open the **ChatService.cs** class.
-1. Search for **TO DO : Add AddPromptCompletionMessagesAsync** and paste the below code.
+1. Search for **//TO DO : Add AddPromptCompletionMessagesAsync** and paste the below code. 
+
 
 This method handles the persistence of conversation messages to Cosmos DB. It retrieves the session, adds new messages, and performs a batch upsert operation.
 

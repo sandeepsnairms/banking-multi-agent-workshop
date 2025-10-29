@@ -245,7 +245,7 @@ This tool function enables agents to add new account transactions to the banking
 ### Adding InProcess tools in Agent Framework Service
 1. In VS Code, navigate to the **/Services** folder
 1. Open the **AgentFrameworkService.cs** class.
-1. Search for **TO DO: Add In Process Tools** and paste the code below .
+1. Search for **//TO DO: Add In Process Tools** and paste the code **within** the method. Do **not** replace the entire method.
 
 ```csharp
 if (_bankService != null)
@@ -319,7 +319,7 @@ Similar to generating system prompts based on agent type, we need the Tools to b
 ```
 
 1. Navigate to **ChatService.cs** class.
-1. Search for **// TO DO: Invoke SetInProcessToolService** and paste code below .
+1. Search for **// TO DO: Invoke SetInProcessToolService** and paste code below **within** the method. Do **not** replace the entire method.
 
 ```csharp
             var embeddingClient = _afService.GetAzureOpenAIClient();

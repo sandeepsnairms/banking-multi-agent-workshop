@@ -66,7 +66,7 @@ public class AgentFrameworkService : IDisposable
         _promptDebugProperties = new List<LogProperty>();
 
 
-         _chatClient = CreateChatClient();
+        _chatClient = CreateChatClient();
 
         _logger.LogInformation("Agent Framework Initialized.");
 
@@ -81,10 +81,11 @@ public class AgentFrameworkService : IDisposable
     /// <summary>
     /// Creates and configures the Azure OpenAI chat client.
     /// </summary>
+    /// 
+    //TO DO: CreateChatClient
     private IChatClient CreateChatClient()
     {
-        return null;
-        //TO DO: CreateChatClient
+        return null;        
         
     }
 
@@ -141,11 +142,11 @@ public class AgentFrameworkService : IDisposable
     #region Public Methods
 
     //TO DO: Add SetInProcessToolService
-      
+
 
 
     //TO DO: Add SetMCPToolService
-    
+
     ////TO DO: Add RunGroupChatOrchestration
 
     /// <summary>
@@ -162,7 +163,7 @@ public class AgentFrameworkService : IDisposable
                 // TO DO: Add In Process Tools
 
                 // TO DO: Add MCP Service Option
-                
+
 
                 if (_agents == null || _agents.Count == 0)
                 {
@@ -171,11 +172,11 @@ public class AgentFrameworkService : IDisposable
                 }
 
                 _logger.LogInformation("Successfully initialized {AgentCount} agents", _agents.Count);
-                
+
                 // Log agent details
                 foreach (var agent in _agents)
                 {
-                    _logger.LogInformation("Agent: {AgentName}, Description: {Description}", 
+                    _logger.LogInformation("Agent: {AgentName}, Description: {Description}",
                         agent.Name, agent.Description);
                 }
             }
@@ -201,6 +202,8 @@ public class AgentFrameworkService : IDisposable
     /// <param name="tenantId">The tenant identifier.</param>
     /// <param name="userId">The user identifier.</param>
     /// <returns>A tuple containing the response messages and debug logs.</returns>
+    /// 
+    //TO DO: Add GetResponse function
     public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(
         Message userMessage,
         List<Message> messageHistory,
@@ -211,9 +214,7 @@ public class AgentFrameworkService : IDisposable
         try
         {
             return CreateResponseTuple(userMessage, $"##Replaying user Message: {userMessage.Text} ##", "Starter Agent");
-            //TO DO: Add GetResponse function
 
-            
         }
         catch (Exception ex)
         {
@@ -228,15 +229,14 @@ public class AgentFrameworkService : IDisposable
     /// <param name="sessionId">The session identifier.</param>
     /// <param name="userPrompt">The text to summarize.</param>
     /// <returns>A summarized version of the text.</returns>
+    /// 
+    //TO DO: Add Summarize function
     public async Task<string> Summarize(string sessionId, string userPrompt)
     {
         try
         {
              return "TBD";
-            
-            //TO DO: Add Summarize function
-           
-          
+ 
         }
         catch (Exception ex)
         {
