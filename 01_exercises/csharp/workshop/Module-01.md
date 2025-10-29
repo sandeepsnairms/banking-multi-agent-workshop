@@ -48,7 +48,7 @@ We are going to define two primary functions as part of our multi-agent applicat
 - **GetResponse()** will be the entry point called by the front end to interact with the multi-agent service. Everything happens behind this function.
 - **Summarize()** will be used to summarize the conversations users are having with the agent service.
 
-1. In VS Code, use the explorer on the left-hand side of the IDE to open the **MultiAgentCopilot\Services** folder.
+1. In VS Code, use the explorer on the left-hand side of the IDE to open the **01_exercises\csharp\src\MultiAgentCopilot\Services** folder.
 1. Within the **\Services** folder navigate to **AgentFrameworkService.cs**.
 1. Search for **//TO DO: CreateChatClient** and replace **CreateChatClient()** method with the code below.
 
