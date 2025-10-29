@@ -83,7 +83,7 @@ This method creates and configures an Azure OpenAI chat client with proper authe
 
 ## Activity 2: Create a Simple Agent
 
-Let's create a very simple agent for our workshop that is powered by an LLM. This agent will simply greet users and translate their requests into French. We will also implement a summarize function that renames the current chat session based upon the current topic from the user.
+ Let's create two simple agents powered by an LLM. The first agent will greet users and translate their requests into French, providing a multilingual experience. The second agent will implement a summarize function that dynamically renames the current chat session based on the user’s topic, making conversations easier to organize and reference.
 
 1. Search for **//TO DO: Add GetResponse function** and replace **GetResponse()** method with the code below.
 
@@ -117,7 +117,7 @@ This method creates a simple AI agent with specific instructions and runs it wit
     }
 ```
 
-1. Search for **//TO DO: Add Summarize function** and replace **Summarize()** method with the code below.
+2. Search for **//TO DO: Add Summarize function** and replace **Summarize()** method with the code below.
 
 This method creates a summarization agent that condenses user input into exactly two words. It's useful for generating concise session titles or quick content summaries.
 

@@ -44,8 +44,8 @@ public class ChatService
         }
         else
         {
-            // In-Process Tools
-            // TO DO: Invoke SetInProcessToolService
+            //In-Process Tools
+            //TO DO: Invoke SetInProcessToolService
 
         }
 
@@ -122,7 +122,7 @@ public class ChatService
     }
 
 
-    // TO DO : Add AddPromptCompletionMessagesAsync
+    //TO DO: Add AddPromptCompletionMessagesAsync
     
 
 

@@ -24,6 +24,7 @@ In this Module, you'll configure the lab resources then start the application to
 
 1. Open VS Code from the desktop.
 1. This should open this folder by default, *"C:\Users\LabUser\multi-agent-hol\01_exercises\"*. If not, navigate to and open this folder.
+1. Close any pop-up windows that appear automatically when VS Code launches.
 1. From the menu, select Terminal, New Terminal, then open a new PowerShell terminal.
 1. Navigate to *01_exercises\csharp\src\MultiAgentCopilot* .
 

@@ -224,7 +224,7 @@ public static async Task<List<AIAgent>> CreateAllAgentsWithMCPToolsAsync(IChatCl
 ## Integrate MCP Tools with Agent Framework
 
 1. Navigate to **AgentFrameworkService.cs**
-1. Search for **// TO DO: Add MCP Service Option** and paste the code below **within** the method. Do **not** replace the entire method.
+1. Search for **//TO DO: Add MCP Service Option** and paste the code below **within** the method. Do **not** replace the entire method.
 
 This code integrates MCP tool service as an option for agent creation. It provides a fallback mechanism when MCP tools are preferred over in-process tools.
 

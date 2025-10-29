@@ -251,7 +251,7 @@ namespace Banking.Services
         }
 
 
-        //TO DO : Update SearchOfferTermsAsync
+        //TO DO: Update SearchOfferTermsAsync
         public async Task<List<OfferTerm>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription)
         {
             try
