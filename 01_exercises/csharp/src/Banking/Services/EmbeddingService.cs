@@ -16,7 +16,7 @@ namespace Banking.Services
             _deployment = deployment;
         }
 
-        // TO DO: Update GenerateEmbeddingAsync
+        //TO DO: Update GenerateEmbeddingAsync
         public async Task<float[]> GenerateEmbeddingAsync(string text)
         {
             return new float[] { 0.0f, 0.0f, 0.0f };

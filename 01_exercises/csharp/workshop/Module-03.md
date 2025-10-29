@@ -301,7 +301,7 @@ Similar to generating system prompts based on agent type, we need the Tools to b
 
 1. In VS Code, navigate to the **/Services** folder
 1. Open the **AgentFrameworkService.cs** class.
-1. Search for **TO DO: Add SetInProcessToolService** and paste code below .
+1. Search for **//TO DO: Add SetInProcessToolService** and paste code below .
 
 ```csharp
     /// <summary>
@@ -319,7 +319,7 @@ Similar to generating system prompts based on agent type, we need the Tools to b
 ```
 
 1. Navigate to **ChatService.cs** class.
-1. Search for **// TO DO: Invoke SetInProcessToolService** and paste code below **within** the method. Do **not** replace the entire method.
+1. Search for **//TO DO: Invoke SetInProcessToolService** and paste code below **within** the method. Do **not** replace the entire method.
 
 ```csharp
             var embeddingClient = _afService.GetAzureOpenAIClient();
@@ -383,7 +383,7 @@ Data Models used for Vector Search in Semantic Kernel need to be enhanced with a
 
 1. Remain in the **Banking** project.
 1. Open the the **Services/EmbeddingService.cs** file.
-1. Search for **// TO DO: Update GenerateEmbeddingAsync** and replace the code for **GenerateEmbeddingAsync()** method with the code 
+1. Search for **//TO DO: Update GenerateEmbeddingAsync** and replace the code for **GenerateEmbeddingAsync()** method with the code 
 
 ```csharp
         public async Task<float[]> GenerateEmbeddingAsync(string text)
@@ -400,7 +400,7 @@ Data Models used for Vector Search in Semantic Kernel need to be enhanced with a
 ### Update BankingDataService to include vector search
 1. Remain in the **Banking** project.
 1. Open the **Services/BankingDataService.cs** file.
-1. Search for **//TO DO : Update SearchOfferTermsAsync** and replace the code for **SearchOfferTermsAsync()** method with the code below.
+1. Search for **//TO DO: Update SearchOfferTermsAsync** and replace the code for **SearchOfferTermsAsync()** method with the code below.
 
 ```csharp
         public async Task<List<OfferTerm>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription)

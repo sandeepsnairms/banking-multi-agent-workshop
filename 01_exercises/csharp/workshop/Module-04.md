@@ -60,7 +60,7 @@ Let's create an Agent to decide the next agent in the conversation, using the Co
 
 1. In VS Code, Navigate to the **/Helper** folder.
 1. Navigate to **GroupChatWorkflowHelper.cs**.
-1. Replace the **SelectNextAgentAsync()** with the below code.
+1. Replace the **SelectNextAgentAsync()** method with the below code.
 
 This method implements the agent selection logic using a moderator agent. It analyzes conversation history and selects the most appropriate next agent.
 
@@ -110,7 +110,7 @@ This method implements the agent selection logic using a moderator agent. It ana
 ```
 ### Termination Decider
 
-1. Replace the **ShouldTerminateWithAI()** with the below code.
+1. Replace the **ShouldTerminateWithAI()** method with the below code.
 
 ```csharp
  private async Task<bool> ShouldTerminateWithAI(IReadOnlyList<ChatMessage> history, CancellationToken cancellationToken)
