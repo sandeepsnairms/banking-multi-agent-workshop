@@ -1,6 +1,6 @@
 # Build a Multi-Agent App using Agent Framework
 
-Welcome to our Multi-Agent Workshop. The source code for this is available at <https://github.com/AzureCosmosDB/banking-multi-agent-workshop>. Feel free to save this URL so you can clone and run the completed sample and retake this HOL yourself.
+Welcome to our Multi-Agent Workshop. The source code for this is available at <https://github.com/AzureCosmosDB/banking-multi-agent-workshop/tree/HOL_v2_AFandLangGraph>. Feel free to save this URL so you can clone and run the completed sample and retake this HOL yourself.
 
 ## Learning Path
 

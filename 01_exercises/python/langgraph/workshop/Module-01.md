@@ -117,14 +117,14 @@ Agents are the heart of these applications. Below, we are going to create a **Re
 In LangGraph there are different types of agents you can create, depending on your needs. These include:
 
 | Agent Type | Best for |
-|-|-|
+| --- | --- |
 | React Agent | Reasoning and decision making and tool use |
 | Tools Agent | Direct function calling with structured APIs |
 | Custom Agents| Full control over logic & multi-agent workflows |
 
 In LangGraph, the definition of an agent includes any **Tools** it needs to do its job. This often involves retrieving some information or taking some action, like transfering execution to another agent (we will get into that soon). If an agent doesn't require any tools, this is defined as empty.
 
-In our simple agent we are going to define a new React Agent as the coorindator for our app using a built-in function called, `create_react_agent()`. Since this is our first agent, there are no tools to define for it so the tools we define for it will be empty. Notice that this agent also calls the function we defined above, `load_prompt()`.
+In our simple agent we are going to define a new React Agent as the coordinator for our app using a built-in function called, `create_react_agent()`. Since this is our first agent, there are no tools to define for it so the tools we define for it will be empty. Notice that this agent also calls the function we defined above, `load_prompt()`.
 
 In the `banking_agents.py` file, navigate to the `# define agents & tools` comment.
 
@@ -167,7 +167,7 @@ def human_node(state: MessagesState, config) -> None:
 Before we go any further we should cover a few new things you may have seen. LangGraph has a series of built-in functions that you will use when building these types of applications. The first you saw above when we defined our agent, `create_react_agent()`. There are two more used above, `Command()` and `interrupt()`. Here is a short summary of built-in functions.
 
 | Function | Purpose |
-|-|-|
+| --- | --- |
 | create_react_agent() | Create an agent that reasons and acts using tools dynamically. |
 | interrupt(value) | Pauses execution and waits for external input. |
 | Command(update, goto) | Updates the state and moves execution to the next node. |
@@ -226,7 +226,7 @@ We have:
 - Created a state graph that defines the flow of the conversation and compiles it into a langgraph object.
 - Added an in-memory checkpoint to save the state of the conversation.
 
-We could run this and see it in action but before we do this, let's implement a second agent for our coorindator agent to transfer to. In this next activity, we are going to create a Customer Service Agent that our Coordinator Agent will transfer execution to on behalf of the user.
+We could run this and see it in action but before we do this, let's implement a second agent for our coordinator agent to transfer to. In this next activity, we are going to create a Customer Service Agent that our Coordinator Agent will transfer execution to on behalf of the user.
 
 ## Activity 2: Create a Simple Customer Service Agent
 
@@ -363,7 +363,7 @@ You MUST include human-readable response.
 
 The coordinator agent's job in this multi-agent system is to handle routing to multiple different agents. However, to do that we need to give it instructions to do so. This is done in the coordinator agent's prompt. With our customer service agent, now fully defined, let's update the coordinator agent's prompty file so it can transfer to the customer support agent.
 
-### Update the Coorindator Agent Prompt
+### Update the Coordinator Agent Prompt
 
 In your IDE, stay in the `src/app/prompts` folder.
 
