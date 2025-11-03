@@ -73,7 +73,7 @@ This agent handles any account-based transactions on behalf of the user includin
 
 ### Retrieving the prompty text for Agents
 
-In our banking solution we have four agents: transactions agent, sales agent, customer support agent, and a coordinator agent to manage all of them. With the behavior of the agents defined in Prompty, we now need to implement the code that will allow the application to load the agent behavior for each of the agents.
+In our multi agent application we have four agents: transactions agent, sales agent, customer support agent, and a coordinator agent to manage all of them. With the behavior of the agents defined in Prompty, we now need to implement the code that will allow the application to load the agent behavior for each of the agents.
 
 1. In VS Code, navigate to the **/Models** folder.
 1. Review the contents of **AgentTypes.cs**.
@@ -521,7 +521,7 @@ The following sections include the completed code for this Module. Copy and past
 
 
 ```
-
+</details>
 <details>
   <summary>Completed code for <strong>\Services\ChatService.cs</strong></summary>
 <br>
@@ -530,7 +530,7 @@ The following sections include the completed code for this Module. Copy and past
 
 
 ```
-
+</details>
 <details>
   <summary>Completed code for <strong>\Banking\Services\EmbeddingService.cs</strong></summary>
 <br>
@@ -539,7 +539,7 @@ The following sections include the completed code for this Module. Copy and past
 
 
 ```
-
+</details>
 <details>
   <summary>Completed code for <strong>\Banking\Services\BankingDataService.cs</strong></summary>
 <br>
@@ -548,7 +548,7 @@ The following sections include the completed code for this Module. Copy and past
 
 
 ```
-
+</details>
 <details>
   <summary>Completed code for <strong>\MultiAgentCopilot\Factories\AgentFactory.cs</strong></summary>
 <br>
@@ -558,7 +558,7 @@ The following sections include the completed code for this Module. Copy and past
 
 ```
 
-
+</details>
 <details>
   <summary>Completed code for <strong>\MultiAgentCopilot\Tools\TransactionTools.cs</strong></summary>
 <br>
@@ -567,7 +567,7 @@ The following sections include the completed code for this Module. Copy and past
 
 
 ```
-
+</details>
 
 ## Next Steps
 

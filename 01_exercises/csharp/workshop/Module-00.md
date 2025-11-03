@@ -16,7 +16,7 @@ In this Module, you'll configure the lab resources then start the application to
 1. If all resources have been deployed successfully, you are ready to begin the lab. Your screen should look like this.
 ![deployments](./media/module-00/deployments.png)
 1. Leave this browser open to the Azure Portal.
-1. Proceed to [Running the App](#running-the-app)
+
 
 ## Running the App
 
@@ -69,7 +69,7 @@ npm start
 ### Start a Conversation
 
 1. In the Login dialog, select a user and company and click, Login.
-1. Start a new conversation.
+1. Click + New Chat in the top-left corner to start a new conversation.
 1. Send the message:
 
 ```text

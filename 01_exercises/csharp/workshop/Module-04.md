@@ -226,7 +226,7 @@ Until now the responses we received were from a single agent, lets use AgentGrou
             if (selectedAgentName == "__")
             {
                 _logger.LogError("Error in getting response");
-                return ("Sorry, I encountered an error while processing your request. Please try again.", "Error");
+                return ("I’m sorry, I didn’t quite understand that. Could you please rephrase your message?", "Oops!");
             }
             // Extract response text
             string responseText = ExtractResponseText(responseMessages);
@@ -238,7 +238,7 @@ Until now the responses we received were from a single agent, lets use AgentGrou
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error in Agent Framework orchestration");
-            return ("Sorry, I encountered an error while processing your request. Please try again.", "Error");
+            return ("I’m sorry, I didn’t quite understand that. Could you please rephrase your message?", "Oops!");
         }
     }
 
@@ -333,7 +333,7 @@ The following sections include the completed code for this Module. Copy and past
 
 
 ```
-
+</details>
 <details>
   <summary>Completed code for <strong>\MultiAgentCopilot\Services\AgentFrameworkService.cs</strong></summary>
 <br>
@@ -342,7 +342,7 @@ The following sections include the completed code for this Module. Copy and past
 
 
 ```
-
+</details>
 
 ## Next Steps
 
