@@ -341,7 +341,7 @@ The following sections include the completed code for this Module. Copy and past
 
 
 ```
-
+</details>
 <details>
   <summary>Completed code for <strong>\MultiAgentCopilot\Services\AgentFrameworkService.cs</strong></summary>
 <br>
@@ -358,6 +358,7 @@ The following sections include the completed code for this Module. Copy and past
 
 
 ```
+</details>
 <details>
   <summary>Completed code for <strong>\MultiAgentCopilot\Services\MCPToolService.cs</strong></summary>
 <br>
@@ -366,6 +367,7 @@ The following sections include the completed code for this Module. Copy and past
 
 
 ```
+</details>
 <details>
   <summary>Completed code for <strong>\MultiAgentCopilot\Factories\AgentFactory.cs</strong></summary>
 <br>
@@ -374,6 +376,7 @@ The following sections include the completed code for this Module. Copy and past
 
 
 ```
+</details>
 
 
 ## Next Steps

@@ -216,7 +216,7 @@ The following sections include the completed code for this Module. Copy and past
 
 
 ```
-
+</details>
 <details>
   <summary>Completed code for <strong>\Services\ChatService.cs</strong></summary>
 <br>

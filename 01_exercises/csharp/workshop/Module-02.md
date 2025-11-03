@@ -175,7 +175,7 @@ The following sections include the completed code for this Module. Copy and past
 
 
 ```
-
+</details>
 <details>
   <summary>Completed code for <strong>\Services\ChatService.cs</strong></summary>
 <br>
@@ -184,7 +184,7 @@ The following sections include the completed code for this Module. Copy and past
 
 
 ```
-
+</details>
 ## Next Steps
 
 Proceed to Module 3: [Agent Specialization](./Module-03.md)
