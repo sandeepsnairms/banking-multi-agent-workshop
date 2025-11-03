@@ -150,7 +150,7 @@ I want to transfer 500 from Acc001 to Acc003
 ```
 
 1. When prompted, confirm the transaction.
-1. The conversion should look similar to this.
+1. The conversation should look similar to this.
 
 ![Testing_1](./media/module-04/testing_module_4-1.png)
 
@@ -311,7 +311,7 @@ def create_account(account_holder: str, balance: float, config: RunnableConfig) 
 def calculate_monthly_payment(loan_amount: float, years: int) -> float:
 ```
 
-1. Fionally, open the **tools/transactions.py** file.
+1. Finally, open the **tools/transactions.py** file.
 1. Add the below import line under the imports for this file.
 
 ```python
@@ -479,7 +479,7 @@ Next, open a new browser tab and navigate to <http://localhost:63280/docs> to vi
 This app comes with a few pre-created tenant and user ids that you can use to test with.
 
 | Tenant Id | User Id  |
-|-----------|----------|
+| --- | --- |
 | Contoso   | Mark     |
 | Contoso   | Sandeep  |
 | Contoso   | Theo     |

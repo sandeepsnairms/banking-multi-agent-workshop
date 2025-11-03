@@ -123,7 +123,7 @@ In this activity, you will learn how to add tools to your agents. You will also 
 
 ### What are tools?
 
-By "tools" we mean functions or discreet actions that each agent can perform. A tool will typically have input parameters (though it can also have none) and the agent will be responsible for extracting the input values from the conversational context and calling the tool when appropriate.
+By "tools" we mean functions or discrete actions that each agent can perform. A tool will typically have input parameters (though it can also have none) and the agent will be responsible for extracting the input values from the conversational context and calling the tool when appropriate.
 
 We already added a type of tool to the coordinator agent in the previous module, but that tool only allowed agents to hand off to each-other. In this module, we will add more functional tools to each agent that will allow them to perform other actions, including transactions against the database.
 
