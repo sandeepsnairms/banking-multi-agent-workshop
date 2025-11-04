@@ -28,7 +28,6 @@ Here’s the deployment architecture and components of the workshop!
 
 https://github.com/user-attachments/assets/0e943130-13c5-4bb5-a40b-51b6c85dd58c
 
-
 # Branch Overview
 
 This branch contains both exercise starter files and completed solutions for the sample multi-agent application in a retail banking scenario. You can either work through the exercises step by step or use the completed files to run the demo directly.
