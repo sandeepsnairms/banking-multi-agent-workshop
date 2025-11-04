@@ -246,15 +246,12 @@ public class AgentFrameworkService : IDisposable
     {
         try
         {
-
             messageHistory.Add(userMessage);
             var chatHistory = ConvertToAIChatMessages(messageHistory);
             chatHistory.Add(new ChatMessage(ChatRole.User, userMessage.Text));
-            var agentName="Sales";
-            var bankAgent = _agents.FirstOrDefault(s => s.Name == agentName);
-            var responseText = bankAgent.RunAsync(chatHistory).GetAwaiter().GetResult().Text;
-            return CreateResponseTuple(userMessage, responseText, agentName);
-            
+            var (responseText, selectedAgentName) = await RunGroupChatOrchestration(chatHistory, tenantId, userId);
+
+            return CreateResponseTuple(userMessage, responseText, selectedAgentName);
         }
         catch (Exception ex)
         {
@@ -426,6 +423,73 @@ public class AgentFrameworkService : IDisposable
 
     //TO DO: Add RunGroupChatOrchestration
     
+        /// <summary>
+    /// Orchestrates the group chat with AI agents.
+    /// </summary>
+    private async Task<(string responseText, string selectedAgentName)> RunGroupChatOrchestration(
+        List<ChatMessage> chatHistory,
+        string tenantId,
+        string userId)
+    {
+        try
+        {
+            _logger.LogInformation("Starting Agent Framework Group Chat");
+                       
+            // Add system context
+            chatHistory.Add(new ChatMessage(ChatRole.System, $"User Id: {userId}, Tenant Id: {tenantId}"));
+
+            // Create custom termination function
+            var customTerminationFunc = CreateCustomTerminationFunction();
+
+            // Create the workflow
+            var workflow = AgentWorkflowBuilder.CreateGroupChatBuilderWith(agents =>
+                    new GroupChatWorkflowHelper(_agents!, _chatClient, LogMessage, customTerminationFunc)
+                    {
+                        MaximumIterationCount = 5
+                    })
+                    .AddParticipants(_agents!)
+                    .Build();
+
+            //run the workflow
+            var (responseMessages, selectedAgentName) = await RunWorkflowAsync(workflow,chatHistory);
+
+            //log the function calls from the response messages
+            for (int i = chatHistory.Count; i < responseMessages.Count; i++)
+            {
+                if (responseMessages[i].Role.Value == "assistant")
+                {
+                    foreach (var content in responseMessages[i].Contents)
+                    {
+                        // Enhanced logging based on content type
+                        switch (content)
+                        {
+                            case FunctionCallContent functionCall:
+                                LogMessage("Function Call", $"Name: {functionCall.Name}, CallId: {functionCall.CallId}");
+                                LogMessage("Function Arguments", JsonSerializer.Serialize(functionCall.Arguments, new JsonSerializerOptions { WriteIndented = true }));
+                                break;
+                        }
+                    }
+                }
+            }
+
+            if (selectedAgentName == "__")
+            {
+                _logger.LogError("Error in getting response");
+                return ("I’m sorry, I didn’t quite understand that. Could you please rephrase your message?", "Oops!");
+            }
+            // Extract response text
+            string responseText = ExtractResponseText(responseMessages);
+
+            _logger.LogInformation("Agent Framework orchestration completed with agent: {AgentName}", selectedAgentName);
+
+            return (responseText, selectedAgentName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in Agent Framework orchestration");
+            return ("I’m sorry, I didn’t quite understand that. Could you please rephrase your message?", "Oops!");
+        }
+    }
 
 
     /// <summary>
