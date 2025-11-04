@@ -159,7 +159,18 @@ public class AgentFrameworkService : IDisposable
     #region Public Methods
 
     //TO DO: Add SetInProcessToolService
-
+        /// <summary>
+    /// Sets the in-process tool service for banking operations.
+    /// </summary>
+    /// <param name="bankService">The banking data service instance.</param>
+    /// <returns>True if the service was set successfully.</returns>
+    
+    public bool SetInProcessToolService(BankingDataService bankService)
+    {
+        _bankService = bankService ?? throw new ArgumentNullException(nameof(bankService));
+        _logger.LogInformation("InProcessToolService has been set.");
+        return true;
+    }
 
 
     //TO DO: Add SetMCPToolService
@@ -178,6 +189,10 @@ public class AgentFrameworkService : IDisposable
             if (_agents == null || _agents.Count == 0)
             {
                 //TO DO: Add In Process Tools
+                if (_bankService != null)
+                {
+                    _agents = AgentFactory.CreateAllAgentsWithInProcessTools(_chatClient, _bankService, _loggerFactory);
+                }
 
                 //TO DO: Add MCP Service Option
 
@@ -221,34 +236,32 @@ public class AgentFrameworkService : IDisposable
     /// <returns>A tuple containing the response messages and debug logs.</returns>
     /// 
     //TO DO: Add GetResponse function
+    
     public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(
-         Message userMessage,
-         List<Message> messageHistory,
-         BankingDataService bankService,
-         string tenantId,
-         string userId)
-     {
-         try
-         {
-             messageHistory.Add(userMessage);
-             var chatHistory = ConvertToAIChatMessages(messageHistory);
-             chatHistory.Add(new ChatMessage(ChatRole.User, userMessage.Text));
-    
-             _promptDebugProperties.Clear();
-    
-              var agent = _chatClient.CreateAIAgent(
-                 "You are a front desk agent in a bank. Respond to the user queries professionally. Provide professional and helpful responses to user queries.Use your knowledge of banking services and procedures to address user queries accurately.",
-                 "Banker");
-    
-             var responseText= agent.RunAsync(chatHistory).GetAwaiter().GetResult().Text;
-             return CreateResponseTuple(userMessage, responseText, "Banker");
-         }
-         catch (Exception ex)
-         {
-             _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.Message);
-             return new Tuple<List<Message>, List<DebugLog>>(new List<Message>(), new List<DebugLog>());
-         }
-     }
+        Message userMessage,
+        List<Message> messageHistory,
+        BankingDataService bankService,
+        string tenantId,
+        string userId)
+    {
+        try
+        {
+
+            messageHistory.Add(userMessage);
+            var chatHistory = ConvertToAIChatMessages(messageHistory);
+            chatHistory.Add(new ChatMessage(ChatRole.User, userMessage.Text));
+            var agentName="Sales";
+            var bankAgent = _agents.FirstOrDefault(s => s.Name == agentName);
+            var responseText = bankAgent.RunAsync(chatHistory).GetAwaiter().GetResult().Text;
+            return CreateResponseTuple(userMessage, responseText, agentName);
+            
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.Message);
+            return new Tuple<List<Message>, List<DebugLog>>(new List<Message>(), new List<DebugLog>());
+        }
+    }
 
     /// <summary>
     /// Summarizes the given text.

@@ -46,6 +46,13 @@ public class ChatService
         {
             //In-Process Tools
             //TO DO: Invoke SetInProcessToolService
+            var embeddingClient = _afService.GetAzureOpenAIClient();
+            var embeddingDeployment = _afService.GetEmbeddingDeploymentName();
+            EmbeddingService embeddingService = new EmbeddingService(embeddingClient, embeddingDeployment);
+            _bankService = new BankingDataService(embeddingService, cosmosDBService.Database, cosmosDBService.AccountDataContainer, cosmosDBService.UserDataContainer, cosmosDBService.AccountDataContainer, cosmosDBService.OfferDataContainer, loggerFactory);
+
+            _afService.SetInProcessToolService(_bankService);
+
 
         }
 
