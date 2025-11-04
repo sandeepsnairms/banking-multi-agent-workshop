@@ -68,18 +68,74 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Services
         
         private MCPServerSettings GetMCPServerSettings(AgentType agentType)
         {
-            return null;
-           
+            var agentName = AgentFactory.GetAgentName(agentType);
+
+            
+            // Find the server configuration for this agent type
+            var serverSettings = _mcpSettings.Servers?.FirstOrDefault(s => 
+                string.Equals(s.AgentName, agentName, StringComparison.OrdinalIgnoreCase));
+
+            if (serverSettings == null)
+            {
+                throw new InvalidOperationException($"MCP server configuration for agent '{agentName}' not found in MCPSettings.Servers.");
+            }
+
+            // Validate the server settings
+            if (string.IsNullOrWhiteSpace(serverSettings.Url))
+            {
+                throw new InvalidOperationException($"MCP server URL for agent '{agentName}' is not configured.");
+            }
+
+            if (string.IsNullOrWhiteSpace(serverSettings.Key))
+            {
+                throw new InvalidOperationException($"MCP server API key for agent '{agentName}' is not configured.");
+            }
+
+            return serverSettings;
         }
        
 
         /// <summary>
         /// Creates or retrieves a cached MCP client for the specified agent type
         /// </summary>
+        /// <summary>
         private async Task<McpClient> CreateMcpClientAsync(AgentType agentType, MCPServerSettings settings)
         {
-             return null;           
+            // Create authenticated transport with enhanced error handling
+            IClientTransport clientTransport;
+            try
+            {
+                // Create transport with authentication and streamable-http support
+                var wrapper = new AuthenticatedHttpWrapper(settings.Url, settings.Key);
+                clientTransport = wrapper.CreateTransport();
+                
+                // Configure transport for streamable-http if needed
+                if (clientTransport is HttpClientTransport httpTransport)
+                {
+                    await ConfigureTransportForStreamableHttp(httpTransport, settings);
+                }
 
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to create transport for agent {AgentType}: {Message}", agentType, ex.Message);
+                throw new InvalidOperationException($"Failed to create MCP transport for agent '{agentType}': {ex.Message}", ex);
+            }
+
+            // Create MCP client
+            try
+            {
+                var mcpClient = await McpClient.CreateAsync(clientTransport);
+                _logger.LogInformation("MCP client created successfully for agent: {AgentType}", agentType);
+                return mcpClient;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to create MCP client for agent {AgentType}: {Message}", agentType, ex.Message);
+                
+                
+                throw new InvalidOperationException($"Failed to create MCP client for agent '{agentType}': {ex.Message}", ex);
+            }
         }
 
         /// <summary>
@@ -142,8 +198,64 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Services
 
         public async Task<IList<McpClientTool>> GetMcpTools(AgentType agent)
         {
-             return null;
+            _logger.LogInformation("Getting MCP tools for agent: {AgentType}", agent);
+
+            try
+            {
+                // Get agent configuration
+                var settings = GetMCPServerSettings(agent);
+
+                // Get or create MCP client with authentication and streamable-http support
+                var mcpClient = await CreateMcpClientAsync(agent,settings);
+
+                // List available tools from the MCP server
+                var tools = await  mcpClient.ListToolsAsync();
+
+                var filteredTools = FilterToolsByTags(tools, settings.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(t => t.Trim()).ToArray());
+
+                _logger.LogInformation("Filtered {ToolCount} tools for agent {AgentType} with {Tags}", filteredTools.Count, agent, settings.Tags);
+
+                // Log each tool for debugging
+                foreach (var tool in filteredTools)
+                {
+                    _logger.LogDebug("Tool available - Name: {ToolName}, Description: {ToolDescription}", 
+                        tool.Name, tool.Description);
+                }
+
+                return filteredTools;
+            }
+            catch (InvalidOperationException)
+            {
+                // Configuration errors - already logged, re-throw
+                throw;
+            }
+            catch (HttpRequestException httpEx)
+            {
+                _logger.LogError(httpEx, "HTTP error when connecting to MCP server for agent {AgentType}: {Message}", 
+                    agent, httpEx.Message);
+                
+                // Check if it's an authentication error
+                if (httpEx.Message.Contains("401") || httpEx.Message.Contains("Unauthorized"))
+                {
+                    _logger.LogError("Authentication failed - check X-MCP-API-Key configuration for agent {AgentType}", agent);
+                }
+
+                return new List<McpClientTool>();
+            }
+            catch (TaskCanceledException timeoutEx)
+            {
+                _logger.LogError(timeoutEx, "Timeout when connecting to MCP server for agent {AgentType}: {Message}", 
+                    agent, timeoutEx.Message);
+                return new List<McpClientTool>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error getting MCP tools for agent {AgentType}: {Message} | StackTrace: {StackTrace}", 
+                    agent, ex.Message, ex.StackTrace);
+                return new List<McpClientTool>();
+            }    
         }
+
 
         /// <summary>
         ///  Filter MCP tools  by tags from the tool's description or metadata

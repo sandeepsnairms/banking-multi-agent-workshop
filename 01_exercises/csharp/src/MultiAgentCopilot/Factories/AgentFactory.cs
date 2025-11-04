@@ -71,7 +71,35 @@ namespace MultiAgentCopilot.Factories
         }
 
         //TO DO: Add Agent Creation with MCP Tools
+        public static async Task<List<AIAgent>> CreateAllAgentsWithMCPToolsAsync(IChatClient chatClient, MCPToolService mcpService, ILoggerFactory loggerFactory)
+        { 
+            var agents = new List<AIAgent>();
+            ILogger logger = loggerFactory.CreateLogger("AgentFactory");
 
+            // Get all agent types from the enum
+            var agentTypes = Enum.GetValues<AgentType>();
+
+            // Create agents for each agent type
+            foreach (var agentType in agentTypes)
+            {
+                logger.LogInformation("Creating agent {AgentType} with MCP tools", agentType);
+
+                var aiFunctions = await mcpService.GetMcpTools(agentType);
+
+                var agent = chatClient.CreateAIAgent(
+                        instructions: GetAgentPrompt(agentType),
+                        name: GetAgentName(agentType),
+                        description: GetAgentDescription(agentType),
+                        tools: aiFunctions.ToArray()
+                    );
+
+                agents.Add(agent);
+                logger.LogInformation("Created agent {AgentName} with {ToolCount} MCP tools", agent.Name, aiFunctions.Count());
+            }
+
+            logger.LogInformation("Successfully created {AgentCount} banking agents", agents.Count);
+            return agents;
+        }
         //TO DO: Add Agent Details
                 /// <summary>
         /// Get agent prompt based on type
