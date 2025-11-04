@@ -47,15 +47,22 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Helper
         protected override async ValueTask<bool> ShouldTerminateAsync(IReadOnlyList<ChatMessage> history, CancellationToken cancellationToken = default(CancellationToken))
         {
 
-            // Check if the last user message was from user, if so, do not terminate
-            if (history != null && history.Count > 0)
+            // Check if the last user message was from user, if so, do not terminate, skip system messages
+            for(int i = history.Count -1; i >=0; i--)
             {
-                var lastMessage = history.Last();
-                if (lastMessage.Role == ChatRole.User)
+                if(history[i].Role == ChatRole.System)
+                {
+                    continue;
+                }
+                else if(history[i].Role == ChatRole.User)
                 {
                     return false;
                 }
-            }
+                else
+                {
+                    break;
+                }
+            }       
 
             // First check if there's a custom termination function
             if (_shouldTerminateFunc != null)

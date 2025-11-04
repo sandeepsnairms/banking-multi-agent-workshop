@@ -65,6 +65,7 @@ public class AgentFrameworkService : IDisposable
         _logger = _loggerFactory.CreateLogger<AgentFrameworkService>();
         _promptDebugProperties = new List<LogProperty>();
 
+
         _chatClient = CreateChatClient();
 
         _logger.LogInformation("Agent Framework Initialized.");
@@ -76,73 +77,35 @@ public class AgentFrameworkService : IDisposable
 
     #region Private Methods
 
+
     /// <summary>
     /// Creates and configures the Azure OpenAI chat client.
     /// </summary>
+    /// 
+    //TO DO: CreateChatClient
     private IChatClient CreateChatClient()
-
     {
-
         try
-
         {
-
-            //var myCustomHttpHandler = new MyCustomClientHttpHandler();
-
-            //var myCustomClient = new HttpClient(handler: myCustomHttpHandler);
-
-            var myCustomClient = new HttpClient();
             var credential = CreateAzureCredential();
-
             var endpoint = new Uri(_settings.AzureOpenAISettings.Endpoint);
-
             var openAIClient = new AzureOpenAIClient(endpoint, credential, new AzureOpenAIClientOptions
-
             {
-
-                Transport = new HttpClientPipelineTransport(myCustomClient),
-
+                Transport = new HttpClientPipelineTransport(),
             });
-
+    
             return openAIClient
-
                 .GetChatClient(_settings.AzureOpenAISettings.CompletionsDeployment)
-
                 .AsIChatClient();
-
         }
-
         catch (Exception ex)
-
         {
-
             _logger.LogError(ex, "Failed to create chat client");
-
             throw;
-
-        }
-
-    }
-
-    internal sealed class MyCustomClientHttpHandler : HttpClientHandler
-    {
-        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-        {
-            var requestJson = await request.Content!.ReadAsStringAsync(cancellationToken);
-
-            var response = await base.SendAsync(request, cancellationToken);
-
-            var responseJson = await response.Content!.ReadAsStringAsync(cancellationToken);
-
-            
-
-            Console.WriteLine($"Request: {requestJson}");
-
-            Console.WriteLine($"Response: {responseJson}");
-
-            return response;
         }
     }
+
+
 
     public string GetEmbeddingDeploymentName()
     {
@@ -195,11 +158,13 @@ public class AgentFrameworkService : IDisposable
 
     #region Public Methods
 
-    /// <summary>
+    //TO DO: Add SetInProcessToolService
+        /// <summary>
     /// Sets the in-process tool service for banking operations.
     /// </summary>
     /// <param name="bankService">The banking data service instance.</param>
     /// <returns>True if the service was set successfully.</returns>
+    
     public bool SetInProcessToolService(BankingDataService bankService)
     {
         _bankService = bankService ?? throw new ArgumentNullException(nameof(bankService));
@@ -207,19 +172,22 @@ public class AgentFrameworkService : IDisposable
         return true;
     }
 
+
+    //TO DO: Add SetMCPToolService
     /// <summary>
     /// Sets the MCP (Model Context Protocol) tool service.
     /// </summary>
     /// <param name="mcpService">The MCP tool service instance.</param>
     /// <returns>True if the service was set successfully.</returns>
+
     public bool SetMCPToolService(MCPToolService mcpService)
     {
         _mcpService = mcpService ?? throw new ArgumentNullException(nameof(mcpService));
-        _logger.LogInformation("🔗 MCPToolService has been set - MCP integration ENABLED");
+        _logger.LogInformation("MCPToolService has been set");
         return true;
     }
-
-
+    
+    ////TO DO: Add RunGroupChatOrchestration
 
     /// <summary>
     /// Initializes the AI agents based on available tool services.
@@ -232,16 +200,17 @@ public class AgentFrameworkService : IDisposable
 
             if (_agents == null || _agents.Count == 0)
             {
+                //TO DO: Add In Process Tools
+                if (_bankService != null)
+                {
+                    _agents = AgentFactory.CreateAllAgentsWithInProcessTools(_chatClient, _bankService, _loggerFactory);
+                }
 
-
-                if (_mcpService != null)
+                //TO DO: Add MCP Service Option
+                else if (_mcpService != null)
                 {
                     _agents = AgentFactory.CreateAllAgentsWithMCPToolsAsync(_chatClient, _mcpService, _loggerFactory).GetAwaiter().GetResult();
-                }
-                else if (_bankService != null)
-                {
-                    _agents = AgentFactory.CreateAllAgentsWithInProcessTools(_chatClient, _bankService, _loggerFactory);                    
-                }
+                }                
                 else
                 {
                     _logger.LogError("No tool services available - cannot create agents");
@@ -249,28 +218,28 @@ public class AgentFrameworkService : IDisposable
 
                 if (_agents == null || _agents.Count == 0)
                 {
-                    _logger.LogError("💥 No agents available for orchestration");
+                    _logger.LogError("No agents available for orchestration");
                     return false;
                 }
 
-                _logger.LogInformation("🎯 Successfully initialized {AgentCount} agents", _agents.Count);
-                
+                _logger.LogInformation("Successfully initialized {AgentCount} agents", _agents.Count);
+
                 // Log agent details
                 foreach (var agent in _agents)
                 {
-                    _logger.LogInformation("🤖 Agent: {AgentName}, Description: {Description}", 
+                    _logger.LogInformation("Agent: {AgentName}, Description: {Description}",
                         agent.Name, agent.Description);
                 }
             }
             else
             {
-                _logger.LogInformation("♻️ Agents already initialized ({AgentCount} agents available)", _agents.Count);
+                _logger.LogInformation("Agents already initialized ({AgentCount} agents available)", _agents.Count);
             }
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "💥 Failed to initialize agents: {ExceptionMessage}", ex.Message);
+            _logger.LogError(ex, "Failed to initialize agents: {ExceptionMessage}", ex.Message);
             return false;
         }
     }
@@ -284,6 +253,9 @@ public class AgentFrameworkService : IDisposable
     /// <param name="tenantId">The tenant identifier.</param>
     /// <param name="userId">The user identifier.</param>
     /// <returns>A tuple containing the response messages and debug logs.</returns>
+    /// 
+    //TO DO: Add GetResponse function
+    
     public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(
         Message userMessage,
         List<Message> messageHistory,
@@ -296,12 +268,6 @@ public class AgentFrameworkService : IDisposable
             messageHistory.Add(userMessage);
             var chatHistory = ConvertToAIChatMessages(messageHistory);
             chatHistory.Add(new ChatMessage(ChatRole.User, userMessage.Text));
-
-            _promptDebugProperties.Clear();
-
-
-            //var responseText = _agents[3].RunAsync(chatHistory).Result.Text;
-            //var selectedAgentName= _agents[3].Name;
             var (responseText, selectedAgentName) = await RunGroupChatOrchestration(chatHistory, tenantId, userId);
 
             return CreateResponseTuple(userMessage, responseText, selectedAgentName);
@@ -319,6 +285,9 @@ public class AgentFrameworkService : IDisposable
     /// <param name="sessionId">The session identifier.</param>
     /// <param name="userPrompt">The text to summarize.</param>
     /// <returns>A summarized version of the text.</returns>
+    /// 
+    //TO DO: Add Summarize function
+    
     public async Task<string> Summarize(string sessionId, string userPrompt)
     {
         try
@@ -327,15 +296,16 @@ public class AgentFrameworkService : IDisposable
                 "Summarize the text into exactly two words:", 
                 "Summarizer");
 
-            return agent.RunAsync(userPrompt).GetAwaiter().GetResult().Text;
-          
+            return agent.RunAsync(userPrompt).GetAwaiter().GetResult().Text;        
+        
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error when getting response: {ErrorMessage}", ex.Message);
             return string.Empty;
         }
-    }
+    }   
+
 
     /// <summary>
     /// Disposes of the service resources.
@@ -470,7 +440,9 @@ public class AgentFrameworkService : IDisposable
         return parts.Length > 0 ? parts[0] : executorId;
     }
 
-    /// <summary>
+    //TO DO: Add RunGroupChatOrchestration
+    
+        /// <summary>
     /// Orchestrates the group chat with AI agents.
     /// </summary>
     private async Task<(string responseText, string selectedAgentName)> RunGroupChatOrchestration(
@@ -480,7 +452,7 @@ public class AgentFrameworkService : IDisposable
     {
         try
         {
-            _logger.LogInformation("Starting Agent Framework orchestration");
+            _logger.LogInformation("Starting Agent Framework Group Chat");
                        
             // Add system context
             chatHistory.Add(new ChatMessage(ChatRole.System, $"User Id: {userId}, Tenant Id: {tenantId}"));
@@ -522,7 +494,7 @@ public class AgentFrameworkService : IDisposable
             if (selectedAgentName == "__")
             {
                 _logger.LogError("Error in getting response");
-                return ("Sorry, I encountered an error while processing your request. Please try again.", "Error");
+                return ("I’m sorry, I didn’t quite understand that. Could you please rephrase your message?", "Oops!");
             }
             // Extract response text
             string responseText = ExtractResponseText(responseMessages);
@@ -534,9 +506,10 @@ public class AgentFrameworkService : IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error in Agent Framework orchestration");
-            return ("Sorry, I encountered an error while processing your request. Please try again.", "Error");
+            return ("I’m sorry, I didn’t quite understand that. Could you please rephrase your message?", "Oops!");
         }
     }
+
 
     /// <summary>
     /// Creates a custom termination function for the group chat orchestrator.

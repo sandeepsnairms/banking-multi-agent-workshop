@@ -36,24 +36,12 @@ namespace MultiAgentCopilot.Factories
 
     public static class AgentFactory
     {
-
-        /// <summary>
+        //TO DO: Add Agent Creation with Tools
+               /// <summary>
         /// Create all banking agents with proper instructions and tools
         /// </summary>
         public static List<AIAgent> CreateAllAgentsWithInProcessTools(IChatClient chatClient, BankingDataService bankService, ILoggerFactory loggerFactory)
-        {
-            //var aiFunctions2 = GetInProcessAgentTools(AgentType.Coordinator, bankService, loggerFactory).ToArray();
-            //var agent2 = chatClient.CreateAIAgent(
-            //            instructions: "Your primary responsibilities include welcoming users, identifying customers based on their login.Start with identifying the currently logged -in user's information and use it to personalize the interaction.For example, Thank you for logging in, [user Name]. How can I help you with your banking needs today?",
-            //            name: "Welcome",
-            //            description: "Welcome agent",
-            //            tools: aiFunctions2.ToArray()
-            //        );
-
-            //List<Microsoft.Extensions.AI.ChatMessage> history=new List<Microsoft.Extensions.AI.ChatMessage>();
-            //history.Add(new Microsoft.Extensions.AI.ChatMessage(Microsoft.Extensions.AI.ChatRole.User, "Hi, I just logged in. User: Mark, Tenant: Contoso"));
-
-            //var response2 = agent2.RunAsync(history).GetAwaiter().GetResult();
+        {           
 
             var agents = new List<AIAgent>();
             ILogger logger = loggerFactory.CreateLogger("AgentFactory");
@@ -65,14 +53,13 @@ namespace MultiAgentCopilot.Factories
             foreach (var agentType in agentTypes)
             {
                 logger.LogInformation("Creating agent {AgentType} with InProcess tools", agentType);
-
+                
                 var aiFunctions = GetInProcessAgentTools(agentType, bankService, loggerFactory).ToArray();
 
                 var agent = chatClient.CreateAIAgent(
                         instructions: GetAgentPrompt(agentType),
                         name: GetAgentName(agentType),
-                        description: GetAgentDescription(agentType),
-                        tools: aiFunctions.ToArray()
+                        description: GetAgentDescription(agentType)
                     );
 
                 agents.Add(agent);
@@ -83,22 +70,9 @@ namespace MultiAgentCopilot.Factories
             return agents;
         }
 
+        //TO DO: Add Agent Creation with MCP Tools
         public static async Task<List<AIAgent>> CreateAllAgentsWithMCPToolsAsync(IChatClient chatClient, MCPToolService mcpService, ILoggerFactory loggerFactory)
-        {
-            //var aiFunctions2 = await mcpService.GetMcpTools(AgentType.Coordinator);
-            //var agent2 = chatClient.CreateAIAgent(
-            //            instructions: "Your responsibility is to identify the currently logged -in user's information and welcome the user using full name.",
-            //            name: "Welcome",
-            //            description: "Welcome agent",
-            //            tools: aiFunctions2.ToArray()
-            //        );
-
-            //List<Microsoft.Extensions.AI.ChatMessage> history = new List<Microsoft.Extensions.AI.ChatMessage>();
-            //history.Add(new Microsoft.Extensions.AI.ChatMessage(Microsoft.Extensions.AI.ChatRole.User, "Hi, I just logged in. User: Mark, Tenant: Contoso"));
-
-            //var response2 = agent2.RunAsync(history).GetAwaiter().GetResult();
-
-
+        { 
             var agents = new List<AIAgent>();
             ILogger logger = loggerFactory.CreateLogger("AgentFactory");
 
@@ -126,21 +100,13 @@ namespace MultiAgentCopilot.Factories
             logger.LogInformation("Successfully created {AgentCount} banking agents", agents.Count);
             return agents;
         }
-              
-
-        /// <summary>
+        //TO DO: Add Agent Details
+                /// <summary>
         /// Get agent prompt based on type
         /// </summary>
         private static string GetAgentPrompt(AgentType agentType)
         {
-            string promptFile = agentType switch
-            {
-                AgentType.Sales => "Sales.prompty",
-                AgentType.Transactions => "Transactions.prompty",
-                AgentType.CustomerSupport => "CustomerSupport.prompty",
-                AgentType.Coordinator => "Coordinator.prompty",
-                _ => throw new ArgumentOutOfRangeException(nameof(agentType), agentType, null)
-            };
+            string promptFile = $"{GetAgentName(agentType)}.prompty";
 
             string prompt = $"{File.ReadAllText($"Prompts/{promptFile}")}{File.ReadAllText("Prompts/CommonAgentRules.prompty")}";
 
@@ -149,9 +115,8 @@ namespace MultiAgentCopilot.Factories
 
         /// <summary>
         /// Get agent name based on type
-        /// Names must match pattern: ^[^\s<|\\/>]+$ (no spaces or special characters)
         /// </summary>
-        private static string GetAgentName(AgentType agentType)
+        public static string GetAgentName(AgentType agentType)
         {
             return agentType switch
             {
@@ -177,11 +142,11 @@ namespace MultiAgentCopilot.Factories
                 _ => throw new ArgumentOutOfRangeException(nameof(agentType), agentType, null)
             };
         }
-               
-        
-        /// <summary>
+
+
+        //TO DO: Create Agent Tools
+                /// <summary>
         /// Get tools for specific agent type using existing tool classes
-        /// Returns null for now due to delegate binding limitations with the current Agent Framework API
         /// </summary>
         private static IList<AIFunction>? GetInProcessAgentTools(AgentType agentType, BankingDataService bankService, ILoggerFactory loggerFactory)
         {
@@ -240,5 +205,6 @@ namespace MultiAgentCopilot.Factories
         }
 
         
+
     }
 }
