@@ -16,13 +16,16 @@ namespace Banking.Services
             _deployment = deployment;
         }
 
+        //TO DO: Update GenerateEmbeddingAsync
         public async Task<float[]> GenerateEmbeddingAsync(string text)
         {
+
             var embeddingClient = _client.GetEmbeddingClient(_deployment);
             var result = await embeddingClient.GenerateEmbeddingsAsync(new List<string> { text });
             var vector = result.Value[0].ToFloats().ToArray();
 
             return vector;
+
         }
     }
 }

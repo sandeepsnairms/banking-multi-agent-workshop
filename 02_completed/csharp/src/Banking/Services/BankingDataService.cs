@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.Linq.Expressions;
 using System.Text;
 using System.Text.Json;
+using Banking.Helper;
 using Container = Microsoft.Azure.Cosmos.Container;
 using PartitionKey = Microsoft.Azure.Cosmos.PartitionKey;
 
@@ -49,7 +50,7 @@ namespace Banking.Services
         {
             try
             {
-                var partitionKey = GetUserDataFullPK(tenantId);
+                var partitionKey = PartitionManager.GetUserDataFullPK(tenantId);
 
                 return await _userData.ReadItemAsync<BankUser>(
                        id: userId,
@@ -70,7 +71,7 @@ namespace Banking.Services
                      .WithParameter("@type", nameof(BankAccount))
                      .WithParameter("@userId", userId);
 
-                var partitionKey = GetAccountsPartialPK(tenantId);
+                var partitionKey = PartitionManager.GetAccountsPartialPK(tenantId);
                 FeedIterator<BankAccount> response = _accountData.GetItemQueryIterator<BankAccount>(query, null, new QueryRequestOptions() { PartitionKey = partitionKey });
 
                 List<BankAccount> output = new();
@@ -93,7 +94,7 @@ namespace Banking.Services
         {
             try
             {
-                var partitionKey = GetAccountsDataFullPK(tenantId, accountId);
+                var partitionKey = PartitionManager.GetAccountsDataFullPK(tenantId, accountId);
 
                 return await _accountData.ReadItemAsync<BankAccount>(
                        id: accountId,
@@ -110,7 +111,7 @@ namespace Banking.Services
         {
             try
             {
-                var partitionKey = GetAccountsDataFullPK(tenantId, accountId);
+                var partitionKey = PartitionManager.GetAccountsDataFullPK(tenantId, accountId);
 
                 QueryDefinition queryDefinition = new QueryDefinition(
                        "SELECT * FROM c WHERE c.accountId = @accountId AND c.transactionDateTime >= @startDate AND c.transactionDateTime <= @endDate AND c.type = @type")
@@ -171,7 +172,7 @@ namespace Banking.Services
         {
             try
             {
-                var partitionKey = GetAccountsDataFullPK(req.TenantId, req.AccountId);
+                var partitionKey = PartitionManager.GetAccountsDataFullPK(req.TenantId, req.AccountId);
                 ItemResponse<ServiceRequest> response = await _accountData.CreateItemAsync(req, partitionKey);
                 return response.Resource;
             }
@@ -186,7 +187,7 @@ namespace Banking.Services
         {
             try
             {
-                var partitionKey = GetAccountsDataFullPK(tenantId, accountId);
+                var partitionKey = PartitionManager.GetAccountsDataFullPK(tenantId, accountId);
 
                 var queryBuilder = new StringBuilder("SELECT * FROM c WHERE c.type = @type");
                 var queryDefinition = new QueryDefinition(queryBuilder.ToString())
@@ -227,7 +228,7 @@ namespace Banking.Services
         {
             try
             {
-                var partitionKey = GetAccountsDataFullPK(tenantId, accountId);
+                var partitionKey = PartitionManager.GetAccountsDataFullPK(tenantId, accountId);
 
                 var patchOperations = new List<PatchOperation>
                 {
@@ -249,10 +250,13 @@ namespace Banking.Services
             }
         }
 
+
+        //TO DO: Update SearchOfferTermsAsync
         public async Task<List<OfferTerm>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription)
         {
             try
             {
+
                 // Generate embeddings for the requirement description
                 var queryVector = await _embeddingService.GenerateEmbeddingAsync(requirementDescription);
 
@@ -301,7 +305,6 @@ namespace Banking.Services
 
                 return offerTerms;
 
-
             }
             catch (Exception ex)
             {
@@ -326,24 +329,6 @@ namespace Banking.Services
                 return null;
             }
         }
-
-        // Helper methods to replace PartitionManager calls (these need proper implementation)
-        private static PartitionKey GetUserDataFullPK(string tenantId)
-        {
-            // TODO: Implement proper partition key logic or inject PartitionManager
-            return new PartitionKey(tenantId);
-        }
-
-        private static PartitionKey GetAccountsPartialPK(string tenantId)
-        {
-            // TODO: Implement proper partition key logic or inject PartitionManager
-            return new PartitionKey(tenantId);
-        }
-
-        private static PartitionKey GetAccountsDataFullPK(string tenantId, string accountId)
-        {
-            // TODO: Implement proper partition key logic or inject PartitionManager
-            return new PartitionKey(tenantId);
-        }
+        
     }
 }

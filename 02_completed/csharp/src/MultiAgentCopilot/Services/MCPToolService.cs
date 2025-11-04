@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ModelContextProtocol.Client;
+using MultiAgentCopilot.Factories;
 using MultiAgentCopilot.Models;
 using MultiAgentCopilot.Models.Configuration;
 using MultiAgentCopilot.Transport;
@@ -63,18 +64,13 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Services
             _logger.LogInformation("MCP configuration validated for {ServerCount} servers", _mcpSettings.Servers.Count);
         }
 
+
+        
         private MCPServerSettings GetMCPServerSettings(AgentType agentType)
         {
-            // Map AgentType to the agent name used in MCPSettings
-            var agentName = agentType switch
-            {
-                AgentType.Coordinator => "Coordinator", 
-                AgentType.CustomerSupport => "CustomerSupport",
-                AgentType.Sales => "Sales", 
-                AgentType.Transactions => "Transactions",
-                _ => agentType.ToString()
-            };
+            var agentName = AgentFactory.GetAgentName(agentType);
 
+            
             // Find the server configuration for this agent type
             var serverSettings = _mcpSettings.Servers?.FirstOrDefault(s => 
                 string.Equals(s.AgentName, agentName, StringComparison.OrdinalIgnoreCase));
@@ -97,18 +93,14 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Services
 
             return serverSettings;
         }
-
-        public MCPServerSettings GetMCPServerSettingsPublic(AgentType agentType)
-        {
-            return GetMCPServerSettings(agentType);
-        }
+       
 
         /// <summary>
         /// Creates or retrieves a cached MCP client for the specified agent type
         /// </summary>
+        /// <summary>
         private async Task<McpClient> CreateMcpClientAsync(AgentType agentType, MCPServerSettings settings)
         {
-
             // Create authenticated transport with enhanced error handling
             IClientTransport clientTransport;
             try
@@ -202,6 +194,8 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Services
             await Task.CompletedTask;
         }
 
+        //TO DO: ADD GetMcpTools
+
         public async Task<IList<McpClientTool>> GetMcpTools(AgentType agent)
         {
             _logger.LogInformation("Getting MCP tools for agent: {AgentType}", agent);
@@ -259,8 +253,9 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Services
                 _logger.LogError(ex, "Unexpected error getting MCP tools for agent {AgentType}: {Message} | StackTrace: {StackTrace}", 
                     agent, ex.Message, ex.StackTrace);
                 return new List<McpClientTool>();
-            }
+            }    
         }
+
 
         /// <summary>
         ///  Filter MCP tools  by tags from the tool's description or metadata

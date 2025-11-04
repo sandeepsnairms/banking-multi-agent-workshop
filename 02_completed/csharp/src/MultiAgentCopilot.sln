@@ -5,7 +5,7 @@ VisualStudioVersion = 17.5.33530.505
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MultiAgentCopilot", "MultiAgentCopilot\MultiAgentCopilot.csproj", "{3450C557-BECA-4F6D-B414-5941129229A6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Banking", "Banking\Banking.csproj", "{D0563F89-6D36-4284-9914-446B78338037}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Banking", "Banking\Banking.csproj", "{6D22C0B9-0CC5-4D03-B636-D281ECC07BCA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -20,12 +20,12 @@ Global
 		{3450C557-BECA-4F6D-B414-5941129229A6}.Publish|Any CPU.Build.0 = Release|Any CPU
 		{3450C557-BECA-4F6D-B414-5941129229A6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3450C557-BECA-4F6D-B414-5941129229A6}.Release|Any CPU.Build.0 = Release|Any CPU
-		{D0563F89-6D36-4284-9914-446B78338037}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D0563F89-6D36-4284-9914-446B78338037}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D0563F89-6D36-4284-9914-446B78338037}.Publish|Any CPU.ActiveCfg = Release|Any CPU
-		{D0563F89-6D36-4284-9914-446B78338037}.Publish|Any CPU.Build.0 = Release|Any CPU
-		{D0563F89-6D36-4284-9914-446B78338037}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D0563F89-6D36-4284-9914-446B78338037}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6D22C0B9-0CC5-4D03-B636-D281ECC07BCA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6D22C0B9-0CC5-4D03-B636-D281ECC07BCA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6D22C0B9-0CC5-4D03-B636-D281ECC07BCA}.Publish|Any CPU.ActiveCfg = Release|Any CPU
+		{6D22C0B9-0CC5-4D03-B636-D281ECC07BCA}.Publish|Any CPU.Build.0 = Release|Any CPU
+		{6D22C0B9-0CC5-4D03-B636-D281ECC07BCA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6D22C0B9-0CC5-4D03-B636-D281ECC07BCA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

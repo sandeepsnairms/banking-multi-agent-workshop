@@ -33,29 +33,35 @@ public class ChatService
         _afService = afService;
         _mcpService = mcpService;
 
+        _logger = loggerFactory.CreateLogger<ChatService>();
 
         // Initialize the Agent Framework with tool service
         if (afOptions.Value.UseMCPTools)
         {
+
             //MCP tools
+            //TO DO: Invoke SetMCPToolService
             _afService.SetMCPToolService(_mcpService);
+
         }
         else
         {
-            // In-Process Tools
-
+            //In-Process Tools
+            //TO DO: Invoke SetInProcessToolService
             var embeddingClient = _afService.GetAzureOpenAIClient();
             var embeddingDeployment = _afService.GetEmbeddingDeploymentName();
             EmbeddingService embeddingService = new EmbeddingService(embeddingClient, embeddingDeployment);
-            
             _bankService = new BankingDataService(embeddingService, cosmosDBService.Database, cosmosDBService.AccountDataContainer, cosmosDBService.UserDataContainer, cosmosDBService.AccountDataContainer, cosmosDBService.OfferDataContainer, loggerFactory);
+
             _afService.SetInProcessToolService(_bankService);
+
+
         }
 
         if (!_afService.InitializeAgents())
-            throw new Exception("Error initializing agents in ChatService.");
+            _logger.LogWarning("No agents initialized in ChatService.");
 
-        _logger = loggerFactory.CreateLogger<ChatService>();
+       
     }
 
     /// <summary>
@@ -133,16 +139,22 @@ public class ChatService
         }
     }
 
+
+
+    //TO DO: Add AddPromptCompletionMessagesAsync
+    
     /// <summary>
     /// Add user prompt and AI assistance response to the chat session message list object and insert into the data service as a transaction.
     /// </summary>
+    ///
     private async Task AddPromptCompletionMessagesAsync(string tenantId, string userId, string sessionId, Message promptMessage, List<Message> completionMessages, List<DebugLog> completionMessageLogs)
     {
         var session = await _cosmosDBService.GetSessionAsync(tenantId, userId, sessionId);
-
+    
         completionMessages.Insert(0, promptMessage);
         await _cosmosDBService.UpsertSessionBatchAsync(completionMessages, completionMessageLogs, session);
     }
+
     /// <summary>
     /// Generate a name for a chat message, based on the passed in prompt.
     /// </summary>

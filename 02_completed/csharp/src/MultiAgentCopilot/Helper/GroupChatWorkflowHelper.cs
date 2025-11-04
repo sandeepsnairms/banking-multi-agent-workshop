@@ -10,7 +10,7 @@ using ChatMessage = Microsoft.Extensions.AI.ChatMessage;
 
 namespace MultiAgentCopilot.MultiAgentCopilot.Helper
 {
-    public class GroupChatWorkflowHelper : AgentWorkflowBuilder.GroupChatManager
+    public class GroupChatWorkflowHelper : GroupChatManager
     {
         private readonly IReadOnlyList<AIAgent> _agents;
         private readonly Func<GroupChatWorkflowHelper, IEnumerable<ChatMessage>, CancellationToken, ValueTask<bool>>? _shouldTerminateFunc;
@@ -37,7 +37,8 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Helper
             return string.Join(", ", _agents.Select(a => a.Name));
         }
 
-        protected override async ValueTask<AIAgent> SelectNextAgentAsync(IReadOnlyList<ChatMessage> history, CancellationToken cancellationToken = default(CancellationToken))
+
+         protected override async ValueTask<AIAgent> SelectNextAgentAsync(IReadOnlyList<ChatMessage> history, CancellationToken cancellationToken = default(CancellationToken))
         {
             // Convert chat history to a string representation for the prompt
             var historyText = string.Join("\n", history.TakeLast(5).Select(msg => 
@@ -77,10 +78,30 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Helper
 
             // Return the selected agent, or default to the first agent if no match found
             return selectedAgent ?? _agents[0];
+            
         }
+      
 
         protected override async ValueTask<bool> ShouldTerminateAsync(IReadOnlyList<ChatMessage> history, CancellationToken cancellationToken = default(CancellationToken))
         {
+
+            // Check if the last user message was from user, if so, do not terminate, skip system messages
+            for(int i = history.Count -1; i >=0; i--)
+            {
+                if(history[i].Role == ChatRole.System)
+                {
+                    continue;
+                }
+                else if(history[i].Role == ChatRole.User)
+                {
+                    return false;
+                }
+                else
+                {
+                    break;
+                }
+            }       
+
             // First check if there's a custom termination function
             if (_shouldTerminateFunc != null)
             {
@@ -159,6 +180,7 @@ namespace MultiAgentCopilot.MultiAgentCopilot.Helper
                 // Default to continue if there's an error
                 return false;
             }
+
         }
 
         protected override void Reset()
