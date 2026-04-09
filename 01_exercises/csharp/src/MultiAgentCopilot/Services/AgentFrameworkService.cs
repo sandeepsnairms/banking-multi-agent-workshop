@@ -85,9 +85,26 @@ public class AgentFrameworkService : IDisposable
     //TO DO: CreateChatClient
     private IChatClient CreateChatClient()
     {
-        return null;        
-        
+        try
+        {
+            var credential = CreateAzureCredential();
+            var endpoint = new Uri(_settings.AzureOpenAISettings.Endpoint);
+            var openAIClient = new AzureOpenAIClient(endpoint, credential, new AzureOpenAIClientOptions
+            {
+                Transport = new HttpClientPipelineTransport(),
+            });
+
+            return openAIClient
+                .GetChatClient(_settings.AzureOpenAISettings.CompletionsDeployment)
+                .AsIChatClient();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to create chat client");
+            throw;
+        }
     }
+
 
 
     public string GetEmbeddingDeploymentName()
@@ -205,15 +222,21 @@ public class AgentFrameworkService : IDisposable
     /// 
     //TO DO: Add GetResponse function
     public async Task<Tuple<List<Message>, List<DebugLog>>> GetResponse(
-        Message userMessage,
-        List<Message> messageHistory,
-        BankingDataService bankService,
-        string tenantId,
-        string userId)
+     Message userMessage,
+     List<Message> messageHistory,
+     BankingDataService bankService,
+     string tenantId,
+     string userId)
     {
         try
         {
-            return CreateResponseTuple(userMessage, $"##Replaying user Message: {userMessage.Text} ##", "Starter Agent");
+            var agent = _chatClient.AsAIAgent(
+                "Greet the user and translate the request into French",
+                "Translator");
+
+
+            var responseText = agent.RunAsync(userMessage.Text).GetAwaiter().GetResult().Text;
+            return CreateResponseTuple(userMessage, responseText, "Translator");
 
         }
         catch (Exception ex)
@@ -231,12 +254,17 @@ public class AgentFrameworkService : IDisposable
     /// <returns>A summarized version of the text.</returns>
     /// 
     //TO DO: Add Summarize function
+
     public async Task<string> Summarize(string sessionId, string userPrompt)
     {
         try
         {
-             return "TBD";
- 
+            var agent = _chatClient.AsAIAgent(
+                "Summarize the text into exactly two words:",
+                "Summarizer");
+
+            return agent.RunAsync(userPrompt).GetAwaiter().GetResult().Text;
+
         }
         catch (Exception ex)
         {
@@ -244,6 +272,7 @@ public class AgentFrameworkService : IDisposable
             return string.Empty;
         }
     }
+
 
     /// <summary>
     /// Disposes of the service resources.

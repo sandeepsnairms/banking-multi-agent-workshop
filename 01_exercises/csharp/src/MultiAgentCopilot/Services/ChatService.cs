@@ -105,14 +105,13 @@ public class ChatService
     /// Receive a prompt from a user, vectorize it from the OpenAI service, and get a completion from the OpenAI service.
     /// </summary>
     public async Task<List<Message>> GetChatCompletionAsync(string tenantId, string userId, string? sessionId, string userPrompt)
-    {       
+    {
         try
         {
             var archivedMessages = new List<Message>();
             var userMessage = new Message(tenantId, userId, sessionId, "User", "User", userPrompt);
             var result = await _afService.GetResponse(userMessage, archivedMessages, _bankService, tenantId, userId);
             return result.Item1;
-
         }
         catch (Exception ex)
         {
@@ -122,8 +121,9 @@ public class ChatService
     }
 
 
+
     //TO DO: Add AddPromptCompletionMessagesAsync
-    
+
 
 
     /// <summary>
