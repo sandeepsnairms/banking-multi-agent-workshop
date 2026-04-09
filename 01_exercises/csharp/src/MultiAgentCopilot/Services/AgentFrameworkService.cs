@@ -230,14 +230,17 @@ public class AgentFrameworkService : IDisposable
     {
         try
         {
+            _promptDebugProperties = new List<LogProperty>(); // Reset debug properties for each new message
+            messageHistory.Add(userMessage);
+            var chatHistory = ConvertToAIChatMessages(messageHistory);
+            chatHistory.Add(new ChatMessage(ChatRole.User, userMessage.Text));
+
             var agent = _chatClient.AsAIAgent(
-                "Greet the user and translate the request into French",
-                "Translator");
+               "You are a front desk agent in a bank. Respond to the user queries professionally. Provide professional and helpful responses to user queries.Use your knowledge of banking services and procedures to address user queries accurately.",
+               "Banker");
 
-
-            var responseText = agent.RunAsync(userMessage.Text).GetAwaiter().GetResult().Text;
-            return CreateResponseTuple(userMessage, responseText, "Translator");
-
+            var responseText = agent.RunAsync(chatHistory).GetAwaiter().GetResult().Text;
+            return CreateResponseTuple(userMessage, responseText, "Banker");
         }
         catch (Exception ex)
         {
