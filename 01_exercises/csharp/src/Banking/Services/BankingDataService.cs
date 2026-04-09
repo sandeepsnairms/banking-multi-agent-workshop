@@ -256,7 +256,54 @@ namespace Banking.Services
         {
             try
             {
-                return new List<OfferTerm>();                
+
+                // Generate embeddings for the requirement description
+                var queryVector = await _embeddingService.GenerateEmbeddingAsync(requirementDescription);
+
+
+                // Build the vector search query with filters
+                var query = new QueryDefinition(@"
+                            SELECT 
+                                c.id, 
+                                c.tenantId, 
+                                c.offerId, 
+                                c.name, 
+                                c.text, 
+                                c.type, 
+                                c.accountType, 
+                                VectorDistance(c.vector, @queryVector) AS similarityScore
+                            FROM c 
+                            WHERE c.type = @type 
+                              AND c.tenantId = @tenantId 
+                              AND c.accountType = @accountType
+                            ORDER BY VectorDistance(c.vector, @queryVector)
+                        ")
+                .WithParameter("@queryVector", queryVector)
+                .WithParameter("@type", "Term")
+                .WithParameter("@tenantId", tenantId)
+                .WithParameter("@accountType", accountType.ToString());
+
+                // Define partition key
+                var partitionKey = new PartitionKey(tenantId);
+
+                // Run query
+                var offerTerms = new List<OfferTerm>();
+                using (FeedIterator<OfferTerm> feedIterator = _offerData.GetItemQueryIterator<OfferTerm>(
+                    query,
+                    requestOptions: new QueryRequestOptions
+                    {
+                        PartitionKey = partitionKey,
+                        MaxItemCount = 10 // Limit for performance
+                    }))
+                {
+                    while (feedIterator.HasMoreResults)
+                    {
+                        FeedResponse<OfferTerm> response = await feedIterator.ReadNextAsync();
+                        offerTerms.AddRange(response);
+                    }
+                }
+
+                return offerTerms;
 
             }
             catch (Exception ex)
