@@ -176,9 +176,21 @@ public class AgentFrameworkService : IDisposable
 
 
     //TO DO: Add SetMCPToolService
+    /// <summary>
+    /// Sets the MCP (Model Context Protocol) tool service.
+    /// </summary>
+    /// <param name="mcpService">The MCP tool service instance.</param>
+    /// <returns>True if the service was set successfully.</returns>
+
+    public bool SetMCPToolService(MCPToolService mcpService)
+    {
+        _mcpService = mcpService ?? throw new ArgumentNullException(nameof(mcpService));
+        _logger.LogInformation("MCPToolService has been set");
+        return true;
+    }
 
     ////TO DO: Add RunGroupChatOrchestration
-    
+
 
     /// <summary>
     /// Initializes the AI agents based on available tool services.
@@ -197,7 +209,14 @@ public class AgentFrameworkService : IDisposable
                     _agents = AgentFactory.CreateAllAgentsWithInProcessTools(_chatClient, _bankService, _loggerFactory);
                 }
                 //TO DO: Add MCP Service Option
-
+                else if (_mcpService != null)
+                {
+                    _agents = AgentFactory.CreateAllAgentsWithMCPToolsAsync(_chatClient, _mcpService, _loggerFactory).GetAwaiter().GetResult();
+                }
+                else
+                {
+                    _logger.LogError("No tool services available - cannot create agents");
+                }
 
                 if (_agents == null || _agents.Count == 0)
                 {

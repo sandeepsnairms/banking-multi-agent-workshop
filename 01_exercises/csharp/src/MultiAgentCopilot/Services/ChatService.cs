@@ -41,6 +41,9 @@ public class ChatService
 
             //MCP tools
             //TO DO: Invoke SetMCPToolService
+
+            _afService.SetMCPToolService(_mcpService);
+
         }
         else
         {
