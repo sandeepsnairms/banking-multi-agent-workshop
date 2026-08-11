@@ -167,40 +167,10 @@ public class BankingDataService
         }
     }
 
-    public async Task<List<OfferTerm>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription)
+    //TO DO: Update SearchOfferTermsAsync
+    public Task<List<OfferTerm>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription)
     {
-        try
-        {
-            ReadOnlyMemory<float> queryVector = await _embeddingService.GenerateEmbeddingAsync(requirementDescription);
-            BsonArray vector = new(queryVector.Span.ToArray().Select(value => (BsonValue)value));
-            BsonDocument search = new("$search", new BsonDocument
-            {
-                { "cosmosSearch", new BsonDocument
-                    {
-                        { "vector", vector },
-                        { "path", "vector" },
-                        { "k", 10 },
-                        { "filter", new BsonDocument("$and", new BsonArray
-                            {
-                                new BsonDocument("tenantId", new BsonDocument("$eq", tenantId)),
-                                new BsonDocument("type", new BsonDocument("$eq", "Term")),
-                                new BsonDocument("accountType", new BsonDocument("$eq", accountType.ToString()))
-                            })
-                        }
-                    }
-                },
-                { "returnStoredSource", true }
-            });
-            List<BsonDocument> documents = await _offerData
-                .Aggregate<BsonDocument>(new[] { search, new BsonDocument("$limit", 10) })
-                .ToListAsync();
-            return Convert<OfferTerm>(documents);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error searching offer terms.");
-            return [];
-        }
+        return Task.FromResult<List<OfferTerm>>([]);
     }
 
     public async Task<Offer?> GetOfferDetailsAsync(string tenantId, string offerId)
