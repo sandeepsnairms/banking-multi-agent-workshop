@@ -34,10 +34,13 @@ documentdb_client = None
 database = None
 offers_container = None
 account_container = None
+transaction_container = None
+service_request_container = None
 
 
 def initialize_documentdb_client():
     global documentdb_client, database, offers_container, account_container
+    global transaction_container, service_request_container
     if documentdb_client is not None:
         return
     if not DOCUMENTDB_CLUSTER_NAME:
@@ -53,8 +56,10 @@ def initialize_documentdb_client():
             retryWrites=False,
         )
         database = documentdb_client[DATABASE_NAME]
-        offers_container = database["OffersData"]
-        account_container = database["AccountsData"]
+        offers_container = database["Offers"]
+        account_container = database["Accounts"]
+        transaction_container = database["Transactions"]
+        service_request_container = database["ServiceRequests"]
         print(f"[DEBUG] MCP Server: Azure DocumentDB collections initialized in {DATABASE_NAME}")
     except Exception as error:
         logging.error("MCP Server: Failed to initialize Azure DocumentDB: %s", error)
@@ -85,7 +90,11 @@ def _upsert(collection, data):
     document_id = data.get("id")
     if not document_id:
         raise ValueError("Document must contain an id field")
-    collection.replace_one({"id": document_id}, data, upsert=True)
+    tenant_id = data.get("tenantId")
+    query = {"id": document_id}
+    if tenant_id:
+        query["tenantId"] = tenant_id
+    collection.replace_one(query, data, upsert=True)
 
 
 def vector_search(vectors, accountType):
@@ -102,16 +111,14 @@ def vector_search(vectors, accountType):
                                 "vector": vectors,
                                 "path": "vector",
                                 "k": 3,
-                                "filter": {
-                                    "$and": [
-                                        {"type": {"$eq": "Term"}},
-                                        {"accountType": {"$eq": accountType}},
-                                    ]
-                                },
+                                "filter": {"accountType": {"$eq": accountType}},
                             },
                             "returnStoredSource": True,
                         }
                     },
+                    {"$limit": 3},
+                    {"$unwind": "$terms"},
+                    {"$replaceRoot": {"newRoot": "$terms"}},
                     {"$project": {"_id": 0, "offerId": 1, "text": 1, "name": 1}},
                     {"$limit": 3},
                 ]
@@ -129,11 +136,11 @@ def create_account_record(account_data):
 
 
 def create_service_request_record(account_data):
-    create_account_record(account_data)
+    _upsert(service_request_container, account_data)
 
 
 def fetch_latest_account_number():
-    items = account_container.find({"type": "BankAccount"}, {"_id": 0, "accountId": 1})
+    items = account_container.find({}, {"_id": 0, "accountId": 1})
     numbers = [
         int(item["accountId"][1:])
         for item in items
@@ -143,9 +150,9 @@ def fetch_latest_account_number():
     return max(numbers, default=0)
 
 
-def fetch_latest_transaction_number(account_number):
-    item = account_container.find_one(
-        {"type": "BankTransaction", "accountId": account_number},
+def fetch_latest_transaction_number(tenantId, account_number):
+    item = transaction_container.find_one(
+        {"tenantId": tenantId, "accountId": account_number},
         {"_id": 0, "id": 1},
         sort=[("transactionDateTime", -1)],
     )
@@ -158,7 +165,6 @@ def fetch_latest_transaction_number(account_number):
 def fetch_account_by_number(account_number, tenantId, userId):
     return account_container.find_one(
         {
-            "type": "BankAccount",
             "accountId": account_number,
             "tenantId": tenantId,
             "userId": userId,
@@ -168,7 +174,7 @@ def fetch_account_by_number(account_number, tenantId, userId):
 
 
 def patch_account_record(tenantId, account_id, balance, userId=None):
-    query = {"type": "BankAccount", "tenantId": tenantId, "accountId": account_id}
+    query = {"tenantId": tenantId, "accountId": account_id}
     if userId:
         query["userId"] = userId
     result = account_container.update_one(query, {"$set": {"balance": balance}})
@@ -177,17 +183,17 @@ def patch_account_record(tenantId, account_id, balance, userId=None):
 
 
 def fetch_transactions_by_date_range(
-    accountId: str, startDate: datetime, endDate: datetime
+    tenantId: str, accountId: str, startDate: datetime, endDate: datetime
 ) -> List[Dict]:
     return list(
-        account_container.find(
+        transaction_container.find(
             {
+                "tenantId": tenantId,
                 "accountId": accountId,
                 "transactionDateTime": {
                     "$gte": startDate.isoformat() + "Z",
                     "$lte": endDate.isoformat() + "Z",
                 },
-                "type": "BankTransaction",
             },
             {"_id": 0},
         ).sort("transactionDateTime", 1)
@@ -195,4 +201,4 @@ def fetch_transactions_by_date_range(
 
 
 def create_transaction_record(transaction_data):
-    _upsert(account_container, transaction_data)
+    _upsert(transaction_container, transaction_data)

@@ -58,8 +58,10 @@ checkpoint_container = database["Checkpoints"]
 checkpoint_writes_container = database["CheckpointWrites"]
 chat_history_container = database["ChatHistory"]
 users_container = database["Users"]
-offers_container = database["OffersData"]
-account_container = database["AccountsData"]
+offers_container = database["Offers"]
+account_container = database["Accounts"]
+transaction_container = database["Transactions"]
+service_request_container = database["ServiceRequests"]
 debug_container = database["Debug"]
 
 
@@ -76,7 +78,11 @@ def _upsert(collection, data):
     document_id = data.get("id")
     if not document_id:
         raise ValueError("Document must contain an id field")
-    collection.replace_one({"id": document_id}, data, upsert=True)
+    tenant_id = data.get("tenantId")
+    query = {"id": document_id}
+    if tenant_id:
+        query["tenantId"] = tenant_id
+    collection.replace_one(query, data, upsert=True)
 
 
 def vector_search(vectors, accountType):
@@ -94,16 +100,14 @@ def vector_search(vectors, accountType):
                             "vector": vectors,
                             "path": "vector",
                             "k": 3,
-                            "filter": {
-                                "$and": [
-                                    {"type": {"$eq": "Term"}},
-                                    {"accountType": {"$eq": accountType}},
-                                ]
-                            },
+                            "filter": {"accountType": {"$eq": accountType}},
                         },
                         "returnStoredSource": True,
                     }
                 },
+                {"$limit": 3},
+                {"$unwind": "$terms"},
+                {"$replaceRoot": {"newRoot": "$terms"}},
                 {"$project": {"_id": 0, "offerId": 1, "text": 1, "name": 1}},
                 {"$limit": 3},
             ]
@@ -129,7 +133,14 @@ def update_offers_container(data):
 
 
 def update_account_container(data):
-    _upsert(account_container, data)
+    target = {
+        "BankAccount": account_container,
+        "BankTransaction": transaction_container,
+        "ServiceRequest": service_request_container,
+    }.get(data.get("type"))
+    if target is None:
+        raise ValueError("Unsupported account document type")
+    _upsert(target, data)
 
 
 def update_users_container(data):
@@ -176,11 +187,11 @@ def create_account_record(account_data):
 
 
 def create_service_request_record(account_data):
-    _upsert(account_container, account_data)
+    _upsert(service_request_container, account_data)
 
 
 def fetch_latest_account_number():
-    items = account_container.find({"type": "BankAccount"}, {"_id": 0, "accountId": 1})
+    items = account_container.find({}, {"_id": 0, "accountId": 1})
     account_numbers = [
         int(item["accountId"][1:])
         for item in items
@@ -190,9 +201,9 @@ def fetch_latest_account_number():
     return max(account_numbers, default=0)
 
 
-def fetch_latest_transaction_number(account_number):
-    item = account_container.find_one(
-        {"type": "BankTransaction", "accountId": account_number},
+def fetch_latest_transaction_number(tenantId, account_number):
+    item = transaction_container.find_one(
+        {"tenantId": tenantId, "accountId": account_number},
         {"_id": 0, "id": 1},
         sort=[("transactionDateTime", -1)],
     )
@@ -205,7 +216,6 @@ def fetch_latest_transaction_number(account_number):
 def fetch_account_by_number(account_number, tenantId, userId):
     return account_container.find_one(
         {
-            "type": "BankAccount",
             "accountId": account_number,
             "tenantId": tenantId,
             "userId": userId,
@@ -215,17 +225,17 @@ def fetch_account_by_number(account_number, tenantId, userId):
 
 
 def fetch_transactions_by_date_range(
-    accountId: str, startDate: datetime, endDate: datetime
+    tenantId: str, accountId: str, startDate: datetime, endDate: datetime
 ) -> List[Dict]:
     return list(
-        account_container.find(
+        transaction_container.find(
             {
+                "tenantId": tenantId,
                 "accountId": accountId,
                 "transactionDateTime": {
                     "$gte": startDate.isoformat() + "Z",
                     "$lte": endDate.isoformat() + "Z",
                 },
-                "type": "BankTransaction",
             },
             {"_id": 0},
         ).sort("transactionDateTime", 1)
@@ -254,36 +264,18 @@ def delete_chat_history_by_session(sessionId):
 
 
 def create_transaction_record(transaction_data):
-    _upsert(account_container, transaction_data)
+    _upsert(transaction_container, transaction_data)
 
 
 def fetch_accounts_by_user(tenantId: str, userId: str) -> List[Dict]:
     owner_filter = {"tenantId": tenantId, "userId": userId}
-    accounts = list(
-        account_container.find({**owner_filter, "type": "BankAccount"}, {"_id": 0})
-    )
-    if accounts:
-        return accounts
-    return list(
-        account_container.find(
-            {
-                **owner_filter,
-                "$or": [
-                    {"accountId": {"$exists": True}},
-                    {"balance": {"$exists": True}},
-                    {"id": {"$regex": "^A.+"}},
-                ],
-            },
-            {"_id": 0},
-        )
-    )
+    return list(account_container.find(owner_filter, {"_id": 0}))
 
 
 def fetch_transactions_by_account_id(tenantId: str, accountId: str) -> List[Dict]:
     return list(
-        account_container.find(
+        transaction_container.find(
             {
-                "type": "BankTransaction",
                 "tenantId": tenantId,
                 "accountId": accountId,
             },
@@ -295,9 +287,9 @@ def fetch_transactions_by_account_id(tenantId: str, accountId: str) -> List[Dict
 def fetch_service_requests_by_tenant(
     tenantId: str, userId: str = None
 ) -> List[Dict]:
-    query = {"type": "ServiceRequest", "tenantId": tenantId}
+    query = {"tenantId": tenantId}
     if userId:
         query["userId"] = userId
     return list(
-        account_container.find(query, {"_id": 0}).sort("requestedOn", -1)
+        service_request_container.find(query, {"_id": 0}).sort("requestedOn", -1)
     )

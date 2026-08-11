@@ -12,6 +12,8 @@ namespace Banking.Models
         public required AccountType AccountType { get; set; }
         public required Dictionary<string, string> EligibilityConditions { get; set; }
         public required Dictionary<string, string> PrerequsiteSubmissions { get; set; }
+        public List<OfferTerm> Terms { get; set; } = [];
+        public float[]? Vector { get; set; }
     }
 
 

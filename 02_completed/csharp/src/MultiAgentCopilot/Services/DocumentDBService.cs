@@ -19,6 +19,7 @@ public class DocumentDBService
     public IMongoCollection<BsonDocument> UserDataCollection { get; }
     public IMongoCollection<BsonDocument> OfferDataCollection { get; }
     public IMongoCollection<BsonDocument> AccountDataCollection { get; }
+    public IMongoCollection<BsonDocument> TransactionDataCollection { get; }
     public IMongoCollection<BsonDocument> RequestDataCollection { get; }
     public IMongoDatabase Database { get; }
 
@@ -34,6 +35,7 @@ public class DocumentDBService
         UserDataCollection = Database.GetCollection<BsonDocument>(settings.UserDataCollection);
         OfferDataCollection = Database.GetCollection<BsonDocument>(settings.OfferDataCollection);
         AccountDataCollection = Database.GetCollection<BsonDocument>(settings.AccountsCollection);
+        TransactionDataCollection = Database.GetCollection<BsonDocument>(settings.TransactionsCollection);
         RequestDataCollection = Database.GetCollection<BsonDocument>(settings.RequestDataCollection);
         _logger.LogInformation("Azure DocumentDB service initialized for cluster {ClusterName}.", settings.ClusterName);
     }
@@ -100,11 +102,18 @@ public class DocumentDBService
             IMongoCollection<BsonDocument> collection = collectionName switch
             {
                 "OfferData" => OfferDataCollection,
-                "AccountData" => AccountDataCollection,
+                "AccountData" => bson.GetValue("type", "").AsString switch
+                {
+                    nameof(BankAccount) => AccountDataCollection,
+                    nameof(BankTransaction) => TransactionDataCollection,
+                    nameof(ServiceRequest) => RequestDataCollection,
+                    _ => throw new ArgumentOutOfRangeException(nameof(document), "Unsupported account document type.")
+                },
                 "UserData" => UserDataCollection,
                 _ => throw new ArgumentOutOfRangeException(nameof(collectionName))
             };
             ReplaceOneResult result = await collection.ReplaceOneAsync(
+                Builders<BsonDocument>.Filter.Eq("tenantId", bson["tenantId"]) &
                 Builders<BsonDocument>.Filter.Eq("id", bson["id"]), bson, new ReplaceOptions { IsUpsert = true });
             return result.IsAcknowledged;
         }
@@ -118,7 +127,7 @@ public class DocumentDBService
     public async Task<List<ServiceRequest>> GetServiceRequestsAsync(string tenantId)
     {
         FilterDefinition<BsonDocument> filter = Builders<BsonDocument>.Filter.Eq("tenantId", tenantId) &
-            Builders<BsonDocument>.Filter.Eq("type", nameof(ServiceRequest));
+            Builders<BsonDocument>.Filter.Empty;
         return Convert<ServiceRequest>(await RequestDataCollection.Find(filter)
             .Sort(Builders<BsonDocument>.Sort.Descending("requestedOn")).Limit(10).ToListAsync());
     }
@@ -126,7 +135,7 @@ public class DocumentDBService
     public async Task<List<BankAccount>> GetUserRegisteredAccountsAsync(string tenantId, string userId)
     {
         FilterDefinition<BsonDocument> filter = OwnerFilter(tenantId, userId) &
-            Builders<BsonDocument>.Filter.Eq("type", nameof(BankAccount));
+            Builders<BsonDocument>.Filter.Empty;
         return Convert<BankAccount>(await AccountDataCollection.Find(filter).ToListAsync());
     }
 
@@ -134,9 +143,8 @@ public class DocumentDBService
     {
         _ = userId;
         FilterDefinition<BsonDocument> filter = Builders<BsonDocument>.Filter.Eq("tenantId", tenantId) &
-            Builders<BsonDocument>.Filter.Eq("accountId", accountId) &
-            Builders<BsonDocument>.Filter.Eq("type", nameof(BankTransaction));
-        return Convert<BankTransaction>(await AccountDataCollection.Find(filter)
+            Builders<BsonDocument>.Filter.Eq("accountId", accountId);
+        return Convert<BankTransaction>(await TransactionDataCollection.Find(filter)
             .Sort(Builders<BsonDocument>.Sort.Ascending("transactionDateTime")).Limit(10).ToListAsync());
     }
 

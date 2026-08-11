@@ -504,7 +504,7 @@ def bank_transaction(config: RunnableConfig, account_number: str, amount: float,
     max_attempts = 5
     for attempt in range(max_attempts):
         try:
-            latest_transaction_number = fetch_latest_transaction_number(account_number)
+            latest_transaction_number = fetch_latest_transaction_number(tenantId, account_number)
             transaction_id = f"{account_number}-{latest_transaction_number + 1}"
             new_balance = account["balance"] + credit_account - debit_account
 
@@ -533,10 +533,10 @@ def bank_transaction(config: RunnableConfig, account_number: str, amount: float,
 
 @mcp.tool()
 @traceable
-def get_transaction_history(accountId: str, startDate: datetime, endDate: datetime) -> List[Dict]:
+def get_transaction_history(tenantId: str, accountId: str, startDate: datetime, endDate: datetime) -> List[Dict]:
     """Retrieve transactions for an account between two dates."""
     try:
-        return fetch_transactions_by_date_range(accountId, startDate, endDate)
+        return fetch_transactions_by_date_range(tenantId, accountId, startDate, endDate)
     except Exception as e:
         logging.error(f"Error fetching transaction history for account {accountId}: {e}")
         return []

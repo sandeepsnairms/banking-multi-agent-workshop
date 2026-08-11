@@ -50,7 +50,7 @@ public class ChatService
             var embeddingClient = _afService.GetAzureOpenAIClient();
             var embeddingDeployment = _afService.GetEmbeddingDeploymentName();
             EmbeddingService embeddingService = new EmbeddingService(embeddingClient, embeddingDeployment);
-            _bankService = new BankingDataService(embeddingService, documentDBService.Database, documentDBService.AccountDataCollection, documentDBService.UserDataCollection, documentDBService.RequestDataCollection, documentDBService.OfferDataCollection, loggerFactory);
+            _bankService = new BankingDataService(embeddingService, documentDBService.Database, documentDBService.AccountDataCollection, documentDBService.TransactionDataCollection, documentDBService.UserDataCollection, documentDBService.RequestDataCollection, documentDBService.OfferDataCollection, loggerFactory);
 
             _afService.SetInProcessToolService(_bankService);
 

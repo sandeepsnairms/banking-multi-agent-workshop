@@ -86,6 +86,7 @@ builder.Services.AddScoped<Banking.Services.BankingDataService>(serviceProvider 
     return new Banking.Services.BankingDataService(embeddingService,
         database: documentDBService.Database,
         accountData: documentDBService.AccountDataCollection,
+        transactionData: documentDBService.TransactionDataCollection,
         userData: documentDBService.UserDataCollection,
         requestData: documentDBService.RequestDataCollection,
         offerData: documentDBService.OfferDataCollection,

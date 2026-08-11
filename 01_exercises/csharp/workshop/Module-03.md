@@ -63,7 +63,7 @@ This agent handles anything that appears to be a customer support request by a u
 
 1. Review the contents of **Sales.prompty**.
 
-This agent is used when customers ask what services a bank offers. Product data is stored in Azure DocumentDB, and the agent performs a vector search against the `OffersData` collection to find suitable products.
+This agent is used when customers ask what services a bank offers. Product data is stored in Azure DocumentDB, and the agent performs a vector search against the `Offers` collection to find suitable products.
 
 #### Transaction Agent
 
@@ -326,7 +326,7 @@ Similar to generating system prompts based on agent type, we need the Tools to b
             var embeddingClient = _afService.GetAzureOpenAIClient();
             var embeddingDeployment = _afService.GetEmbeddingDeploymentName();
             EmbeddingService embeddingService = new EmbeddingService(embeddingClient, embeddingDeployment);
-            _bankService = new BankingDataService(embeddingService, documentDBService.Database, documentDBService.AccountDataCollection, documentDBService.UserDataCollection, documentDBService.RequestDataCollection, documentDBService.OfferDataCollection, loggerFactory);
+            _bankService = new BankingDataService(embeddingService, documentDBService.Database, documentDBService.AccountDataCollection, documentDBService.TransactionDataCollection, documentDBService.UserDataCollection, documentDBService.RequestDataCollection, documentDBService.OfferDataCollection, loggerFactory);
 
             _afService.SetInProcessToolService(_bankService);
 
@@ -370,7 +370,7 @@ Now that we can build Agents, we can make the agent build process dynamic based 
 
 ## Activity 6: Semantic Search
 
-The Sales Agent performs vector search in Azure DocumentDB to find banking products and services. In this activity, you will inspect the `offers-vector-ivf` index created on the `OffersData.vector` field and implement the matching `$search` aggregation through `MongoDB.Driver`.
+The Sales Agent performs vector search in Azure DocumentDB to find banking products and services. Each offer owns a bounded `terms` array and has a top-level aggregate vector derived from its term vectors. In this activity, you will inspect the `offers-vector-ivf` index created on the `Offers.vector` field, search the parent offers, and unwind their embedded terms through `MongoDB.Driver`.
 
 ### Create Data Model for Vector Search
 
@@ -421,7 +421,6 @@ Data Models used for Vector Search in Semantic Kernel need to be enhanced with a
                             { "filter", new BsonDocument("$and", new BsonArray
                                 {
                                     new BsonDocument("tenantId", new BsonDocument("$eq", tenantId)),
-                                    new BsonDocument("type", new BsonDocument("$eq", "Term")),
                                     new BsonDocument("accountType", new BsonDocument("$eq", accountType.ToString()))
                                 })
                             }
@@ -430,9 +429,16 @@ Data Models used for Vector Search in Semantic Kernel need to be enhanced with a
                     { "returnStoredSource", true }
                 });
                 List<BsonDocument> documents = await _offerData
-                    .Aggregate<BsonDocument>(new[] { search, new BsonDocument("$limit", 10) })
+                    .Aggregate<BsonDocument>(new[]
+                    {
+                        search,
+                        new BsonDocument("$limit", 10),
+                        new BsonDocument("$unwind", "$terms"),
+                        new BsonDocument("$replaceRoot", new BsonDocument("newRoot", "$terms")),
+                        new BsonDocument("$limit", 10)
+                    })
                     .ToListAsync();
-                return documents.Select(DocumentDbSerialization.FromDocument<OfferTerm>).ToList();
+                return Convert<OfferTerm>(documents);
             }
             catch (Exception ex)
             {
@@ -1060,7 +1066,7 @@ public class ChatService
             var embeddingClient = _afService.GetAzureOpenAIClient();
             var embeddingDeployment = _afService.GetEmbeddingDeploymentName();
             EmbeddingService embeddingService = new EmbeddingService(embeddingClient, embeddingDeployment);
-            _bankService = new BankingDataService(embeddingService, documentDBService.Database, documentDBService.AccountDataCollection, documentDBService.UserDataCollection, documentDBService.RequestDataCollection, documentDBService.OfferDataCollection, loggerFactory);
+            _bankService = new BankingDataService(embeddingService, documentDBService.Database, documentDBService.AccountDataCollection, documentDBService.TransactionDataCollection, documentDBService.UserDataCollection, documentDBService.RequestDataCollection, documentDBService.OfferDataCollection, loggerFactory);
 
             _afService.SetInProcessToolService(_bankService);
 
@@ -1254,7 +1260,7 @@ namespace Banking.Services
   <summary>Completed code for <strong>\Banking\Services\BankingDataService.cs</strong></summary>
 <br>
 
-> The authoritative completed implementation is `02_completed/csharp/src/Banking/Services/BankingDataService.cs`. Use that file for the module solution; it includes the MongoDB collections, BSON mappings, vector-search pipeline, and managed-identity authentication used by Azure DocumentDB.
+> The authoritative completed implementation is `02_completed/csharp/src/Banking/Services/BankingDataService.cs`. Use that file for the module solution; it queries the normalized `Accounts`, `Transactions`, `ServiceRequests`, and `Offers` collections. Offer terms are embedded in each offer, so semantic search targets the aggregate `Offers.vector` and then unwinds the matching `terms` array.
 </details>
 <details>
   <summary>Completed code for <strong>\MultiAgentCopilot\Factories\AgentFactory.cs</strong></summary>

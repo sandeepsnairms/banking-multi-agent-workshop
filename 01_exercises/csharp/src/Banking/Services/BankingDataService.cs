@@ -9,6 +9,7 @@ public class BankingDataService
 {
     private readonly EmbeddingService _embeddingService;
     private readonly IMongoCollection<BsonDocument> _accountData;
+    private readonly IMongoCollection<BsonDocument> _transactionData;
     private readonly IMongoCollection<BsonDocument> _userData;
     private readonly IMongoCollection<BsonDocument> _requestData;
     private readonly IMongoCollection<BsonDocument> _offerData;
@@ -20,6 +21,7 @@ public class BankingDataService
         EmbeddingService embeddingService,
         IMongoDatabase database,
         IMongoCollection<BsonDocument> accountData,
+        IMongoCollection<BsonDocument> transactionData,
         IMongoCollection<BsonDocument> userData,
         IMongoCollection<BsonDocument> requestData,
         IMongoCollection<BsonDocument> offerData,
@@ -27,6 +29,7 @@ public class BankingDataService
     {
         _ = database;
         _accountData = accountData;
+        _transactionData = transactionData;
         _userData = userData;
         _requestData = requestData;
         _offerData = offerData;
@@ -90,10 +93,10 @@ public class BankingDataService
             FilterDefinition<BsonDocument> filter = Builders<BsonDocument>.Filter.And(
                 Builders<BsonDocument>.Filter.Eq("tenantId", tenantId),
                 Builders<BsonDocument>.Filter.Eq("accountId", accountId),
-                Builders<BsonDocument>.Filter.Eq("type", nameof(BankTransaction)),
                 Builders<BsonDocument>.Filter.Gte("transactionDateTime", startDate.ToUniversalTime().ToString("O")),
                 Builders<BsonDocument>.Filter.Lte("transactionDateTime", endDate.ToUniversalTime().ToString("O")));
-            return Convert<BankTransaction>(await _accountData.Find(filter).ToListAsync());
+            return Convert<BankTransaction>(await _transactionData.Find(filter)
+                .Sort(Builders<BsonDocument>.Sort.Ascending("transactionDateTime")).ToListAsync());
         }
         catch (MongoException ex)
         {
@@ -129,8 +132,7 @@ public class BankingDataService
             List<FilterDefinition<BsonDocument>> filters =
             [
                 Builders<BsonDocument>.Filter.Eq("tenantId", tenantId),
-                Builders<BsonDocument>.Filter.Eq("accountId", accountId),
-                Builders<BsonDocument>.Filter.Eq("type", nameof(ServiceRequest))
+                Builders<BsonDocument>.Filter.Eq("accountId", accountId)
             ];
             if (!string.IsNullOrWhiteSpace(userId))
             {

@@ -256,7 +256,7 @@ def bank_transaction(config: RunnableConfig, account_number: str, amount: float,
     for attempt in range(max_attempts):
         try:
             # Fetch the latest transaction number for the account
-            latest_transaction_number = fetch_latest_transaction_number(account_number)
+            latest_transaction_number = fetch_latest_transaction_number(tenantId, account_number)
             transaction_id = f"{account_number}-{latest_transaction_number + 1}"
 
             # Calculate the new account balance
@@ -289,17 +289,19 @@ def bank_transaction(config: RunnableConfig, account_number: str, amount: float,
 
 
 @tool
-def get_transaction_history(accountId: str, startDate: datetime, endDate: datetime) -> List[Dict]:
+def get_transaction_history(config: RunnableConfig, accountId: str, startDate: datetime, endDate: datetime) -> List[Dict]:
     """
     Retrieve the transaction history for a specific account between two dates.
 
+    :param config: Configuration containing the tenant and user identifiers.
     :param accountId: The ID of the account to retrieve transactions for.
     :param startDate: The start date for the transaction history.
     :param endDate: The end date for the transaction history.
     :return: A list of transactions within the specified date range.
     """
     try:
-        transactions = fetch_transactions_by_date_range(accountId, startDate, endDate)
+        tenantId = config["configurable"].get("tenantId", "UNKNOWN_TENANT_ID")
+        transactions = fetch_transactions_by_date_range(tenantId, accountId, startDate, endDate)
         return transactions
     except Exception as e:
         logging.error(f"Error fetching transaction history for account {accountId}: {e}")
@@ -340,7 +342,7 @@ from src.app.services.azure_document_db import create_service_request_record
 def service_request(config: RunnableConfig,  recipientPhone: str, recipientEmail: str,
                     requestSummary: str) -> str:
     """
-    Create a service request entry in the AccountsData collection.
+    Create a service request entry in the ServiceRequests collection.
 
     :param config: Configuration dictionary.
     :param tenantId: The ID of the tenant.
@@ -610,7 +612,7 @@ You MUST respond with the repayment amounts before transferring to another agent
 
 ## Activity 3: Semantic Search
 
-We are going to add one more tool that allows semantic product search. Azure DocumentDB uses the `offers-vector-ivf` index on `OffersData.vector` and a MongoDB `$search` aggregation with the `cosmosSearch` operator.
+We are going to add one more tool that allows semantic product search. Each document in the `Offers` collection owns a bounded `terms` array and stores a top-level aggregate vector derived from those terms. Azure DocumentDB uses the `offers-vector-ivf` index on `Offers.vector`; the MongoDB aggregation performs a `$search` with the `cosmosSearch` operator, then unwinds the matching offers' embedded terms.
 
 1. In VS Code, open the file **src/app/tools/sales.py**
 1. Add these imports to the top of the file.
@@ -687,8 +689,8 @@ I want to transfer 500 from account Acc001 to Acc003
 
 1. Wait until the transaction has been completed by the agent.
 1. Return to the Azure portal and open the Azure DocumentDB cluster.
-1. Use a MongoDB-compatible client with Entra authentication to open the `AccountsData` collection.
-1. Verify the transaction was successful.
+1. Use a MongoDB-compatible client with Entra authentication to open the `Accounts` collection and verify the source and destination balances.
+1. Open the `Transactions` collection and verify the transfer transaction was recorded.
 
 Let's test a new scenario that invokes Azure DocumentDB vector search on our banking offers.
 
@@ -979,7 +981,7 @@ from src.app.services.azure_document_db import create_service_request_record
 def service_request(config: RunnableConfig,  recipientPhone: str, recipientEmail: str,
                     requestSummary: str) -> str:
     """
-    Create a service request entry in the AccountsData collection.
+    Create a service request entry in the ServiceRequests collection.
 
     :param config: Configuration dictionary.
     :param tenantId: The ID of the tenant.
@@ -1283,7 +1285,7 @@ def bank_transaction(config: RunnableConfig, account_number: str, amount: float,
     for attempt in range(max_attempts):
         try:
             # Fetch the latest transaction number for the account
-            latest_transaction_number = fetch_latest_transaction_number(account_number)
+            latest_transaction_number = fetch_latest_transaction_number(tenantId, account_number)
             transaction_id = f"{account_number}-{latest_transaction_number + 1}"
 
             # Calculate the new account balance
@@ -1316,17 +1318,19 @@ def bank_transaction(config: RunnableConfig, account_number: str, amount: float,
 
 
 @tool
-def get_transaction_history(accountId: str, startDate: datetime, endDate: datetime) -> List[Dict]:
+def get_transaction_history(config: RunnableConfig, accountId: str, startDate: datetime, endDate: datetime) -> List[Dict]:
     """
     Retrieve the transaction history for a specific account between two dates.
 
+    :param config: Configuration containing the tenant and user identifiers.
     :param accountId: The ID of the account to retrieve transactions for.
     :param startDate: The start date for the transaction history.
     :param endDate: The end date for the transaction history.
     :return: A list of transactions within the specified date range.
     """
     try:
-        transactions = fetch_transactions_by_date_range(accountId, startDate, endDate)
+        tenantId = config["configurable"].get("tenantId", "UNKNOWN_TENANT_ID")
+        transactions = fetch_transactions_by_date_range(tenantId, accountId, startDate, endDate)
         return transactions
     except Exception as e:
         logging.error(f"Error fetching transaction history for account {accountId}: {e}")

@@ -278,7 +278,7 @@ The API will be available at `http://localhost:63280/docs`. It includes boilerpl
 Lets try a couple of things:
 
 1. Try out the API by creating a chat session in the front end. This should return a response saying "Hello, I am not yet implemented".
-1. Open the Azure DocumentDB cluster and inspect the `MultiAgentBanking` database with a MongoDB-compatible client authenticated through Microsoft Entra ID. You should see a record in the `ChatsData` collection. If you selected "yes" during `azd up`, the `OffersData`, `AccountsData`, and `Users` collections also contain transactional data.
+1. Open the Azure DocumentDB cluster and inspect the `MultiAgentBanking` database with a MongoDB-compatible client authenticated through Microsoft Entra ID. You should see a record in the `ChatsData` collection. If you selected "yes" during `azd up`, the `Accounts`, `Transactions`, `ServiceRequests`, `Offers`, and `Users` collections also contain seeded banking data.
 1. Review `src/app/services/azure_document_db.py` and `src/app/services/azure_open_ai.py`. The DocumentDB module creates a PyMongo client with `DefaultAzureCredential` and a `MONGODB-OIDC` callback.
 1. You will also see an empty file `src/app/banking_agents.py` as well as empty files in the `src/app/tools` and `src/app/prompts` folder. This is where you will build your multi-agent system!
 
