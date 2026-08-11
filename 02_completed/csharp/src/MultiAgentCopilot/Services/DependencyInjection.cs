@@ -26,19 +26,16 @@ namespace MultiAgentCopilot
             builder.Services.AddSingleton<MCPToolService>();
         }
 
-        public static void AddCosmosDBService(this IHostApplicationBuilder builder)
+        public static void AddDocumentDBService(this IHostApplicationBuilder builder)
         {
-            builder.Services.AddOptions<CosmosDBSettings>()
-                .Bind(builder.Configuration.GetSection("CosmosDBSettings"));
+            builder.Services.AddOptions<DocumentDBSettings>()
+                .Bind(builder.Configuration.GetSection("DocumentDBSettings"));
 
-            Console.WriteLine("Adding CosmosDBService:" + builder.Configuration["CosmosDBSettings:CosmosUri"]);
-            builder.Services.AddSingleton<CosmosDBService>();
+            builder.Services.AddSingleton<DocumentDBService>();
         }
 
         public static void AddChatService(this IHostApplicationBuilder builder)
         {
-            builder.Services.AddOptions<CosmosDBSettings>()
-                .Bind(builder.Configuration.GetSection("CosmosDBSettings"));
             builder.Services.AddSingleton<ChatService>();
         }
 

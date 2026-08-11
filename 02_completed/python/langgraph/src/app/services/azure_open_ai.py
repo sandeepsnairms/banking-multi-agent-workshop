@@ -69,7 +69,7 @@ def get_openai_client():
     return aoai_client
 
 
-def get_cosmos_client():
-    """Return the initialized Cosmos client (imported from azure_cosmos_db)"""
-    from src.app.services.azure_cosmos_db import cosmos_client
-    return cosmos_client
+def get_documentdb_client():
+    """Return the shared Azure DocumentDB client."""
+    from src.app.services.azure_document_db import documentdb_client
+    return documentdb_client

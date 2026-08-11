@@ -36,7 +36,7 @@
     "devicesIotHubs": "iot-",
     "devicesProvisioningServices": "provs-",
     "devicesProvisioningServicesCertificates": "pcert-",
-    "documentDBDatabaseAccounts": "cosmos-",
+    "documentDBMongoClusters": "docdb-",
     "eventGridDomains": "evgd-",
     "eventGridDomainsTopics": "evgt-",
     "eventGridEventSubscriptions": "evgs-",

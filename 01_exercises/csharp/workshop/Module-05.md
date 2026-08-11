@@ -343,7 +343,6 @@ using Azure.Identity;
 using Banking.Services;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Workflows;
-using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -952,7 +951,7 @@ namespace MultiAgentCopilot.Services;
 
 public class ChatService
 {
-    private readonly CosmosDBService _cosmosDBService;
+    private readonly DocumentDBService _documentDBService;
     private readonly BankingDataService _bankService;
     private readonly MCPToolService _mcpService;
     private readonly  AgentFrameworkService _afService;
@@ -960,14 +959,13 @@ public class ChatService
 
 
     public ChatService(
-        IOptions<CosmosDBSettings> cosmosOptions,
         IOptions<AgentFrameworkServiceSettings> afOptions,
-        CosmosDBService cosmosDBService,
+        DocumentDBService documentDBService,
         AgentFrameworkService afService,
         MCPToolService mcpService,
         ILoggerFactory loggerFactory)
     {
-        _cosmosDBService = cosmosDBService;
+        _documentDBService = documentDBService;
         _afService = afService;
         _mcpService = mcpService;
 
@@ -991,7 +989,7 @@ public class ChatService
             var embeddingClient = _afService.GetAzureOpenAIClient();
             var embeddingDeployment = _afService.GetEmbeddingDeploymentName();
             EmbeddingService embeddingService = new EmbeddingService(embeddingClient, embeddingDeployment);
-            _bankService = new BankingDataService(embeddingService, cosmosDBService.Database, cosmosDBService.AccountDataContainer, cosmosDBService.UserDataContainer, cosmosDBService.AccountDataContainer, cosmosDBService.OfferDataContainer, loggerFactory);
+            _bankService = new BankingDataService(embeddingService, documentDBService.Database, documentDBService.AccountDataCollection, documentDBService.UserDataCollection, documentDBService.RequestDataCollection, documentDBService.OfferDataCollection, loggerFactory);
 
             _afService.SetInProcessToolService(_bankService);
 
@@ -1009,7 +1007,7 @@ public class ChatService
     /// </summary>
     public async Task<List<Session>> GetAllChatSessionsAsync(string tenantId, string userId)
     {
-        return await _cosmosDBService.GetUserSessionsAsync(tenantId, userId);
+        return await _documentDBService.GetUserSessionsAsync(tenantId, userId);
     }
 
     /// <summary>
@@ -1018,7 +1016,7 @@ public class ChatService
     public async Task<List<Message>> GetChatSessionMessagesAsync(string tenantId, string userId, string sessionId)
     {
         ArgumentNullException.ThrowIfNull(sessionId);
-        return await _cosmosDBService.GetSessionMessagesAsync(tenantId, userId, sessionId);
+        return await _documentDBService.GetSessionMessagesAsync(tenantId, userId, sessionId);
     }
 
     /// <summary>
@@ -1027,7 +1025,7 @@ public class ChatService
     public async Task<Session> CreateNewChatSessionAsync(string tenantId, string userId)
     {
         Session session = new(tenantId, userId);
-        return await _cosmosDBService.InsertSessionAsync(session);
+        return await _documentDBService.InsertSessionAsync(session);
     }
 
     /// <summary>
@@ -1038,7 +1036,7 @@ public class ChatService
         ArgumentNullException.ThrowIfNull(sessionId);
         ArgumentException.ThrowIfNullOrEmpty(newChatSessionName);
 
-        return await _cosmosDBService.UpdateSessionNameAsync(tenantId, userId, sessionId, newChatSessionName);
+        return await _documentDBService.UpdateSessionNameAsync(tenantId, userId, sessionId, newChatSessionName);
     }
 
     /// <summary>
@@ -1047,7 +1045,7 @@ public class ChatService
     public async Task DeleteChatSessionAsync(string tenantId, string userId, string sessionId)
     {
         ArgumentNullException.ThrowIfNull(sessionId);
-        await _cosmosDBService.DeleteSessionAndMessagesAsync(tenantId, userId, sessionId);
+        await _documentDBService.DeleteSessionAndMessagesAsync(tenantId, userId, sessionId);
     }
 
     /// <summary>
@@ -1060,9 +1058,9 @@ public class ChatService
             ArgumentNullException.ThrowIfNull(sessionId);
 
             // Retrieve conversation, including latest prompt.
-            var archivedMessages = await _cosmosDBService.GetSessionMessagesAsync(tenantId, userId, sessionId);
+            var archivedMessages = await _documentDBService.GetSessionMessagesAsync(tenantId, userId, sessionId);
 
-            // Add both prompt and completion to cache, then persist in Cosmos DB
+            // Add both prompt and completion to cache, then persist in Azure DocumentDB
             var userMessage = new Message(tenantId, userId, sessionId, "User", "User", userPrompt);
 
             // Generate the completion to return to the user
@@ -1089,10 +1087,10 @@ public class ChatService
     ///
     private async Task AddPromptCompletionMessagesAsync(string tenantId, string userId, string sessionId, Message promptMessage, List<Message> completionMessages, List<DebugLog> completionMessageLogs)
     {
-        var session = await _cosmosDBService.GetSessionAsync(tenantId, userId, sessionId);
+        var session = await _documentDBService.GetSessionAsync(tenantId, userId, sessionId);
 
         completionMessages.Insert(0, promptMessage);
-        await _cosmosDBService.UpsertSessionBatchAsync(completionMessages, completionMessageLogs, session);
+        await _documentDBService.UpsertSessionBatchAsync(completionMessages, completionMessageLogs, session);
     }
 
     /// <summary>
@@ -1128,7 +1126,7 @@ public class ChatService
         ArgumentNullException.ThrowIfNull(messageId);
         ArgumentNullException.ThrowIfNull(sessionId);
 
-        return await _cosmosDBService.UpdateMessageRatingAsync(tenantId, userId, sessionId, messageId, rating);
+        return await _documentDBService.UpdateMessageRatingAsync(tenantId, userId, sessionId, messageId, rating);
     }
 
     public async Task<DebugLog> GetChatCompletionDebugLogAsync(string tenantId, string userId, string sessionId, string debugLogId)
@@ -1136,7 +1134,7 @@ public class ChatService
         ArgumentException.ThrowIfNullOrEmpty(sessionId);
         ArgumentException.ThrowIfNullOrEmpty(debugLogId);
 
-        return await _cosmosDBService.GetChatCompletionDebugLogAsync(tenantId, userId, sessionId, debugLogId);
+        return await _documentDBService.GetChatCompletionDebugLogAsync(tenantId, userId, sessionId, debugLogId);
     }
 }
 ```

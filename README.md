@@ -1,6 +1,6 @@
-# Multi Agent Workshop
+# Multi-Agent Banking Workshop with Azure DocumentDB
 
-Welcome to our multi-agent samples repository showcasing a retail banking scenario. This repository demonstrates several approaches to building multi-agent applications using Azure Cosmos DB.
+Welcome to our multi-agent sample showcasing a retail banking scenario. This branch is the Azure DocumentDB version of `HOL_v2_AFandLangGraph`.
 
 ## Build a Multi-Agent AI application using Agent Framework Agents or LangGraph
 
@@ -8,6 +8,7 @@ This branch of the repo shows how to build a multi-tenant, multi-agent, banking 
 
 - Agent Framework Agents in C#
 - LangGraph in Python
+- Azure DocumentDB with Microsoft Entra ID passwordless authentication
 
 To explore the other scenarios showcased in this repository. [Go to main branch](https://github.com/AzureCosmosDB/banking-multi-agent-workshop/tree/main)
 
@@ -24,7 +25,7 @@ Here’s the deployment architecture and components of the workshop!
 
 # Branch Overview
 
-This branch contains both exercise starter files and completed solutions for the sample multi-agent application in a retail banking scenario. You can either work through the exercises step by step or use the completed files to run the demo directly.
+The `HOL_v2_AFandLangGraph_DocumentDB` branch contains both exercise starter files and completed solutions for the sample multi-agent application. You can either work through the exercises step by step or use the completed files to run the demo directly.
 
 ## 1. Exercises
 
@@ -39,3 +40,9 @@ If you prefer to skip the exercises and run as demo directly, use the final code
 
 - [LangGraph (Python)](02_completed/python/langgraph/README.md)  
 - [Agent Framework (C#)](02_completed/csharp/README.md)
+
+## DocumentDB Firewall
+
+The workshop deployment creates an `AllowAllWorkshopTesting` firewall rule that permits connections from `0.0.0.0` through `255.255.255.255` so participants can test from any network. This opens the cluster network boundary globally; Microsoft Entra authentication is still required.
+
+After testing, update `documentDbFirewallStartIpAddress` and `documentDbFirewallEndIpAddress` in your deployment parameters to an approved IPv4 range and redeploy. For one workstation, set both values to the same public IPv4 address. For production, remove public access and use private networking rather than the workshop allow-all rule.

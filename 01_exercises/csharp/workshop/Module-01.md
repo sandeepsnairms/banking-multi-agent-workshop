@@ -37,7 +37,7 @@ There are several key components and concepts necessary to build multi-agent app
 
 - **Connectors and Integrations** - The Microsoft Extensions AI framework provides connectors that facilitate seamless integration with various external services and AI models. These connectors enable developers to incorporate diverse AI functionalities—such as text generation, chat completion, embeddings, and vector search—into their applications without dealing with provider-specific APIs. There are two types of connectors we will use in this workshop:
   - **AI Service Connectors** - These provide a uniform interface to interact with multiple AI services, allowing developers to switch between different AI providers effortlessly. This flexibility is particularly beneficial for experimenting with various models.
-  - **Vector Store Connectors** - Beyond direct AI service integrations, the framework provides connectors for various vector databases, including Azure Cosmos DB, facilitating tasks like semantic search and retrieval-augmented generation (RAG).
+    - **Vector Store Connectors** - Beyond direct AI service integrations, the framework works with vector databases such as Azure DocumentDB, facilitating semantic search and retrieval-augmented generation (RAG).
 
 Let's dive into the starter solution for our workshop and get started completing the implementation for our multi-agent application.
 
@@ -218,7 +218,6 @@ using Azure.Identity;
 using Banking.Services;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Workflows;
-using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -725,7 +724,7 @@ namespace MultiAgentCopilot.Services;
 
 public class ChatService
 {
-    private readonly CosmosDBService _cosmosDBService;
+    private readonly DocumentDBService _documentDBService;
     private readonly BankingDataService _bankService;
     private readonly MCPToolService _mcpService;
     private readonly  AgentFrameworkService _afService;
@@ -733,14 +732,13 @@ public class ChatService
 
 
     public ChatService(
-        IOptions<CosmosDBSettings> cosmosOptions,
         IOptions<AgentFrameworkServiceSettings> afOptions,
-        CosmosDBService cosmosDBService,
+        DocumentDBService documentDBService,
         AgentFrameworkService afService,
         MCPToolService mcpService,
         ILoggerFactory loggerFactory)
     {
-        _cosmosDBService = cosmosDBService;
+        _documentDBService = documentDBService;
         _afService = afService;
         _mcpService = mcpService;
 
@@ -771,7 +769,7 @@ public class ChatService
     /// </summary>
     public async Task<List<Session>> GetAllChatSessionsAsync(string tenantId, string userId)
     {
-        return await _cosmosDBService.GetUserSessionsAsync(tenantId, userId);
+        return await _documentDBService.GetUserSessionsAsync(tenantId, userId);
     }
 
     /// <summary>
@@ -780,7 +778,7 @@ public class ChatService
     public async Task<List<Message>> GetChatSessionMessagesAsync(string tenantId, string userId, string sessionId)
     {
         ArgumentNullException.ThrowIfNull(sessionId);
-        return await _cosmosDBService.GetSessionMessagesAsync(tenantId, userId, sessionId);
+        return await _documentDBService.GetSessionMessagesAsync(tenantId, userId, sessionId);
     }
 
     /// <summary>
@@ -789,7 +787,7 @@ public class ChatService
     public async Task<Session> CreateNewChatSessionAsync(string tenantId, string userId)
     {
         Session session = new(tenantId, userId);
-        return await _cosmosDBService.InsertSessionAsync(session);
+        return await _documentDBService.InsertSessionAsync(session);
     }
 
     /// <summary>
@@ -800,7 +798,7 @@ public class ChatService
         ArgumentNullException.ThrowIfNull(sessionId);
         ArgumentException.ThrowIfNullOrEmpty(newChatSessionName);
 
-        return await _cosmosDBService.UpdateSessionNameAsync(tenantId, userId, sessionId, newChatSessionName);
+        return await _documentDBService.UpdateSessionNameAsync(tenantId, userId, sessionId, newChatSessionName);
     }
 
     /// <summary>
@@ -809,7 +807,7 @@ public class ChatService
     public async Task DeleteChatSessionAsync(string tenantId, string userId, string sessionId)
     {
         ArgumentNullException.ThrowIfNull(sessionId);
-        await _cosmosDBService.DeleteSessionAndMessagesAsync(tenantId, userId, sessionId);
+        await _documentDBService.DeleteSessionAndMessagesAsync(tenantId, userId, sessionId);
     }
 
     /// <summary>
@@ -870,7 +868,7 @@ public class ChatService
         ArgumentNullException.ThrowIfNull(messageId);
         ArgumentNullException.ThrowIfNull(sessionId);
 
-        return await _cosmosDBService.UpdateMessageRatingAsync(tenantId, userId, sessionId, messageId, rating);
+        return await _documentDBService.UpdateMessageRatingAsync(tenantId, userId, sessionId, messageId, rating);
     }
 
     public async Task<DebugLog> GetChatCompletionDebugLogAsync(string tenantId, string userId, string sessionId, string debugLogId)
@@ -878,7 +876,7 @@ public class ChatService
         ArgumentException.ThrowIfNullOrEmpty(sessionId);
         ArgumentException.ThrowIfNullOrEmpty(debugLogId);
 
-        return await _cosmosDBService.GetChatCompletionDebugLogAsync(tenantId, userId, sessionId, debugLogId);
+        return await _documentDBService.GetChatCompletionDebugLogAsync(tenantId, userId, sessionId, debugLogId);
     }
 
 }

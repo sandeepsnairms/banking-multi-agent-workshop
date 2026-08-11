@@ -1,144 +1,91 @@
-﻿using Azure.Identity;
-using Microsoft.Azure.Cosmos;
-using Microsoft.Azure.Cosmos.Fluent;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Newtonsoft.Json;
-using System.Collections.ObjectModel;
-using System.Text.Json;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
+using MongoDB.Driver;
 
+string? clusterName = args.FirstOrDefault() ?? Environment.GetEnvironmentVariable("DOCUMENTDB_CLUSTER_NAME");
+if (string.IsNullOrWhiteSpace(clusterName))
+{
+    throw new InvalidOperationException("Pass the Azure DocumentDB cluster name as the first argument or set DOCUMENTDB_CLUSTER_NAME.");
+}
 
-//Create a new host builder and configure the services
-var host = Host.CreateDefaultBuilder(args)
-    .ConfigureServices((context, services) =>
+string databaseName = Environment.GetEnvironmentVariable("DOCUMENTDB_DATABASE_NAME") ?? "MultiAgentBanking";
+string? managedIdentityClientId = Environment.GetEnvironmentVariable("AZURE_CLIENT_ID");
+MongoClient client = DocumentDbClientFactory.Create(clusterName, managedIdentityClientId);
+IMongoDatabase database = client.GetDatabase(databaseName);
+
+string[] collectionNames = ["Users", "OffersData", "AccountsData", "ChatsData"];
+HashSet<string> existing = (await database.ListCollectionNamesAsync()).ToList().ToHashSet(StringComparer.Ordinal);
+foreach (string collectionName in collectionNames.Where(name => !existing.Contains(name)))
+{
+    await database.CreateCollectionAsync(collectionName);
+}
+
+await CreateIndexesAsync(database);
+await UpsertFileAsync(database.GetCollection<BsonDocument>("AccountsData"), "AccountsData.json");
+await UpsertFileAsync(database.GetCollection<BsonDocument>("OffersData"), "OffersData.json");
+await UpsertFileAsync(database.GetCollection<BsonDocument>("Users"), "UserData.json");
+Console.WriteLine("Azure DocumentDB data loading complete.");
+
+static async Task UpsertFileAsync(IMongoCollection<BsonDocument> collection, string fileName)
+{
+    string json = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, fileName));
+    BsonArray items = BsonSerializer.Deserialize<BsonArray>(json);
+    List<WriteModel<BsonDocument>> writes = [];
+    foreach (BsonDocument document in items.Select(item => item.AsBsonDocument))
     {
-        //Add the Cosmos DB client to the services collection
-        services.AddSingleton<CosmosClient>(sp =>
+        if (!document.TryGetValue("id", out BsonValue? id) || !id.IsString)
         {
-            var config = sp.GetRequiredService<IConfiguration>();
-            
-            // Get Cosmos DB endpoint from environment variable
-            var uri = Environment.GetEnvironmentVariable("COSMOSDB_ENDPOINT");
-            if (string.IsNullOrEmpty(uri))
+            throw new InvalidDataException($"{fileName} contains a document without a string id.");
+        }
+        document["_id"] = id;
+        writes.Add(new ReplaceOneModel<BsonDocument>(Builders<BsonDocument>.Filter.Eq("id", id), document) { IsUpsert = true });
+    }
+    if (writes.Count > 0)
+    {
+        await collection.BulkWriteAsync(writes, new BulkWriteOptions { IsOrdered = true });
+    }
+    Console.WriteLine($"Upserted {writes.Count} documents from {fileName}.");
+}
+
+static async Task CreateIndexesAsync(IMongoDatabase database)
+{
+    IMongoCollection<BsonDocument> accounts = database.GetCollection<BsonDocument>("AccountsData");
+    await accounts.Indexes.CreateManyAsync(
+    [
+        new CreateIndexModel<BsonDocument>(Builders<BsonDocument>.IndexKeys.Ascending("tenantId").Ascending("userId").Ascending("type")),
+        new CreateIndexModel<BsonDocument>(Builders<BsonDocument>.IndexKeys.Ascending("tenantId").Ascending("accountId").Ascending("transactionDateTime"))
+    ]);
+    await database.GetCollection<BsonDocument>("Users").Indexes.CreateOneAsync(
+        new CreateIndexModel<BsonDocument>(Builders<BsonDocument>.IndexKeys.Ascending("tenantId").Ascending("id")));
+
+    IMongoCollection<BsonDocument> offers = database.GetCollection<BsonDocument>("OffersData");
+    await offers.Indexes.CreateManyAsync(
+    [
+        new CreateIndexModel<BsonDocument>(Builders<BsonDocument>.IndexKeys.Ascending("tenantId")),
+        new CreateIndexModel<BsonDocument>(Builders<BsonDocument>.IndexKeys.Ascending("type")),
+        new CreateIndexModel<BsonDocument>(Builders<BsonDocument>.IndexKeys.Ascending("accountType"))
+    ]);
+
+    BsonDocument command = new()
+    {
+        { "createIndexes", "OffersData" },
+        { "indexes", new BsonArray
             {
-                throw new InvalidOperationException("COSMOSDB_ENDPOINT environment variable is not set.");
+                new BsonDocument
+                {
+                    { "name", "offers-vector-ivf" },
+                    { "key", new BsonDocument("vector", "cosmosSearch") },
+                    { "cosmosSearchOptions", new BsonDocument
+                        {
+                            { "kind", "vector-ivf" },
+                            { "numLists", 1 },
+                            { "similarity", "COS" },
+                            { "dimensions", 1536 }
+                        }
+                    }
+                }
             }
-
-            DefaultAzureCredential credential = new DefaultAzureCredential();
-
-            CosmosClientOptions options = new CosmosClientOptions
-            {
-                AllowBulkExecution = true
-            };
-
-            CosmosClient client = new CosmosClient(uri, credential, options);
-
-            return client;
-        });
-
-    })
-    .Build();
-
-var hostTask = host.RunAsync();
-
-
-//Retrieve the Cosmos DB client
-var cosmosClient = host.Services.GetRequiredService<CosmosClient>();
-
-Database database = cosmosClient.GetDatabase("MultiAgentBanking");
-
-Container userData = database.GetContainer("Users");
-Container offersData = database.GetContainer("OffersData");
-Container accountsData = database.GetContainer("AccountsData");
-
-// Get the base directory of the application
-var baseDirectory = AppContext.BaseDirectory;
-
-// Construct the full paths to the JSON files
-var accountsDataPath = Path.Combine(baseDirectory, "AccountsData.json");
-var offersDataPath = Path.Combine(baseDirectory, "OffersData.json");
-var userDataPath = Path.Combine(baseDirectory, "UserData.json");
-
-//Open a stream reader to read the AccountsData JSON file
-using var readerAccounts = new StreamReader(accountsDataPath);
-{
-    //Read the JSON file and deserialize it into a dynamic object
-    var json = await readerAccounts.ReadToEndAsync();
-    var accounts = JsonConvert.DeserializeObject<dynamic>(json)!;
-
-    //Iterate through the accounts and insert them into the Cosmos DB container
-    foreach (var account in accounts)
-    {
-        try
-        {
-            PartitionKey partitionKey = new PartitionKeyBuilder()
-            // Create a new partition key with the tenantId and accountId
-                .Add(account["tenantId"].ToString())
-                .Add(account["accountId"].ToString())
-                .Build();
-
-            // Create a new item in the container with a hierarchical partition key
-            await accountsData.CreateItemAsync(account, partitionKey);
         }
-        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
-        {
-            // Ignore 409 conflict errors (item already exists)
-            Console.WriteLine($"Account {account["accountId"]} already exists, skipping...");
-        }
-    }
+    };
+    await database.RunCommandAsync<BsonDocument>(command);
 }
-
-//Open a stream reader to read the OffersData JSON file
-using var readerOffers = new StreamReader(offersDataPath);
-{
-    //Read the JSON file and deserialize it into a dynamic object
-    var json = await readerOffers.ReadToEndAsync();
-    var offers = JsonConvert.DeserializeObject<dynamic>(json)!;
-
-    //Iterate through the offers and insert them into the Cosmos DB container
-    foreach (var offer in offers)
-    {
-        try
-        {
-            // Create a new item in the container with a hierarchical partition key
-            await offersData.CreateItemAsync(offer, new PartitionKey(offer["tenantId"].ToString()));
-        }
-        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
-        {
-            // Ignore 409 conflict errors (item already exists)
-            Console.WriteLine($"Offer {offer["id"]} already exists, skipping...");
-        }
-    }
-}
-
-//Open a stream reader to read the Users JSON file
-using var readerUsers = new StreamReader(userDataPath);
-{
-    //Read the JSON file and deserialize it into a dynamic object
-    var json = await readerUsers.ReadToEndAsync();
-    var users = JsonConvert.DeserializeObject<dynamic>(json)!;
-
-    //Iterate through the users and insert them into the Cosmos DB container
-    foreach (var user in users)
-    {
-        try
-        {
-            // Create a new item in the container with a hierarchical partition key
-            await userData.CreateItemAsync(user, new PartitionKey(user["tenantId"].ToString()));
-        }
-        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
-        {
-            // Ignore 409 conflict errors (item already exists)
-            Console.WriteLine($"User {user["id"]} already exists, skipping...");
-        }
-    }
-}
-
-
-Console.WriteLine($"Data loading complete.");
-
-// Stop the host gracefully
-await host.StopAsync();
-
-await hostTask;

@@ -8,12 +8,12 @@ namespace MultiAgentCopilot
     public class ChatEndpoints
     {
         private readonly ChatService _chatService;
-        private readonly CosmosDBService _cosmosDBService;
+        private readonly DocumentDBService _documentDBService;
 
-        public ChatEndpoints(ChatService chatService, CosmosDBService cosmosDBService)
+        public ChatEndpoints(ChatService chatService, DocumentDBService documentDBService)
         {
             _chatService = chatService;
-            _cosmosDBService = cosmosDBService;
+            _documentDBService = documentDBService;
         }
 
         public void Map(WebApplication app)
@@ -60,29 +60,29 @@ namespace MultiAgentCopilot
 
             app.MapGet("/tenant/{tenantId}/user/{userId}/accounts",
                     async (string tenantId, string userId) =>
-                    await _cosmosDBService.GetUserRegisteredAccountsAsync(tenantId, userId))
+                    await _documentDBService.GetUserRegisteredAccountsAsync(tenantId, userId))
                 .WithName("GetAccountDetailsAsync");
 
             app.MapGet("/tenant/{tenantId}/user/{userId}/accounts/{accountId}/transactions",
                     async (string tenantId, string userId, string accountId) =>
-                    await _cosmosDBService.GetAccountTransactionsAsync(tenantId, userId, accountId))
+                    await _documentDBService.GetAccountTransactionsAsync(tenantId, userId, accountId))
                 .WithName("GetAccountTransactions");
 
             app.MapGet("/tenant/{tenantId}/servicerequests",
                     async (string tenantId, string userId) =>
-                    await _cosmosDBService.GetServiceRequestsAsync(tenantId))
+                    await _documentDBService.GetServiceRequestsAsync(tenantId))
                 .WithName("GetServiceRequests");
 
             app.MapPut("/offerdata", async ([FromBody] JsonElement document) =>
-                    await _cosmosDBService.AddDocument("OfferData", document))
+                    await _documentDBService.AddDocument("OfferData", document))
                 .WithName("AddOfferData");
 
             app.MapPut("/accountdata", async ([FromBody] JsonElement document) =>
-                    await _cosmosDBService.AddDocument("AccountData", document))
+                    await _documentDBService.AddDocument("AccountData", document))
                 .WithName("AddAccountData");
 
             app.MapPut("/userdata", async ([FromBody] JsonElement document) =>
-                    await _cosmosDBService.AddDocument("UserData", document))
+                    await _documentDBService.AddDocument("UserData", document))
                 .WithName("AddUserData");
 
 

@@ -7,7 +7,7 @@ In this module, you'll learn how to implement agent specialization by creating s
 ## Learning Objectives
 
 - Understand Microsoft Agent Framework tool and function architecture
-- Implement semantic search and vector indexing integration with Azure Cosmos DB
+- Implement semantic search and vector indexing with Azure DocumentDB
 - Learn how to define specialized agent roles and communication protocols
 - Build domain-specific tools for banking operations and customer service
 
@@ -63,7 +63,7 @@ This agent handles anything that appears to be a customer support request by a u
 
 1. Review the contents of **Sales.prompty**.
 
-This agent is used when customers ask questions about what kinds of services a bank offers. The data on the products the bank has are stored in Cosmos DB. This agent performs a vector search in Cosmos DB to find the most suitable products for a customer's request.
+This agent is used when customers ask what services a bank offers. Product data is stored in Azure DocumentDB, and the agent performs a vector search against the `OffersData` collection to find suitable products.
 
 #### Transaction Agent
 
@@ -326,7 +326,7 @@ Similar to generating system prompts based on agent type, we need the Tools to b
             var embeddingClient = _afService.GetAzureOpenAIClient();
             var embeddingDeployment = _afService.GetEmbeddingDeploymentName();
             EmbeddingService embeddingService = new EmbeddingService(embeddingClient, embeddingDeployment);
-            _bankService = new BankingDataService(embeddingService, cosmosDBService.Database, cosmosDBService.AccountDataContainer, cosmosDBService.UserDataContainer, cosmosDBService.AccountDataContainer, cosmosDBService.OfferDataContainer, loggerFactory);
+            _bankService = new BankingDataService(embeddingService, documentDBService.Database, documentDBService.AccountDataCollection, documentDBService.UserDataCollection, documentDBService.RequestDataCollection, documentDBService.OfferDataCollection, loggerFactory);
 
             _afService.SetInProcessToolService(_bankService);
 
@@ -370,7 +370,7 @@ Now that we can build Agents, we can make the agent build process dynamic based 
 
 ## Activity 6: Semantic Search
 
-The Sales Agent in this banking application performs a vector search in Cosmos DB to search for banking products and services for users. In this activity, you will learn how to configure vector indexing and search in Azure Cosmos DB and explore the container and vector indexing policies. Then learn how to implement vector search using Semantic Kernel.
+The Sales Agent performs vector search in Azure DocumentDB to find banking products and services. In this activity, you will inspect the `offers-vector-ivf` index created on the `OffersData.vector` field and implement the matching `$search` aggregation through `MongoDB.Driver`.
 
 ### Create Data Model for Vector Search
 
@@ -409,60 +409,35 @@ Data Models used for Vector Search in Semantic Kernel need to be enhanced with a
         {
             try
             {
-
-                // Generate embeddings for the requirement description
-                var queryVector = await _embeddingService.GenerateEmbeddingAsync(requirementDescription);
-
-
-                // Build the vector search query with filters
-                var query = new QueryDefinition(@"
-                            SELECT 
-                                c.id, 
-                                c.tenantId, 
-                                c.offerId, 
-                                c.name, 
-                                c.text, 
-                                c.type, 
-                                c.accountType, 
-                                VectorDistance(c.vector, @queryVector) AS similarityScore
-                            FROM c 
-                            WHERE c.type = @type 
-                              AND c.tenantId = @tenantId 
-                              AND c.accountType = @accountType
-                            ORDER BY VectorDistance(c.vector, @queryVector)
-                        ")
-                .WithParameter("@queryVector", queryVector)
-                .WithParameter("@type", "Term")
-                .WithParameter("@tenantId", tenantId)
-                .WithParameter("@accountType", accountType.ToString());
-
-                // Define partition key
-                var partitionKey = new PartitionKey(tenantId);
-
-                // Run query
-                var offerTerms = new List<OfferTerm>();
-                using (FeedIterator<OfferTerm> feedIterator = _offerData.GetItemQueryIterator<OfferTerm>(
-                    query,
-                    requestOptions: new QueryRequestOptions
-                    {
-                        PartitionKey = partitionKey,
-                        MaxItemCount = 10 // Limit for performance
-                    }))
+                ReadOnlyMemory<float> queryVector = await _embeddingService.GenerateEmbeddingAsync(requirementDescription);
+                BsonArray vector = new(queryVector.Span.ToArray().Select(value => (BsonValue)value));
+                BsonDocument search = new("$search", new BsonDocument
                 {
-                    while (feedIterator.HasMoreResults)
-                    {
-                        FeedResponse<OfferTerm> response = await feedIterator.ReadNextAsync();
-                        offerTerms.AddRange(response);
-                    }
-                }
-
-                return offerTerms;
-
+                    { "cosmosSearch", new BsonDocument
+                        {
+                            { "vector", vector },
+                            { "path", "vector" },
+                            { "k", 10 },
+                            { "filter", new BsonDocument("$and", new BsonArray
+                                {
+                                    new BsonDocument("tenantId", new BsonDocument("$eq", tenantId)),
+                                    new BsonDocument("type", new BsonDocument("$eq", "Term")),
+                                    new BsonDocument("accountType", new BsonDocument("$eq", accountType.ToString()))
+                                })
+                            }
+                        }
+                    },
+                    { "returnStoredSource", true }
+                });
+                List<BsonDocument> documents = await _offerData
+                    .Aggregate<BsonDocument>(new[] { search, new BsonDocument("$limit", 10) })
+                    .ToListAsync();
+                return documents.Select(DocumentDbSerialization.FromDocument<OfferTerm>).ToList();
             }
             catch (Exception ex)
             {
-                _logger.LogError("Error searching offer terms: {Message}", ex.Message);
-                return new List<OfferTerm>();
+                _logger.LogError(ex, "Error searching offer terms.");
+                return [];
             }
         }
 ```
@@ -525,7 +500,6 @@ using Azure.Identity;
 using Banking.Services;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Workflows;
-using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -1051,7 +1025,7 @@ namespace MultiAgentCopilot.Services;
 
 public class ChatService
 {
-    private readonly CosmosDBService _cosmosDBService;
+    private readonly DocumentDBService _documentDBService;
     private readonly BankingDataService _bankService;
     private readonly MCPToolService _mcpService;
     private readonly  AgentFrameworkService _afService;
@@ -1059,14 +1033,13 @@ public class ChatService
 
 
     public ChatService(
-        IOptions<CosmosDBSettings> cosmosOptions,
         IOptions<AgentFrameworkServiceSettings> afOptions,
-        CosmosDBService cosmosDBService,
+        DocumentDBService documentDBService,
         AgentFrameworkService afService,
         MCPToolService mcpService,
         ILoggerFactory loggerFactory)
     {
-        _cosmosDBService = cosmosDBService;
+        _documentDBService = documentDBService;
         _afService = afService;
         _mcpService = mcpService;
 
@@ -1087,7 +1060,7 @@ public class ChatService
             var embeddingClient = _afService.GetAzureOpenAIClient();
             var embeddingDeployment = _afService.GetEmbeddingDeploymentName();
             EmbeddingService embeddingService = new EmbeddingService(embeddingClient, embeddingDeployment);
-            _bankService = new BankingDataService(embeddingService, cosmosDBService.Database, cosmosDBService.AccountDataContainer, cosmosDBService.UserDataContainer, cosmosDBService.AccountDataContainer, cosmosDBService.OfferDataContainer, loggerFactory);
+            _bankService = new BankingDataService(embeddingService, documentDBService.Database, documentDBService.AccountDataCollection, documentDBService.UserDataCollection, documentDBService.RequestDataCollection, documentDBService.OfferDataCollection, loggerFactory);
 
             _afService.SetInProcessToolService(_bankService);
 
@@ -1105,7 +1078,7 @@ public class ChatService
     /// </summary>
     public async Task<List<Session>> GetAllChatSessionsAsync(string tenantId, string userId)
     {
-        return await _cosmosDBService.GetUserSessionsAsync(tenantId, userId);
+        return await _documentDBService.GetUserSessionsAsync(tenantId, userId);
     }
 
     /// <summary>
@@ -1114,7 +1087,7 @@ public class ChatService
     public async Task<List<Message>> GetChatSessionMessagesAsync(string tenantId, string userId, string sessionId)
     {
         ArgumentNullException.ThrowIfNull(sessionId);
-        return await _cosmosDBService.GetSessionMessagesAsync(tenantId, userId, sessionId);
+        return await _documentDBService.GetSessionMessagesAsync(tenantId, userId, sessionId);
     }
 
     /// <summary>
@@ -1123,7 +1096,7 @@ public class ChatService
     public async Task<Session> CreateNewChatSessionAsync(string tenantId, string userId)
     {
         Session session = new(tenantId, userId);
-        return await _cosmosDBService.InsertSessionAsync(session);
+        return await _documentDBService.InsertSessionAsync(session);
     }
 
     /// <summary>
@@ -1134,7 +1107,7 @@ public class ChatService
         ArgumentNullException.ThrowIfNull(sessionId);
         ArgumentException.ThrowIfNullOrEmpty(newChatSessionName);
 
-        return await _cosmosDBService.UpdateSessionNameAsync(tenantId, userId, sessionId, newChatSessionName);
+        return await _documentDBService.UpdateSessionNameAsync(tenantId, userId, sessionId, newChatSessionName);
     }
 
     /// <summary>
@@ -1143,7 +1116,7 @@ public class ChatService
     public async Task DeleteChatSessionAsync(string tenantId, string userId, string sessionId)
     {
         ArgumentNullException.ThrowIfNull(sessionId);
-        await _cosmosDBService.DeleteSessionAndMessagesAsync(tenantId, userId, sessionId);
+        await _documentDBService.DeleteSessionAndMessagesAsync(tenantId, userId, sessionId);
     }
 
     /// <summary>
@@ -1156,9 +1129,9 @@ public class ChatService
             ArgumentNullException.ThrowIfNull(sessionId);
 
             // Retrieve conversation, including latest prompt.
-            var archivedMessages = await _cosmosDBService.GetSessionMessagesAsync(tenantId, userId, sessionId);
+            var archivedMessages = await _documentDBService.GetSessionMessagesAsync(tenantId, userId, sessionId);
 
-            // Add both prompt and completion to cache, then persist in Cosmos DB
+            // Add both prompt and completion to cache, then persist in Azure DocumentDB
             var userMessage = new Message(tenantId, userId, sessionId, "User", "User", userPrompt);
 
             // Generate the completion to return to the user
@@ -1185,10 +1158,10 @@ public class ChatService
     ///
     private async Task AddPromptCompletionMessagesAsync(string tenantId, string userId, string sessionId, Message promptMessage, List<Message> completionMessages, List<DebugLog> completionMessageLogs)
     {
-        var session = await _cosmosDBService.GetSessionAsync(tenantId, userId, sessionId);
+        var session = await _documentDBService.GetSessionAsync(tenantId, userId, sessionId);
 
         completionMessages.Insert(0, promptMessage);
-        await _cosmosDBService.UpsertSessionBatchAsync(completionMessages, completionMessageLogs, session);
+        await _documentDBService.UpsertSessionBatchAsync(completionMessages, completionMessageLogs, session);
     }
 
     /// <summary>
@@ -1224,7 +1197,7 @@ public class ChatService
         ArgumentNullException.ThrowIfNull(messageId);
         ArgumentNullException.ThrowIfNull(sessionId);
 
-        return await _cosmosDBService.UpdateMessageRatingAsync(tenantId, userId, sessionId, messageId, rating);
+        return await _documentDBService.UpdateMessageRatingAsync(tenantId, userId, sessionId, messageId, rating);
     }
 
     public async Task<DebugLog> GetChatCompletionDebugLogAsync(string tenantId, string userId, string sessionId, string debugLogId)
@@ -1232,7 +1205,7 @@ public class ChatService
         ArgumentException.ThrowIfNullOrEmpty(sessionId);
         ArgumentException.ThrowIfNullOrEmpty(debugLogId);
 
-        return await _cosmosDBService.GetChatCompletionDebugLogAsync(tenantId, userId, sessionId, debugLogId);
+        return await _documentDBService.GetChatCompletionDebugLogAsync(tenantId, userId, sessionId, debugLogId);
     }
 }
 
@@ -1281,342 +1254,7 @@ namespace Banking.Services
   <summary>Completed code for <strong>\Banking\Services\BankingDataService.cs</strong></summary>
 <br>
 
-```csharp
-using Azure.Identity;
-using Banking.Models;
-using Microsoft.Azure.Cosmos;
-using Microsoft.Azure.Cosmos.Fluent;
-using Microsoft.Azure.Cosmos.Linq;
-using Microsoft.Extensions.Logging;
-using OpenAI;
-using System.Diagnostics;
-using System.Linq.Expressions;
-using System.Text;
-using System.Text.Json;
-using Banking.Helper;
-using Container = Microsoft.Azure.Cosmos.Container;
-using PartitionKey = Microsoft.Azure.Cosmos.PartitionKey;
-
-namespace Banking.Services
-{
-    public class BankingDataService
-    {
-        private readonly EmbeddingService _embeddingService;
-        private readonly Container _accountData;
-        private readonly Container _userData;
-        private readonly Container _requestData;
-        private readonly Container _offerData;
-
-        private readonly Database _database;
-
-        private readonly ILogger _logger;
-
-        public bool IsInitialized { get; private set; }
-
-
-        public BankingDataService(EmbeddingService embeddingService,
-            Database database, Container accountData, Container userData, Container requestData, Container offerData, ILoggerFactory loggerFactory)
-        {
-
-            _database = database;
-            _accountData = accountData;
-            _userData = userData;
-            _requestData = requestData;
-            _offerData = offerData;
-            _embeddingService = embeddingService;
-
-            _logger = loggerFactory.CreateLogger<BankingDataService>();
-                        
-            _logger.LogInformation("Banking service initialized.");
-        }
-
-        public async Task<BankUser> GetUserAsync(string tenantId, string userId)
-        {
-            try
-            {
-                var partitionKey = PartitionManager.GetUserDataFullPK(tenantId);
-
-                return await _userData.ReadItemAsync<BankUser>(
-                       id: userId,
-                       partitionKey: partitionKey);
-            }
-            catch (CosmosException ex)
-            {
-                _logger.LogError("Error getting user: {Message}", ex.Message);
-                return null;
-            }
-        }
-
-        public async Task<List<BankAccount>> GetUserRegisteredAccountsAsync(string tenantId, string userId)
-        {
-            try
-            {
-                QueryDefinition query = new QueryDefinition("SELECT * FROM c WHERE c.type = @type and c.userId=@userId")
-                     .WithParameter("@type", nameof(BankAccount))
-                     .WithParameter("@userId", userId);
-
-                var partitionKey = PartitionManager.GetAccountsPartialPK(tenantId);
-                FeedIterator<BankAccount> response = _accountData.GetItemQueryIterator<BankAccount>(query, null, new QueryRequestOptions() { PartitionKey = partitionKey });
-
-                List<BankAccount> output = new();
-                while (response.HasMoreResults)
-                {
-                    FeedResponse<BankAccount> results = await response.ReadNextAsync();
-                    output.AddRange(results);
-                }
-
-                return output;
-            }
-            catch (CosmosException ex)
-            {
-                _logger.LogError("Error getting user registered accounts: {Message}", ex.Message);
-                return null;
-            }
-        }
-
-        public async Task<BankAccount> GetAccountDetailsAsync(string tenantId, string userId, string accountId)
-        {
-            try
-            {
-                var partitionKey = PartitionManager.GetAccountsDataFullPK(tenantId, accountId);
-
-                return await _accountData.ReadItemAsync<BankAccount>(
-                       id: accountId,
-                       partitionKey: partitionKey);
-            }
-            catch (CosmosException ex)
-            {
-                _logger.LogError("Error getting account details: {Message}", ex.Message);
-                return null;
-            }
-        }
-
-        public async Task<List<BankTransaction>> GetTransactionsAsync(string tenantId, string accountId, DateTime startDate, DateTime endDate)
-        {
-            try
-            {
-                var partitionKey = PartitionManager.GetAccountsDataFullPK(tenantId, accountId);
-
-                QueryDefinition queryDefinition = new QueryDefinition(
-                       "SELECT * FROM c WHERE c.accountId = @accountId AND c.transactionDateTime >= @startDate AND c.transactionDateTime <= @endDate AND c.type = @type")
-                       .WithParameter("@accountId", accountId)
-                       .WithParameter("@type", nameof(BankTransaction))
-                       .WithParameter("@startDate", startDate)
-                       .WithParameter("@endDate", endDate);
-
-                List<BankTransaction> transactions = new List<BankTransaction>();
-                using (FeedIterator<BankTransaction> feedIterator = _accountData.GetItemQueryIterator<BankTransaction>(queryDefinition, requestOptions: new QueryRequestOptions { PartitionKey = partitionKey }))
-                {
-                    while (feedIterator.HasMoreResults)
-                    {
-                        FeedResponse<BankTransaction> response = await feedIterator.ReadNextAsync();
-                        transactions.AddRange(response);
-                    }
-                }
-
-                return transactions;
-            }
-            catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
-                _logger.LogError("Error getting transactions: {Message}", ex.Message);
-                return new List<BankTransaction>();
-            }
-        }
-
-        public async Task<ServiceRequest> CreateFundTransferRequestAsync(string tenantId, string accountId, string userId, string requestAnnotation, string recipientEmail, string recipientPhone, decimal debitAmount)
-        {
-            var req = new ServiceRequest(ServiceRequestType.FundTransfer, tenantId, accountId, userId, requestAnnotation, recipientEmail, recipientPhone, debitAmount, DateTime.MinValue, null);
-            return await AddServiceRequestAsync(req);
-        }
-
-        public async Task<ServiceRequest> CreateTeleBankerRequestAsync(string tenantId, string accountId, string userId, string requestAnnotation, DateTime scheduledDateTime)
-        {
-            var req = new ServiceRequest(ServiceRequestType.TeleBankerCallBack, tenantId, accountId, userId, requestAnnotation, string.Empty, string.Empty, 0, scheduledDateTime, null);
-            return await AddServiceRequestAsync(req);
-        }
-
-        public Task<string> GetTeleBankerAvailabilityAsync()
-        {
-            return Task.FromResult("Monday to Friday, 8 AM to 8 PM Pacific Time");
-        }
-
-        public async Task<ServiceRequest> CreateComplaintAsync(string tenantId, string accountId, string userId, string requestAnnotation)
-        {
-            var req = new ServiceRequest(ServiceRequestType.Complaint, tenantId, accountId, userId, requestAnnotation, string.Empty, string.Empty, 0, DateTime.MinValue, null);
-            return await AddServiceRequestAsync(req);
-        }
-
-        public async Task<ServiceRequest> CreateFulfilmentRequestAsync(string tenantId, string accountId, string userId, string requestAnnotation, Dictionary<string, string> fulfilmentDetails)
-        {
-            var req = new ServiceRequest(ServiceRequestType.Fulfilment, tenantId, accountId, userId, requestAnnotation, string.Empty, string.Empty, 0, DateTime.MinValue, fulfilmentDetails);
-            return await AddServiceRequestAsync(req);
-        }
-
-        private async Task<ServiceRequest> AddServiceRequestAsync(ServiceRequest req)
-        {
-            try
-            {
-                var partitionKey = PartitionManager.GetAccountsDataFullPK(req.TenantId, req.AccountId);
-                ItemResponse<ServiceRequest> response = await _accountData.CreateItemAsync(req, partitionKey);
-                return response.Resource;
-            }
-            catch (CosmosException ex)
-            {
-                _logger.LogError("Error adding service request: {Message}", ex.Message);
-                return null;
-            }
-        }
-
-        public async Task<List<ServiceRequest>> GetServiceRequestsAsync(string tenantId, string accountId, string? userId = null, ServiceRequestType? SRType = null)
-        {
-            try
-            {
-                var partitionKey = PartitionManager.GetAccountsDataFullPK(tenantId, accountId);
-
-                var queryBuilder = new StringBuilder("SELECT * FROM c WHERE c.type = @type");
-                var queryDefinition = new QueryDefinition(queryBuilder.ToString())
-                      .WithParameter("@type", nameof(ServiceRequest));
-
-                if (!string.IsNullOrEmpty(userId))
-                {
-                    queryBuilder.Append(" AND c.userId = @userId");
-                    queryDefinition = queryDefinition.WithParameter("@userId", userId);
-                }
-
-                if (SRType.HasValue)
-                {
-                    queryBuilder.Append(" AND c.SRType = @SRType");
-                    queryDefinition = queryDefinition.WithParameter("@SRType", SRType);
-                }
-
-                List<ServiceRequest> reqs = new List<ServiceRequest>();
-                using (FeedIterator<ServiceRequest> feedIterator = _requestData.GetItemQueryIterator<ServiceRequest>(queryDefinition, requestOptions: new QueryRequestOptions { PartitionKey = partitionKey }))
-                {
-                    while (feedIterator.HasMoreResults)
-                    {
-                        FeedResponse<ServiceRequest> response = await feedIterator.ReadNextAsync();
-                        reqs.AddRange(response);
-                    }
-                }
-
-                return reqs;
-            }
-            catch (CosmosException ex)
-            {
-                _logger.LogError("Error getting service requests: {Message}", ex.Message);
-                return new List<ServiceRequest>();
-            }
-        }
-
-        public async Task<bool> AddServiceRequestDescriptionAsync(string tenantId, string accountId, string requestId, string annotationToAdd)
-        {
-            try
-            {
-                var partitionKey = PartitionManager.GetAccountsDataFullPK(tenantId, accountId);
-
-                var patchOperations = new List<PatchOperation>
-                {
-                    PatchOperation.Add("/requestAnnotations/-", $"[{DateTime.Now.ToUniversalTime().ToString()}] : {annotationToAdd}")
-                };
-
-                ItemResponse<ServiceRequest> response = await _requestData.PatchItemAsync<ServiceRequest>(
-                    id: requestId,
-                    partitionKey: partitionKey,
-                    patchOperations: patchOperations
-                );
-
-                return true;
-            }
-            catch (CosmosException ex)
-            {
-                _logger.LogError("Error adding service request description: {Message}", ex.Message);
-                return false;
-            }
-        }
-
-
-        //TO DO: Update SearchOfferTermsAsync
-        public async Task<List<OfferTerm>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription)
-        {
-            try
-            {
-
-                // Generate embeddings for the requirement description
-                var queryVector = await _embeddingService.GenerateEmbeddingAsync(requirementDescription);
-
-
-                // Build the vector search query with filters
-                var query = new QueryDefinition(@"
-                            SELECT 
-                                c.id, 
-                                c.tenantId, 
-                                c.offerId, 
-                                c.name, 
-                                c.text, 
-                                c.type, 
-                                c.accountType, 
-                                VectorDistance(c.vector, @queryVector) AS similarityScore
-                            FROM c 
-                            WHERE c.type = @type 
-                              AND c.tenantId = @tenantId 
-                              AND c.accountType = @accountType
-                            ORDER BY VectorDistance(c.vector, @queryVector)
-                        ")
-                .WithParameter("@queryVector", queryVector)
-                .WithParameter("@type", "Term")
-                .WithParameter("@tenantId", tenantId)
-                .WithParameter("@accountType", accountType.ToString());
-
-                // Define partition key
-                var partitionKey = new PartitionKey(tenantId);
-
-                // Run query
-                var offerTerms = new List<OfferTerm>();
-                using (FeedIterator<OfferTerm> feedIterator = _offerData.GetItemQueryIterator<OfferTerm>(
-                    query,
-                    requestOptions: new QueryRequestOptions
-                    {
-                        PartitionKey = partitionKey,
-                        MaxItemCount = 10 // Limit for performance
-                    }))
-                {
-                    while (feedIterator.HasMoreResults)
-                    {
-                        FeedResponse<OfferTerm> response = await feedIterator.ReadNextAsync();
-                        offerTerms.AddRange(response);
-                    }
-                }
-
-                return offerTerms;
-
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError("Error searching offer terms: {Message}", ex.Message);
-                return new List<OfferTerm>();
-            }
-        }
-
-        public async Task<Offer> GetOfferDetailsAsync(string tenantId, string offerId)
-        {
-            try
-            {
-                var partitionKey = new PartitionKey(tenantId);
-
-                return await _offerData.ReadItemAsync<Offer>(
-                       id: offerId,
-                       partitionKey: new PartitionKey(tenantId));
-            }
-            catch (CosmosException ex)
-            {
-                _logger.LogError("Error getting offer details: {Message}", ex.Message);
-                return null;
-            }
-        }
-        
-    }
-}
-```
+> The authoritative completed implementation is `02_completed/csharp/src/Banking/Services/BankingDataService.cs`. Use that file for the module solution; it includes the MongoDB collections, BSON mappings, vector-search pipeline, and managed-identity authentication used by Azure DocumentDB.
 </details>
 <details>
   <summary>Completed code for <strong>\MultiAgentCopilot\Factories\AgentFactory.cs</strong></summary>

@@ -25,8 +25,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add configuration sources
 builder.Configuration
-    .AddEnvironmentVariables()
-    .AddUserSecrets<Program>();
+    .AddUserSecrets<Program>()
+    .AddEnvironmentVariables();
 
 // Configure CORS
 builder.Services.AddCors(options =>
@@ -40,21 +40,19 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Configure Cosmos DB settings
-builder.Services.Configure<CosmosDBSettings>(
-    builder.Configuration.GetSection("CosmosDBSettings"));
+builder.Services.Configure<DocumentDBSettings>(
+    builder.Configuration.GetSection("DocumentDBSettings"));
 
 builder.Services.Configure<AzureOpenAISettings>(
     builder.Configuration.GetSection("AzureOpenAISettings"));
 
-// Register Cosmos DB service
-builder.Services.AddSingleton<CosmosDBService>();
+builder.Services.AddSingleton<DocumentDBService>();
 
-// Register the banking service with real Cosmos DB containers
+// Register the banking service with Azure DocumentDB collections
 builder.Services.AddScoped<Banking.Services.BankingDataService>(serviceProvider =>
 {
     var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
-    var cosmosDBService = serviceProvider.GetRequiredService<CosmosDBService>();
+    var documentDBService = serviceProvider.GetRequiredService<DocumentDBService>();
     var logger = loggerFactory.CreateLogger<Program>();
 
 
@@ -81,14 +79,14 @@ builder.Services.AddScoped<Banking.Services.BankingDataService>(serviceProvider 
     
     EmbeddingService embeddingService=new EmbeddingService(client, azureOpenAISettings.EmbeddingsDeployment);
 
-    logger.LogInformation("Initializing BankingDataService with real Cosmos DB containers");
+    logger.LogInformation("Initializing BankingDataService with Azure DocumentDB collections");
 
     return new Banking.Services.BankingDataService(embeddingService,
-        database: cosmosDBService.Database,
-        accountData: cosmosDBService.AccountDataContainer,
-        userData: cosmosDBService.UserDataContainer,
-        requestData: cosmosDBService.RequestDataContainer,
-        offerData: cosmosDBService.OfferDataContainer,
+        database: documentDBService.Database,
+        accountData: documentDBService.AccountDataCollection,
+        userData: documentDBService.UserDataCollection,
+        requestData: documentDBService.RequestDataCollection,
+        offerData: documentDBService.OfferDataCollection,
         loggerFactory);
 });
 
@@ -161,7 +159,7 @@ Console.WriteLine("📍 MCP info endpoint available at /mcp/info");
 Console.WriteLine("📍 Health check available at /health");
 Console.WriteLine("🔐 API key authentication enabled for MCP endpoints");
 Console.WriteLine("📊 OpenTelemetry tracing and metrics enabled");
-Console.WriteLine("💾 Cosmos DB integration configured");
+Console.WriteLine("Azure DocumentDB integration configured");
 Console.WriteLine("🏦 Banking tools available for MCP clients");
 
 // DEBUG: Try to verify service registration

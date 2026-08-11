@@ -107,11 +107,11 @@ from typing import Literal
 from langgraph.graph import StateGraph, START, MessagesState
 from langgraph.prebuilt import create_react_agent
 from langgraph.types import Command, interrupt
-from langgraph_checkpoint_cosmosdb import CosmosDBSaver
+from langgraph.checkpoint.mongodb import AsyncMongoDBSaver, MongoDBSaver
 from langgraph.checkpoint.memory import MemorySaver
 from langsmith import traceable
 from src.app.services.azure_open_ai import model
-from src.app.services.azure_cosmos_db import DATABASE_NAME, checkpoint_container, chat_container, \
+from src.app.services.azure_document_db import DATABASE_NAME, async_documentdb_client, chat_container, documentdb_client, \
     update_chat_container, patch_active_agent
 
 # Uncomment these if you want to use custom OAuth configuration
@@ -257,8 +257,11 @@ async def call_coordinator_agent(state: MessagesState, config) -> Command[Litera
     print(f"Calling coordinator agent with Thread ID: {thread_id}")
 
     try:
-        activeAgent = chat_container.read_item(item=thread_id, partition_key=[tenantId, userId, thread_id]).get(
-            'activeAgent', 'unknown')
+        chat = chat_container.find_one(
+            {"tenantId": tenantId, "userId": userId, "sessionId": thread_id},
+            {"_id": 0, "activeAgent": 1},
+        )
+        activeAgent = (chat or {}).get('activeAgent', 'unknown')
     except Exception as e:
         logging.debug(f"No active agent found: {e}")
         activeAgent = None
@@ -353,15 +356,16 @@ def get_active_agent(state: MessagesState, config) -> str:
             except Exception as e:
                 print(f"DEBUG: Failed to parse ToolMessage content: {e}")
 
-    # Fallback: Cosmos DB lookup if needed
+    # Fallback: Azure DocumentDB lookup if needed
     if not activeAgent:
         try:
             thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
             print(f"DEBUG: thread_id in get_active_agent: {thread_id}")
-            activeAgent = chat_container.read_item(
-                item=thread_id,
-                partition_key=[tenantId, userId, thread_id]
-            ).get('activeAgent', 'unknown')
+            chat = chat_container.find_one(
+                {"tenantId": tenantId, "userId": userId, "sessionId": thread_id},
+                {"_id": 0, "activeAgent": 1},
+            )
+            activeAgent = (chat or {}).get('activeAgent', 'unknown')
             print(f"Active agent from DB fallback: {activeAgent}")
         except Exception as e:
             print(f"Error retrieving active agent from DB: {e}")
@@ -390,8 +394,19 @@ builder.add_conditional_edges(
     }
 )
 
-checkpointer = CosmosDBSaver(database_name=DATABASE_NAME, container_name=checkpoint_container)
-graph = builder.compile(checkpointer=checkpointer)
+checkpointer = MongoDBSaver(
+    documentdb_client,
+    db_name=DATABASE_NAME,
+    checkpoint_collection_name="Checkpoints",
+    writes_collection_name="CheckpointWrites",
+)
+async_checkpointer = AsyncMongoDBSaver(
+    async_documentdb_client,
+    db_name=DATABASE_NAME,
+    checkpoint_collection_name="Checkpoints",
+    writes_collection_name="CheckpointWrites",
+)
+graph = builder.compile(checkpointer=async_checkpointer)
 
 
 def interactive_chat():
@@ -444,7 +459,7 @@ from src.app.banking_agents import setup_agents
 Locate the below function:
 
 ```python
-app = fastapi.FastAPI(title="Cosmos DB Multi-Agent Banking API", openapi_url="/cosmos-multi-agent-api.json")
+app = fastapi.FastAPI(title="Azure DocumentDB Multi-Agent Banking API", openapi_url="/documentdb-multi-agent-api.json")
 ```
 
 Below that, add the following code:
@@ -837,7 +852,7 @@ transactions_agent     = create_react_agent(model, transactions_tools,     state
 
 ### 7. Conditional routing via ToolMessage (`goto`)
 
-- **New `get_active_agent`** reads the last `ToolMessage` (emitted by MCP tools) for a `"goto"` hint; falls back to Cosmos DB.
+- **New `get_active_agent`** reads the last `ToolMessage` (emitted by MCP tools) for a `"goto"` hint; it falls back to Azure DocumentDB.
 
     ```python
     def get_active_agent(state, config) -> str:
@@ -862,8 +877,8 @@ transactions_agent     = create_react_agent(model, transactions_tools,     state
 
 ### 8. What stayed the same?
 
-- **LangGraph structure & CosmosDBSaver** usage are preserved (checkpointer + `START → coordinator_agent`).
-- **Cosmos "activeAgent" point lookup** remains for persistence and fallback routing.
+- **LangGraph structure and `MongoDBSaver`** usage are preserved (checkpointer + `START → coordinator_agent`).
+- **Azure DocumentDB `activeAgent` lookup** remains for persistence and fallback routing.
 
 Tools are now discovered and invoked via MCP, agent nodes are async, routing respects MCP tool-emitted `goto`, and per-turn IDs are injected via a temporary system message to make MCP tools stateless and reliable.
 

@@ -2,6 +2,7 @@ import sys
 import os
 import logging
 import json
+import hmac
 from typing import Any, Annotated, Dict, List
 from datetime import datetime
 import uuid
@@ -13,7 +14,7 @@ from langchain_core.runnables import RunnableConfig
 from mcp.server.fastmcp import FastMCP
 from langsmith import traceable
 from services.azure_open_ai import generate_embedding
-from services.azure_cosmos_db import (
+from services.azure_document_db import (
     vector_search,
     create_account_record,
     create_service_request_record,
@@ -29,18 +30,12 @@ from services.azure_cosmos_db import (
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Try to import OAuth support for MCP
+# Load local development configuration.
 try:
     from dotenv import load_dotenv
-    # Import basic OAuth types from MCP for production GitHub OAuth
-    from mcp.server.auth.provider import OAuthAuthorizationServerProvider
-    import requests
-    import secrets
-    from datetime import datetime, timedelta
-    from typing import Dict, Optional, Any
-    import urllib.parse
-    load_dotenv('.env.oauth')  # Load OAuth configuration
-    OAUTH_AVAILABLE = True
+    load_dotenv()
+    load_dotenv('.env.oauth')
+    OAUTH_AVAILABLE = False
     
     print("[DEBUG] 🔐 MCP Server Authentication Configuration:")
     logger.info("🔐 MCP Server Authentication Configuration:")
@@ -62,31 +57,22 @@ try:
     logger.info(f"   Base URL: {base_url}")
     print(f"   Base URL: {base_url}")
     
-    # Authentication priority logic:
-    # 1. GitHub OAuth (if both client_id and client_secret are configured)
-    # 2. Simple token (if MCP_AUTH_TOKEN is set)
-    # 3. No authentication (if nothing is configured)
-    
-    auth_provider = None
-    auth_mode = "none"
-    
-    if github_client_id and github_client_secret:
-        # Production GitHub OAuth mode
-        auth_mode = "github_oauth"
-        print("[DEBUG] ✅ GITHUB OAUTH MODE ENABLED")
-        print(f"[DEBUG]    Callback URL: {base_url}/auth/github/callback")
-        print("[DEBUG]    🔒 Production-grade authentication active")
-        logger.info("✅ GITHUB OAUTH MODE ENABLED")
-        logger.info(f"   Callback URL: {base_url}/auth/github/callback")
-        # Note: Full GitHub OAuth provider would be implemented here
-        
-    elif simple_token:
+    if (github_client_id or github_client_secret) and not simple_token:
+        raise RuntimeError(
+            "GitHub OAuth is not implemented by this workshop server. "
+            "Set MCP_AUTH_TOKEN or remove the GitHub OAuth settings."
+        )
+
+    if github_client_id or github_client_secret:
+        logger.warning("GitHub OAuth settings are ignored; MCP_AUTH_TOKEN enforcement remains active")
+
+    if simple_token:
         # Simple token mode (default for development)
         auth_mode = "simple_token"
         print("[DEBUG] ✅ SIMPLE TOKEN MODE ENABLED (Development)")
         print(f"[DEBUG]    Token: {simple_token[:8]}...")
         print("[DEBUG]    🚀 Ready to use - no setup required!")
-        print("[DEBUG]    💡 For production, configure GitHub OAuth (see SECURITY.md)")
+        print("[DEBUG]    💡 For production, use an OAuth-validating gateway (see SECURITY.md)")
         logger.info("✅ SIMPLE TOKEN MODE ENABLED (Development)")
         logger.info(f"   Token: {simple_token[:8]}...")
         
@@ -98,9 +84,8 @@ try:
         logger.warning("⚠️  NO AUTHENTICATION - All requests accepted")
         
 except ImportError as e:
-    print(f"[DEBUG] ❌ OAuth dependencies not available: {e}")
-    logger.error(f"❌ OAuth dependencies not available: {e}")
-    auth_provider = None
+    print(f"[DEBUG] ❌ Configuration dependency not available: {e}")
+    logger.error(f"❌ Configuration dependency not available: {e}")
     auth_mode = "none"
     simple_token = None
     OAUTH_AVAILABLE = False
@@ -125,11 +110,7 @@ except Exception as e:
     logger.error(f"❌ Failed to create FastMCP server: {e}")
     raise
 
-if auth_mode == "github_oauth":
-    print("[DEBUG] ✅ Banking Tools MCP server initialized with GitHub OAuth")
-    print("[DEBUG] 🔐 PRODUCTION AUTHENTICATION: GitHub OAuth enabled")
-    logger.info("✅ Banking Tools MCP server initialized with GitHub OAuth")
-elif auth_mode == "simple_token":
+if auth_mode == "simple_token":
     print("✅ Banking Tools MCP server initialized with Simple Token Auth")
     print("🔐 DEVELOPMENT AUTHENTICATION: Bearer token required")
     print(f"   Use: Authorization: Bearer {simple_token}")
@@ -149,10 +130,31 @@ def validate_request_auth() -> bool:
         # TODO: In a real implementation, we'd check the request headers
         # For now, we'll assume requests are authenticated if token is configured
         return bool(simple_token)
-    elif auth_mode == "github_oauth":
-        # TODO: Validate OAuth token
-        return True  # Placeholder
     return False
+
+
+class BearerTokenMiddleware:
+    def __init__(self, app, token: str) -> None:
+        self.app = app
+        self.expected_header = f"Bearer {token}"
+
+    async def __call__(self, scope, receive, send) -> None:
+        if scope["type"] == "http":
+            headers = {key.lower(): value for key, value in scope.get("headers", [])}
+            authorization = headers.get(b"authorization", b"").decode("latin-1")
+            if not hmac.compare_digest(authorization, self.expected_header):
+                body = b'{"error":"Unauthorized"}'
+                await send({
+                    "type": "http.response.start",
+                    "status": 401,
+                    "headers": [
+                        (b"content-type", b"application/json"),
+                        (b"content-length", str(len(body)).encode("ascii")),
+                    ],
+                })
+                await send({"type": "http.response.body", "body": body})
+                return
+        await self.app(scope, receive, send)
 
 ##### Coordinator agent tools #####
 
@@ -204,7 +206,7 @@ logger.info("✅ Registered transfer_to_transactions_agent")
 def get_offer_information(user_prompt: str, accountType: str) -> list[dict[str, Any]]:
     """Provide information about a product based on the user prompt.
     Takes as input the user prompt as a string."""
-    # Perform a vector search on the Cosmos DB container and return results to the agent
+    # Perform a vector search on Azure DocumentDB and return results to the agent
     vectors = generate_embedding(user_prompt)
     search_results = vector_search(vectors, accountType)
     return search_results
@@ -217,7 +219,7 @@ def create_account(account_holder: str, balance: float, config: RunnableConfig) 
     Create a new bank account for a user.
 
     This function retrieves the latest account number, increments it, and creates a new account record
-    in Cosmos DB associated with a specific user and tenant.
+    in Azure DocumentDB associated with a specific user and tenant.
     """
     # Authentication debug logging
     print(f"\n🔐 Authentication Debug: create_account called")
@@ -583,19 +585,19 @@ if __name__ == "__main__":
         print(f"[DEBUG] ⚠️  Could not list tools: {e}")
         logger.warning(f"Could not list tools: {e}")
     
-    # Configure server options
-    server_options = {
-        "transport": "streamable-http"
-    }
-    
     print("[DEBUG] 🔧 Starting server without built-in authentication...")
     print("[DEBUG] 💡 For OAuth, use a reverse proxy like nginx or API gateway")
     logger.info("🔧 Starting server without built-in authentication...")
     
     try:
+        import uvicorn
+
         print(f"[DEBUG] 🌐 Server starting on host=0.0.0.0, port={port}")
         logger.info(f"🌐 Server starting on host=0.0.0.0, port={port}")
-        mcp.run(**server_options)
+        app = mcp.streamable_http_app()
+        if auth_mode == "simple_token" and simple_token:
+            app = BearerTokenMiddleware(app, simple_token)
+        uvicorn.run(app, host="0.0.0.0", port=port)
     except Exception as e:
         print(f"[DEBUG] ❌ Failed to start server: {e}")
         logger.error(f"❌ Failed to start server: {e}")

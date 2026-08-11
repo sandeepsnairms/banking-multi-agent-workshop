@@ -10,8 +10,6 @@ from datetime import datetime
 from fastapi import BackgroundTasks
 
 
-from azure.cosmos.exceptions import CosmosHttpResponseError
-
 from fastapi import Depends, HTTPException, Body
 from langchain_core.messages import HumanMessage, ToolMessage
 from pydantic import BaseModel
@@ -19,11 +17,11 @@ from typing import List, Dict, Optional
 from datetime import datetime
 from enum import IntEnum
 from src.app.services.azure_open_ai import model
-from langgraph_checkpoint_cosmosdb import CosmosDBSaver
+from langgraph.checkpoint.mongodb import MongoDBSaver
 from langgraph.graph.state import CompiledStateGraph
 from starlette.middleware.cors import CORSMiddleware
 from src.app.banking_agents import graph, checkpointer
-from src.app.services.azure_cosmos_db import update_chat_container, patch_active_agent, \
+from src.app.services.azure_document_db import update_chat_container, patch_active_agent, \
     fetch_chat_container_by_tenant_and_user, \
     fetch_chat_container_by_session, delete_userdata_item, debug_container, update_users_container, \
     update_account_container, update_offers_container, store_chat_history, update_active_agent_in_latest_message, \
@@ -63,7 +61,7 @@ def get_compiled_graph():
     return graph
 
 
-app = fastapi.FastAPI(title="Cosmos DB Multi-Agent Banking API", openapi_url="/cosmos-multi-agent-api.json")
+app = fastapi.FastAPI(title="Azure DocumentDB Multi-Agent Banking API", openapi_url="/documentdb-multi-agent-api.json")
 
 # Global flag to track agent initialization
 _agents_initialized = False
@@ -262,7 +260,7 @@ class ServiceRequest(BaseModel):
 
 
 def store_debug_log(sessionId, tenantId, userId, response_data):
-    """Stores detailed debug log information in Cosmos DB."""
+    """Stores detailed debug log information in Azure DocumentDB."""
     debug_log_id = str(uuid.uuid4())
     message_id = str(uuid.uuid4())
     timestamp = datetime.utcnow().isoformat()
@@ -338,7 +336,7 @@ def store_debug_log(sessionId, tenantId, userId, response_data):
         "propertyBag": property_bag
     }
 
-    debug_container.create_item(debug_entry)
+    debug_container.replace_one({"id": debug_log_id}, debug_entry, upsert=True)
     return debug_log_id
 
 
@@ -378,15 +376,15 @@ def create_thread(tenantId: str, userId: str):
          response_description="Success",
          response_model=str)
 def get_service_status():
-    return "CosmosDBService: initializing"
+    return "AzureDocumentDBService: initializing"
 
 
-# Note: cosmos db checkpointer store is used internally by LangGraph for "memory": to maintain end-to-end state of each
+# Note: Azure DocumentDB checkpoint storage is used internally by LangGraph for memory across each
 # conversation thread as contextual input to the OpenAI model.
-# However, this function is dead code, as we no longer retrieve chat history from the cosmos db checkpointer store to return in the API.
+# However, this function is dead code, as we no longer retrieve chat history from the checkpoint store to return in the API.
 # Abandoned this approach as the checkpointer store does not natively keep a record of which agent responded to the last message.
 # Also, retrieving messages from the checkpointer store is not efficient as it requires scanning more records than necessary for chat history.
-# Instead, we are now storing chat history in a separate custom cosmos db session container. Keeping this code for reference.
+# Instead, we store chat history in a separate Azure DocumentDB collection. Keeping this code for reference.
 def _fetch_messages_for_session(sessionId: str, tenantId: str, userId: str) -> List[MessageModel]:
     messages = []
     config = {
@@ -495,7 +493,11 @@ def rate_message(tenantId: str, userId: str, sessionId: str, messageId: str, rat
          operation_id="GetChatCompletionDetails", response_model=DebugLog)
 def get_chat_completion_details(tenantId: str, userId: str, sessionId: str, debuglogId: str):
     try:
-        debug_log = debug_container.read_item(item=debuglogId, partition_key=sessionId)
+        debug_log = debug_container.find_one(
+            {"id": debuglogId, "sessionId": sessionId}, {"_id": 0}
+        )
+        if not debug_log:
+            raise LookupError(debuglogId)
         return debug_log
     except Exception:
         raise HTTPException(status_code=404, detail="Debug log not found")
@@ -519,47 +521,11 @@ def rename_chat_session(tenantId: str, userId: str, sessionId: str, newChatSessi
                    messages=item["messages"])
 
 
-def delete_all_thread_records(cosmos_saver: CosmosDBSaver, thread_id: str) -> None:
-    """
-    Deletes all records related to a given thread in CosmosDB by first identifying all partition keys
-    and then deleting every record under each partition key.
-    """
-
-    # Step 1: Identify all partition keys related to the thread
-    query = "SELECT DISTINCT c.partition_key FROM c WHERE CONTAINS(c.partition_key, @thread_id)"
-    parameters = [{"name": "@thread_id", "value": thread_id}]
-
-    partition_keys = list(cosmos_saver.container.query_items(
-        query=query, parameters=parameters, enable_cross_partition_query=True
-    ))
-
-    if not partition_keys:
-        print(f"No records found for thread: {thread_id}")
-        return
-
-    print(f"Found {len(partition_keys)} partition keys related to the thread.")
-
-    # Step 2: Delete all records under each partition key
-    for partition in partition_keys:
-        partition_key = partition["partition_key"]
-
-        # Query all records under the current partition
-        record_query = "SELECT c.id FROM c WHERE c.partition_key=@partition_key"
-        record_parameters = [{"name": "@partition_key", "value": partition_key}]
-
-        records = list(cosmos_saver.container.query_items(
-            query=record_query, parameters=record_parameters, enable_cross_partition_query=True
-        ))
-
-        for record in records:
-            record_id = record["id"]
-            try:
-                cosmos_saver.container.delete_item(record_id, partition_key=partition_key)
-                print(f"Deleted record: {record_id} from partition: {partition_key}")
-            except CosmosHttpResponseError as e:
-                print(f"Error deleting record {record_id} (HTTP {e.status_code}): {e.message}")
-
-    print(f"Successfully deleted all records for thread: {thread_id}")
+def delete_all_thread_records(mongodb_saver: MongoDBSaver, thread_id: str) -> None:
+    """Delete checkpoint and intermediate-write records for a thread."""
+    query = {"thread_id": thread_id}
+    mongodb_saver.checkpoint_collection.delete_many(query)
+    mongodb_saver.writes_collection.delete_many(query)
 
 
 # deletes the session user data container and all messages in the checkpointer store
@@ -669,9 +635,11 @@ def process_messages(messages, userId, tenantId, sessionId):
         }
         store_chat_history(item)
 
-    partition_key = [tenantId, userId, sessionId]
-    # Get the active agent from Cosmos DB with a point lookup
-    activeAgent = chat_container.read_item(item=sessionId, partition_key=partition_key).get('activeAgent', 'unknown')
+    chat = chat_container.find_one(
+        {"tenantId": tenantId, "userId": userId, "sessionId": sessionId},
+        {"_id": 0, "activeAgent": 1},
+    )
+    activeAgent = (chat or {}).get('activeAgent', 'unknown')
 
     last_active_agent = agent_mapping.get(activeAgent, activeAgent)
     update_active_agent_in_latest_message(sessionId, last_active_agent)
@@ -726,9 +694,11 @@ async def get_chat_completion(
 
     messages = extract_relevant_messages(debug_log_id, last_active_agent, response_data, tenantId, userId, sessionId)
 
-    partition_key = [tenantId, userId, sessionId]
-    # Get the active agent from Cosmos DB with a point lookup
-    activeAgent = chat_container.read_item(item=sessionId, partition_key=partition_key).get('activeAgent', 'unknown')
+    chat = chat_container.find_one(
+        {"tenantId": tenantId, "userId": userId, "sessionId": sessionId},
+        {"_id": 0, "activeAgent": 1},
+    )
+    activeAgent = (chat or {}).get('activeAgent', 'unknown')
 
     # update last sender in messages to the active agent
     messages[-1].sender = agent_mapping.get(activeAgent, activeAgent)
@@ -770,7 +740,7 @@ def reset_semantic_cache(tenantId: str, userId: str):
     return {"message": "Semantic cache reset not yet implemented"}
 
 
-@app.put("/userdata", tags=[dataLoadTitle], description="Inserts or updates a single user data record in Cosmos DB")
+@app.put("/userdata", tags=[dataLoadTitle], description="Inserts or updates a single user data record in Azure DocumentDB")
 async def put_userdata(data: Dict):
     try:
         update_users_container(data)
@@ -780,7 +750,7 @@ async def put_userdata(data: Dict):
 
 
 @app.put("/accountdata", tags=[dataLoadTitle],
-         description="Inserts or updates a single account data record in Cosmos DB")
+         description="Inserts or updates a single account data record in Azure DocumentDB")
 async def put_accountdata(data: Dict):
     try:
         update_account_container(data)
@@ -789,7 +759,7 @@ async def put_accountdata(data: Dict):
         raise HTTPException(status_code=500, detail=f"Failed to insert account data: {str(e)}")
 
 
-@app.put("/offerdata", tags=[dataLoadTitle], description="Inserts or updates a single offer data record in Cosmos DB")
+@app.put("/offerdata", tags=[dataLoadTitle], description="Inserts or updates a single offer data record in Azure DocumentDB")
 async def put_offerdata(data: Dict):
     try:
         update_offers_container(data)

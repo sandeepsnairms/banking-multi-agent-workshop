@@ -27,7 +27,7 @@ This solution is organized in the folders below within the `/src` folder
         - **banking_agents_api.py** This is the API front-end for this application
         - **banking_agents.py** This is where the agents are defined.
         - **prompts** This folder contains all of the prompty files which define each agent's behavior
-        - **services** This folder contains the service layer wrappers for Azure Cosmos DB and Azure OpenAI Service
+        - **services** This folder contains the service layer wrappers for Azure DocumentDB and Azure OpenAI Service
         - **tools** This folder contains the tool definitions for each of the agents in this application
     - **/test** This folder contains the python script to test our application
 
@@ -603,8 +603,11 @@ async def get_chat_completion(
     messages = extract_relevant_messages(debug_log_id, last_active_agent, response_data, tenantId, userId, sessionId)
 
     partition_key = [tenantId, userId, sessionId]
-    # Get the active agent from Cosmos DB with a point lookup
-    activeAgent = chat_container.read_item(item=sessionId, partition_key=partition_key).get('activeAgent', 'unknown')
+    chat = chat_container.find_one(
+        {"tenantId": tenantId, "userId": userId, "sessionId": sessionId},
+        {"_id": 0, "activeAgent": 1},
+    )
+    activeAgent = (chat or {}).get('activeAgent', 'unknown')
 
     # update last sender in messages to the active agent
     messages[-1].sender = agent_mapping.get(activeAgent, activeAgent)

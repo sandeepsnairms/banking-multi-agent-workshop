@@ -1,5 +1,5 @@
 # Use an official Python image
-FROM python:3.11
+FROM python:3.12-slim
 
 # Set the working directory inside the container
 WORKDIR /app
@@ -8,6 +8,7 @@ WORKDIR /app
 COPY src/app/requirements.txt .
 
 # Install dependencies
+ARG PIP_INDEX_URL
 RUN pip install --upgrade --no-cache-dir -r requirements.txt
 
 # Copy the `src/` folder while preserving its structure

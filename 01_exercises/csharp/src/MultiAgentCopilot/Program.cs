@@ -41,7 +41,7 @@ namespace MultiAgentCopilot
 
             //builder.AddApplicationInsightsTelemetry();
 
-            builder.AddCosmosDBService();
+            builder.AddDocumentDBService();
             builder.AddAgentFrameworkService();
             builder.AddMCPService();
 

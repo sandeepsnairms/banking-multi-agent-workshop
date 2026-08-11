@@ -36,7 +36,7 @@ Return to **[Home](./Home.md)**
 
 - [LangGraph](https://langchain-ai.github.io/langgraph/concepts/)
 - [Azure OpenAI Service documentation](https://learn.microsoft.com/azure/cognitive-services/openai/)
-- [Azure Cosmos DB Vector Database](https://learn.microsoft.com/azure/cosmos-db/vector-database)
+- [Integrated Vector Store - Azure DocumentDB](https://learn.microsoft.com/azure/documentdb/vector-search)
 - [Model Context Protocol Specification](https://spec.modelcontextprotocol.io/)
 - [FastMCP Documentation](https://github.com/jlowin/fastmcp)
 - [LangChain MCP Integration](https://python.langchain.com/docs/integrations/tools/mcp/)

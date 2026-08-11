@@ -7,7 +7,7 @@ asgiref==3.8.1
 attrs==25.1.0
 azure-core==1.32.0
 azure-core-tracing-opentelemetry==1.0.0b12
-azure-cosmos==4.9.0
+pymongo>=4.9,<4.12
 azure-identity==1.19.0
 azure-monitor-opentelemetry==1.6.10
 azure-monitor-opentelemetry-exporter==1.0.0b38
@@ -47,7 +47,7 @@ langchain-openai==0.3.3
 langchain-text-splitters==0.3.8
 langgraph==0.2.69
 langgraph-checkpoint==2.0.10
-langgraph-checkpoint-cosmosdb==0.2.4
+langgraph-checkpoint-mongodb==0.1.1
 langgraph-sdk==0.1.51
 langsmith==0.4.3
 markdown-it-py==3.0.0

@@ -40,14 +40,14 @@ Complete the following tasks in order to prepare your environment for this works
 
    #### Checking Azure OpenAI quota limits
 
-   For this sample to deploy successfully, there needs to be enough Azure OpenAI quota for the models used by this sample within your subscription. This sample deploys a new Azure OpenAI account with two models, **gpt-4.1-mini with 30K tokens** per minute and **text-3-large with 5k tokens** per minute. For more information on how to check your model quota and change it, see [Manage Azure OpenAI Service Quota](https://learn.microsoft.com/azure/ai-services/openai/how-to/quota)
+   For this sample to deploy successfully, there needs to be enough Azure OpenAI quota for the models used by this sample within your subscription. This sample deploys **gpt-4.1-mini** and **text-embedding-3-small**. For more information on how to check your model quota and change it, see [Manage Azure OpenAI Service Quota](https://learn.microsoft.com/azure/ai-services/openai/how-to/quota)
 
    #### Azure Subscription Permission Requirements
 
-   This solution deploys a [user-assigned managed identity](https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/overview) and defines then applies Azure Cosmos DB and Azure OpenAI RBAC permissions to this as well as your own Service Principal Id. You will need the following Azure RBAC roles assigned to your identity in your Azure subscription or [Subscription Owner](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/privileged#owner) access which will give you both of the following.
+   This solution deploys a [user-assigned managed identity](https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/overview), creates an M30 Azure DocumentDB cluster configured for Microsoft Entra authentication, and grants DocumentDB data access to the managed identity and your development principal. You also need permission to create the identity and Azure OpenAI role assignments, or [Subscription Owner](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/privileged#owner) access.
 
    - [Manged Identity Contributor](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/identity#managed-identity-contributor)
-   - [Cosmos DB Operator](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/databases#cosmos-db-operator)
+   - Azure DocumentDB data-plane access for the deployed cluster
    - [Cognitive Services OpenAI User](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/ai-machine-learning#cognitive-services-openai-user)
 
 ### Get Started
@@ -62,7 +62,7 @@ You can run this sample app and workshop virtually by using GitHub Codespaces. T
 
 1. Open the template (this may take several minutes):
 
-   [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/AzureCosmosDB/banking-multi-agent-workshop/tree/WorkShop_v2_PythonLangGraph?devcontainer_path=.devcontainer/python/devcontainer.json)
+   [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/AzureCosmosDB/banking-multi-agent-workshop/tree/HOL_v2_AFandLangGraph_DocumentDB?devcontainer_path=.devcontainer/python/devcontainer.json)
 
 2. Open a terminal in VS Code.
 
@@ -70,10 +70,10 @@ You can run this sample app and workshop virtually by using GitHub Codespaces. T
 
 1. Install [Docker Desktop](https://docs.docker.com/desktop/), and [VS Code](https://code.visualstudio.com/Download) along with the [Dev Containers extension](https://code.visualstudio.com/docs/devcontainers/tutorial#_install-the-extension) extension.
 
-2. Clone the repository and checkout the WorkShop_v2_PythonLangGraph branch:
+2. Clone the repository and check out the `HOL_v2_AFandLangGraph_DocumentDB` branch:
 
    ```bash
-   git clone --branch HOL_v2_AFandLangGraph https://github.com/AzureCosmosDB/banking-multi-agent-workshop/
+   git clone --branch HOL_v2_AFandLangGraph_DocumentDB https://github.com/AzureCosmosDB/banking-multi-agent-workshop/
    cd banking-multi-agent-workshop/01_exercises
    ```
 
@@ -103,9 +103,9 @@ You can run this sample app and workshop virtually by using GitHub Codespaces. T
 2. Clone the repository and navigate to the folder:
 
    ```bash
-   git clone https://github.com/AzureCosmosDB/banking-multi-agent-workshop/
+   git clone --branch HOL_v2_AFandLangGraph_DocumentDB https://github.com/AzureCosmosDB/banking-multi-agent-workshop/
    cd banking-multi-agent-workshop/01_exercises
-   git checkout WorkShop_v2_PythonLangGraph
+   git checkout HOL_v2_AFandLangGraph_DocumentDB
    ```
 
 3. Move on to the [Deployment](Module-00.md#deployment) section.
@@ -114,16 +114,16 @@ You can run this sample app and workshop virtually by using GitHub Codespaces. T
 
 ### Deployment
 
-1. From the terminal, switch to the `WorkShop_v2_PythonLangGraph` branch:
+1. From the terminal, switch to the `HOL_v2_AFandLangGraph_DocumentDB` branch:
 
    ```bash
-   git checkout WorkShop_v2_PythonLangGraph
+   git checkout HOL_v2_AFandLangGraph_DocumentDB
    ```
 
 1. Navigate to the correct folder:
 
    ```bash
-   cd 01_exercises/python/langgraph/infra
+   cd banking-multi-agent-workshop/01_exercises
    ```
 
 1. Log in to Azure using AZD.
@@ -138,7 +138,7 @@ You can run this sample app and workshop virtually by using GitHub Codespaces. T
    az login
    ```
 
-1. Provision the Azure services and deploy the application.
+1. Provision the Azure services and generate the local application configuration.
 
    ```bash
    azd up
@@ -149,20 +149,7 @@ This step will take approximately 10-15 minutes. If you encounter an error durin
 > [!IMPORTANT]
 > If you encounter any errors during the deployment, rerun `azd up` to continue the deployment from where it left off. This will not create duplicate resources, and tends to resolve most issues.
 
-1. When the resources are finally deployed, you will see a message in the terminal like below:
-
-```bash
-Deploying services (azd deploy)
-
-  (✓) Done: Deploying service ChatServiceWebApi
-  - Endpoint: https://ca-webapi-6xbkqp3ybtbuw.whitemoss-86b36485.eastus2.azurecontainerapps.io/
-
-Do you want to add some dummy data for testing? (yes/no): y
-```
-
-1. Press `y` to load the data for the workshop.
-
-1. Press `y` to deploy the front end for the workshop.
+The deployment provisions Azure DocumentDB, configures Microsoft Foundry model deployments and role assignments, generates local `.env` and `appsettings.development.json` files, and loads the workshop data. The applications run locally during this workshop; the template does not deploy Container Apps.
 
 ⚠️ You may run into errors trying to deploy the web app from WSL. If so, modify your DNS to use public DNS server.
 
@@ -245,7 +232,7 @@ But you will still need to install dependencies to run the solution locally.
    uvicorn src.app.banking_agents_api:app --host 0.0.0.0 --port 63280
    ```
 
-The API will be available at `http://localhost:63280/docs`. This has been pre-built with boilerplate code that will create chat sessions and store the chat history in Cosmos DB.
+The API will be available at `http://localhost:63280/docs`. It includes boilerplate code that creates chat sessions and stores chat history in Azure DocumentDB.
 
 #### Run the Frontend on local machine
 
@@ -291,11 +278,11 @@ The API will be available at `http://localhost:63280/docs`. This has been pre-bu
 Lets try a couple of things:
 
 1. Try out the API by creating a chat session in the front end. This should return a response saying "Hello, I am not yet implemented".
-1. Navigate to the Cosmos DB account in the Azure portal to view the containers. You should see an entry in the `Chat` container. If you selected "yes" to the option during `azd up`, there will also be some transactional data in the `OffersData`, `AccountsData`, and `Users` containers as well.
-1. Take a look at the files in the `src/app/services` folder - these are the boilerplate code for interacting with the Cosmos DB and Azure OpenAI services.
+1. Open the Azure DocumentDB cluster and inspect the `MultiAgentBanking` database with a MongoDB-compatible client authenticated through Microsoft Entra ID. You should see a record in the `ChatsData` collection. If you selected "yes" during `azd up`, the `OffersData`, `AccountsData`, and `Users` collections also contain transactional data.
+1. Review `src/app/services/azure_document_db.py` and `src/app/services/azure_open_ai.py`. The DocumentDB module creates a PyMongo client with `DefaultAzureCredential` and a `MONGODB-OIDC` callback.
 1. You will also see an empty file `src/app/banking_agents.py` as well as empty files in the `src/app/tools` and `src/app/prompts` folder. This is where you will build your multi-agent system!
 
-Next, we will start building the agents that will be served by the API layer and interact with Cosmos DB and Azure OpenAI using LangGraph!
+Next, we will build the agents served by the API layer and connect them to Azure DocumentDB and Azure OpenAI using LangGraph.
 
 ### Deployment Validation
 
@@ -406,4 +393,4 @@ Proceed to [Creating Your First Agent](./Module-01.md) to begin building your mu
 - [azd Command Reference](https://learn.microsoft.com/azure/developer/azure-developer-cli/reference)
 - [LangGraph](https://langchain-ai.github.io/langgraph/concepts/)
 - [Azure OpenAI Service documentation](https://learn.microsoft.com/azure/cognitive-services/openai/)
-- [Azure Cosmos DB Vector Database](https://learn.microsoft.com/azure/cosmos-db/vector-database)
+- [Integrated Vector Store - Azure DocumentDB](https://learn.microsoft.com/azure/documentdb/vector-search)

@@ -9,6 +9,6 @@
         public required string Text { get; set; }
         public required string Type { get; set; }
         public required string AccountType { get; set; }
-        public ReadOnlyMemory<float>? Vector { get; set; }
+        public float[]? Vector { get; set; }
     }
 }

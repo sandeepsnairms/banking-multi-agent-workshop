@@ -12,12 +12,12 @@ from typing import Literal
 from langgraph.graph import StateGraph, START, MessagesState
 from langgraph.prebuilt import create_react_agent
 from langgraph.types import Command, interrupt
-from langgraph_checkpoint_cosmosdb import CosmosDBSaver
+from langgraph.checkpoint.mongodb import AsyncMongoDBSaver, MongoDBSaver
 from langgraph.checkpoint.memory import MemorySaver
 from langsmith import traceable
 from src.app.services.azure_open_ai import model
 #from src.app.services.local_model import model  # Use local model for testing
-from src.app.services.azure_cosmos_db import DATABASE_NAME, checkpoint_container, chat_container, \
+from src.app.services.azure_document_db import DATABASE_NAME, async_documentdb_client, chat_container, documentdb_client, \
     update_chat_container, patch_active_agent
 
 # Uncomment these if you want to use custom OAuth configuration
@@ -251,8 +251,11 @@ async def call_coordinator_agent(state: MessagesState, config) -> Command[Litera
     try:
         print(f"[DEBUG] Looking up active agent for thread {thread_id}")
         logging.info(f"Looking up active agent for thread {thread_id}")
-        activeAgent = chat_container.read_item(item=thread_id, partition_key=[tenantId, userId, thread_id]).get(
-            'activeAgent', 'unknown')
+        chat = chat_container.find_one(
+            {"tenantId": tenantId, "userId": userId, "sessionId": thread_id},
+            {"_id": 0, "activeAgent": 1},
+        )
+        activeAgent = (chat or {}).get('activeAgent', 'unknown')
         print(f"[DEBUG] Found active agent: {activeAgent}")
         logging.info(f"Found active agent: {activeAgent}")
     except Exception as e:
@@ -421,17 +424,18 @@ def get_active_agent(state: MessagesState, config) -> str:
                 print(f"[DEBUG] Failed to parse ToolMessage content: {e}")
                 logging.error(f"Failed to parse ToolMessage content: {e}")
 
-    # Fallback: Cosmos DB lookup if needed
+    # Fallback: Azure DocumentDB lookup if needed
     if not activeAgent:
-        print(f"[DEBUG] No activeAgent from ToolMessage, trying Cosmos DB lookup...")
-        logging.info("No activeAgent from ToolMessage, trying Cosmos DB lookup...")
+        print(f"[DEBUG] No activeAgent from ToolMessage, trying Azure DocumentDB lookup...")
+        logging.info("No activeAgent from ToolMessage, trying Azure DocumentDB lookup...")
         try:
             print(f"[DEBUG] Looking up thread_id in get_active_agent: {thread_id}")
             logging.info(f"Looking up thread_id: {thread_id}")
-            activeAgent = chat_container.read_item(
-                item=thread_id,
-                partition_key=[tenantId, userId, thread_id]
-            ).get('activeAgent', 'unknown')
+            chat = chat_container.find_one(
+                {"tenantId": tenantId, "userId": userId, "sessionId": thread_id},
+                {"_id": 0, "activeAgent": 1},
+            )
+            activeAgent = (chat or {}).get('activeAgent', 'unknown')
             print(f"[DEBUG] Active agent from DB fallback: {activeAgent}")
             logging.info(f"Active agent from DB fallback: {activeAgent}")
         except Exception as e:
@@ -471,8 +475,19 @@ builder.add_conditional_edges(
     }
 )
 
-checkpointer = CosmosDBSaver(database_name=DATABASE_NAME, container_name=checkpoint_container)
-graph = builder.compile(checkpointer=checkpointer)
+checkpointer = MongoDBSaver(
+    documentdb_client,
+    db_name=DATABASE_NAME,
+    checkpoint_collection_name="Checkpoints",
+    writes_collection_name="CheckpointWrites",
+)
+async_checkpointer = AsyncMongoDBSaver(
+    async_documentdb_client,
+    db_name=DATABASE_NAME,
+    checkpoint_collection_name="Checkpoints",
+    writes_collection_name="CheckpointWrites",
+)
+graph = builder.compile(checkpointer=async_checkpointer)
 
 
 def interactive_chat():

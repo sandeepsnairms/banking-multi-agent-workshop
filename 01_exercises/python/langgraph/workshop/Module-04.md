@@ -169,7 +169,7 @@ Tell me something about your banking offers
 credit card
 ```
 
-1. As the agents can talk to each other, the `transactions_agent` after completing the account transfer, calls the *customer_support_agent*, which in turn calls the *sales_agent* to finally get us a result using Cosmos DB Vector Search.
+1. After completing the account transfer, the `transactions_agent` calls the *customer_support_agent*, which calls the *sales_agent* to return a result using Azure DocumentDB vector search.
 1. The conversation should look similar to this.
 
 ![Testing_2](./media/module-04/testing_module_4-2.png)
@@ -199,7 +199,8 @@ LANGCHAIN_PROJECT="multi-agent-banking-app"
 1. Your .env file should look like this after adding the above lines.
 
 ```python
-COSMOSDB_ENDPOINT="<your_cosmos_db_uri>"
+DOCUMENTDB_CLUSTER_NAME="<your_documentdb_cluster_name>"
+DOCUMENTDB_DATABASE_NAME="MultiAgentBanking"
 AZURE_OPENAI_ENDPOINT="<your_azure_open_ai_uri>"
 AZURE_OPENAI_EMBEDDINGDEPLOYMENTID="text-embedding-3-small"
 AZURE_OPENAI_COMPLETIONSDEPLOYMENTID="gpt-4.1-mini"
@@ -412,7 +413,7 @@ You can again see conversation between Human and AI based on the new user prompt
 
 ![LangSmith_3](./media/module-04/lang_smith_3.png)
 
-You can see in the below image the stacktrace of the retriever tool call made to the cosmos db to perform vector search. Click the `get_offer_information` as highlighted in the image below. Scroll to the bottom, and you would be able to see the vector search results returned by the query made to cosmos db. 
+The image below shows the retriever tool call that performs vector search in Azure DocumentDB. Select `get_offer_information`, then scroll to the returned vector-search results.
 
 ![LangSmith_4](./media/module-04/lang_smith_4.png)
 
@@ -450,7 +451,7 @@ The run which has a loading icon in front of it should be the current trace.
 
 ![LangSmith_6](./media/module-04/lang_smith_6.png)
 
-You can click the final agent call, highlighted below to see the final result created by the LLM based on the results returned by the cosmos db query. You would be able to see the same result in your terminal running on your IDE.
+Select the final agent call to see the LLM result based on the Azure DocumentDB query. The same result appears in the IDE terminal.
 
 ![LangSmith_8](./media/module-04/lang_smith_8.png)
 
@@ -581,8 +582,8 @@ from langgraph.checkpoint.memory import MemorySaver
 from langsmith import traceable
 from src.app.services.azure_open_ai import model
 from src.app.tools.coordinator import create_agent_transfer
-from langgraph_checkpoint_cosmosdb import CosmosDBSaver
-from src.app.services.azure_cosmos_db import DATABASE_NAME, checkpoint_container, chat_container, update_chat_container, \
+from langgraph.checkpoint.mongodb import AsyncMongoDBSaver, MongoDBSaver
+from src.app.services.azure_document_db import DATABASE_NAME, async_documentdb_client, chat_container, documentdb_client, update_chat_container, \
     patch_active_agent
 from src.app.tools.sales import calculate_monthly_payment, create_account, get_offer_information
 from src.app.tools.support import get_branch_location, service_request
@@ -659,13 +660,13 @@ def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coo
 
     logging.debug(f"Calling coordinator agent with Thread ID: {thread_id}")
 
-    # Get the active agent from Cosmos DB with a point lookup
-    partition_key = [tenantId, userId, thread_id]
     activeAgent = None
     try:
-        activeAgent = chat_container.read_item(
-            item=thread_id,
-            partition_key=partition_key).get('activeAgent', 'unknown')
+        chat = chat_container.find_one(
+            {"tenantId": tenantId, "userId": userId, "sessionId": thread_id},
+            {"_id": 0, "activeAgent": 1},
+        )
+        activeAgent = (chat or {}).get('activeAgent', 'unknown')
 
     except Exception as e:
         logging.debug(f"No active agent found: {e}")
@@ -754,8 +755,19 @@ builder.add_node("human", human_node)
 
 builder.add_edge(START, "coordinator_agent")
 
-checkpointer = CosmosDBSaver(database_name=DATABASE_NAME, container_name=checkpoint_container)
-graph = builder.compile(checkpointer=checkpointer)
+checkpointer = MongoDBSaver(
+    documentdb_client,
+    db_name=DATABASE_NAME,
+    checkpoint_collection_name="Checkpoints",
+    writes_collection_name="CheckpointWrites",
+)
+async_checkpointer = AsyncMongoDBSaver(
+    async_documentdb_client,
+    db_name=DATABASE_NAME,
+    checkpoint_collection_name="Checkpoints",
+    writes_collection_name="CheckpointWrites",
+)
+graph = builder.compile(checkpointer=async_checkpointer)
 
 
 @traceable(run_type="llm")
@@ -861,10 +873,10 @@ from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 from langsmith import traceable
 
-from src.app.services.azure_cosmos_db import create_account_record, \
+from src.app.services.azure_document_db import create_account_record, \
     fetch_latest_account_number
 
-from src.app.services.azure_cosmos_db import vector_search
+from src.app.services.azure_document_db import vector_search
 from src.app.services.azure_open_ai import generate_embedding
 
 
@@ -873,7 +885,7 @@ from src.app.services.azure_open_ai import generate_embedding
 def get_offer_information(user_prompt: str, accountType: str) -> list[dict[str, Any]]:
     """Provide information about a product based on the user prompt.
     Takes as input the user prompt as a string."""
-    # Perform a vector search on the Cosmos DB container and return results to the agent
+    # Perform a vector search on the Azure DocumentDB collection and return results to the agent
     vectors = generate_embedding(user_prompt)
     search_results = vector_search(vectors, accountType)
     return search_results
@@ -886,7 +898,7 @@ def create_account(account_holder: str, balance: float, config: RunnableConfig) 
     Create a new bank account for a user.
 
     This function retrieves the latest account number, increments it, and creates a new account record
-    in Cosmos DB associated with a specific user and tenant.
+    in Azure DocumentDB associated with a specific user and tenant.
     """
     print(f"Creating account for {account_holder}")
     thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
@@ -964,7 +976,7 @@ from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 from langsmith import traceable
 
-from src.app.services.azure_cosmos_db import create_service_request_record
+from src.app.services.azure_document_db import create_service_request_record
 
 
 @tool
@@ -972,7 +984,7 @@ from src.app.services.azure_cosmos_db import create_service_request_record
 def service_request(config: RunnableConfig,  recipientPhone: str, recipientEmail: str,
                     requestSummary: str) -> str:
     """
-    Create a service request entry in the AccountsData container.
+    Create a service request entry in the AccountsData collection.
 
     :param config: Configuration dictionary.
     :param tenantId: The ID of the tenant.
@@ -1145,7 +1157,7 @@ from typing import List, Dict
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 
-from src.app.services.azure_cosmos_db import fetch_latest_transaction_number, fetch_account_by_number, \
+from src.app.services.azure_document_db import fetch_latest_transaction_number, fetch_account_by_number, \
     create_transaction_record, \
     patch_account_record, fetch_transactions_by_date_range
 
@@ -1269,17 +1281,16 @@ from datetime import datetime
 from fastapi import BackgroundTasks
 from azure.monitor.opentelemetry import configure_azure_monitor
 
-from azure.cosmos.exceptions import CosmosHttpResponseError
 
 from fastapi import Depends, HTTPException, Body
 from langchain_core.messages import HumanMessage, ToolMessage
 from pydantic import BaseModel
 from typing import List, Dict
 from src.app.services.azure_open_ai import model
-from langgraph_checkpoint_cosmosdb import CosmosDBSaver
+from langgraph.checkpoint.mongodb import MongoDBSaver
 from langgraph.graph.state import CompiledStateGraph
 from starlette.middleware.cors import CORSMiddleware
-from src.app.services.azure_cosmos_db import update_chat_container, patch_active_agent, \
+from src.app.services.azure_document_db import update_chat_container, patch_active_agent, \
     fetch_chat_container_by_tenant_and_user, \
     fetch_chat_container_by_session, delete_userdata_item, debug_container, update_users_container, \
     update_account_container, update_offers_container, store_chat_history, update_active_agent_in_latest_message, \
@@ -1309,7 +1320,7 @@ agent_mapping = {
     "sales_agent": "Sales"
 }
 
-app = fastapi.FastAPI(title="Cosmos DB Multi-Agent Banking API", openapi_url="/cosmos-multi-agent-api.json")
+app = fastapi.FastAPI(title="Azure DocumentDB Multi-Agent Banking API", openapi_url="/documentdb-multi-agent-api.json")
 
 app.add_middleware(
     CORSMiddleware,
@@ -1367,7 +1378,7 @@ class DebugLog(BaseModel):
 
 
 def store_debug_log(sessionId, tenantId, userId, response_data):
-    """Stores detailed debug log information in Cosmos DB."""
+    """Stores detailed debug log information in Azure DocumentDB."""
     debug_log_id = str(uuid.uuid4())
     message_id = str(uuid.uuid4())
     timestamp = datetime.utcnow().isoformat()
@@ -1439,7 +1450,7 @@ def store_debug_log(sessionId, tenantId, userId, response_data):
         "propertyBag": property_bag
     }
 
-    debug_container.create_item(debug_entry)
+    debug_container.replace_one({"id": debug_log_id}, debug_entry, upsert=True)
     return debug_log_id
 
 
@@ -1471,7 +1482,7 @@ def create_thread(tenantId: str, userId: str):
          response_description="Success",
          response_model=str)
 def get_service_status():
-    return "CosmosDBService: initializing"
+    return "AzureDocumentDBService: initializing"
 
 
 @app.get("/tenant/{tenantId}/user/{userId}/sessions",
@@ -1533,13 +1544,17 @@ def rate_message(tenantId: str, userId: str, sessionId: str, messageId: str, rat
          operation_id="GetChatCompletionDetails", response_model=DebugLog)
 def get_chat_completion_details(tenantId: str, userId: str, sessionId: str, debuglogId: str):
     try:
-        debug_log = debug_container.read_item(item=debuglogId, partition_key=sessionId)
+        debug_log = debug_container.find_one(
+            {"id": debuglogId, "sessionId": sessionId}, {"_id": 0}
+        )
+        if not debug_log:
+            raise LookupError(debuglogId)
         return debug_log
     except Exception:
         raise HTTPException(status_code=404, detail="Debug log not found")
 
 
-# create a post function that renames the ChatName in the user data container
+# Create a post function that renames ChatName in the user data collection.
 @app.post("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}/rename", description="Renames the chat session",
           tags=[endpointTitle], response_model=Session)
 def rename_chat_session(tenantId: str, userId: str, sessionId: str, newChatSessionName: str):
@@ -1557,50 +1572,14 @@ def rename_chat_session(tenantId: str, userId: str, sessionId: str, newChatSessi
                    messages=item["messages"])
 
 
-def delete_all_thread_records(cosmos_saver: CosmosDBSaver, thread_id: str) -> None:
-    """
-    Deletes all records related to a given thread in CosmosDB by first identifying all partition keys
-    and then deleting every record under each partition key.
-    """
-
-    # Step 1: Identify all partition keys related to the thread
-    query = "SELECT DISTINCT c.partition_key FROM c WHERE CONTAINS(c.partition_key, @thread_id)"
-    parameters = [{"name": "@thread_id", "value": thread_id}]
-
-    partition_keys = list(cosmos_saver.container.query_items(
-        query=query, parameters=parameters, enable_cross_partition_query=True
-    ))
-
-    if not partition_keys:
-        print(f"No records found for thread: {thread_id}")
-        return
-
-    print(f"Found {len(partition_keys)} partition keys related to the thread.")
-
-    # Step 2: Delete all records under each partition key
-    for partition in partition_keys:
-        partition_key = partition["partition_key"]
-
-        # Query all records under the current partition
-        record_query = "SELECT c.id FROM c WHERE c.partition_key=@partition_key"
-        record_parameters = [{"name": "@partition_key", "value": partition_key}]
-
-        records = list(cosmos_saver.container.query_items(
-            query=record_query, parameters=record_parameters, enable_cross_partition_query=True
-        ))
-
-        for record in records:
-            record_id = record["id"]
-            try:
-                cosmos_saver.container.delete_item(record_id, partition_key=partition_key)
-                print(f"Deleted record: {record_id} from partition: {partition_key}")
-            except CosmosHttpResponseError as e:
-                print(f"Error deleting record {record_id} (HTTP {e.status_code}): {e.message}")
-
-    print(f"Successfully deleted all records for thread: {thread_id}")
+def delete_all_thread_records(mongodb_saver: MongoDBSaver, thread_id: str) -> None:
+    """Delete checkpoint and intermediate-write records for a thread."""
+    query = {"thread_id": thread_id}
+    mongodb_saver.checkpoint_collection.delete_many(query)
+    mongodb_saver.writes_collection.delete_many(query)
 
 
-# deletes the session user data container and all messages in the checkpointer store
+# Deletes session user data and all messages in the checkpointer store.
 @app.delete("/tenant/{tenantId}/user/{userId}/sessions/{sessionId}", tags=[endpointTitle], )
 def delete_chat_session(tenantId: str, userId: str, sessionId: str, background_tasks: BackgroundTasks):
     delete_userdata_item(tenantId, userId, sessionId)
@@ -1640,7 +1619,7 @@ def extract_relevant_messages(debug_lod_id, last_active_agent, response_data, te
                 last_agent_name = list(last_agent_node.keys())[0]
             break
 
-    # storing the last active agent in the session container so that we can retrieve it later
+    # Store the last active agent in the session collection so it can be retrieved later
     # and deterministically route the incoming message directly to the agent that asked the question.
     patch_active_agent(tenantId, userId, sessionId, last_agent_name)
 
@@ -1705,8 +1684,11 @@ def process_messages(messages, userId, tenantId, sessionId):
         store_chat_history(item)
 
     partition_key = [tenantId, userId, sessionId]
-    # Get the active agent from Cosmos DB with a point lookup
-    activeAgent = chat_container.read_item(item=sessionId, partition_key=partition_key).get('activeAgent', 'unknown')
+    chat = chat_container.find_one(
+        {"tenantId": tenantId, "userId": userId, "sessionId": sessionId},
+        {"_id": 0, "activeAgent": 1},
+    )
+    activeAgent = (chat or {}).get('activeAgent', 'unknown')
 
     last_active_agent = agent_mapping.get(activeAgent, activeAgent)
     update_active_agent_in_latest_message(sessionId, last_active_agent)
@@ -1760,8 +1742,11 @@ async def get_chat_completion(
     messages = extract_relevant_messages(debug_log_id, last_active_agent, response_data, tenantId, userId, sessionId)
 
     partition_key = [tenantId, userId, sessionId]
-    # Get the active agent from Cosmos DB with a point lookup
-    activeAgent = chat_container.read_item(item=sessionId, partition_key=partition_key).get('activeAgent', 'unknown')
+    chat = chat_container.find_one(
+        {"tenantId": tenantId, "userId": userId, "sessionId": sessionId},
+        {"_id": 0, "activeAgent": 1},
+    )
+    activeAgent = (chat or {}).get('activeAgent', 'unknown')
 
     # update last sender in messages to the active agent
     messages[-1].sender = agent_mapping.get(activeAgent, activeAgent)    
@@ -1803,7 +1788,7 @@ def reset_semantic_cache(tenantId: str, userId: str):
     return {"message": "Semantic cache reset not yet implemented"}
 
 
-@app.put("/userdata", tags=[dataLoadTitle], description="Inserts or updates a single user data record in Cosmos DB")
+@app.put("/userdata", tags=[dataLoadTitle], description="Inserts or updates a single user data record in Azure DocumentDB")
 async def put_userdata(data: Dict):
     try:
         update_users_container(data)
@@ -1813,7 +1798,7 @@ async def put_userdata(data: Dict):
 
 
 @app.put("/accountdata", tags=[dataLoadTitle],
-         description="Inserts or updates a single account data record in Cosmos DB")
+         description="Inserts or updates a single account data record in Azure DocumentDB")
 async def put_accountdata(data: Dict):
     try:
         update_account_container(data)
@@ -1822,7 +1807,7 @@ async def put_accountdata(data: Dict):
         raise HTTPException(status_code=500, detail=f"Failed to insert account data: {str(e)}")
 
 
-@app.put("/offerdata", tags=[dataLoadTitle], description="Inserts or updates a single offer data record in Cosmos DB")
+@app.put("/offerdata", tags=[dataLoadTitle], description="Inserts or updates a single offer data record in Azure DocumentDB")
 async def put_offerdata(data: Dict):
     try:
         update_offers_container(data)

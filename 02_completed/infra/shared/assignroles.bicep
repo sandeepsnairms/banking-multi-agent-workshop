@@ -1,7 +1,7 @@
 
-param cosmosDbAccountName string
+param documentDbClusterName string
 param identityName string
-param openAIName string
+param identityPrincipalId string
 
 @description('Id of the user principals to assign database and application roles.')    
 param userPrincipalId string = '' 
@@ -14,80 +14,65 @@ resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' 
   name: identityName
 }
 
-resource openAi 'Microsoft.CognitiveServices/accounts@2024-10-01' existing = {
-  name: openAIName
-}
-
-resource cosmosDb 'Microsoft.DocumentDB/databaseAccounts@2023-11-15' existing = {
-  name: cosmosDbAccountName
+resource documentDb 'Microsoft.DocumentDB/mongoClusters@2025-09-01' existing = {
+  name: documentDbClusterName
 }
 
 
-// Role Assignment for Cognitive Services User to UAMI
-resource cognitiveServicesRoleAssignmentUAMI 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(identity.id, openAi.id, 'cognitive-services-user')  // Unique GUID for role assignment
-  scope: openAi
+resource documentDbAccessUAMI 'Microsoft.DocumentDB/mongoClusters/users@2025-09-01' = {
+  name: identityPrincipalId
+  parent: documentDb
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a97b65f3-24c7-4388-baec-2e87135dc908')  // Cognitive Services User Role ID
-    principalId: identity.properties.principalId
-    principalType: 'ServicePrincipal'
+    identityProvider: {
+      type: 'MicrosoftEntraID'
+      properties: {
+        principalType: 'servicePrincipal'
+      }
+    }
+    roles: [
+      {
+        db: 'admin'
+        role: 'root'
+      }
+    ]
   }
 }
 
-// Role Assignment for Cognitive Services User to Current User
-resource cognitiveServicesRoleAssignmentCU 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(userPrincipalId, openAi.id, 'cognitive-services-user')  // Unique GUID for role assignment
-  scope: openAi
+resource documentDbAccessCU 'Microsoft.DocumentDB/mongoClusters/users@2025-09-01' = if (!empty(userPrincipalId)) {
+  name: userPrincipalId
+  parent: documentDb
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a97b65f3-24c7-4388-baec-2e87135dc908')  // Cognitive Services User Role ID
-    principalId: userPrincipalId
-    principalType: 'User'
+    identityProvider: {
+      type: 'MicrosoftEntraID'
+      properties: {
+        principalType: 'user'
+      }
+    }
+    roles: [
+      {
+        db: 'admin'
+        role: 'root'
+      }
+    ]
   }
 }
 
-
-// Role Assignment for Cosmos DB role to managed identity
-resource cosmosAccessRoleUAMI 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2023-11-15' = {
-  name: guid('00000000-0000-0000-0000-000000000002', identity.id, cosmosDb.id)
-  parent: cosmosDb
+resource documentDbAccessSP 'Microsoft.DocumentDB/mongoClusters/users@2025-09-01' = if (!empty(servicePrincipalId)) {
+  name: servicePrincipalId
+  parent: documentDb
   properties: {
-    principalId: identity.properties.principalId
-    roleDefinitionId: resourceId('Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions', cosmosDb.name, '00000000-0000-0000-0000-000000000002')
-    scope: cosmosDb.id
-  }
-}
-
-
-// Role Assignment for Cosmos DB role to current user
-resource cosmosAccessRoleCU 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2023-11-15' = {
-  name: guid('00000000-0000-0000-0000-000000000002', userPrincipalId, cosmosDb.id)
-  parent: cosmosDb
-  properties: {
-    principalId: userPrincipalId
-    roleDefinitionId: resourceId('Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions', cosmosDb.name, '00000000-0000-0000-0000-000000000002')
-    scope: cosmosDb.id
-  }
-}
-
-// Role Assignment for Cognitive Services User to Service Principal
-resource cognitiveServicesRoleAssignmentSP 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(servicePrincipalId)) {
-  name: guid(servicePrincipalId, openAi.id, 'cognitive-services-user-sp')
-  scope: openAi
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'a97b65f3-24c7-4388-baec-2e87135dc908')  // Cognitive Services User Role ID
-    principalId: servicePrincipalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
-// Role Assignment for Cosmos DB role to Service Principal
-resource cosmosAccessRoleSP 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2023-11-15' = if (!empty(servicePrincipalId)) {
-  name: guid('00000000-0000-0000-0000-000000000002', servicePrincipalId, cosmosDb.id, 'sp')
-  parent: cosmosDb
-  properties: {
-    principalId: servicePrincipalId
-    roleDefinitionId: resourceId('Microsoft.DocumentDB/databaseAccounts/sqlRoleDefinitions', cosmosDb.name, '00000000-0000-0000-0000-000000000002')
-    scope: cosmosDb.id
+    identityProvider: {
+      type: 'MicrosoftEntraID'
+      properties: {
+        principalType: 'servicePrincipal'
+      }
+    }
+    roles: [
+      {
+        db: 'MultiAgentBanking'
+        role: 'root'
+      }
+    ]
   }
 }
 

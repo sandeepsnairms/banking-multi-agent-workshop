@@ -41,9 +41,9 @@ hooks:
       continueOnError: false
       interactive: true
       run: |
-        # Load data into Cosmos DB
-        Write-Host "Loading data into Cosmos DB..." -ForegroundColor Cyan
-        dotnet run --project ./infra/data/loaddata.csproj -- $env:COSMOSDB_ENDPOINT 
+        # Load data into Azure DocumentDB
+        Write-Host "Loading data into Azure DocumentDB..." -ForegroundColor Cyan
+        dotnet run --project ./infra/data/loaddata.csproj -- $env:DOCUMENTDB_CLUSTER_NAME
     postprovision:
       posix:
         shell: sh
@@ -51,7 +51,7 @@ hooks:
         continueOnError: false
         run: |
           echo "
-          COSMOSDB_ENDPOINT=\"$COSMOSDB_ENDPOINT\"
+          DOCUMENTDB_CLUSTER_NAME=\"$DOCUMENTDB_CLUSTER_NAME\"
           AZURE_OPENAI_ENDPOINT=\"$AZURE_OPENAI_ENDPOINT\"
           AZURE_OPENAI_EMBEDDINGDEPLOYMENTID=\"$AZURE_OPENAI_EMBEDDINGDEPLOYMENTID\"
           AZURE_OPENAI_COMPLETIONSDEPLOYMENTID=\"$AZURE_OPENAI_COMPLETIONSDEPLOYMENTID\"
@@ -62,16 +62,16 @@ hooks:
           " > ./python/langgraph/.env
 
           echo "
-          COSMOSDB_ENDPOINT=\"$COSMOSDB_ENDPOINT\"
+          DOCUMENTDB_CLUSTER_NAME=\"$DOCUMENTDB_CLUSTER_NAME\"
           AZURE_OPENAI_ENDPOINT=\"$AZURE_OPENAI_ENDPOINT\"
           AZURE_OPENAI_EMBEDDINGDEPLOYMENTID=\"$AZURE_OPENAI_EMBEDDINGDEPLOYMENTID\"
           AZURE_OPENAI_COMPLETIONSDEPLOYMENTID=\"$AZURE_OPENAI_COMPLETIONSDEPLOYMENTID\"
           AZURE_OPENAI_API_VERSION=\"2024-02-15-preview\"
           MCP_AUTH_SECRET_KEY=\"banking-mcp-server-jwt-secret-for-local-development\"
-          MCP_AUTH_TOKEN=banking-server-dev-token-2024
-          PORT=8080
-          " > ./mcpserver/python/.env
-      
+              MCP_AUTH_TOKEN=banking-server-dev-token-2024
+              PORT=8080
+              " > ./mcpserver/python/.env
+
           echo "{
           \"Logging\": {
             \"ApplicationInsights\": {
@@ -88,23 +88,23 @@ hooks:
             }
           },
           \"AllowedHosts\": \"*\",
-          \"CosmosDBSettings\": {
-            \"CosmosUri\": \"$env:COSMOSDB_ENDPOINT\",
+          \"DocumentDBSettings\": {
+            \"ClusterName\": \"$DOCUMENTDB_CLUSTER_NAME\",
             \"Database\": \"MultiAgentBanking\",
-            \"ChatDataContainer\": \"ChatsData\",
-            \"UserDataContainer\": \"Users\",
-            \"AccountsContainer\": \"AccountsData\",
-            \"OfferDataContainer\": \"OffersData\",
-            \"RequestDataContainer\": \"AccountsData\",
+            \"ChatDataCollection\": \"ChatsData\",
+            \"UserDataCollection\": \"Users\",
+            \"AccountsCollection\": \"AccountsData\",
+            \"OfferDataCollection\": \"OffersData\",
+            \"RequestDataCollection\": \"AccountsData\",
             \"EnableTracing\": true
           },
           \"AgentFrameworkServiceSettings\": {
             \"UseMCPTools\": false,
             \"AzureOpenAISettings\": {
-              \"Endpoint\": \"$env:AZURE_OPENAI_ENDPOINT\",
-              \"EmbeddingsDeployment\": \"$env:AZURE_OPENAI_EMBEDDINGDEPLOYMENTID\",
-              \"CompletionsDeployment\": \"$env:AZURE_OPENAI_COMPLETIONSDEPLOYMENTID\"
-            }},
+              "Endpoint": "$AZURE_OPENAI_ENDPOINT",
+              "EmbeddingsDeployment": "$AZURE_OPENAI_EMBEDDINGDEPLOYMENTID",
+              "CompletionsDeployment": "$AZURE_OPENAI_COMPLETIONSDEPLOYMENTID"
+            },
             \"EnableTracing\": true,
             \"MCPSettings\": {
               \"ConnectionType\": \"HTTP\",
@@ -135,6 +135,7 @@ hooks:
                 }
               ]
             }
+          }
           }" > ./csharp/src/MultiAgentCopilot/appsettings.development.json
 
           echo "{
@@ -150,14 +151,14 @@ hooks:
               \"ApiKey\": \"dev-mcp-api-key-12345\",
               \"EnforceAuthentication\": true
             },
-            \"CosmosDBSettings\": {
-              \"CosmosUri\": \"$COSMOSDB_ENDPOINT\",
+            \"DocumentDBSettings\": {
+              \"ClusterName\": \"$DOCUMENTDB_CLUSTER_NAME\",
               \"Database\": \"MultiAgentBanking\",
-              \"ChatDataContainer\": \"ChatsData\",
-              \"UserDataContainer\": \"Users\",
-              \"AccountsContainer\": \"AccountsData\",
-              \"OfferDataContainer\": \"OffersData\",
-              \"RequestDataContainer\": \"AccountsData\",
+              \"ChatDataCollection\": \"ChatsData\",
+              \"UserDataCollection\": \"Users\",
+              \"AccountsCollection\": \"AccountsData\",
+              \"OfferDataCollection\": \"OffersData\",
+              \"RequestDataCollection\": \"AccountsData\",
               \"EnableTracing\": true,
               \"UserAssignedIdentityClientID\": \"\"
             },
@@ -179,7 +180,7 @@ hooks:
         continueOnError: false
         run: |
           echo "
-          COSMOSDB_ENDPOINT=""$env:COSMOSDB_ENDPOINT""
+          DOCUMENTDB_CLUSTER_NAME=""$env:DOCUMENTDB_CLUSTER_NAME""
           AZURE_OPENAI_ENDPOINT=""$env:AZURE_OPENAI_ENDPOINT""
           AZURE_OPENAI_EMBEDDINGDEPLOYMENTID=""$env:AZURE_OPENAI_EMBEDDINGDEPLOYMENTID""
           AZURE_OPENAI_COMPLETIONSDEPLOYMENTID=""$env:AZURE_OPENAI_COMPLETIONSDEPLOYMENTID""
@@ -190,7 +191,7 @@ hooks:
           " > ./python/langgraph/.env
 
           echo "
-          COSMOSDB_ENDPOINT=""$env:COSMOSDB_ENDPOINT""
+          DOCUMENTDB_CLUSTER_NAME=""$env:DOCUMENTDB_CLUSTER_NAME""
           AZURE_OPENAI_ENDPOINT=""$env:AZURE_OPENAI_ENDPOINT""
           AZURE_OPENAI_EMBEDDINGDEPLOYMENTID=""$env:AZURE_OPENAI_EMBEDDINGDEPLOYMENTID""
           AZURE_OPENAI_COMPLETIONSDEPLOYMENTID=""$env:AZURE_OPENAI_COMPLETIONSDEPLOYMENTID""
@@ -216,14 +217,14 @@ hooks:
             }
           },
           `"AllowedHosts`": `"*`",
-          `"CosmosDBSettings`": {
-            `"CosmosUri`": `"$env:COSMOSDB_ENDPOINT`",
+          `"DocumentDBSettings`": {
+            `"ClusterName`": `"$env:DOCUMENTDB_CLUSTER_NAME`",
             `"Database`": `"MultiAgentBanking`",
-            `"ChatDataContainer`": `"ChatsData`",
-            `"UserDataContainer`": `"Users`",
-            `"AccountsContainer`": `"AccountsData`",
-            `"OfferDataContainer`": `"OffersData`",
-            `"RequestDataContainer`": `"AccountsData`",
+            `"ChatDataCollection`": `"ChatsData`",
+            `"UserDataCollection`": `"Users`",
+            `"AccountsCollection`": `"AccountsData`",
+            `"OfferDataCollection`": `"OffersData`",
+            `"RequestDataCollection`": `"AccountsData`",
             `"EnableTracing`": true
           },
           `"AgentFrameworkServiceSettings`": {
@@ -232,7 +233,7 @@ hooks:
               `"Endpoint`": `"$env:AZURE_OPENAI_ENDPOINT`",
               `"EmbeddingsDeployment`": `"$env:AZURE_OPENAI_EMBEDDINGDEPLOYMENTID`",
               `"CompletionsDeployment`": `"$env:AZURE_OPENAI_COMPLETIONSDEPLOYMENTID`"
-            }},
+            },
             `"EnableTracing`": true,
             `"MCPSettings`": {
               `"ConnectionType`": `"HTTP`",
@@ -263,6 +264,7 @@ hooks:
                 }
               ]
             }
+          }
           }" > ./csharp/src/MultiAgentCopilot/appsettings.development.json
 
           echo "{
@@ -278,14 +280,14 @@ hooks:
               `"ApiKey`": `"dev-mcp-api-key-12345`",
               `"EnforceAuthentication`": true
             },
-            `"CosmosDBSettings`": {
-              `"CosmosUri`": `"$env:COSMOSDB_ENDPOINT`",
+            `"DocumentDBSettings`": {
+              `"ClusterName`": `"$env:DOCUMENTDB_CLUSTER_NAME`",
               `"Database`": `"MultiAgentBanking`",
-              `"ChatDataContainer`": `"ChatsData`",
-              `"UserDataContainer`": `"Users`",
-              `"AccountsContainer`": `"AccountsData`",
-              `"OfferDataContainer`": `"OffersData`",
-              `"RequestDataContainer`": `"AccountsData`",
+              `"ChatDataCollection`": `"ChatsData`",
+              `"UserDataCollection`": `"Users`",
+              `"AccountsCollection`": `"AccountsData`",
+              `"OfferDataCollection`": `"OffersData`",
+              `"RequestDataCollection`": `"AccountsData`",
               `"EnableTracing`": true,
               `"UserAssignedIdentityClientID`": `"`"
             },

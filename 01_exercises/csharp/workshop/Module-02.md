@@ -2,30 +2,30 @@
 
 ## Introduction
 
-In this module, you'll connect your agent to Azure Cosmos DB to provide persistent memory for chat history and state management. This enables your agents to maintain context across conversations and provide more coherent, context-aware interactions.
+In this module, you'll connect your agent to Azure DocumentDB to provide persistent memory for chat history and state management. This enables your agents to maintain context across conversations and provide more coherent, context-aware interactions.
 
 ## Learning Objectives
 
-- Understand Azure Cosmos DB integration for agent memory and state persistence
+- Understand Azure DocumentDB integration for agent memory and state persistence
 - Learn how to implement chat history management in agent frameworks
 - Configure agents to maintain conversation context across multiple interactions
-- Test connectivity and data persistence with Azure Cosmos DB
+- Test connectivity and data persistence with Azure DocumentDB through Microsoft Entra OIDC
 
 ## Module Exercises
 
-1. [Activity 1: Connecting Agent Frameworks to Azure Cosmos DB](#activity-1-connecting-agent-frameworks-to-azure-cosmos-db)
+1. [Activity 1: Connecting Agent Frameworks to Azure DocumentDB](#activity-1-connecting-agent-frameworks-to-azure-documentdb)
 1. [Activity 2: Test your Work](#activity-2-test-your-work)
 
 
-## Activity 1: Connecting Agent Frameworks to Azure Cosmos DB
+## Activity 1: Connecting Agent Frameworks to Azure DocumentDB
 
-In this activity, you will learn how to initialize Azure Cosmos DB and integrate with an agent framework to provide persistent memory for chat history and state management.
+In this activity, you will use the existing `DocumentDbClientFactory` and `DocumentDBService` to persist chat history and state in Azure DocumentDB. The factory uses `MongoDB.Driver`, `DefaultAzureCredential`, and the driver's OIDC callback; no keys or connection strings are used.
 
 ### Update GetResponse() function in AgentFrameworkService
 
-The **GetResponse()** function is the main entry point for our multi-agent application. Within that function, a variable named **messageHistory** stores a list of historical messages from the chat session. The **chatHistory** object is used to construct this history and pass it to the Microsoft Agent Framework Chat Client. The **completionMessages** list is used to store the response received from the agent which then needs to be persisted in Cosmos DB for the next iteration of the agent.
+The **GetResponse()** function is the main entry point for our multi-agent application. Within that function, a variable named **messageHistory** stores historical messages from the chat session. The **chatHistory** object passes this history to the Microsoft Agent Framework chat client. The response is then persisted in Azure DocumentDB for the next iteration.
 
-We're going to modify this function to provide that persistence with Cosmos DB.
+We're going to modify this function to provide that persistence with Azure DocumentDB.
 
 1. In VS Code, return to the **AgentFrameworkService.cs** in the **/Services** folder.
 1. Replace the **GetResponse()** method with the code below:
@@ -64,7 +64,7 @@ This method handles message history management and creates a specialized banking
 
 #### Chat Data models
 
-We can now update our Chat Service to store the messages generated between users and agents. In this step, we will add a new function that first calls the Cosmos DB service to get a Session object from our database. The Session object is part of an object hierarchy that defines the conversations between users and agents. A session has a name and also an array of messages for that conversation topic.
+We can now update our Chat Service to store messages generated between users and agents. In this step, we add a function that calls `DocumentDBService` to retrieve a `Session` document from the `ChatsData` collection.
 
 Let's view the data model for our chat session object.
 
@@ -73,13 +73,13 @@ Let's view the data model for our chat session object.
 
 #### Update Chat Service
 
-With a reference to the current session returned from the CosmosDBService, this function calls our newly implemented function to update the messages within the session object with any new or updated messages. Typically, this would include a single user prompt, followed by one or more responses from the agents.
+With a reference to the current session returned from `DocumentDBService`, this function updates the collection with a user prompt followed by one or more agent responses.
 
 1. In VS Code, navigate to the **/Services** folder and open the **ChatService.cs** class.
 1. Search for **//TO DO: Add AddPromptCompletionMessagesAsync** and paste the below code. 
 
 
-This method handles the persistence of conversation messages to Cosmos DB. It retrieves the session, adds new messages, and performs a batch upsert operation.
+This method handles persistence in Azure DocumentDB. It retrieves the session, adds new messages, and performs an ordered MongoDB bulk write.
 
 ```csharp
     /// <summary>
@@ -88,10 +88,10 @@ This method handles the persistence of conversation messages to Cosmos DB. It re
     ///
     private async Task AddPromptCompletionMessagesAsync(string tenantId, string userId, string sessionId, Message promptMessage, List<Message> completionMessages, List<DebugLog> completionMessageLogs)
     {
-        var session = await _cosmosDBService.GetSessionAsync(tenantId, userId, sessionId);
+        var session = await _documentDBService.GetSessionAsync(tenantId, userId, sessionId);
     
         completionMessages.Insert(0, promptMessage);
-        await _cosmosDBService.UpsertSessionBatchAsync(completionMessages, completionMessageLogs, session);
+        await _documentDBService.UpsertSessionBatchAsync(completionMessages, completionMessageLogs, session);
     }
 ```
 
@@ -100,15 +100,15 @@ This method handles the persistence of conversation messages to Cosmos DB. It re
 1. Next, locate the **GetChatCompletionAsync()** function.
 1. Update the function by replacing the code **within** the **Try** block with the below:
 
-This method orchestrates the complete chat flow: retrieving history, processing user input, generating agent responses, and persisting the conversation data to Cosmos DB.
+This method orchestrates the complete chat flow: retrieving history, processing user input, generating agent responses, and persisting the conversation data to Azure DocumentDB.
 
 ```csharp
             ArgumentNullException.ThrowIfNull(sessionId);
 
             // Retrieve conversation, including latest prompt.
-            var archivedMessages = await _cosmosDBService.GetSessionMessagesAsync(tenantId, userId, sessionId);
+            var archivedMessages = await _documentDBService.GetSessionMessagesAsync(tenantId, userId, sessionId);
 
-            // Add both prompt and completion to cache, then persist in Cosmos DB
+            // Add both prompt and completion to cache, then persist in Azure DocumentDB
             var userMessage = new Message(tenantId, userId, sessionId, "User", "User", userPrompt);
 
             // Generate the completion to return to the user
@@ -176,7 +176,6 @@ using Azure.Identity;
 using Banking.Services;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Workflows;
-using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -686,7 +685,7 @@ namespace MultiAgentCopilot.Services;
 
 public class ChatService
 {
-    private readonly CosmosDBService _cosmosDBService;
+    private readonly DocumentDBService _documentDBService;
     private readonly BankingDataService _bankService;
     private readonly MCPToolService _mcpService;
     private readonly  AgentFrameworkService _afService;
@@ -694,14 +693,13 @@ public class ChatService
 
 
     public ChatService(
-        IOptions<CosmosDBSettings> cosmosOptions,
         IOptions<AgentFrameworkServiceSettings> afOptions,
-        CosmosDBService cosmosDBService,
+        DocumentDBService documentDBService,
         AgentFrameworkService afService,
         MCPToolService mcpService,
         ILoggerFactory loggerFactory)
     {
-        _cosmosDBService = cosmosDBService;
+        _documentDBService = documentDBService;
         _afService = afService;
         _mcpService = mcpService;
 
@@ -732,7 +730,7 @@ public class ChatService
     /// </summary>
     public async Task<List<Session>> GetAllChatSessionsAsync(string tenantId, string userId)
     {
-        return await _cosmosDBService.GetUserSessionsAsync(tenantId, userId);
+        return await _documentDBService.GetUserSessionsAsync(tenantId, userId);
     }
 
     /// <summary>
@@ -741,7 +739,7 @@ public class ChatService
     public async Task<List<Message>> GetChatSessionMessagesAsync(string tenantId, string userId, string sessionId)
     {
         ArgumentNullException.ThrowIfNull(sessionId);
-        return await _cosmosDBService.GetSessionMessagesAsync(tenantId, userId, sessionId);
+        return await _documentDBService.GetSessionMessagesAsync(tenantId, userId, sessionId);
     }
 
     /// <summary>
@@ -750,7 +748,7 @@ public class ChatService
     public async Task<Session> CreateNewChatSessionAsync(string tenantId, string userId)
     {
         Session session = new(tenantId, userId);
-        return await _cosmosDBService.InsertSessionAsync(session);
+        return await _documentDBService.InsertSessionAsync(session);
     }
 
     /// <summary>
@@ -761,7 +759,7 @@ public class ChatService
         ArgumentNullException.ThrowIfNull(sessionId);
         ArgumentException.ThrowIfNullOrEmpty(newChatSessionName);
 
-        return await _cosmosDBService.UpdateSessionNameAsync(tenantId, userId, sessionId, newChatSessionName);
+        return await _documentDBService.UpdateSessionNameAsync(tenantId, userId, sessionId, newChatSessionName);
     }
 
     /// <summary>
@@ -770,7 +768,7 @@ public class ChatService
     public async Task DeleteChatSessionAsync(string tenantId, string userId, string sessionId)
     {
         ArgumentNullException.ThrowIfNull(sessionId);
-        await _cosmosDBService.DeleteSessionAndMessagesAsync(tenantId, userId, sessionId);
+        await _documentDBService.DeleteSessionAndMessagesAsync(tenantId, userId, sessionId);
     }
 
     /// <summary>
@@ -783,9 +781,9 @@ public class ChatService
             ArgumentNullException.ThrowIfNull(sessionId);
 
             // Retrieve conversation, including latest prompt.
-            var archivedMessages = await _cosmosDBService.GetSessionMessagesAsync(tenantId, userId, sessionId);
+            var archivedMessages = await _documentDBService.GetSessionMessagesAsync(tenantId, userId, sessionId);
 
-            // Add both prompt and completion to cache, then persist in Cosmos DB
+            // Add both prompt and completion to cache, then persist in Azure DocumentDB
             var userMessage = new Message(tenantId, userId, sessionId, "User", "User", userPrompt);
 
             // Generate the completion to return to the user
@@ -812,10 +810,10 @@ public class ChatService
     ///
     private async Task AddPromptCompletionMessagesAsync(string tenantId, string userId, string sessionId, Message promptMessage, List<Message> completionMessages, List<DebugLog> completionMessageLogs)
     {
-        var session = await _cosmosDBService.GetSessionAsync(tenantId, userId, sessionId);
+        var session = await _documentDBService.GetSessionAsync(tenantId, userId, sessionId);
 
         completionMessages.Insert(0, promptMessage);
-        await _cosmosDBService.UpsertSessionBatchAsync(completionMessages, completionMessageLogs, session);
+        await _documentDBService.UpsertSessionBatchAsync(completionMessages, completionMessageLogs, session);
     }
 
     /// <summary>
@@ -851,7 +849,7 @@ public class ChatService
         ArgumentNullException.ThrowIfNull(messageId);
         ArgumentNullException.ThrowIfNull(sessionId);
 
-        return await _cosmosDBService.UpdateMessageRatingAsync(tenantId, userId, sessionId, messageId, rating);
+        return await _documentDBService.UpdateMessageRatingAsync(tenantId, userId, sessionId, messageId, rating);
     }
 
     public async Task<DebugLog> GetChatCompletionDebugLogAsync(string tenantId, string userId, string sessionId, string debugLogId)
@@ -859,7 +857,7 @@ public class ChatService
         ArgumentException.ThrowIfNullOrEmpty(sessionId);
         ArgumentException.ThrowIfNullOrEmpty(debugLogId);
 
-        return await _cosmosDBService.GetChatCompletionDebugLogAsync(tenantId, userId, sessionId, debugLogId);
+        return await _documentDBService.GetChatCompletionDebugLogAsync(tenantId, userId, sessionId, debugLogId);
     }
 
 }

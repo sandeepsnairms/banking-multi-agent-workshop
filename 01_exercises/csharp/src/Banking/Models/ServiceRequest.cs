@@ -40,6 +40,7 @@ namespace Banking.Models
         }
 
         [JsonConstructor]
+        [Newtonsoft.Json.JsonConstructor]
         public ServiceRequest(
         string id,
         string tenantId,

@@ -9,7 +9,7 @@ In this Module you'll learn how to implement agent specialization by creating Se
 ## Learning Objectives and Activities
 
 - Learn the basics for LangGraph Tools
-- Learn how to implement semantic and natural language features using vector indexing and search integration from Azure Cosmos DB.
+- Learn how to implement semantic and natural language features using Azure DocumentDB vector indexing and search.
 - Learn how to define tasks and communication protocols for seamless collaboration.
 
 ## Module Exercises
@@ -140,7 +140,7 @@ from typing import Any
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 
-from src.app.services.azure_cosmos_db import create_account_record, \
+from src.app.services.azure_document_db import create_account_record, \
     fetch_latest_account_number
 
 @tool
@@ -149,7 +149,7 @@ def create_account(account_holder: str, balance: float, config: RunnableConfig) 
     Create a new bank account for a user.
 
     This function retrieves the latest account number, increments it, and creates a new account record
-    in Cosmos DB associated with a specific user and tenant.
+    in Azure DocumentDB associated with a specific user and tenant.
     """
     print(f"Creating account for {account_holder}")
     thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
@@ -218,7 +218,7 @@ from typing import List, Dict
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 
-from src.app.services.azure_cosmos_db import fetch_latest_transaction_number, fetch_account_by_number, \
+from src.app.services.azure_document_db import fetch_latest_transaction_number, fetch_account_by_number, \
     create_transaction_record, \
     patch_account_record, fetch_transactions_by_date_range
 
@@ -333,14 +333,14 @@ from typing import Dict, List
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 
-from src.app.services.azure_cosmos_db import create_service_request_record
+from src.app.services.azure_document_db import create_service_request_record
 
 
 @tool
 def service_request(config: RunnableConfig,  recipientPhone: str, recipientEmail: str,
                     requestSummary: str) -> str:
     """
-    Create a service request entry in the AccountsData container.
+    Create a service request entry in the AccountsData collection.
 
     :param config: Configuration dictionary.
     :param tenantId: The ID of the tenant.
@@ -610,13 +610,13 @@ You MUST respond with the repayment amounts before transferring to another agent
 
 ## Activity 3: Semantic Search
 
-We are going to add one more tool that is a little different from the others. This tool will allow the customer support agent to perform a semantic search for products in the bank's database. We'll use Azure Cosmos DB Vector Search capability to perform a semantic search against the OffersData container.
+We are going to add one more tool that allows semantic product search. Azure DocumentDB uses the `offers-vector-ivf` index on `OffersData.vector` and a MongoDB `$search` aggregation with the `cosmosSearch` operator.
 
 1. In VS Code, open the file **src/app/tools/sales.py**
 1. Add these imports to the top of the file.
 
 ```python
-from src.app.services.azure_cosmos_db import vector_search
+from src.app.services.azure_document_db import vector_search
 from src.app.services.azure_open_ai import generate_embedding
 ```
 
@@ -627,7 +627,7 @@ from src.app.services.azure_open_ai import generate_embedding
 def get_offer_information(user_prompt: str, accountType: str) -> list[dict[str, Any]]:
     """Provide information about a product based on the user prompt.
     Takes as input the user prompt as a string."""
-    # Perform a vector search on the Cosmos DB container and return results to the agent
+    # Perform a vector search on the Azure DocumentDB collection and return results to the agent
     vectors = generate_embedding(user_prompt)
     search_results = vector_search(vectors, accountType)
     return search_results
@@ -686,11 +686,11 @@ I want to transfer 500 from account Acc001 to Acc003
 ![Testing_1](./media/module-03/testing_module3_1.png)
 
 1. Wait until the transaction has been completed by the agent.
-1. Return to the Azure Portal, open the Cosmos DB account
-1. Open the AccountsData container.
+1. Return to the Azure portal and open the Azure DocumentDB cluster.
+1. Use a MongoDB-compatible client with Entra authentication to open the `AccountsData` collection.
 1. Verify the transaction was successful.
 
-Let's test a new scenario that will invoke a vector search in Cosmos DB on our banking offers.
+Let's test a new scenario that invokes Azure DocumentDB vector search on our banking offers.
 
 1. Return to the frontend in your browser.
 1. Create a new conversation.
@@ -732,8 +732,8 @@ from langgraph.types import Command, interrupt
 from langgraph.checkpoint.memory import MemorySaver
 from src.app.services.azure_open_ai import model
 from src.app.tools.coordinator import create_agent_transfer
-from langgraph_checkpoint_cosmosdb import CosmosDBSaver
-from src.app.services.azure_cosmos_db import DATABASE_NAME, checkpoint_container, chat_container, update_chat_container, \
+from langgraph.checkpoint.mongodb import AsyncMongoDBSaver, MongoDBSaver
+from src.app.services.azure_document_db import DATABASE_NAME, async_documentdb_client, chat_container, documentdb_client, update_chat_container, \
     patch_active_agent
 from src.app.tools.sales import calculate_monthly_payment, create_account, get_offer_information
 from src.app.tools.support import get_branch_location, service_request
@@ -809,13 +809,13 @@ def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coo
 
     logging.debug(f"Calling coordinator agent with Thread ID: {thread_id}")
 
-    # Get the active agent from Cosmos DB with a point lookup
-    partition_key = [tenantId, userId, thread_id]
     activeAgent = None
     try:
-        activeAgent = chat_container.read_item(
-            item=thread_id,
-            partition_key=partition_key).get('activeAgent', 'unknown')
+        chat = chat_container.find_one(
+            {"tenantId": tenantId, "userId": userId, "sessionId": thread_id},
+            {"_id": 0, "activeAgent": 1},
+        )
+        activeAgent = (chat or {}).get('activeAgent', 'unknown')
 
     except Exception as e:
         logging.debug(f"No active agent found: {e}")
@@ -900,8 +900,19 @@ builder.add_node("human", human_node)
 
 builder.add_edge(START, "coordinator_agent")
 
-checkpointer = CosmosDBSaver(database_name=DATABASE_NAME, container_name=checkpoint_container)
-graph = builder.compile(checkpointer=checkpointer)
+checkpointer = MongoDBSaver(
+    documentdb_client,
+    db_name=DATABASE_NAME,
+    checkpoint_collection_name="Checkpoints",
+    writes_collection_name="CheckpointWrites",
+)
+async_checkpointer = AsyncMongoDBSaver(
+    async_documentdb_client,
+    db_name=DATABASE_NAME,
+    checkpoint_collection_name="Checkpoints",
+    writes_collection_name="CheckpointWrites",
+)
+graph = builder.compile(checkpointer=async_checkpointer)
 
 
 def interactive_chat():
@@ -961,14 +972,14 @@ from typing import Dict, List
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 
-from src.app.services.azure_cosmos_db import create_service_request_record
+from src.app.services.azure_document_db import create_service_request_record
 
 
 @tool
 def service_request(config: RunnableConfig,  recipientPhone: str, recipientEmail: str,
                     requestSummary: str) -> str:
     """
-    Create a service request entry in the AccountsData container.
+    Create a service request entry in the AccountsData collection.
 
     :param config: Configuration dictionary.
     :param tenantId: The ID of the tenant.
@@ -1138,10 +1149,10 @@ from typing import Any
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 
-from src.app.services.azure_cosmos_db import create_account_record, \
+from src.app.services.azure_document_db import create_account_record, \
     fetch_latest_account_number
 
-from src.app.services.azure_cosmos_db import vector_search
+from src.app.services.azure_document_db import vector_search
 from src.app.services.azure_open_ai import generate_embedding
 
 
@@ -1149,7 +1160,7 @@ from src.app.services.azure_open_ai import generate_embedding
 def get_offer_information(user_prompt: str, accountType: str) -> list[dict[str, Any]]:
     """Provide information about a product based on the user prompt.
     Takes as input the user prompt as a string."""
-    # Perform a vector search on the Cosmos DB container and return results to the agent
+    # Perform a vector search on the Azure DocumentDB collection and return results to the agent
     vectors = generate_embedding(user_prompt)
     search_results = vector_search(vectors, accountType)
     return search_results
@@ -1161,7 +1172,7 @@ def create_account(account_holder: str, balance: float, config: RunnableConfig) 
     Create a new bank account for a user.
 
     This function retrieves the latest account number, increments it, and creates a new account record
-    in Cosmos DB associated with a specific user and tenant.
+    in Azure DocumentDB associated with a specific user and tenant.
     """
     print(f"Creating account for {account_holder}")
     thread_id = config["configurable"].get("thread_id", "UNKNOWN_THREAD_ID")
@@ -1234,7 +1245,7 @@ from typing import List, Dict
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 
-from src.app.services.azure_cosmos_db import fetch_latest_transaction_number, fetch_account_by_number, \
+from src.app.services.azure_document_db import fetch_latest_transaction_number, fetch_account_by_number, \
     create_transaction_record, \
     patch_account_record, fetch_transactions_by_date_range
 
@@ -1412,4 +1423,4 @@ Proceed to [Multi-Agent Orchestration](./Module-04.md)
 
 - [LangGraph](https://langchain-ai.github.io/langgraph/concepts/)
 - [Azure OpenAI Service documentation](https://learn.microsoft.com/azure/cognitive-services/openai/)
-- [Azure Cosmos DB Vector Database](https://learn.microsoft.com/azure/cosmos-db/vector-database)
+- [Integrated Vector Store - Azure DocumentDB](https://learn.microsoft.com/azure/documentdb/vector-search)

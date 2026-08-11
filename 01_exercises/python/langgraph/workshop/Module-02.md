@@ -4,26 +4,26 @@
 
 ## Introduction
 
-In this Module, you'll connect your agent to Azure Cosmos DB for memory and state management for your agents to provide durability and context-awareness in your agent interactions.
+In this module, you'll connect your agent to Azure DocumentDB for durable memory and state management, providing context awareness across agent interactions.
 
 ## Learning Objectives and Activities
 
-- Learn the basics for Azure Cosmos DB for storing state and chat history
-- Learn how to integrate agent framworks to Azure Cosmos DB
-- Test connectivity to Azure Cosmos DB works
+- Learn the basics of Azure DocumentDB databases and collections for storing state and chat history
+- Learn how to integrate LangGraph with Azure DocumentDB through its MongoDB-compatible endpoint
+- Test connectivity to Azure DocumentDB using Microsoft Entra OIDC authentication
 
 ## Module Exercises
 
-1. [Activity 1: Connecting Agent Frameworks to Azure Cosmos DB](#activity-1-connecting-agent-frameworks-to-azure-cosmos-db)
+1. [Activity 1: Connecting LangGraph to Azure DocumentDB](#activity-1-connecting-langgraph-to-azure-documentdb)
 2. [Activity 2: Test your Work](#activity-2-test-your-work)
 
-## Activity 1: Connecting Agent Frameworks to Azure Cosmos DB
+## Activity 1: Connecting LangGraph to Azure DocumentDB
 
-Here you will learn how to initialize Azure Cosmos DB and integrate with LangGraph to provide persistent memory for state management.
+Here you will learn how the application initializes Azure DocumentDB through PyMongo and integrates it with LangGraph to provide persistent state.
 
-The problem with our agents so far is that state is only maintained in memory and is lost when the agent graph is restarted. To solve this problem, we will use Azure Cosmos DB to store the state of the agent. Azure Cosmos DB is a distributed NoSQL database service in Azure. It is designed to for applications requiring low latency and high availability. It is especially adept at handling massive volumes of data with high-concurrency. And its schema-agnostic design makes it ideally suited for theset types of applications. We will also use Azure Cosmos DB to store chat history.
+The problem with our agents so far is that state is maintained only in memory and is lost when the graph restarts. Azure DocumentDB provides a MongoDB-compatible document database for durable checkpoints and chat history. The workshop deploys an M30 cluster and uses Microsoft Entra OIDC instead of database keys or connection strings.
 
-Adding state management using Cosmos DB is easy with the checkpointer plugin.
+LangGraph's MongoDB checkpointer stores this state in Azure DocumentDB.
 
 ### Checkpointer Plugin
 
@@ -45,10 +45,12 @@ Let's add the Checkpointer Plugin to our application.
 1. Copy the code below to the top of the file with the other imports:
 
 ```python
-from langgraph_checkpoint_cosmosdb import CosmosDBSaver
-from src.app.services.azure_cosmos_db import DATABASE_NAME, checkpoint_container, chat_container, update_chat_container, \
+from langgraph.checkpoint.mongodb import AsyncMongoDBSaver, MongoDBSaver
+from src.app.services.azure_document_db import DATABASE_NAME, async_documentdb_client, chat_container, documentdb_client, update_chat_container, \
     patch_active_agent
 ```
+
+The imported `documentdb_client` is created in `src/app/services/azure_document_db.py`. That module uses `DefaultAzureCredential`, a PyMongo `OIDCCallback`, and the `MONGODB-OIDC` authentication mechanism against the cluster named by `DOCUMENTDB_CLUSTER_NAME`. `DOCUMENTDB_DATABASE_NAME` optionally overrides the default `MultiAgentBanking` database.
 
 1. In the same **banking_agents.py** file, scroll down to locate the following lines:
 
@@ -60,17 +62,28 @@ graph = builder.compile(checkpointer=checkpointer)
 1. Replace those two lines with the code below:
 
 ```python
-checkpointer = CosmosDBSaver(database_name=DATABASE_NAME, container_name=checkpoint_container)
-graph = builder.compile(checkpointer=checkpointer)
+checkpointer = MongoDBSaver(
+    documentdb_client,
+    db_name=DATABASE_NAME,
+    checkpoint_collection_name="Checkpoints",
+    writes_collection_name="CheckpointWrites",
+)
+async_checkpointer = AsyncMongoDBSaver(
+    async_documentdb_client,
+    db_name=DATABASE_NAME,
+    checkpoint_collection_name="Checkpoints",
+    writes_collection_name="CheckpointWrites",
+)
+graph = builder.compile(checkpointer=async_checkpointer)
 ```
 
-From this point on, the agent will save its state to Azure Cosmos DB. The *CosmosDBSaver* class will save the state of the agent to the database represented by the global variable, `DATABASE_NAME` in the *checkpoint_container* container.
+From this point on, `AsyncMongoDBSaver` saves agent checkpoints and intermediate writes for the async graph. The synchronous `MongoDBSaver` remains available to the API for administrative operations against the same collections.
 
 ### Enhance the agent routing
 
-When you wired up the API layer in Module 1, Cosmos DB began storing a history of chat messages. These messages are stored for convenience, while state is being stored in the checkpoint container in Cosmos DB using the code you added above.
+When you wired up the API layer in Module 1, Azure DocumentDB began storing chat messages. Chat records are stored for application use, while LangGraph state is stored in the checkpoint collections configured above.
 
-In this application, we're taking an opinionated approach to agent routing. Instead of relying on the coordinator to use the LLM to route messages in a non-deterministic manner to the appropriate agent based on the context, we're going to store the "active agent" in the chat container in Cosmos DB (a single record maintained for each session). We're choosing to do this so that the coordinator can always deterministically route back to the active agent (if known) in a multi-turn conversation.
+In this application, we're taking an opinionated approach to agent routing. Instead of relying on the coordinator to use the LLM to route every message non-deterministically, we store the active agent in the `ChatsData` collection as one record per session. This lets the coordinator deterministically return to a known active agent in a multi-turn conversation.
 
 1. Remain in the **banking_agents.py** file.
 1. Locate the following code.
@@ -91,13 +104,13 @@ def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coo
 
     logging.debug(f"Calling coordinator agent with Thread ID: {thread_id}")
 
-    # Get the active agent from Cosmos DB with a point lookup
-    partition_key = [tenantId, userId, thread_id]
     activeAgent = None
     try:
-        activeAgent = chat_container.read_item(
-            item=thread_id, 
-            partition_key=partition_key).get('activeAgent', 'unknown')
+        chat = chat_container.find_one(
+            {"tenantId": tenantId, "userId": userId, "sessionId": thread_id},
+            {"_id": 0, "activeAgent": 1},
+        )
+        activeAgent = (chat or {}).get("activeAgent", "unknown")
 
     except Exception as e:
         logging.debug(f"No active agent found: {e}")
@@ -160,14 +173,14 @@ The *patch_active_agent* function is used to store which agent is currently acti
 
 In this activity, we completed the following key steps:
 
-- **Stored the active agent in Cosmos DB**:  
-  We added logic to persist the current "active agent" in Azure Cosmos DB. Before routing, we check if an agent is already active—if so, the system routes the conversation directly to that agent without relying on further reasoning.
+- **Stored the active agent in Azure DocumentDB**:
+    We added logic to persist the current active agent in the `ChatsData` collection. Before routing, we check whether an agent is already active. If so, the system routes the conversation directly to that agent without further reasoning.
 
 - **Enabled persistent state**:  
-  We configured the application to store conversation state in Cosmos DB, ensuring the data persists beyond the current runtime session and can be retrieved across sessions or restarts.
+    We configured the application to store conversation state in the `Checkpoints` and `CheckpointWrites` collections, ensuring the data persists beyond the current runtime session.
 
 - **Patched the active agent after agent transfer**:  
-  After handing off to a new agent, we update the `activeAgent` field in the Cosmos DB `Chat` container. This ensures deterministic, turn-by-turn routing—especially when it's known which agent asked the last question.
+    After handing off to a new agent, we update the `activeAgent` field in the Azure DocumentDB `ChatsData` collection. This ensures deterministic, turn-by-turn routing when the last active agent is known.
 
 > **Note**: While it's technically possible to rely on the LLM to determine the next agent using reasoning alone, this approach is generally less reliable and may not be suitable for scenarios requiring consistency and control.
 
@@ -191,19 +204,19 @@ You should see your query being routed to the customer support agent and a respo
 Let's prove that agent state is preserved.
 
 1. Stay in your browser, and return to the Azure Portal.
-1. Open the Cosmos DB account deployed with this lab.
-1. Navigate to Data Explorer within the Cosmos DB blade.
-1. Locate and open the ChatHistory container.
+1. Open the Azure DocumentDB cluster deployed with this lab.
+1. Use a MongoDB-compatible data explorer or client authenticated with Microsoft Entra ID.
+1. Open the `MultiAgentBanking` database and inspect the `ChatHistory` collection.
 1. You should see the chat history stored there.
 
-You may also want to look at the checkpoints container in your Cosmos DB account. You should see the agent state stored there. The data is generated by LangGraph. There is much more data stored in this container as it is not only maintaining the chat history, but also the state of the agent, and any other agent, including computations in between transfers. This allows for a richer conversational experience as the full agent state is remembered and checkpointed regularly.
+Also inspect the `Checkpoints` and `CheckpointWrites` collections. LangGraph generates these documents to preserve graph state and intermediate writes between transfers, allowing the full agent state to be restored across turns and process restarts.
 
 ## Validation Checklist
 
 Your implementation is successful if:
 
 - [ ] Your app compiles with no warnings or errors.
-- [ ] Your agent successfully connects to Azure Cosmos DB.
+- [ ] Your agent successfully connects to Azure DocumentDB through Entra OIDC.
 
 ### Module Solution
 
@@ -226,8 +239,8 @@ from langgraph.types import Command, interrupt
 from langgraph.checkpoint.memory import MemorySaver
 from src.app.services.azure_open_ai import model
 from src.app.tools.coordinator import create_agent_transfer
-from langgraph_checkpoint_cosmosdb import CosmosDBSaver
-from src.app.services.azure_cosmos_db import DATABASE_NAME, checkpoint_container, chat_container, update_chat_container, \
+from langgraph.checkpoint.mongodb import AsyncMongoDBSaver, MongoDBSaver
+from src.app.services.azure_document_db import DATABASE_NAME, async_documentdb_client, chat_container, documentdb_client, update_chat_container, \
     patch_active_agent
 
 local_interactive_mode = False
@@ -273,13 +286,13 @@ def call_coordinator_agent(state: MessagesState, config) -> Command[Literal["coo
 
     logging.debug(f"Calling coordinator agent with Thread ID: {thread_id}")
 
-    # Get the active agent from Cosmos DB with a point lookup
-    partition_key = [tenantId, userId, thread_id]
     activeAgent = None
     try:
-        activeAgent = chat_container.read_item(
-            item=thread_id,
-            partition_key=partition_key).get('activeAgent', 'unknown')
+        chat = chat_container.find_one(
+            {"tenantId": tenantId, "userId": userId, "sessionId": thread_id},
+            {"_id": 0, "activeAgent": 1},
+        )
+        activeAgent = (chat or {}).get("activeAgent", "unknown")
 
     except Exception as e:
         logging.debug(f"No active agent found: {e}")
@@ -338,8 +351,19 @@ builder.add_node("human", human_node)
 
 builder.add_edge(START, "coordinator_agent")
 
-checkpointer = CosmosDBSaver(database_name=DATABASE_NAME, container_name=checkpoint_container)
-graph = builder.compile(checkpointer=checkpointer)
+checkpointer = MongoDBSaver(
+    documentdb_client,
+    db_name=DATABASE_NAME,
+    checkpoint_collection_name="Checkpoints",
+    writes_collection_name="CheckpointWrites",
+)
+async_checkpointer = AsyncMongoDBSaver(
+    async_documentdb_client,
+    db_name=DATABASE_NAME,
+    checkpoint_collection_name="Checkpoints",
+    writes_collection_name="CheckpointWrites",
+)
+graph = builder.compile(checkpointer=async_checkpointer)
 hardcoded_thread_id = "hardcoded-thread-id-01"
 
 
@@ -394,4 +418,4 @@ Proceed to [Agent Specialization](./Module-03.md)
 
 - [LangGraph](https://langchain-ai.github.io/langgraph/concepts/)
 - [Azure OpenAI Service documentation](https://learn.microsoft.com/azure/cognitive-services/openai/)
-- [Azure Cosmos DB Vector Database](https://learn.microsoft.com/azure/cosmos-db/vector-database)
+- [Integrated Vector Store - Azure DocumentDB](https://learn.microsoft.com/azure/documentdb/vector-search)

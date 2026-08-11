@@ -1,6 +1,6 @@
 # Multi Agent Workshop using Semantic Kernel in C#
 
-This module contains the completed files for the exercises. To run the multi-agent application using Azure Cosmos DB and Semantic Kernel in C#, follow these steps:
+This module contains the completed files for the exercises. To run the multi-agent application using Azure DocumentDB and Microsoft Agent Framework in C#, follow these steps:
 
 1. Deploy the required Azure resources.
 2. Run the application locally and view the demo.
@@ -19,7 +19,7 @@ Let's clone the repository to download the files to your machine.
 4. Clone the GitHub repository by running the following command:
 
 ```shell
-git clone --branch HOL_v2_AFandLangGraph https://github.com/AzureCosmosDB/banking-multi-agent-workshop.git C:\repos\HOL_AFandLangGraph
+git clone --branch HOL_v2_AFandLangGraph_DocumentDB https://github.com/AzureCosmosDB/banking-multi-agent-workshop.git C:\repos\HOL_AFandLangGraph_DocumentDB
 ```
 
 ### Resource Provisioning
@@ -54,14 +54,34 @@ azd up
 1. Click on the Deployments and watch until the status of all deployed resources shows as Succeeded.
 1. Your screen should appear as below.
 
-![deployments](./media/deployments.png)
+![deployments](../media/deployments.png)
+
+### Local Configuration
+
+The checked-in `src/MultiAgentCopilot/appsettings.json` intentionally leaves the Azure DocumentDB cluster name, Microsoft Foundry endpoint, and managed identity client ID blank. After `azd up`, the post-provision hook writes these deployment-specific values to `src/MultiAgentCopilot/appsettings.development.json`. This generated file is excluded from Git.
+
+Before starting the backend, verify that the generated file contains non-empty values for:
+
+- `DocumentDBSettings.ClusterName`
+- `AgentFrameworkServiceSettings.AzureOpenAISettings.Endpoint`
+- `AgentFrameworkServiceSettings.AzureOpenAISettings.EmbeddingsDeployment`
+- `AgentFrameworkServiceSettings.AzureOpenAISettings.CompletionsDeployment`
+
+ASP.NET Core loads `appsettings.development.json` after `appsettings.json`, so the generated values override the blank template values. For a manual local run without the generated file, set equivalent environment variables in the same PowerShell terminal before running the application:
+
+```powershell
+$env:DocumentDBSettings__ClusterName="<documentdb-cluster-name>"
+$env:AgentFrameworkServiceSettings__AzureOpenAISettings__Endpoint="https://<foundry-resource-name>.cognitiveservices.azure.com/"
+$env:AgentFrameworkServiceSettings__AzureOpenAISettings__EmbeddingsDeployment="text-embedding-3-small"
+$env:AgentFrameworkServiceSettings__AzureOpenAISettings__CompletionsDeployment="gpt-4.1-mini"
+```
 
 ## Running the App
 
 ### 1. Start the Backend App
 
 1. Open the PowerShell terminal on the Start bar.
-1. Navigate to `C:\repos\HOL_AFandLangGraph\banking-multi-agent-workshop\csharp\src\MultiAgentCopilot`.
+1. Navigate to `C:\repos\HOL_AFandLangGraph_DocumentDB\02_completed\csharp\src\MultiAgentCopilot`.
 1. Type `code .`
 1. Open the Terminal in VS Code.
 1. Type `dotnet run` to start the multi-agent service.
