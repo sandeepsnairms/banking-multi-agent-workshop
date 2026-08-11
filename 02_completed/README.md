@@ -29,7 +29,7 @@ After testing, set `documentDbFirewallStartIpAddress` and `documentDbFirewallEnd
 
 ### Region Availability
 
-This template uses gpt-4.1-mini and text-embedding-3-small models which may not be available in all Azure regions. Check for [up-to-date region availability](https://learn.microsoft.com/azure/ai-services/openai/concepts/models#standard-deployment-model-availability) and select a region during deployment accordingly.
+This template uses gpt-5-mini and text-embedding-3-small models which may not be available in all Azure regions. Check for [up-to-date region availability](https://learn.microsoft.com/azure/ai-services/openai/concepts/models#standard-deployment-model-availability) and select a region during deployment accordingly.
 
 ### Costs
 

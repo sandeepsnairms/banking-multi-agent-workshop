@@ -15,9 +15,9 @@ If you prefer to view the final code, see the [exercises](../../../02_completed/
 
 Let's clone the repository to download the files to your machine.
 
-1. Create a working directory on your machine, for example: `C:\repos\HOL_AFandLangGraph`.
+1. Create a working directory on your machine, for example: `C:\repos`.
 2. Open PowerShell from the Start menu.
-3. Navigate to the `C:\repos\HOL_AFandLangGraph` folder.
+3. Navigate to the `C:\repos` folder.
 4. Clone the GitHub repository by running the following command:
 
 ```shell
@@ -28,10 +28,10 @@ git clone --branch HOL_v2_AFandLangGraph_DocumentDB https://github.com/AzureCosm
 
 Let's deploy the Azure Services needed to run the application.
 
-1. Open the PowerShell terminal on the Start Bar and navigate to the multi-agent-hol folder.
+1. Open the PowerShell terminal from the Start menu and navigate to the exercise folder.
 
 ```shell
-cd C:\repos\HOL_AFandLangGraph\01_exercises\
+cd C:\repos\HOL_AFandLangGraph_DocumentDB\01_exercises
 ```
 
 1. Authenticate  yourself
@@ -48,7 +48,7 @@ azd up
 
 1. For environment name enter: `agenthol`
 1. Press enter to select the subscription listed.
-1. Press enter to select the default region listed.
+1. Select **Australia East** as the region.
 
 1. Return to the Azure Portal and refresh the list of resource groups. You may need to refresh a few times.
 1. Select the *rg-agenthol* resource group.
@@ -75,7 +75,7 @@ ASP.NET Core loads `appsettings.development.json` after `appsettings.json`, so t
 $env:DocumentDBSettings__ClusterName="<documentdb-cluster-name>"
 $env:AgentFrameworkServiceSettings__AzureOpenAISettings__Endpoint="https://<foundry-resource-name>.cognitiveservices.azure.com/"
 $env:AgentFrameworkServiceSettings__AzureOpenAISettings__EmbeddingsDeployment="text-embedding-3-small"
-$env:AgentFrameworkServiceSettings__AzureOpenAISettings__CompletionsDeployment="gpt-4.1-mini"
+$env:AgentFrameworkServiceSettings__AzureOpenAISettings__CompletionsDeployment="gpt-5-mini"
 ```
 
 ## Running the App
@@ -83,9 +83,9 @@ $env:AgentFrameworkServiceSettings__AzureOpenAISettings__CompletionsDeployment="
 ### 1. Start the Backend App
 
 1. Open the PowerShell terminal on the Start bar.
-1. Navigate to `C:\repos\HOL_AFandLangGraph\01_exercises\csharp\src\MultiAgentCopilot`.
+1. Navigate to `C:\repos\HOL_AFandLangGraph_DocumentDB\01_exercises\csharp\src\MultiAgentCopilot`.
 
-1 . Execute the below command to add the preview Nugget packages.
+1. Run the following commands to add the Microsoft Agent Framework NuGet packages.
 
     ```shell
     dotnet add package Microsoft.Agents.AI --version 1.0.0 --source https://api.nuget.org/v3/index.json
@@ -101,7 +101,7 @@ $env:AgentFrameworkServiceSettings__AzureOpenAISettings__CompletionsDeployment="
 ### 2. Run the Frontend App
 
 1. Within VS Code, open a new terminal.
-1. Navigate to the `frontend` folder, `C:\repos\HOL_AFandLangGraph\01_exercises\frontend`
+1. Navigate to the `frontend` folder, `C:\repos\HOL_AFandLangGraph_DocumentDB\01_exercises\frontend`.
 1. Copy and run the following:
 
    ```sh
@@ -122,7 +122,9 @@ $env:AgentFrameworkServiceSettings__AzureOpenAISettings__CompletionsDeployment="
    Hello, how are you?
    ```
 
-1. You should see something like the output below.
+1. The starter application should echo the message as `##Replaying user Message: Hello, how are you? ##` from **Starter Agent**. You will replace this placeholder behavior with an AI agent in Module 1.
+
+   You should see something like the output below.
 
    ![Test output](./media/module-00/test-output.png)
 

@@ -73,7 +73,7 @@ ASP.NET Core loads `appsettings.development.json` after `appsettings.json`, so t
 $env:DocumentDBSettings__ClusterName="<documentdb-cluster-name>"
 $env:AgentFrameworkServiceSettings__AzureOpenAISettings__Endpoint="https://<foundry-resource-name>.cognitiveservices.azure.com/"
 $env:AgentFrameworkServiceSettings__AzureOpenAISettings__EmbeddingsDeployment="text-embedding-3-small"
-$env:AgentFrameworkServiceSettings__AzureOpenAISettings__CompletionsDeployment="gpt-4.1-mini"
+$env:AgentFrameworkServiceSettings__AzureOpenAISettings__CompletionsDeployment="gpt-5-mini"
 ```
 
 ## Running the App

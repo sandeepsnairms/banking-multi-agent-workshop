@@ -16,6 +16,21 @@
     },
     "owner": {
       "value": "${OWNER_EMAIL}"
+    },
+    "resourceGroupName": {
+      "value": "${AZURE_RESOURCE_GROUP}"
+    },
+    "chatDeploymentSkuName": {
+      "value": "${AZURE_OPENAI_CHAT_DEPLOYMENT_SKU=GlobalStandard}"
+    },
+    "existingOpenAIAccountName": {
+      "value": "${AZURE_OPENAI_ACCOUNT_NAME=}"
+    },
+    "existingOpenAIResourceGroupName": {
+      "value": "${AZURE_OPENAI_RESOURCE_GROUP_NAME=}"
+    },
+    "existingOpenAIEndpoint": {
+      "value": "${AZURE_OPENAI_ENDPOINT=}"
     }
   }
 }

@@ -18,7 +18,7 @@ To run the multi-agent application using Azure DocumentDB and LangGraph in Pytho
 
   #### Checking Azure OpenAI quota limits
 
-   For this sample to deploy successfully, there needs to be enough Azure OpenAI quota for the models used by this sample within your subscription. This sample deploys **gpt-4.1-mini** and **text-embedding-3-small**. For more information on how to check your model quota and change it, see [Manage Azure OpenAI Service Quota](https://learn.microsoft.com/azure/ai-services/openai/how-to/quota)
+   For this sample to deploy successfully, there needs to be enough Azure OpenAI quota for the models used by this sample within your subscription. This sample deploys **gpt-5-mini** and **text-embedding-3-small**. For more information on how to check your model quota and change it, see [Manage Azure OpenAI Service Quota](https://learn.microsoft.com/azure/ai-services/openai/how-to/quota)
 
   #### Azure Subscription Permission Requirements
 
@@ -100,7 +100,7 @@ You can run this sample app using GitHub Codespaces (requires a GitHub account).
 
    This step will take approximately 10-15 minutes and will:
    - Provision the Azure DocumentDB cluster with Microsoft Entra authentication
-   - Configure the `gpt-4.1-mini` and `text-embedding-3-small` Microsoft Foundry deployments
+   - Configure the `gpt-5-mini` and `text-embedding-3-small` Microsoft Foundry deployments
    - Configure managed identity and role assignments
    - Generate local `.env` and `appsettings.development.json` files
    - Load the sample banking data

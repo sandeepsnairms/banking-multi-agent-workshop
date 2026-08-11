@@ -43,7 +43,7 @@ The MCP endpoint is `http://localhost:8080/mcp/` by default.
 | `DOCUMENTDB_DATABASE_NAME` | Workshop database name | `MultiAgentBanking` |
 | `AZURE_OPENAI_ENDPOINT` | Microsoft Foundry endpoint | Required |
 | `AZURE_OPENAI_EMBEDDINGDEPLOYMENTID` | Embedding deployment | `text-embedding-3-small` |
-| `AZURE_OPENAI_COMPLETIONSDEPLOYMENTID` | Completion deployment | `gpt-4.1-mini` |
+| `AZURE_OPENAI_COMPLETIONSDEPLOYMENTID` | Completion deployment | `gpt-5-mini` |
 | `MCP_AUTH_TOKEN` | Development bearer token | Optional |
 | `MCP_SERVER_BASE_URL` | Base URL announced by the server | `http://localhost:8080` |
 | `PORT` | Listening port | `8080` |
