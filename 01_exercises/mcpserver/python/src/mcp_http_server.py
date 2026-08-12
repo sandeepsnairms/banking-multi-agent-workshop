@@ -26,6 +26,13 @@ from services.azure_document_db import (
     fetch_transactions_by_date_range,
 )
 
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+    except AttributeError:
+        pass
+
 # Configure logging for debugging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -203,12 +210,12 @@ logger.info("✅ Registered transfer_to_transactions_agent")
 
 @mcp.tool()
 @traceable
-def get_offer_information(user_prompt: str, accountType: str) -> list[dict[str, Any]]:
+def get_offer_information(user_prompt: str, accountType: str, tenantId: str) -> list[dict[str, Any]]:
     """Provide information about a product based on the user prompt.
     Takes as input the user prompt as a string."""
     # Perform a vector search on Azure DocumentDB and return results to the agent
     vectors = generate_embedding(user_prompt)
-    search_results = vector_search(vectors, accountType)
+    search_results = vector_search(vectors, accountType, tenantId)
     return search_results
 
 

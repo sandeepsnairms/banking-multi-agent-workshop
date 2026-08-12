@@ -370,15 +370,13 @@ Now that we can build Agents, we can make the agent build process dynamic based 
 
 ## Activity 6: Semantic Search
 
-The Sales Agent performs vector search in Azure DocumentDB to find banking products and services. Each offer owns a bounded `terms` array and has a top-level aggregate vector derived from its term vectors. In this activity, you will inspect the `offers-vector-ivf` index created on the `Offers.vector` field, search the parent offers, and unwind their embedded terms through `MongoDB.Driver`.
+The Sales Agent performs vector search in Azure DocumentDB to find banking products and services. Each offer owns a bounded array of term strings and has a top-level aggregate vector derived from the source term vectors. In this activity, you will inspect the `offers-vector-ivf` index created on the `Offers.vector` field, search the parent offers, apply normal MongoDB filters, and return their term strings through `MongoDB.Driver`.
 
-### Create Data Model for Vector Search
-
-Data Models used for Vector Search in Semantic Kernel need to be enhanced with additional attributes. We will use **OfferTerm** as vector search enabled data model.
+### Review the Offer Data Model
 
 1. In VS Code, navigate to the **Banking** project.
 1. Navigate to the **/Models** folder.
-1. Review the **OfferTerm.cs** class. Notice Vector attribute is of type `ReadOnlyMemory<float>`
+1. Review the **Offer.cs** class. The `Terms` property is a `List<string>`, while the vector used for semantic search is stored once on the parent offer.
 
 
 ### Initialize the Embedding client to vectorize terms
@@ -405,7 +403,7 @@ Data Models used for Vector Search in Semantic Kernel need to be enhanced with a
 1. Search for **//TO DO: Update SearchOfferTermsAsync** and replace the code for **SearchOfferTermsAsync()** method with the code below.
 
 ```csharp
-        public async Task<List<OfferTerm>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription)
+        public async Task<List<string>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription)
         {
             try
             {
@@ -417,13 +415,7 @@ Data Models used for Vector Search in Semantic Kernel need to be enhanced with a
                         {
                             { "vector", vector },
                             { "path", "vector" },
-                            { "k", 10 },
-                            { "filter", new BsonDocument("$and", new BsonArray
-                                {
-                                    new BsonDocument("tenantId", new BsonDocument("$eq", tenantId)),
-                                    new BsonDocument("accountType", new BsonDocument("$eq", accountType.ToString()))
-                                })
-                            }
+                            { "k", 10 }
                         }
                     },
                     { "returnStoredSource", true }
@@ -432,13 +424,25 @@ Data Models used for Vector Search in Semantic Kernel need to be enhanced with a
                     .Aggregate<BsonDocument>(new[]
                     {
                         search,
+                        new BsonDocument("$match", new BsonDocument
+                        {
+                            { "tenantId", tenantId },
+                            { "accountType", accountType.ToString() }
+                        }),
                         new BsonDocument("$limit", 10),
                         new BsonDocument("$unwind", "$terms"),
-                        new BsonDocument("$replaceRoot", new BsonDocument("newRoot", "$terms")),
+                        new BsonDocument("$project", new BsonDocument
+                        {
+                            { "_id", 0 },
+                            { "term", "$terms" }
+                        }),
                         new BsonDocument("$limit", 10)
                     })
                     .ToListAsync();
-                return Convert<OfferTerm>(documents);
+                return documents
+                    .Where(document => document.TryGetValue("term", out BsonValue? term) && term.IsString)
+                    .Select(document => document["term"].AsString)
+                    .ToList();
             }
             catch (Exception ex)
             {
@@ -1260,7 +1264,7 @@ namespace Banking.Services
   <summary>Completed code for <strong>\Banking\Services\BankingDataService.cs</strong></summary>
 <br>
 
-> The authoritative completed implementation is `02_completed/csharp/src/Banking/Services/BankingDataService.cs`. Use that file for the module solution; it queries the normalized `Accounts`, `Transactions`, `ServiceRequests`, and `Offers` collections. Offer terms are embedded in each offer, so semantic search targets the aggregate `Offers.vector` and then unwinds the matching `terms` array.
+> The authoritative completed implementation is `02_completed/csharp/src/Banking/Services/BankingDataService.cs`. Use that file for the module solution; it queries the normalized `Accounts`, `Transactions`, `ServiceRequests`, and `Offers` collections. Offer terms are strings embedded in each offer. Semantic search targets the aggregate `Offers.vector`, applies `tenantId` and `accountType` with a normal `$match` stage, and returns the matching strings.
 </details>
 <details>
   <summary>Completed code for <strong>\MultiAgentCopilot\Factories\AgentFactory.cs</strong></summary>

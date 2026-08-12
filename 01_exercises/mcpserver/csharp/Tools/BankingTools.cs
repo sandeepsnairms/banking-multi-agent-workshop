@@ -54,7 +54,7 @@ public class BankingTools
     }
 
     [McpServerTool, Description("Search for banking offers and products using semantic search [TAGS: Offers]")]
-    public async Task<List<OfferTerm>> SearchOffers(
+    public async Task<List<string>> SearchOffers(
         string accountType,
         string requirement,
         string? tenantId = null)
@@ -83,7 +83,7 @@ public class BankingTools
         catch (Exception ex)
         {
             _logger.LogError(ex, "SearchOffers failed with exception");
-            return new List<OfferTerm>();
+            return new List<string>();
         }
     }
 

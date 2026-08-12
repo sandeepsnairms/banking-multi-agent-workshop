@@ -37,7 +37,6 @@ try:
     model = AzureChatOpenAI(
         azure_deployment=azure_deployment_name,
         api_version=azure_openai_api_version,
-        temperature=0,
         azure_ad_token=azure_ad_token
     )
     aoai_client = AzureOpenAI(

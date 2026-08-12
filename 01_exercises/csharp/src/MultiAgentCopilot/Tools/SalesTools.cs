@@ -20,7 +20,7 @@ namespace MultiAgentCopilot.Tools
         }
 
         [Description("Search offer terms of all available offers using vector search")]
-        public async Task<List<OfferTerm>> SearchOfferTerms(string tenantId, string userId,AccountType accountType, string requirementDescription)
+        public async Task<List<string>> SearchOfferTerms(string tenantId, string userId,AccountType accountType, string requirementDescription)
         {
             _logger.LogTrace($"Searching terms of all available offers matching '{requirementDescription}'");
             return await _bankService.SearchOfferTermsAsync(tenantId, accountType, requirementDescription);

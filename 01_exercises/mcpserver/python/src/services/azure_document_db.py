@@ -97,7 +97,7 @@ def _upsert(collection, data):
     collection.replace_one(query, data, upsert=True)
 
 
-def vector_search(vectors, accountType):
+def vector_search(vectors, accountType, tenantId):
     if not is_documentdb_available():
         logging.error("MCP Server: Azure DocumentDB is unavailable")
         return []
@@ -110,17 +110,14 @@ def vector_search(vectors, accountType):
                             "cosmosSearch": {
                                 "vector": vectors,
                                 "path": "vector",
-                                "k": 3,
-                                "filter": {"accountType": {"$eq": accountType}},
+                                "k": 10,
                             },
                             "returnStoredSource": True,
                         }
                     },
+                    {"$match": {"tenantId": tenantId, "accountType": accountType}},
                     {"$limit": 3},
-                    {"$unwind": "$terms"},
-                    {"$replaceRoot": {"newRoot": "$terms"}},
-                    {"$project": {"_id": 0, "offerId": 1, "text": 1, "name": 1}},
-                    {"$limit": 3},
+                    {"$project": {"_id": 0, "id": 1, "name": 1, "description": 1, "accountType": 1, "terms": 1}},
                 ]
             )
         )

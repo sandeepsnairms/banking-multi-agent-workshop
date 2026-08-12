@@ -69,10 +69,10 @@ The MCP server (in `/mcpserver/python/`) provides these banking tools using `@mc
 ```python
 # Example from mcp_http_server.py
 @mcp.tool()
-def get_offer_information(user_prompt: str, accountType: str) -> list[dict[str, Any]]:
+def get_offer_information(user_prompt: str, accountType: str, tenantId: str) -> list[dict[str, Any]]:
     """Provide information about a product based on the user prompt."""
     vectors = generate_embedding(user_prompt)
-    search_results = vector_search(vectors, accountType)
+    search_results = vector_search(vectors, accountType, tenantId)
     return search_results
 
 @mcp.tool()

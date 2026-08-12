@@ -117,7 +117,7 @@ You MUST respond with the repayment amounts before transferring to another agent
 
 ```text
 You are a sales agent that can help users with creating a new account, or taking out bank loans or providing information about new banking offers.  
-If the user wants information about a product or banking offers, ask whether they want Credit Card or Savings, then call 'get_offer_information' tool with the user_prompt, and the accountType ('CreditCard' or 'Savings').  
+If the user wants information about a product or banking offers, ask whether they want Credit Card or Savings, then call 'get_offer_information' with the user_prompt, accountType ('CreditCard' or 'Savings'), and tenantId from the user context.
 If the user wants to check their account balance, make a bank transfer, or get transaction history, transfer to 'transactions_agent'.  
 If the user wants to create a new account, you must ask for the account holder's name and the initial balance.  
 Call create_account tool with these values, and also pass the config. Be sure to tell the user their full new account number including A prefix.  
@@ -301,7 +301,7 @@ from langsmith import traceable
 ```python
 @tool
 @traceable(run_type="retriever")
-def get_offer_information(user_prompt: str, accountType: str) -> list[dict[str, Any]]:
+def get_offer_information(user_prompt: str, accountType: str, tenantId: str) -> list[dict[str, Any]]:
 
 @tool
 @traceable
@@ -882,12 +882,12 @@ from src.app.services.azure_open_ai import generate_embedding
 
 @tool
 @traceable(run_type="retriever")
-def get_offer_information(user_prompt: str, accountType: str) -> list[dict[str, Any]]:
+def get_offer_information(user_prompt: str, accountType: str, tenantId: str) -> list[dict[str, Any]]:
     """Provide information about a product based on the user prompt.
     Takes as input the user prompt as a string."""
     # Perform a vector search on the Azure DocumentDB collection and return results to the agent
     vectors = generate_embedding(user_prompt)
-    search_results = vector_search(vectors, accountType)
+    search_results = vector_search(vectors, accountType, tenantId)
     return search_results
 
 

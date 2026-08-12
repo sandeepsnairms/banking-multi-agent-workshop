@@ -606,13 +606,13 @@ If user wants to take out a loan, you can offer a loan quote. You must ask for t
 When user provides these, calculate the monthly payment using calculate_monthly_payment tool and provide the result as part of the response.
 Do not return the monthly payment tool call output directly to the user, include it with the rest of your response.
 If the user wants to move ahead with the loan, advise that they need to come into the branch to complete the application.
-If the wants information about a product or offer, ask whether they want Credit Card or Savings, then call 'get_offer_information' tool with the user_prompt, and the accountType ('CreditCard' or 'Savings').
+If the user wants information about a product or offer, ask whether they want Credit Card or Savings, then call 'get_offer_information' with the user_prompt, accountType ('CreditCard' or 'Savings'), and tenantId from the user context.
 You MUST respond with the repayment amounts before transferring to another agent.
 ```
 
 ## Activity 3: Semantic Search
 
-We are going to add one more tool that allows semantic product search. Each document in the `Offers` collection owns a bounded `terms` array and stores a top-level aggregate vector derived from those terms. Azure DocumentDB uses the `offers-vector-ivf` index on `Offers.vector`; the MongoDB aggregation performs a `$search` with the `cosmosSearch` operator, then unwinds the matching offers' embedded terms.
+We are going to add one more tool that allows semantic product search. Each document in the `Offers` collection owns a bounded array of term strings and stores a top-level aggregate vector derived from the source term vectors. Azure DocumentDB uses the `offers-vector-ivf` index on `Offers.vector`; the MongoDB aggregation performs a vector-only `$search`, applies `accountType` with a normal `$match` stage, and projects each matching parent offer with its `terms` array.
 
 1. In VS Code, open the file **src/app/tools/sales.py**
 1. Add these imports to the top of the file.
@@ -626,12 +626,12 @@ from src.app.services.azure_open_ai import generate_embedding
 
 ```python
 @tool
-def get_offer_information(user_prompt: str, accountType: str) -> list[dict[str, Any]]:
+def get_offer_information(user_prompt: str, accountType: str, tenantId: str) -> list[dict[str, Any]]:
     """Provide information about a product based on the user prompt.
     Takes as input the user prompt as a string."""
     # Perform a vector search on the Azure DocumentDB collection and return results to the agent
     vectors = generate_embedding(user_prompt)
-    search_results = vector_search(vectors, accountType)
+    search_results = vector_search(vectors, accountType, tenantId)
     return search_results
 ```
 
@@ -1159,12 +1159,12 @@ from src.app.services.azure_open_ai import generate_embedding
 
 
 @tool
-def get_offer_information(user_prompt: str, accountType: str) -> list[dict[str, Any]]:
+def get_offer_information(user_prompt: str, accountType: str, tenantId: str) -> list[dict[str, Any]]:
     """Provide information about a product based on the user prompt.
     Takes as input the user prompt as a string."""
     # Perform a vector search on the Azure DocumentDB collection and return results to the agent
     vectors = generate_embedding(user_prompt)
-    search_results = vector_search(vectors, accountType)
+    search_results = vector_search(vectors, accountType, tenantId)
     return search_results
 
 
@@ -1396,7 +1396,7 @@ If user wants to take out a loan, you can offer a loan quote. You must ask for t
 When user provides these, calculate the monthly payment using calculate_monthly_payment tool and provide the result as part of the response.
 Do not return the monthly payment tool call output directly to the user, include it with the rest of your response.
 If the user wants to move ahead with the loan, advise that they need to come into the branch to complete the application.
-If the wants information about a product or offer, ask whether they want Credit Card or Savings, then call 'get_offer_information' tool with the user_prompt, and the accountType ('CreditCard' or 'Savings').
+If the user wants information about a product or offer, ask whether they want Credit Card or Savings, then call 'get_offer_information' with the user_prompt, accountType ('CreditCard' or 'Savings'), and tenantId from the user context.
 You MUST respond with the repayment amounts before transferring to another agent.
 ```
 </details>

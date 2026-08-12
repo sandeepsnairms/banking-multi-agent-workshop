@@ -48,6 +48,7 @@ await UpsertFileByTypeAsync(database, "AccountsData.json", new Dictionary<string
 });
 await UpsertOffersFileAsync(database, "OffersData.json");
 await UpsertFileAsync(database.GetCollection<BsonDocument>("Users"), "UserData.json");
+await VerifyDataAsync(database);
 Console.WriteLine("Azure DocumentDB data loading complete.");
 
 static async Task MigrateLegacyCollectionAsync(
@@ -79,6 +80,83 @@ static async Task MigrateLegacyOffersAsync(IMongoDatabase database, string legac
         .Find(FilterDefinition<BsonDocument>.Empty)
         .ToListAsync();
     await UpsertOffersAsync(database.GetCollection<BsonDocument>("Offers"), documents, legacyCollectionName);
+}
+
+static async Task UpsertOffersFileAsync(IMongoDatabase database, string fileName)
+{
+    string json = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, fileName));
+    BsonArray items = BsonSerializer.Deserialize<BsonArray>(json);
+    await UpsertOffersAsync(
+        database.GetCollection<BsonDocument>("Offers"),
+        items.Select(item => item.AsBsonDocument),
+        fileName);
+}
+
+static async Task UpsertOffersAsync(
+    IMongoCollection<BsonDocument> collection,
+    IEnumerable<BsonDocument> sourceDocuments,
+    string sourceName)
+{
+    List<BsonDocument> documents = sourceDocuments.ToList();
+    Dictionary<string, List<BsonDocument>> termsByOffer = documents
+        .Where(document => document.GetValue("type", "").AsString == "Term")
+        .GroupBy(document => document["offerId"].AsString)
+        .ToDictionary(group => group.Key, group => group.ToList(), StringComparer.Ordinal);
+
+    List<BsonDocument> offers = [];
+    foreach (BsonDocument sourceOffer in documents.Where(document => document.GetValue("type", "").AsString == "Offer"))
+    {
+        BsonDocument offer = sourceOffer.DeepClone().AsBsonDocument;
+        List<BsonDocument> terms = termsByOffer.GetValueOrDefault(offer["id"].AsString) ?? [];
+        offer["terms"] = new BsonArray(terms
+            .Select(term => term.GetValue("text", "").AsString)
+            .Where(term => !string.IsNullOrWhiteSpace(term))
+            .Distinct(StringComparer.Ordinal));
+        BsonArray? vector = CalculateAggregateVectorOrDefault(terms, sourceName, offer["id"].AsString);
+        if (vector is not null)
+        {
+            offer["vector"] = vector;
+        }
+        offers.Add(offer);
+    }
+
+    await collection.DeleteManyAsync(Builders<BsonDocument>.Filter.Ne("type", "Offer"));
+    await UpsertDocumentsAsync(collection, offers, sourceName);
+}
+
+static BsonArray? CalculateAggregateVectorOrDefault(IReadOnlyCollection<BsonDocument> terms, string sourceName, string offerId)
+{
+    List<double[]> vectors = terms
+        .Where(term => term.TryGetValue("vector", out BsonValue? vector) && vector.IsBsonArray)
+        .Select(term => term["vector"].AsBsonArray.Select(value => value.ToDouble()).ToArray())
+        .ToList();
+    if (vectors.Count == 0)
+    {
+        Console.WriteLine($"Skipping vector aggregation for {offerId} from {sourceName}: no term vectors found.");
+        return null;
+    }
+
+    int dimensions = vectors[0].Length;
+    if (vectors.Any(vector => vector.Length != dimensions))
+    {
+        throw new InvalidDataException($"{sourceName} contains term vectors with inconsistent dimensions.");
+    }
+
+    double[] average = new double[dimensions];
+    foreach (double[] vector in vectors)
+    {
+        for (int index = 0; index < dimensions; index++)
+        {
+            average[index] += vector[index] / vectors.Count;
+        }
+    }
+
+    double magnitude = Math.Sqrt(average.Sum(value => value * value));
+    if (magnitude == 0)
+    {
+        throw new InvalidDataException($"{sourceName} contains an offer with a zero aggregate vector.");
+    }
+    return new BsonArray(average.Select(value => value / magnitude));
 }
 
 static async Task UpsertFileByTypeAsync(
@@ -115,80 +193,6 @@ static async Task UpsertDocumentsByTypeAsync(
     }
 }
 
-static async Task UpsertOffersFileAsync(IMongoDatabase database, string fileName)
-{
-    string json = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, fileName));
-    BsonArray items = BsonSerializer.Deserialize<BsonArray>(json);
-    await UpsertOffersAsync(
-        database.GetCollection<BsonDocument>("Offers"),
-        items.Select(item => item.AsBsonDocument),
-        fileName);
-}
-
-static async Task UpsertOffersAsync(
-    IMongoCollection<BsonDocument> collection,
-    IEnumerable<BsonDocument> sourceDocuments,
-    string sourceName)
-{
-    List<BsonDocument> documents = sourceDocuments.ToList();
-    Dictionary<string, List<BsonDocument>> termsByOffer = documents
-        .Where(document => document.GetValue("type", "").AsString == "Term")
-        .GroupBy(document => document["offerId"].AsString)
-        .ToDictionary(group => group.Key, group => group.ToList(), StringComparer.Ordinal);
-
-    List<BsonDocument> offers = [];
-    foreach (BsonDocument sourceOffer in documents.Where(document => document.GetValue("type", "").AsString == "Offer"))
-    {
-        BsonDocument offer = sourceOffer.DeepClone().AsBsonDocument;
-        List<BsonDocument> terms = termsByOffer.GetValueOrDefault(offer["id"].AsString) ?? [];
-        offer["terms"] = new BsonArray(terms.Select(term =>
-        {
-            BsonDocument embeddedTerm = term.DeepClone().AsBsonDocument;
-            embeddedTerm.Remove("_id");
-            embeddedTerm.Remove("vector");
-            return embeddedTerm;
-        }));
-        offer["vector"] = CalculateAggregateVector(terms, sourceName);
-        offers.Add(offer);
-    }
-
-    await UpsertDocumentsAsync(collection, offers, sourceName);
-}
-
-static BsonArray CalculateAggregateVector(IReadOnlyCollection<BsonDocument> terms, string sourceName)
-{
-    List<double[]> vectors = terms
-        .Where(term => term.TryGetValue("vector", out BsonValue? vector) && vector.IsBsonArray)
-        .Select(term => term["vector"].AsBsonArray.Select(value => value.ToDouble()).ToArray())
-        .ToList();
-    if (vectors.Count == 0)
-    {
-        throw new InvalidDataException($"{sourceName} contains an offer without term vectors.");
-    }
-
-    int dimensions = vectors[0].Length;
-    if (vectors.Any(vector => vector.Length != dimensions))
-    {
-        throw new InvalidDataException($"{sourceName} contains term vectors with inconsistent dimensions.");
-    }
-
-    double[] average = new double[dimensions];
-    foreach (double[] vector in vectors)
-    {
-        for (int index = 0; index < dimensions; index++)
-        {
-            average[index] += vector[index] / vectors.Count;
-        }
-    }
-
-    double magnitude = Math.Sqrt(average.Sum(value => value * value));
-    if (magnitude == 0)
-    {
-        throw new InvalidDataException($"{sourceName} contains an offer with a zero aggregate vector.");
-    }
-    return new BsonArray(average.Select(value => value / magnitude));
-}
-
 static async Task UpsertFileAsync(IMongoCollection<BsonDocument> collection, string fileName)
 {
     string json = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, fileName));
@@ -216,6 +220,69 @@ static async Task UpsertDocumentsAsync(
         await collection.BulkWriteAsync(writes, new BulkWriteOptions { IsOrdered = true });
     }
     Console.WriteLine($"Upserted {writes.Count} documents from {sourceName} into {collection.CollectionNamespace.CollectionName}.");
+}
+
+static async Task VerifyDataAsync(IMongoDatabase database)
+{
+    IMongoCollection<BsonDocument> offers = database.GetCollection<BsonDocument>("Offers");
+    List<BsonDocument> offerDocuments = await offers.Find(FilterDefinition<BsonDocument>.Empty).ToListAsync();
+    if (offerDocuments.Count != 10 || offerDocuments.Any(offer => offer.GetValue("type", "") != "Offer"))
+    {
+        throw new InvalidDataException("Offers must contain exactly the 10 parent offer documents.");
+    }
+    if (offerDocuments.Any(offer => !offer.TryGetValue("terms", out BsonValue? terms) ||
+                                    !terms.IsBsonArray ||
+                                    terms.AsBsonArray.Any(term => !term.IsString)))
+    {
+        throw new InvalidDataException("Every offer terms field must be an array containing only strings.");
+    }
+
+    List<BsonDocument> vectorOffers = offerDocuments
+        .Where(offer => offer.TryGetValue("vector", out BsonValue? vector) && vector.IsBsonArray)
+        .ToList();
+    if (vectorOffers.Count != 3 || vectorOffers.Any(offer => offer["vector"].AsBsonArray.Count != 1536))
+    {
+        throw new InvalidDataException("Expected three offers with 1536-dimension aggregate vectors.");
+    }
+
+    HashSet<string> indexNames = (await (await offers.Indexes.ListAsync()).ToListAsync())
+        .Select(index => index["name"].AsString)
+        .ToHashSet(StringComparer.Ordinal);
+    string[] requiredIndexes = ["offers_tenant_id", "offers_tenant_account_type", "offers-vector-ivf"];
+    if (requiredIndexes.Any(index => !indexNames.Contains(index)))
+    {
+        throw new InvalidDataException("Offers is missing one or more required query indexes.");
+    }
+
+    BsonDocument sourceOffer = vectorOffers.First(offer => offer["accountType"] == "Savings");
+    BsonDocument search = new("$search", new BsonDocument
+    {
+        { "cosmosSearch", new BsonDocument
+            {
+                { "vector", sourceOffer["vector"] },
+                { "path", "vector" },
+                { "k", 10 }
+            }
+        },
+        { "returnStoredSource", true }
+    });
+    List<BsonDocument> results = await offers.Aggregate<BsonDocument>(
+    new[]
+    {
+        search,
+        new BsonDocument("$match", new BsonDocument
+        {
+            { "tenantId", "Contoso" },
+            { "accountType", "Savings" }
+        }),
+        new BsonDocument("$limit", 3)
+    }).ToListAsync();
+    if (results.Count == 0 || results.Any(result => result["tenantId"] != "Contoso" || result["accountType"] != "Savings"))
+    {
+        throw new InvalidDataException("Filtered offer vector search did not return tenant-scoped Savings results.");
+    }
+
+    Console.WriteLine($"Verified {offerDocuments.Count} offers, {indexNames.Count} indexes, and {results.Count} filtered vector results.");
 }
 
 static async Task CreateIndexesAsync(IMongoDatabase database)

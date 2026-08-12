@@ -170,9 +170,9 @@ public class BankingDataService
     }
 
     //TO DO: Update SearchOfferTermsAsync
-    public Task<List<OfferTerm>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription)
+    public Task<List<string>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription)
     {
-        return Task.FromResult<List<OfferTerm>>([]);
+        return Task.FromResult<List<string>>([]);
     }
 
     public async Task<Offer?> GetOfferDetailsAsync(string tenantId, string offerId)

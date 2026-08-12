@@ -20,6 +20,9 @@ resource documentDb 'Microsoft.DocumentDB/mongoClusters@2025-09-01' = {
     compute: {
       tier: 'M30'
     }
+    dataApi: {
+      mode: 'Disabled'
+    }
     highAvailability: {
       targetMode: 'Disabled'
     }
@@ -31,6 +34,7 @@ resource documentDb 'Microsoft.DocumentDB/mongoClusters@2025-09-01' = {
       sizeGb: 32
       type: 'PremiumSSD'
     }
+    serverVersion: '7.0'
   }
   tags: tags
 }

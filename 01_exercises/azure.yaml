@@ -1,4 +1,4 @@
-name: MultiAgentBanking
+name: multi-agent-banking
 metadata:
     template: azd-init@1.5.1
 hooks:

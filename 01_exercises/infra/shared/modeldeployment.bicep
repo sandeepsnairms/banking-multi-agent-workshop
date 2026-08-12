@@ -37,6 +37,8 @@ resource deployment 'Microsoft.CognitiveServices/accounts/deployments@2023-05-01
       format: modelFormat
       version: modelVersion
     }
+    raiPolicyName: 'Microsoft.DefaultV2'
+    versionUpgradeOption: 'OnceNewDefaultVersionAvailable'
   }
 }
 

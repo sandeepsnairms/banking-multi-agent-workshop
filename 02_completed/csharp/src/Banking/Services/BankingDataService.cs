@@ -169,7 +169,7 @@ public class BankingDataService
         }
     }
 
-    public async Task<List<OfferTerm>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription)
+    public async Task<List<string>> SearchOfferTermsAsync(string tenantId, AccountType accountType, string requirementDescription)
     {
         try
         {
@@ -181,13 +181,7 @@ public class BankingDataService
                     {
                         { "vector", vector },
                         { "path", "vector" },
-                        { "k", 10 },
-                        { "filter", new BsonDocument("$and", new BsonArray
-                            {
-                                new BsonDocument("tenantId", new BsonDocument("$eq", tenantId)),
-                                new BsonDocument("accountType", new BsonDocument("$eq", accountType.ToString()))
-                            })
-                        }
+                        { "k", 10 }
                     }
                 },
                 { "returnStoredSource", true }
@@ -196,13 +190,25 @@ public class BankingDataService
                 .Aggregate<BsonDocument>(new[]
                 {
                     search,
+                    new BsonDocument("$match", new BsonDocument
+                    {
+                        { "tenantId", tenantId },
+                        { "accountType", accountType.ToString() }
+                    }),
                     new BsonDocument("$limit", 10),
                     new BsonDocument("$unwind", "$terms"),
-                    new BsonDocument("$replaceRoot", new BsonDocument("newRoot", "$terms")),
+                    new BsonDocument("$project", new BsonDocument
+                    {
+                        { "_id", 0 },
+                        { "term", "$terms" }
+                    }),
                     new BsonDocument("$limit", 10)
                 })
                 .ToListAsync();
-            return Convert<OfferTerm>(documents);
+            return documents
+                .Where(document => document.TryGetValue("term", out BsonValue? term) && term.IsString)
+                .Select(document => document["term"].AsString)
+                .ToList();
         }
         catch (Exception ex)
         {

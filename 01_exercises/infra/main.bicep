@@ -101,7 +101,7 @@ var openAIEndpoint = useExistingOpenAI ? existingOpenAIEndpoint : openAi!.output
 var deployments = [
   {
     name: 'gpt-5-mini'
-    skuCapacity: 30
+    skuCapacity: 150
 	skuName: chatDeploymentSkuName
     modelName: 'gpt-5-mini'
     modelVersion: '2025-08-07'
