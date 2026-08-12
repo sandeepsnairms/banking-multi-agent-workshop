@@ -114,14 +114,18 @@ static async Task UpsertOffersAsync(
             embeddedTerm.Remove("vector");
             return embeddedTerm;
         }));
-        offer["vector"] = CalculateAggregateVector(terms, sourceName);
+        BsonArray? vector = CalculateAggregateVectorOrDefault(terms, sourceName, offer["id"].AsString);
+        if (vector is not null)
+        {
+            offer["vector"] = vector;
+        }
         offers.Add(offer);
     }
 
     await UpsertDocumentsAsync(collection, offers, sourceName);
 }
 
-static BsonArray CalculateAggregateVector(IReadOnlyCollection<BsonDocument> terms, string sourceName)
+static BsonArray? CalculateAggregateVectorOrDefault(IReadOnlyCollection<BsonDocument> terms, string sourceName, string offerId)
 {
     List<double[]> vectors = terms
         .Where(term => term.TryGetValue("vector", out BsonValue? vector) && vector.IsBsonArray)
@@ -129,7 +133,8 @@ static BsonArray CalculateAggregateVector(IReadOnlyCollection<BsonDocument> term
         .ToList();
     if (vectors.Count == 0)
     {
-        throw new InvalidDataException($"{sourceName} contains an offer without term vectors.");
+        Console.WriteLine($"Skipping vector aggregation for {offerId} from {sourceName}: no term vectors found.");
+        return null;
     }
 
     int dimensions = vectors[0].Length;
